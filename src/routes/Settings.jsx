@@ -283,7 +283,7 @@ export default function Settings() {
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Sale Platforms</h2>
+              <h2 className="text-lg font-semibold">Marketplaces</h2>
               <p className="text-xs text-slate-400">Total: {markets.length}</p>
             </div>
             <div className="flex gap-2">
