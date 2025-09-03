@@ -3,23 +3,25 @@ import { useQuery } from '@tanstack/react-query'
 import { NavLink } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 
+/* ---------- Tab styles (rectangular + active color) ---------- */
 const tabBase =
   "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 " +
-  "bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition";
+  "bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
 const tabActive =
-  "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600";
+  "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600"
 
+/* ---------- Buttons used on headers ---------- */
 const actionBtn = "w-[92px] px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100"
 
-// money helpers
+/* ---------- Money helpers ---------- */
 const parseMoney = (v) => {
   const n = Number(String(v ?? '').replace(/[^0-9.\-]/g, ''))
   return isNaN(n) ? 0 : n
 }
 const moneyToCents = (v) => Math.round(parseMoney(v) * 100)
-const centsToStr = (c) => (Number(c || 0) / 100).toString()
+const centsToStr  = (c) => (Number(c || 0) / 100).toString()
 
-/* -------- queries -------- */
+/* ---------- Queries ---------- */
 async function getItems() {
   const { data, error } = await supabase
     .from('items')
@@ -28,7 +30,6 @@ async function getItems() {
   if (error) throw error
   return data
 }
-
 async function getRetailers() {
   const { data, error } = await supabase
     .from('retailers')
@@ -37,40 +38,69 @@ async function getRetailers() {
   if (error) throw error
   return data
 }
-
 async function getMarkets() {
   const { data, error } = await supabase
     .from('marketplaces')
-    .select('id, name, default_fees_pct')
+    .select('id, name, default_fees_pct') // NOTE: using your plural column
     .order('name', { ascending: true })
   if (error) throw error
   return data
 }
 
-async function signOut() {
-  await supabase.auth.signOut()
-  window.location.href = '/login'
-}
-
 export default function Settings() {
-  const { data: items = [], refetch: refetchItems } =
-    useQuery({ queryKey: ['items'], queryFn: getItems })
-  const { data: retailers = [], refetch: refetchRetailers } =
-    useQuery({ queryKey: ['retailers'], queryFn: getRetailers })
-  const { data: markets = [], refetch: refetchMarkets } =
-    useQuery({ queryKey: ['markets'], queryFn: getMarkets })
+  const { data: items = [],     refetch: refetchItems }     = useQuery({ queryKey: ['items'],     queryFn: getItems })
+  const { data: retailers = [], refetch: refetchRetailers } = useQuery({ queryKey: ['retailers'], queryFn: getRetailers })
+  const { data: markets = [],   refetch: refetchMarkets }   = useQuery({ queryKey: ['markets'],   queryFn: getMarkets })
 
   // collapsed by default
-  const [openItems, setOpenItems] = useState(false)
+  const [openItems, setOpenItems]         = useState(false)
   const [openRetailers, setOpenRetailers] = useState(false)
-  const [openMarkets, setOpenMarkets] = useState(false)
+  const [openMarkets, setOpenMarkets]     = useState(false)
 
   // temp rows when adding
-  const [addingItem, setAddingItem] = useState(false)
-  const [addingRetailer, setAddingRetailer] = useState(false)
-  const [addingMarket, setAddingMarket] = useState(false)
+  const [addingItem, setAddingItem]           = useState(false)
+  const [addingRetailer, setAddingRetailer]   = useState(false)
+  const [addingMarket, setAddingMarket]       = useState(false)
 
-  /* ----- CRUD: Items ----- */
+  /* ---------- Current user (Discord avatar/name) ---------- */
+  const [userInfo, setUserInfo] = useState({ avatar_url: '', username: '' })
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (cancelled) return
+      if (!user) return setUserInfo({ avatar_url: '', username: '' })
+      const m = user.user_metadata || {}
+      const username =
+        m.user_name || m.preferred_username || m.full_name || m.name || user.email || 'Account'
+      const avatar_url = m.avatar_url || m.picture || ''
+      setUserInfo({ avatar_url, username })
+    }
+    loadUser()
+
+    const { data: { subscription } } =
+      supabase.auth.onAuthStateChange((_event, session) => {
+        const user = session?.user
+        if (!user) return setUserInfo({ avatar_url: '', username: '' })
+        const m = user.user_metadata || {}
+        const username =
+          m.user_name || m.preferred_username || m.full_name || m.name || user.email || 'Account'
+        const avatar_url = m.avatar_url || m.picture || ''
+        setUserInfo({ avatar_url, username })
+      })
+
+    return () => { cancelled = true; subscription.unsubscribe() }
+  }, [])
+
+  /* ---------- Sign out ---------- */
+  async function signOut() {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
+
+  /* ---------- CRUD: Items ---------- */
   async function createItem(name, mvStr) {
     if (!name?.trim()) return false
     const market_value_cents = moneyToCents(mvStr)
@@ -90,7 +120,7 @@ export default function Settings() {
     if (error) alert(error.message); else await refetchItems()
   }
 
-  /* ----- CRUD: Retailers ----- */
+  /* ---------- CRUD: Retailers ---------- */
   async function createRetailer(name) {
     if (!name?.trim()) return false
     const { error } = await supabase.from('retailers').insert({ name: name.trim() })
@@ -108,7 +138,7 @@ export default function Settings() {
     if (error) alert(error.message); else await refetchRetailers()
   }
 
-  /* ----- CRUD: Marketplaces ----- */
+  /* ---------- CRUD: Marketplaces ---------- */
   async function createMarket(name, feeStr) {
     const feeNum = Number(String(feeStr ?? '').replace('%',''))
     const default_fee_pct = isNaN(feeNum) ? 0 : (feeNum > 1 ? feeNum/100 : feeNum)
@@ -138,55 +168,42 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-6">
-        {/* Header */}
-<div className="flex items-center justify-between mb-6">
-  <h1 className="text-3xl font-bold">OneTrack</h1>
+        {/* Header (avatar + username + sign out) */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">OneTrack</h1>
+          <div className="flex items-center gap-3">
+            {userInfo.avatar_url ? (
+              <img
+                src={userInfo.avatar_url}
+                alt=""
+                className="h-8 w-8 rounded-full border border-slate-800 object-cover"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-slate-800 grid place-items-center text-slate-300 text-xs">
+                {(userInfo.username || 'U').slice(0,1).toUpperCase()}
+              </div>
+            )}
+            <div className="hidden sm:block text-sm text-slate-300 max-w-[160px] truncate">
+              {userInfo.username}
+            </div>
+            <button
+              onClick={signOut}
+              className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
 
-  <div className="flex items-center gap-3">
-    {/* avatar */}
-    {userInfo.avatar_url ? (
-      <img
-        src={userInfo.avatar_url}
-        alt=""
-        className="h-8 w-8 rounded-full border border-slate-800 object-cover"
-      />
-    ) : (
-      <div className="h-8 w-8 rounded-full bg-slate-800 grid place-items-center text-slate-300 text-xs">
-        {(userInfo.username || 'U').slice(0,1).toUpperCase()}
-      </div>
-    )}
-
-    {/* username (hidden on very small screens) */}
-    <div className="hidden sm:block text-sm text-slate-300 max-w-[160px] truncate">
-      {userInfo.username}
-    </div>
-
-    <button
-      onClick={signOut}
-      className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
-    >
-      Sign out
-    </button>
-  </div>
-</div>
-
-{/* Tabs */}
-<div className="flex flex-wrap items-center gap-2 mb-6">
-  <NavLink to="/app" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>
-    Quick Add
-  </NavLink>
-
-  {/* These are placeholders until we wire routes. They use the same rectangular style */}
-  <button className={tabBase}>Mark as Sold</button>
-  <button className={tabBase}>Stats</button>
-  <button className={tabBase}>Inventory</button>
-  <button className={tabBase}>Flex</button>
-
-  <NavLink to="/settings" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>
-    Settings
-  </NavLink>
-</div>
-
+        {/* Tabs */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <NavLink to="/app" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Quick Add</NavLink>
+          <button className={tabBase}>Mark as Sold</button>
+          <button className={tabBase}>Stats</button>
+          <button className={tabBase}>Inventory</button>
+          <button className={tabBase}>Flex</button>
+          <NavLink to="/settings" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Settings</NavLink>
+        </div>
 
         {/* ---------- Items ---------- */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] mb-6">
@@ -449,6 +466,7 @@ function MarketRow({ m, isNew=false, onSave, onDelete }) {
   const [name, setName] = useState(m?.name ?? '')
   const [fee, setFee] = useState(((m?.default_fees_pct ?? 0) * 100).toString())
   const [status, setStatus] = useState('')
+
   async function handleSave() {
     setStatus('Saving…')
     const ok = await onSave(name, fee)
