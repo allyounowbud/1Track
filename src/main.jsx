@@ -2,18 +2,19 @@ import './index.css';
 
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './routes/App.jsx'
 import Login from './routes/Login.jsx'
 import Dashboard from './routes/Dashboard.jsx'
-import Settings from './routes/Settings.jsx'
-
+import Settings from './routes/Settings.jsx'  // <-- make sure filename & case match
 
 const router = createBrowserRouter([
   { path: '/', element: <App /> },
   { path: '/login', element: <Login /> },
   { path: '/app', element: <Dashboard /> },
+  { path: '/settings', element: <Settings /> },   // <-- new route
+  { path: '*', element: <Navigate to="/app" replace /> }, // fallback
 ])
 
 const qc = new QueryClient()
