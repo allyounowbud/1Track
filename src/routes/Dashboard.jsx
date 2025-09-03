@@ -2,17 +2,25 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 
-// --- helpers ---
-const moneyToCents = (v) => {
-  const n = Number(String(v).replace(/[^0-9.\-]/g, ''))
-  return Math.round((isNaN(n) ? 0 : n) * 100)
+// ---------- helpers ----------
+const parseMoney = (v) => {
+  const n = Number(String(v ?? '').replace(/[^0-9.\-]/g, ''))
+  return isNaN(n) ? 0 : n
 }
-const cents = (n) => (Number(n || 0) / 100).toFixed(2)
+const moneyToCents = (v) => Math.round(parseMoney(v) * 100)
+const centsToStr  = (c) => (Number(c || 0) / 100).toFixed(2)
+const parsePct = (v) => {
+  // accepts "9", "9%", "0.09"
+  if (v === '' || v == null) return 0
+  const n = Number(String(v).replace('%',''))
+  if (isNaN(n)) return 0
+  return n > 1 ? n / 100 : n
+}
 
-async function fetchOrders() {
+async function getOrders() {
   const { data, error } = await supabase
     .from('orders')
-    .select('id, order_date, external_order_id, subtotal_cents, tax_cents, shipping_cents, status')
+    .select('id, order_date, item, profile_name, retailer, marketplace, buy_price_cents, sale_price_cents, sale_date, fees_pct, shipping_cents, pl_cents, status')
     .order('order_date', { ascending: false })
     .limit(25)
   if (error) throw error
@@ -20,40 +28,48 @@ async function fetchOrders() {
 }
 
 export default function Dashboard() {
-  const { data: orders, isLoading, error, refetch } = useQuery({ queryKey: ['orders'], queryFn: fetchOrders })
+  const { data: orders, isLoading, error, refetch } = useQuery({ queryKey:['orders'], queryFn:getOrders })
 
-  // Quick Add state (UI-first; we still insert a single row to `orders`)
-  const today = new Date().toISOString().slice(0, 10)
-  const [orderDate, setOrderDate] = useState(today)
-  const [itemTitle, setItemTitle] = useState('')
-  const [retailer, setRetailer] = useState('')
-  const [qty, setQty] = useState(1)
-  const [buyTotal, setBuyTotal] = useState('')
-  const [saleDate, setSaleDate] = useState('')
-  const [saleLoc, setSaleLoc] = useState('')
-  const [sellPrice, setSellPrice] = useState('')
-  const [shipping, setShipping] = useState('0')
+  // ---- Quick Add form state (matches your sheet) ----
+  const today = new Date().toISOString().slice(0,10)
+  const [orderDate, setOrderDate]   = useState(today)
+  const [item, setItem]             = useState('')
+  const [profileName, setProfile]   = useState('')        // optional label
+  const [retailer, setRetailer]     = useState('')
+  const [buyPrice, setBuyPrice]     = useState('')
+  const [salePrice, setSalePrice]   = useState('')
+  const [saleDate, setSaleDate]     = useState('')
+  const [marketplace, setMarket]    = useState('')
+  const [feesPct, setFeesPct]       = useState('0')
+  const [shipping, setShipping]     = useState('0')
+
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
 
-  async function saveOrder(e) {
+  async function saveOrder(e){
     e.preventDefault()
-    setMsg('')
-    setSaving(true)
+    setSaving(true); setMsg('')
     try {
-      const status = moneyToCents(sellPrice) > 0 ? 'sold' : 'ordered'
+      const sale_cents = moneyToCents(salePrice)
+      const status = sale_cents > 0 ? 'sold' : 'ordered'
       const { error } = await supabase.from('orders').insert({
         order_date: orderDate,
-        external_order_id: `${itemTitle || 'Item'}${retailer ? ` @ ${retailer}` : ''}`,
-        subtotal_cents: moneyToCents(buyTotal),
-        tax_cents: 0,
+        item,
+        profile_name: profileName || null,
+        retailer,
+        marketplace,
+        buy_price_cents: Math.abs(moneyToCents(buyPrice)),   // store as positive cost
+        sale_price_cents: sale_cents,
+        sale_date: saleDate || null,
+        fees_pct: parsePct(feesPct),
         shipping_cents: moneyToCents(shipping),
         status,
       })
       if (error) throw error
       setMsg('Saved ✔')
-      setItemTitle(''); setRetailer(''); setQty(1); setBuyTotal('')
-      setSellPrice(''); setShipping('0'); setSaleDate(''); setSaleLoc('')
+      // reset some fields
+      setItem(''); setProfile(''); setRetailer(''); setBuyPrice('')
+      setSalePrice(''); setSaleDate(''); setMarket(''); setFeesPct('0'); setShipping('0')
       await refetch()
     } catch (err) {
       setMsg(String(err.message || err))
@@ -62,27 +78,23 @@ export default function Dashboard() {
     }
   }
 
-  async function signOut() {
+  async function signOut(){
     await supabase.auth.signOut()
     window.location.href = '/login'
   }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-5xl mx-auto p-6">
-
+      <div className="max-w-6xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">OneTrack</h1>
-          <div className="flex items-center gap-2">
-            <button onClick={signOut}
-              className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">
-              Sign out
-            </button>
-          </div>
+          <button onClick={signOut} className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">
+            Sign out
+          </button>
         </div>
 
-        {/* Tabs (static for now) */}
+        {/* Tabs (visual only for now) */}
         <div className="flex flex-wrap gap-2 mb-6">
           <button className="px-4 py-2 rounded-full bg-indigo-600 text-white border border-indigo-600">Quick Add</button>
           <button className="px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900">Mark as Sold</button>
@@ -92,68 +104,74 @@ export default function Dashboard() {
           <button className="px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900">Settings</button>
         </div>
 
-        {/* QUICK ADD FORM */}
+        {/* QUICK ADD (two cards like your old UI) */}
         <form onSubmit={saveOrder} className="space-y-6">
-          {/* Order details card */}
+          {/* Order details */}
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]">
             <h2 className="text-lg font-semibold mb-4">Order details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Order Date</label>
-                <input type="date" className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3
-                  text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={orderDate} onChange={e => setOrderDate(e.target.value)} />
+                <input type="date" className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
+                  value={orderDate} onChange={(e)=>setOrderDate(e.target.value)} />
               </div>
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Item</label>
-                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3
-                  text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Start typing…" value={itemTitle} onChange={e => setItemTitle(e.target.value)} />
+                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Start typing…" value={item} onChange={(e)=>setItem(e.target.value)} />
               </div>
               <div>
-                <label className="text-slate-300 mb-1 block text-sm">Retailer (Bought From)</label>
-                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3
-                  text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Walmart, Target…" value={retailer} onChange={e => setRetailer(e.target.value)} />
+                <label className="text-slate-300 mb-1 block text-sm">Profile name (optional)</label>
+                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
+                  placeholder="name / Testing 1" value={profileName} onChange={(e)=>setProfile(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-slate-300 mb-1 block text-sm">Retailer</label>
+                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Walmart, Target…" value={retailer} onChange={(e)=>setRetailer(e.target.value)} />
               </div>
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Quantity</label>
-                <input type="number" min={1} className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3
-                  text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={qty} onChange={e => setQty(Number(e.target.value || 1))} />
+                <input type="number" min={1} className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
+                  value={1} readOnly />
+                <p className="text-xs text-slate-500 mt-1">We’ll add multi-qty later (order_items). For now this is 1.</p>
               </div>
-              <div className="md:col-span-2">
+              <div>
                 <label className="text-slate-300 mb-1 block text-sm">Buy Price (total)</label>
-                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3
-                  text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="e.g. 329.95" value={buyTotal} onChange={e => setBuyTotal(e.target.value)} />
+                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g. 67.70" value={buyPrice} onChange={(e)=>setBuyPrice(e.target.value)} />
               </div>
             </div>
           </div>
 
-          {/* Sale details card */}
+          {/* Sale details */}
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]">
             <h2 className="text-lg font-semibold mb-4">Sale details (optional — for already-sold items)</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
-                <input type="date" className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={saleDate} onChange={e => setSaleDate(e.target.value)} />
+                <input type="date" className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
+                  value={saleDate} onChange={(e)=>setSaleDate(e.target.value)} />
               </div>
               <div>
-                <label className="text-slate-300 mb-1 block text-sm">Sale Location</label>
-                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="e.g. eBay, Whatnot…" value={saleLoc} onChange={e => setSaleLoc(e.target.value)} />
+                <label className="text-slate-300 mb-1 block text-sm">Sale Location / Marketplace</label>
+                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
+                  placeholder="eBay, Whatnot, Local/Cash…" value={marketplace} onChange={(e)=>setMarket(e.target.value)} />
               </div>
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Sell Price</label>
-                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="0 = unsold" value={sellPrice} onChange={e => setSellPrice(e.target.value)} />
+                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
+                  placeholder="0 = unsold" value={salePrice} onChange={(e)=>setSalePrice(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-slate-300 mb-1 block text-sm">Fees (%)</label>
+                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g. 9 or 9%" value={feesPct} onChange={(e)=>setFeesPct(e.target.value)} />
               </div>
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Shipping</label>
-                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={shipping} onChange={e => setShipping(e.target.value)} />
+                <input className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
+                  value={shipping} onChange={(e)=>setShipping(e.target.value)} />
               </div>
             </div>
 
@@ -166,24 +184,32 @@ export default function Dashboard() {
           </div>
         </form>
 
-        {/* Recent orders list */}
+        {/* Recent orders (styled list) */}
         <div className="mt-10">
           <h2 className="text-xl font-semibold mb-4">Your recent orders</h2>
           {isLoading && <div className="text-slate-400">Loading…</div>}
           {error && <div className="text-rose-400">{String(error)}</div>}
-          <div className="space-y-3">
+
+          <div className="grid gap-3">
             {orders?.map(o => (
               <div key={o.id} className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                <div className="font-semibold">{o.order_date} • {o.external_order_id ?? '—'}</div>
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold">
+                    {o.order_date} • {o.item ?? '—'} {o.retailer ? `@ ${o.retailer}` : ''}
+                  </div>
+                  <div className={`text-sm font-semibold ${Number(o.pl_cents) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    P/L ${centsToStr(o.pl_cents)}
+                  </div>
+                </div>
                 <div className="text-sm text-slate-300">
-                  Subtotal ${cents(o.subtotal_cents)} • Tax ${cents(o.tax_cents)} • Shipping ${cents(o.shipping_cents)} • {o.status}
+                  Buy ${centsToStr(o.buy_price_cents)} • Sell ${centsToStr(o.sale_price_cents)} • Ship ${centsToStr(o.shipping_cents)}
+                  {o.fees_pct ? ` • Fees ${(Number(o.fees_pct)*100).toFixed(2)}%` : ''} • {o.marketplace || '—'} • {o.status}
                 </div>
               </div>
             ))}
             {orders?.length === 0 && <div className="text-slate-400">No orders yet.</div>}
           </div>
         </div>
-
       </div>
     </div>
   )
