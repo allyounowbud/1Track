@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { NavLink } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 
 /* ---------- helpers ---------- */
@@ -47,84 +48,77 @@ async function getMarketplaces() {
 
 export default function Dashboard() {
   const { data: orders, isLoading, error, refetch } = useQuery({ queryKey:['orders'], queryFn:getOrders })
-  const { data: retailers = [], refetch: refetchRetailers } = useQuery({ queryKey:['retailers'], queryFn:getRetailers })
-  const { data: markets = [], refetch: refetchMarkets } = useQuery({ queryKey:['markets'], queryFn:getMarketplaces })
+  const { data: retailers = [] } = useQuery({ queryKey:['retailers'], queryFn:getRetailers })
+  const { data: markets = [] } = useQuery({ queryKey:['markets'],  queryFn:getMarketplaces })
 
-  // ---- Quick Add form state (matches your sheet) ----
+  // ---- Quick Add form state ----
   const today = new Date().toISOString().slice(0,10)
   const [orderDate, setOrderDate]   = useState(today)
   const [item, setItem]             = useState('')
   const [profileName, setProfile]   = useState('')   // optional
   const [retailerId, setRetailerId] = useState('')
   const [retailerName, setRetailerName] = useState('')
+
+  const [qty, setQty]               = useState(1)
   const [buyPrice, setBuyPrice]     = useState('')
+
   const [salePrice, setSalePrice]   = useState('')
   const [saleDate, setSaleDate]     = useState('')
   const [marketId, setMarketId]     = useState('')
   const [marketName, setMarketName] = useState('')
   const [feesPct, setFeesPct]       = useState('0')
+  const [feesLocked, setFeesLocked] = useState(false)
   const [shipping, setShipping]     = useState('0')
 
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
 
-  /* ---------- inline adders ---------- */
-  async function addRetailer() {
-    const name = (window.prompt('Retailer name?') || '').trim()
-    if (!name) return
-    const { error } = await supabase.from('retailers').insert({ name })
-    if (error && error.code !== '23505') {  // 23505 = unique_violation
-      alert(error.message); return
-    }
-    await refetchRetailers()
-    const found = (await getRetailers()).find(r => r.name.toLowerCase() === name.toLowerCase())
-    if (found) { setRetailerId(found.id); setRetailerName(found.name) }
-  }
-
-  async function addMarketplace() {
-    const name = (window.prompt('Marketplace name?') || '').trim()
-    if (!name) return
-    const fee = window.prompt('Default fee % (e.g. 9 or 9%)') || '0'
-    const default_fee_pct = parsePct(fee)
-    const { error } = await supabase.from('marketplaces').insert({ name, default_fee_pct })
-    if (error && error.code !== '23505') {
-      alert(error.message); return
-    }
-    await refetchMarkets()
-    const found = (await getMarketplaces()).find(m => m.name.toLowerCase() === name.toLowerCase())
-    if (found) {
-      setMarketId(found.id); setMarketName(found.name)
-      // only auto-fill if user hasn't typed a custom fee
-      setFeesPct((found.default_fee_pct ?? 0).toString())
-    }
-  }
-
-  /* ---------- save row ---------- */
+  /* ---------- save rows (multi-qty split) ---------- */
   async function saveOrder(e){
     e.preventDefault()
     setSaving(true); setMsg('')
     try {
-      const sale_cents = moneyToCents(salePrice)
-      const status = sale_cents > 0 ? 'sold' : 'ordered'
-      const { error } = await supabase.from('orders').insert({
+      const n = Math.max(1, parseInt(qty || '1', 10))
+      const buyTotal  = Math.abs(moneyToCents(buyPrice))
+      const saleTotal = moneyToCents(salePrice)
+      const shipTotal = moneyToCents(shipping)
+
+      // Per-unit values (rounded to cents)
+      const perBuy  = Math.round(buyTotal  / n)
+      const perSale = Math.round(saleTotal / n)
+      const perShip = Math.round(shipTotal / n)
+
+      const status = perSale > 0 ? 'sold' : 'ordered'
+      const fee = parsePct(feesPct)
+
+      const base = {
         order_date: orderDate,
         item,
         profile_name: profileName || null,
         retailer: retailerName || null,
         marketplace: marketName || null,
-        buy_price_cents: Math.abs(moneyToCents(buyPrice)),
-        sale_price_cents: sale_cents,
         sale_date: saleDate || null,
-        fees_pct: parsePct(feesPct),
-        shipping_cents: moneyToCents(shipping),
+        fees_pct: fee,
         status,
-      })
+      }
+
+      const rows = Array.from({ length: n }, () => ({
+        ...base,
+        buy_price_cents: perBuy,
+        sale_price_cents: perSale,
+        shipping_cents: perShip,
+      }))
+
+      const { error } = await supabase.from('orders').insert(rows)
       if (error) throw error
-      setMsg('Saved ✔')
+
+      setMsg(`Saved ✔ (${n} row${n>1?'s':''})`)
       // reset form
       setItem(''); setProfile(''); setRetailerId(''); setRetailerName('')
-      setBuyPrice(''); setSalePrice(''); setSaleDate(''); setMarketId(''); setMarketName('')
-      setFeesPct('0'); setShipping('0')
+      setQty(1); setBuyPrice(''); setSalePrice(''); setSaleDate('')
+      // keep marketplace selection/fee if you want; for now we reset
+      setMarketId(''); setMarketName(''); setFeesPct('0'); setFeesLocked(false)
+      setShipping('0')
       await refetch()
     } catch (err) {
       setMsg(String(err.message || err))
@@ -140,6 +134,9 @@ export default function Dashboard() {
   }
 
   /* ---------- UI ---------- */
+  const tabBase = "px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
+  const tabActive = "bg-indigo-600 text-white border-indigo-600"
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-6">
@@ -151,14 +148,14 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Tabs (visual for now) */}
+        {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-6">
-          <button className="px-4 py-2 rounded-full bg-indigo-600 text-white border border-indigo-600">Quick Add</button>
-          <button className="px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900">Mark as Sold</button>
-          <button className="px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900">Stats</button>
-          <button className="px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900">Inventory</button>
-          <button className="px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900">Flex</button>
-          <button className="px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900">Settings</button>
+          <NavLink to="/app" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Quick Add</NavLink>
+          <button className={tabBase}>Mark as Sold</button>
+          <button className={tabBase}>Stats</button>
+          <button className={tabBase}>Inventory</button>
+          <button className={tabBase}>Flex</button>
+          <NavLink to="/settings" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Settings</NavLink>
         </div>
 
         {/* QUICK ADD */}
@@ -187,26 +184,32 @@ export default function Dashboard() {
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Retailer</label>
-                <div className="flex gap-2">
-                  <select
-                    value={retailerId}
-                    onChange={e=>{
-                      const id = e.target.value
-                      setRetailerId(id)
-                      const r = retailers.find(x=>x.id===id)
-                      setRetailerName(r?.name || '')
-                    }}
-                    className="flex-1 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="">— Select retailer —</option>
-                    {retailers.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
-                  <button type="button" onClick={addRetailer}
-                    className="px-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">+ Add</button>
-                </div>
+                <select
+                  value={retailerId}
+                  onChange={e=>{
+                    const id = e.target.value
+                    setRetailerId(id)
+                    const r = retailers.find(x=>x.id===id)
+                    setRetailerName(r?.name || '')
+                  }}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">— Select retailer —</option>
+                  {retailers.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+                {!retailers.length && (
+                  <p className="text-xs text-slate-400 mt-1">No retailers yet. Add some in <NavLink className="underline" to="/settings">Settings</NavLink>.</p>
+                )}
               </div>
 
-              <div className="md:col-span-2">
+              <div>
+                <label className="text-slate-300 mb-1 block text-sm">Quantity</label>
+                <input type="number" min={1} value={qty} onChange={e=>setQty(parseInt(e.target.value || '1',10))}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"/>
+                <p className="text-xs text-slate-500 mt-1">We’ll insert that many rows and split totals equally.</p>
+              </div>
+
+              <div>
                 <label className="text-slate-300 mb-1 block text-sm">Buy Price (total)</label>
                 <input value={buyPrice} onChange={e=>setBuyPrice(e.target.value)} placeholder="e.g. 67.70"
                   className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"/>
@@ -226,42 +229,50 @@ export default function Dashboard() {
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Sale Location / Marketplace</label>
-                <div className="flex gap-2">
-                  <select
-                    value={marketId}
-                    onChange={e=>{
-                      const id = e.target.value
-                      setMarketId(id)
-                      const m = markets.find(x=>x.id===id)
-                      setMarketName(m?.name || '')
-                      if (m) setFeesPct((m.default_fee_pct ?? 0).toString())
-                    }}
-                    className="flex-1 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="">— Select marketplace —</option>
-                    {markets.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
-                  <button type="button" onClick={addMarketplace}
-                    className="px-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">+ Add</button>
-                </div>
+                <select
+                  value={marketId}
+                  onChange={e=>{
+                    const id = e.target.value
+                    const m = markets.find(x=>x.id===id)
+                    setMarketId(id)
+                    setMarketName(m?.name || '')
+                    if (m) {
+                      setFeesPct((m.default_fee_pct ?? 0).toString())
+                      setFeesLocked(true)
+                    } else {
+                      setFeesPct('0'); setFeesLocked(false)
+                    }
+                  }}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">— Select marketplace —</option>
+                  {markets.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+                {!markets.length && (
+                  <p className="text-xs text-slate-400 mt-1">No marketplaces yet. Add some in <NavLink className="underline" to="/settings">Settings</NavLink>.</p>
+                )}
               </div>
 
               <div>
-                <label className="text-slate-300 mb-1 block text-sm">Sell Price</label>
+                <label className="text-slate-300 mb-1 block text-sm">Sell Price (total)</label>
                 <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="0 = unsold"
                   className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"/>
+                <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split this total across rows.</p>
               </div>
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Fees (%)</label>
-                <input value={feesPct} onChange={e=>setFeesPct(e.target.value)} placeholder="e.g. 9 or 9%"
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"/>
+                <input value={feesPct} onChange={e=>!feesLocked && setFeesPct(e.target.value)} placeholder="e.g. 9 or 9%"
+                  disabled={feesLocked}
+                  className={`w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 ${feesLocked ? 'opacity-60 cursor-not-allowed' : ''}`}/>
+                {feesLocked && <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>}
               </div>
 
               <div>
-                <label className="text-slate-300 mb-1 block text-sm">Shipping</label>
+                <label className="text-slate-300 mb-1 block text-sm">Shipping (total)</label>
                 <input value={shipping} onChange={e=>setShipping(e.target.value)}
                   className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"/>
+                <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split shipping across rows.</p>
               </div>
             </div>
 

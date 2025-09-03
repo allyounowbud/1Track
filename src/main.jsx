@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './routes/App.jsx'
 import Login from './routes/Login.jsx'
 import Dashboard from './routes/Dashboard.jsx'
+import Settings from './routes/Settings.jsx'
 
 
 const router = createBrowserRouter([
