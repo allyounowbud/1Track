@@ -3,8 +3,12 @@ import { useQuery } from '@tanstack/react-query'
 import { NavLink } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 
-const tabBase = "px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
-const tabActive = "bg-indigo-600 text-white border-indigo-600"
+const tabBase =
+  "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 " +
+  "bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition";
+const tabActive =
+  "bg-indigo-600 text-white border-indigo-600 shadow";
+
 const actionBtn = "w-[92px] px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100"
 
 // money helpers
