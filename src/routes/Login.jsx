@@ -1,74 +1,62 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabaseClient'
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
 
 export default function Login() {
-  const nav = useNavigate()
-  const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
-  const [error, setError] = useState(null)
-  const [busy, setBusy] = useState(false)
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
 
+  // If already signed in, bounce to /app
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { if (data.session) nav('/app') })
-  }, [nav])
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) navigate("/app");
+    })();
 
-  async function signIn(e) {
-    e.preventDefault()
-    setError(null); setBusy(true)
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/` },
-    })
-    setBusy(false)
-    if (error) setError(error.message); else setSent(true)
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (session) navigate("/app");
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [navigate]);
+
+  async function signInWithDiscord() {
+    try {
+      setErr("");
+      setLoading(true);
+      const redirectTo = `${window.location.origin}/app`; // after Supabase finishes OAuth
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "discord",
+        options: { redirectTo }
+      });
+      if (error) throw error;
+      // Redirect happens automatically by Supabase
+    } catch (e) {
+      setErr(e.message || String(e));
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-8 shadow-[0_10px_30px_rgba(0,0,0,.35)]">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">OneTrack</h1>
-          <p className="text-slate-400 mt-1">Sign in to continue</p>
-        </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 grid place-items-center p-6">
+      <div className="card max-w-md w-full p-6">
+        <h1 className="text-2xl font-bold mb-2">OneTrack</h1>
+        <p className="text-slate-400 mb-6">Sign in to continue</p>
 
-        {sent ? (
-          <div className="rounded-xl border border-emerald-700/40 bg-emerald-900/20 p-4 text-emerald-300">
-            Check your email for a magic link.
-          </div>
-        ) : (
-          <form onSubmit={signIn} className="space-y-4">
-            <div>
-              <label className="text-slate-300 mb-1 block text-sm">Email</label>
-              <input
-                type="email"
-                required
-                className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+        {err && <div className="mb-4 text-rose-400 text-sm">{err}</div>}
 
-            {error && (
-              <div className="rounded-xl border border-rose-700/40 bg-rose-900/20 p-3 text-rose-300 text-sm">
-                {error}
-              </div>
-            )}
+        <button
+          onClick={signInWithDiscord}
+          disabled={loading}
+          className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium disabled:opacity-60"
+        >
+          {loading ? "Redirecting…" : "Sign in with Discord"}
+        </button>
 
-            <button
-              className="w-full py-3 rounded-2xl text-base bg-indigo-600 hover:bg-indigo-500 text-white"
-              disabled={busy}
-            >
-              {busy ? 'Sending…' : 'Send magic link'}
-            </button>
-
-            <p className="text-xs text-slate-400 text-center">
-              We’ll email you a secure sign-in link.
-            </p>
-          </form>
-        )}
+        <p className="text-xs text-slate-400 mt-4">
+          You’ll be redirected to Discord to authorize, then back here.
+        </p>
       </div>
     </div>
-  )
+  );
 }
