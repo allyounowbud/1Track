@@ -82,7 +82,8 @@ export default function Settings() {
     if (error) alert(error.message); else await refetchMarkets()
   }
 
-  const headerBtn = "px-4 py-2 rounded-xl border border-slate-700 bg-slate-800/60 hover:bg-slate-800"
+  // Buttons sized to match row actions
+  const actionBtn = "w-[92px] px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100"
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -108,13 +109,13 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">Retailers</h2>
-              <p className="text-xs text-slate-400">Rows: {retailers.length}</p>
+              <p className="text-xs text-slate-400">Total: {retailers.length}</p>
             </div>
             <div className="flex gap-2">
               {openRetailers && !addingRetailer && (
                 <button
                   onClick={() => { setAddingRetailer(true) }}
-                  className={`${headerBtn} border-indigo-700/50`}
+                  className={actionBtn}
                 >
                   Add
                 </button>
@@ -125,7 +126,7 @@ export default function Settings() {
                   setOpenRetailers(next)
                   if (!next) setAddingRetailer(false)
                 }}
-                className={headerBtn}
+                className={actionBtn}
               >
                 {openRetailers ? 'Collapse' : 'Expand'}
               </button>
@@ -133,30 +134,38 @@ export default function Settings() {
           </div>
 
           {openRetailers && (
-            <div className="mt-4 space-y-3">
-              {addingRetailer && (
-                <RetailerRow
-                  isNew
-                  onSave={async (name) => {
-                    const ok = await createRetailer(name)
-                    if (ok) setAddingRetailer(false)
-                    return ok
-                  }}
-                  onDelete={() => setAddingRetailer(false)}
-                />
-              )}
-              {retailers.map(r => (
-                <RetailerRow
-                  key={r.id}
-                  r={r}
-                  onSave={(name) => updateRetailer(r.id, name)}
-                  onDelete={() => deleteRetailer(r.id)}
-                />
-              ))}
-              {!retailers.length && !addingRetailer && (
-                <div className="text-slate-400">No retailers yet.</div>
-              )}
-            </div>
+            <>
+              {/* Column header */}
+              <div className="hidden sm:flex items-center gap-2 px-1 pt-4 pb-2 text-xs text-slate-400">
+                <div className="flex-1">Retailer</div>
+                <div className="w-[200px] text-right">Actions</div>
+              </div>
+
+              <div className="space-y-3">
+                {addingRetailer && (
+                  <RetailerRow
+                    isNew
+                    onSave={async (name) => {
+                      const ok = await createRetailer(name)
+                      if (ok) setAddingRetailer(false)
+                      return ok
+                    }}
+                    onDelete={() => setAddingRetailer(false)}
+                  />
+                )}
+                {retailers.map(r => (
+                  <RetailerRow
+                    key={r.id}
+                    r={r}
+                    onSave={(name) => updateRetailer(r.id, name)}
+                    onDelete={() => deleteRetailer(r.id)}
+                  />
+                ))}
+                {!retailers.length && !addingRetailer && (
+                  <div className="text-slate-400">No retailers yet.</div>
+                )}
+              </div>
+            </>
           )}
         </div>
 
@@ -165,13 +174,13 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">Sale Platforms</h2>
-              <p className="text-xs text-slate-400">Rows: {markets.length}</p>
+              <p className="text-xs text-slate-400">Total: {markets.length}</p>
             </div>
             <div className="flex gap-2">
               {openMarkets && !addingMarket && (
                 <button
                   onClick={() => { setAddingMarket(true) }}
-                  className={`${headerBtn} border-indigo-700/50`}
+                  className={actionBtn}
                 >
                   Add
                 </button>
@@ -182,7 +191,7 @@ export default function Settings() {
                   setOpenMarkets(next)
                   if (!next) setAddingMarket(false)
                 }}
-                className={headerBtn}
+                className={actionBtn}
               >
                 {openMarkets ? 'Collapse' : 'Expand'}
               </button>
@@ -190,30 +199,39 @@ export default function Settings() {
           </div>
 
           {openMarkets && (
-            <div className="mt-4 space-y-3">
-              {addingMarket && (
-                <MarketRow
-                  isNew
-                  onSave={async (name, fee) => {
-                    const ok = await createMarket(name, fee)
-                    if (ok) setAddingMarket(false)
-                    return ok
-                  }}
-                  onDelete={() => setAddingMarket(false)}
-                />
-              )}
-              {markets.map(m => (
-                <MarketRow
-                  key={m.id}
-                  m={m}
-                  onSave={(name, fee) => updateMarket(m.id, name, fee)}
-                  onDelete={() => deleteMarket(m.id)}
-                />
-              ))}
-              {!markets.length && !addingMarket && (
-                <div className="text-slate-400">No marketplaces yet.</div>
-              )}
-            </div>
+            <>
+              {/* Column header */}
+              <div className="hidden sm:flex items-center gap-2 px-1 pt-4 pb-2 text-xs text-slate-400">
+                <div className="flex-1">Marketplace</div>
+                <div className="w-[140px]">Fee %</div>
+                <div className="w-[200px] text-right">Actions</div>
+              </div>
+
+              <div className="space-y-3">
+                {addingMarket && (
+                  <MarketRow
+                    isNew
+                    onSave={async (name, fee) => {
+                      const ok = await createMarket(name, fee)
+                      if (ok) setAddingMarket(false)
+                      return ok
+                    }}
+                    onDelete={() => setAddingMarket(false)}
+                  />
+                )}
+                {markets.map(m => (
+                  <MarketRow
+                    key={m.id}
+                    m={m}
+                    onSave={(name, fee) => updateMarket(m.id, name, fee)}
+                    onDelete={() => deleteMarket(m.id)}
+                  />
+                ))}
+                {!markets.length && !addingMarket && (
+                  <div className="text-slate-400">No marketplaces yet.</div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -286,14 +304,14 @@ function MarketRow({ m, isNew = false, onSave, onDelete }) {
           onChange={(e) => setName(e.target.value)}
           placeholder="Marketplace name…"
         />
-        {/* Fee: narrow, fixed-ish width */}
+        {/* Fee: narrow */}
         <input
           className="w-[140px] bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
           value={fee}
           onChange={(e) => setFee(e.target.value)}
           placeholder="Fee %"
         />
-        {/* Actions: right-aligned, fixed button widths */}
+        {/* Actions: right-aligned */}
         <div className="flex gap-2 ml-auto">
           <button onClick={handleSave} className="w-[92px] px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700">
             Save
