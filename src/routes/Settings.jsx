@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { NavLink } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
@@ -141,12 +141,33 @@ export default function Settings() {
         {/* Header */}
 <div className="flex items-center justify-between mb-6">
   <h1 className="text-3xl font-bold">OneTrack</h1>
-  <button
-    onClick={signOut}
-    className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
-  >
-    Sign out
-  </button>
+
+  <div className="flex items-center gap-3">
+    {/* avatar */}
+    {userInfo.avatar_url ? (
+      <img
+        src={userInfo.avatar_url}
+        alt=""
+        className="h-8 w-8 rounded-full border border-slate-800 object-cover"
+      />
+    ) : (
+      <div className="h-8 w-8 rounded-full bg-slate-800 grid place-items-center text-slate-300 text-xs">
+        {(userInfo.username || 'U').slice(0,1).toUpperCase()}
+      </div>
+    )}
+
+    {/* username (hidden on very small screens) */}
+    <div className="hidden sm:block text-sm text-slate-300 max-w-[160px] truncate">
+      {userInfo.username}
+    </div>
+
+    <button
+      onClick={signOut}
+      className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
+    >
+      Sign out
+    </button>
+  </div>
 </div>
 
 {/* Tabs */}
