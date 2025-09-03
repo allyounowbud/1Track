@@ -18,7 +18,7 @@ async function getRetailers() {
 async function getMarkets() {
   const { data, error } = await supabase
     .from('marketplaces')
-    .select('id, name, default_fees_pct') // your DB column (plural)
+    .select('id, name, default_fees_pct') // plural column in your DB
     .order('name', { ascending: true })
   if (error) throw error
   return data
@@ -34,11 +34,11 @@ export default function Settings() {
   const [openRetailers, setOpenRetailers] = useState(false)
   const [openMarkets, setOpenMarkets] = useState(false)
 
-  // “adding” states (show temp top row)
+  // show temp top row when adding
   const [addingRetailer, setAddingRetailer] = useState(false)
   const [addingMarket, setAddingMarket] = useState(false)
 
-  // ——— CRUD helpers ———
+  // --- CRUD helpers ---
   async function createRetailer(name) {
     if (!name?.trim()) return false
     const { error } = await supabase.from('retailers').insert({ name: name.trim() })
@@ -111,16 +111,20 @@ export default function Settings() {
               <p className="text-xs text-slate-400">Rows: {retailers.length}</p>
             </div>
             <div className="flex gap-2">
-              {!addingRetailer && (
+              {openRetailers && !addingRetailer && (
                 <button
-                  onClick={() => { setOpenRetailers(true); setAddingRetailer(true) }}
+                  onClick={() => { setAddingRetailer(true) }}
                   className={`${headerBtn} border-indigo-700/50`}
                 >
                   Add
                 </button>
               )}
               <button
-                onClick={() => setOpenRetailers(v => !v)}
+                onClick={() => {
+                  const next = !openRetailers
+                  setOpenRetailers(next)
+                  if (!next) setAddingRetailer(false)
+                }}
                 className={headerBtn}
               >
                 {openRetailers ? 'Collapse' : 'Expand'}
@@ -164,16 +168,20 @@ export default function Settings() {
               <p className="text-xs text-slate-400">Rows: {markets.length}</p>
             </div>
             <div className="flex gap-2">
-              {!addingMarket && (
+              {openMarkets && !addingMarket && (
                 <button
-                  onClick={() => { setOpenMarkets(true); setAddingMarket(true) }}
+                  onClick={() => { setAddingMarket(true) }}
                   className={`${headerBtn} border-indigo-700/50`}
                 >
                   Add
                 </button>
               )}
               <button
-                onClick={() => setOpenMarkets(v => !v)}
+                onClick={() => {
+                  const next = !openMarkets
+                  setOpenMarkets(next)
+                  if (!next) setAddingMarket(false)
+                }}
                 className={headerBtn}
               >
                 {openMarkets ? 'Collapse' : 'Expand'}
@@ -226,25 +234,26 @@ function RetailerRow({ r, isNew = false, onSave, onDelete }) {
     if (ok) setTimeout(() => setStatus(''), 1500)
   }
 
+  // Consistent alignment: input (grow), actions (fixed width), status (fills rest)
   return (
-    <div className="flex gap-2 items-center rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+    <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px_minmax(120px,1fr)] gap-2 items-center rounded-xl border border-slate-800 bg-slate-900/60 p-3">
       <input
-        className="flex-1 bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
+        className="bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Retailer name…"
       />
-      <button onClick={handleSave} className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700">
-        Save
-      </button>
-      <button
-        onClick={onDelete}
-        className={`px-3 py-2 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
-      >
-        {isNew ? 'Cancel' : 'Delete'}
-      </button>
+      <div className="flex gap-2 justify-end w-[200px]">
+        <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 w-[92px]">Save</button>
+        <button
+          onClick={onDelete}
+          className={`px-4 py-2 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'} w-[92px]`}
+        >
+          {isNew ? 'Cancel' : 'Delete'}
+        </button>
+      </div>
       {status && (
-        <span className={`ml-2 text-sm ${status.startsWith('Saved') ? 'text-emerald-400' : status === 'Error' ? 'text-rose-400' : 'text-slate-400'}`}>
+        <span className={`text-sm ${status.startsWith('Saved') ? 'text-emerald-400' : status === 'Error' ? 'text-rose-400' : 'text-slate-400'}`}>
           {status}
         </span>
       )}
@@ -264,8 +273,9 @@ function MarketRow({ m, isNew = false, onSave, onDelete }) {
     if (ok) setTimeout(() => setStatus(''), 1500)
   }
 
+  // Full-width layout: Marketplace (1fr) | Fee (fixed) | Actions (fixed) | Status (flex)
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px_auto_minmax(0,1fr)] gap-2 items-center rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+    <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_200px_minmax(120px,1fr)] gap-2 items-center rounded-xl border border-slate-800 bg-slate-900/60 p-3">
       <input
         className="bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
         value={name}
@@ -278,11 +288,11 @@ function MarketRow({ m, isNew = false, onSave, onDelete }) {
         onChange={(e) => setFee(e.target.value)}
         placeholder="Fee % (e.g. 9 or 9%)"
       />
-      <div className="flex gap-2">
-        <button onClick={handleSave} className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700">Save</button>
+      <div className="flex gap-2 justify-end w-[200px]">
+        <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 w-[92px]">Save</button>
         <button
           onClick={onDelete}
-          className={`px-3 py-2 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
+          className={`px-4 py-2 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'} w-[92px]`}
         >
           {isNew ? 'Cancel' : 'Delete'}
         </button>
