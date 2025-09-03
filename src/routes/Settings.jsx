@@ -133,7 +133,7 @@ export default function Settings() {
           </div>
 
           {openRetailers && (
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-3">
               {addingRetailer && (
                 <RetailerRow
                   isNew
@@ -190,7 +190,7 @@ export default function Settings() {
           </div>
 
           {openMarkets && (
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-3">
               {addingMarket && (
                 <MarketRow
                   isNew
@@ -221,7 +221,7 @@ export default function Settings() {
   )
 }
 
-/* ---------- Row components ---------- */
+/* ---------- Row components (flex layout) ---------- */
 
 function RetailerRow({ r, isNew = false, onSave, onDelete }) {
   const [name, setName] = useState(r?.name ?? '')
@@ -234,28 +234,31 @@ function RetailerRow({ r, isNew = false, onSave, onDelete }) {
     if (ok) setTimeout(() => setStatus(''), 1500)
   }
 
-  // Consistent alignment: input (grow), actions (fixed width), status (fills rest)
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px_minmax(120px,1fr)] gap-2 items-center rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-      <input
-        className="bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Retailer name…"
-      />
-      <div className="flex gap-2 justify-end w-[200px]">
-        <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 w-[92px]">Save</button>
-        <button
-          onClick={onDelete}
-          className={`px-4 py-2 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'} w-[92px]`}
-        >
-          {isNew ? 'Cancel' : 'Delete'}
-        </button>
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+      <div className="flex items-center gap-2">
+        <input
+          className="flex-1 bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Retailer name…"
+        />
+        <div className="flex gap-2 ml-auto">
+          <button onClick={handleSave} className="w-[92px] px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700">
+            Save
+          </button>
+          <button
+            onClick={onDelete}
+            className={`w-[92px] px-4 py-2 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
+          >
+            {isNew ? 'Cancel' : 'Delete'}
+          </button>
+        </div>
       </div>
       {status && (
-        <span className={`text-sm ${status.startsWith('Saved') ? 'text-emerald-400' : status === 'Error' ? 'text-rose-400' : 'text-slate-400'}`}>
+        <div className={`text-right text-sm mt-1 ${status.startsWith('Saved') ? 'text-emerald-400' : status === 'Error' ? 'text-rose-400' : 'text-slate-400'}`}>
           {status}
-        </span>
+        </div>
       )}
     </div>
   )
@@ -273,34 +276,40 @@ function MarketRow({ m, isNew = false, onSave, onDelete }) {
     if (ok) setTimeout(() => setStatus(''), 1500)
   }
 
-  // Full-width layout: Marketplace (1fr) | Fee (fixed) | Actions (fixed) | Status (flex)
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_200px_minmax(120px,1fr)] gap-2 items-center rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-      <input
-        className="bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Marketplace name…"
-      />
-      <input
-        className="bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
-        value={fee}
-        onChange={(e) => setFee(e.target.value)}
-        placeholder="Fee % (e.g. 9 or 9%)"
-      />
-      <div className="flex gap-2 justify-end w-[200px]">
-        <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 w-[92px]">Save</button>
-        <button
-          onClick={onDelete}
-          className={`px-4 py-2 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'} w-[92px]`}
-        >
-          {isNew ? 'Cancel' : 'Delete'}
-        </button>
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+      <div className="flex items-center gap-2">
+        {/* Marketplace: wide */}
+        <input
+          className="flex-1 bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Marketplace name…"
+        />
+        {/* Fee: narrow, fixed-ish width */}
+        <input
+          className="w-[140px] bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
+          value={fee}
+          onChange={(e) => setFee(e.target.value)}
+          placeholder="Fee %"
+        />
+        {/* Actions: right-aligned, fixed button widths */}
+        <div className="flex gap-2 ml-auto">
+          <button onClick={handleSave} className="w-[92px] px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700">
+            Save
+          </button>
+          <button
+            onClick={onDelete}
+            className={`w-[92px] px-4 py-2 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
+          >
+            {isNew ? 'Cancel' : 'Delete'}
+          </button>
+        </div>
       </div>
       {status && (
-        <span className={`text-sm ${status.startsWith('Saved') ? 'text-emerald-400' : status === 'Error' ? 'text-rose-400' : 'text-slate-400'}`}>
+        <div className={`text-right text-sm mt-1 ${status.startsWith('Saved') ? 'text-emerald-400' : status === 'Error' ? 'text-rose-400' : 'text-slate-400'}`}>
           {status}
-        </span>
+        </div>
       )}
     </div>
   )
