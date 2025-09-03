@@ -12,7 +12,7 @@ const moneyToCents = (v) => Math.round(parseMoney(v) * 100)
 const centsToStr  = (c) => (Number(c || 0) / 100).toFixed(2)
 const parsePct = (v) => {
   if (v === '' || v == null) return 0
-  const n = Number(String(v).replace('%', ''))
+  const n = Number(String(v).replace('%',''))
   if (isNaN(n)) return 0
   return n > 1 ? n / 100 : n
 }
@@ -27,7 +27,14 @@ async function getOrders() {
   if (error) throw error
   return data
 }
-
+async function getItems() {
+  const { data, error } = await supabase
+    .from('items')
+    .select('id, name, market_value_cents')
+    .order('name', { ascending: true })
+  if (error) throw error
+  return data
+}
 async function getRetailers() {
   const { data, error } = await supabase
     .from('retailers')
@@ -36,26 +43,29 @@ async function getRetailers() {
   if (error) throw error
   return data
 }
-
 async function getMarketplaces() {
   const { data, error } = await supabase
     .from('marketplaces')
-    .select('id, name, default_fees_pct') // <-- use your DB column (plural)
+    .select('id, name, default_fees_pct')
     .order('name', { ascending: true })
   if (error) throw error
   return data
 }
 
 export default function Dashboard() {
-  const { data: orders, isLoading, error, refetch } = useQuery({ queryKey: ['orders'], queryFn: getOrders })
-  const { data: retailers = [] } = useQuery({ queryKey: ['retailers'], queryFn: getRetailers })
-  const { data: markets = [] }   = useQuery({ queryKey: ['markets'],  queryFn: getMarketplaces })
+  const { data: orders, isLoading, error, refetch } = useQuery({ queryKey:['orders'], queryFn:getOrders })
+  const { data: items = [] }     = useQuery({ queryKey:['items'], queryFn:getItems })
+  const { data: retailers = [] } = useQuery({ queryKey:['retailers'], queryFn:getRetailers })
+  const { data: markets = [] }   = useQuery({ queryKey:['markets'],  queryFn:getMarketplaces })
 
   // ---- Quick Add form state ----
-  const today = new Date().toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0,10)
   const [orderDate, setOrderDate]   = useState(today)
-  const [item, setItem]             = useState('')
-  const [profileName, setProfile]   = useState('')
+
+  const [itemId, setItemId]     = useState('')
+  const [itemName, setItemName] = useState('')   // we store name text into orders.item
+
+  const [profileName, setProfile]   = useState('')   // optional
   const [retailerId, setRetailerId] = useState('')
   const [retailerName, setRetailerName] = useState('')
 
@@ -74,7 +84,7 @@ export default function Dashboard() {
   const [msg, setMsg] = useState('')
 
   /* ---------- save rows (multi-qty split) ---------- */
-  async function saveOrder(e) {
+  async function saveOrder(e){
     e.preventDefault()
     setSaving(true); setMsg('')
     try {
@@ -82,8 +92,6 @@ export default function Dashboard() {
       const buyTotal  = Math.abs(moneyToCents(buyPrice))
       const saleTotal = moneyToCents(salePrice)
       const shipTotal = moneyToCents(shipping)
-
-      // Per-unit values (rounded to cents)
       const perBuy  = Math.round(buyTotal  / n)
       const perSale = Math.round(saleTotal / n)
       const perShip = Math.round(shipTotal / n)
@@ -93,7 +101,7 @@ export default function Dashboard() {
 
       const base = {
         order_date: orderDate,
-        item,
+        item: itemName || null,
         profile_name: profileName || null,
         retailer: retailerName || null,
         marketplace: marketName || null,
@@ -112,12 +120,12 @@ export default function Dashboard() {
       const { error } = await supabase.from('orders').insert(rows)
       if (error) throw error
 
-      setMsg(`Saved ✔ (${n} row${n > 1 ? 's' : ''})`)
-      // reset form
-      setItem(''); setProfile(''); setRetailerId(''); setRetailerName('')
+      setMsg(`Saved ✔ (${n} row${n>1?'s':''})`)
+      // reset
+      setItemId(''); setItemName('')
+      setProfile(''); setRetailerId(''); setRetailerName('')
       setQty(1); setBuyPrice(''); setSalePrice(''); setSaleDate('')
-      setMarketId(''); setMarketName('')
-      setFeesPct('0'); setFeesLocked(false)
+      setMarketId(''); setMarketName(''); setFeesPct('0'); setFeesLocked(false)
       setShipping('0')
       await refetch()
     } catch (err) {
@@ -127,13 +135,11 @@ export default function Dashboard() {
     }
   }
 
-  /* ---------- sign out ---------- */
-  async function signOut() {
+  async function signOut(){
     await supabase.auth.signOut()
     window.location.href = '/login'
   }
 
-  /* ---------- UI ---------- */
   const tabBase = "px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
   const tabActive = "bg-indigo-600 text-white border-indigo-600"
 
@@ -166,42 +172,46 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Order Date</label>
-                <input
-                  type="date"
-                  value={orderDate}
-                  onChange={e => setOrderDate(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                />
+                <input type="date" value={orderDate} onChange={e=>setOrderDate(e.target.value)}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"/>
               </div>
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Item</label>
-                <input
-                  value={item}
-                  onChange={e => setItem(e.target.value)}
-                  placeholder="Start typing…"
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
-                />
+                <select
+                  value={itemId}
+                  onChange={e=>{
+                    const id = e.target.value
+                    setItemId(id)
+                    const it = items.find(x=>x.id===id)
+                    setItemName(it?.name || '')
+                  }}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">— Select item —</option>
+                  {items.map(it => <option key={it.id} value={it.id}>{it.name}</option>)}
+                </select>
+                {!items.length && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    No items yet. Add some in <NavLink className="underline" to="/settings">Settings</NavLink>.
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Profile name (optional)</label>
-                <input
-                  value={profileName}
-                  onChange={e => setProfile(e.target.value)}
-                  placeholder="name / Testing 1"
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                />
+                <input value={profileName} onChange={e=>setProfile(e.target.value)} placeholder="name / Testing 1"
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"/>
               </div>
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Retailer</label>
                 <select
                   value={retailerId}
-                  onChange={e => {
+                  onChange={e=>{
                     const id = e.target.value
                     setRetailerId(id)
-                    const r = retailers.find(x => x.id === id)
+                    const r = retailers.find(x=>x.id===id)
                     setRetailerName(r?.name || '')
                   }}
                   className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
@@ -210,31 +220,21 @@ export default function Dashboard() {
                   {retailers.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
                 {!retailers.length && (
-                  <p className="text-xs text-slate-400 mt-1">
-                    No retailers yet. Add some in <NavLink className="underline" to="/settings">Settings</NavLink>.
-                  </p>
+                  <p className="text-xs text-slate-400 mt-1">No retailers yet. Add some in <NavLink className="underline" to="/settings">Settings</NavLink>.</p>
                 )}
               </div>
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Quantity</label>
-                <input
-                  type="number" min={1}
-                  value={qty}
-                  onChange={e => setQty(parseInt(e.target.value || '1', 10))}
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                />
+                <input type="number" min={1} value={qty} onChange={e=>setQty(parseInt(e.target.value || '1',10))}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"/>
                 <p className="text-xs text-slate-500 mt-1">We’ll insert that many rows and split totals equally.</p>
               </div>
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Buy Price (total)</label>
-                <input
-                  value={buyPrice}
-                  onChange={e => setBuyPrice(e.target.value)}
-                  placeholder="e.g. 67.70"
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
-                />
+                <input value={buyPrice} onChange={e=>setBuyPrice(e.target.value)} placeholder="e.g. 67.70"
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"/>
               </div>
             </div>
           </div>
@@ -245,29 +245,24 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
-                <input
-                  type="date"
-                  value={saleDate}
-                  onChange={e => setSaleDate(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                />
+                <input type="date" value={saleDate} onChange={e=>setSaleDate(e.target.value)}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"/>
               </div>
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Sale Location / Marketplace</label>
                 <select
                   value={marketId}
-                  onChange={e => {
+                  onChange={e=>{
                     const id = e.target.value
-                    const m = markets.find(x => x.id === id)
+                    const m = markets.find(x=>x.id===id)
                     setMarketId(id)
                     setMarketName(m?.name || '')
                     if (m) {
-                      setFeesPct((m.default_fees_pct ?? 0).toString()) // <-- plural
+                      setFeesPct((m.default_fees_pct ?? 0).toString())
                       setFeesLocked(true)
                     } else {
-                      setFeesPct('0')
-                      setFeesLocked(false)
+                      setFeesPct('0'); setFeesLocked(false)
                     }
                   }}
                   className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
@@ -276,42 +271,29 @@ export default function Dashboard() {
                   {markets.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
                 {!markets.length && (
-                  <p className="text-xs text-slate-400 mt-1">
-                    No marketplaces yet. Add some in <NavLink className="underline" to="/settings">Settings</NavLink>.
-                  </p>
+                  <p className="text-xs text-slate-400 mt-1">No marketplaces yet. Add some in <NavLink className="underline" to="/settings">Settings</NavLink>.</p>
                 )}
               </div>
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Sell Price (total)</label>
-                <input
-                  value={salePrice}
-                  onChange={e => setSalePrice(e.target.value)}
-                  placeholder="0 = unsold"
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
-                />
+                <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="0 = unsold"
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"/>
                 <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split this total across rows.</p>
               </div>
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Fees (%)</label>
-                <input
-                  value={feesPct}
-                  onChange={e => !feesLocked && setFeesPct(e.target.value)}
-                  placeholder="e.g. 9 or 9%"
+                <input value={feesPct} onChange={e=>!feesLocked && setFeesPct(e.target.value)} placeholder="e.g. 9 or 9%"
                   disabled={feesLocked}
-                  className={`w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 ${feesLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
-                />
+                  className={`w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 ${feesLocked ? 'opacity-60 cursor-not-allowed' : ''}`}/>
                 {feesLocked && <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>}
               </div>
 
               <div>
                 <label className="text-slate-300 mb-1 block text-sm">Shipping (total)</label>
-                <input
-                  value={shipping}
-                  onChange={e => setShipping(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                />
+                <input value={shipping} onChange={e=>setShipping(e.target.value)}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"/>
                 <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split shipping across rows.</p>
               </div>
             </div>
@@ -344,7 +326,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-sm text-slate-300">
                   Buy ${centsToStr(o.buy_price_cents)} • Sell ${centsToStr(o.sale_price_cents)} • Ship ${centsToStr(o.shipping_cents)}
-                  {o.fees_pct ? ` • Fees ${(Number(o.fees_pct) * 100).toFixed(2)}%` : ''} • {o.marketplace || '—'} • {o.status}
+                  {o.fees_pct ? ` • Fees ${(Number(o.fees_pct)*100).toFixed(2)}%` : ''} • {o.marketplace || '—'} • {o.status}
                 </div>
               </div>
             ))}
