@@ -144,29 +144,40 @@ export default function Dashboard() {
   "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 " +
   "bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition";
 const tabActive =
-  "bg-indigo-600 text-white border-indigo-600 shadow";
+  "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600";
 
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">OneTrack</h1>
-          <button onClick={signOut} className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">
-            Sign out
-          </button>
-        </div>
+       {/* Header */}
+<div className="flex items-center justify-between mb-6">
+  <h1 className="text-3xl font-bold">OneTrack</h1>
+  <button
+    onClick={signOut}
+    className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
+  >
+    Sign out
+  </button>
+</div>
 
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <NavLink to="/app" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Quick Add</NavLink>
-          <button className={tabBase}>Mark as Sold</button>
-          <button className={tabBase}>Stats</button>
-          <button className={tabBase}>Inventory</button>
-          <button className={tabBase}>Flex</button>
-          <NavLink to="/settings" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Settings</NavLink>
-        </div>
+{/* Tabs */}
+<div className="flex flex-wrap items-center gap-2 mb-6">
+  <NavLink to="/app" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>
+    Quick Add
+  </NavLink>
+
+  {/* These are placeholders until we wire routes. They use the same rectangular style */}
+  <button className={tabBase}>Mark as Sold</button>
+  <button className={tabBase}>Stats</button>
+  <button className={tabBase}>Inventory</button>
+  <button className={tabBase}>Flex</button>
+
+  <NavLink to="/settings" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>
+    Settings
+  </NavLink>
+</div>
+
 
         {/* QUICK ADD */}
         <form onSubmit={saveOrder} className="space-y-6">
