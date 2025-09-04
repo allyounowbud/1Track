@@ -145,7 +145,7 @@ export default function OrderBook(){
           <div className="w-36">Sale date</div>
           <div className="w-32">Marketplace</div>
           <div className="w-24">Ship $</div>
-          <div className="w-32 text-right">Actions</div>
+          <div className="w-20 text-right">Actions</div>
         </div>
 
         <div className="space-y-3">
@@ -275,10 +275,44 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
         </select>
         <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="Ship"  className={`${inputSm} w-24`} />
 
-        <div className="ml-auto flex gap-2">
-          <button onClick={save} disabled={busy} className={`${btnSm} bg-slate-800 hover:bg-slate-700 text-slate-100`}>{busy ? 'Saving…' : 'Save'}</button>
-          <button onClick={del} className={`${btnSm} bg-rose-600 hover:bg-rose-500 text-white`}>Delete</button>
-        </div>
+        <div className="ml-auto flex items-center gap-2">
+  {/* Save (check) */}
+  <button
+    type="button"
+    onClick={save}
+    disabled={busy}
+    aria-label={busy ? "Saving…" : "Save"}
+    title={busy ? "Saving…" : "Save"}
+    className={`inline-flex items-center justify-center h-9 w-9 rounded-lg
+                ${busy ? 'bg-slate-700 text-slate-300 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700 text-slate-100'}
+                border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+  >
+    {/* check icon */}
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  </button>
+
+  {/* Delete (trash) */}
+  <button
+    type="button"
+    onClick={del}
+    aria-label="Delete"
+    title="Delete"
+    className="inline-flex items-center justify-center h-9 w-9 rounded-lg
+               bg-rose-600 hover:bg-rose-500 text-white border border-rose-700
+               focus:outline-none focus:ring-2 focus:ring-rose-500"
+  >
+    {/* trash icon */}
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+    </svg>
+  </button>
+</div>
+
       </div>
 
       {msg && (
