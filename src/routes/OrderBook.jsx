@@ -135,7 +135,7 @@ export default function OrderBook(){
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
         {/* Header labels (hide on small) */}
-        <div className="hidden xl:flex text-xs text-slate-400 px-1 mb-1 gap-2">
+        <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
           <div className="w-36">Order date</div>
           <div className="min-w-[240px] flex-1">Item</div>
           <div className="w-28">Profile</div>
@@ -233,7 +233,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
       {/* One line on xl; wraps on small */}
-      <div className="flex flex-wrap xl:flex-nowrap items-center gap-2">
+      <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
         <input type="date" value={order_date} onChange={e=>setOrderDate(e.target.value)} className={`${inputSm} w-36`} />
 
         {/* Item dropdown (by name) */}
