@@ -45,7 +45,13 @@ export default function Automation() {
             )}
             <div className="hidden sm:block text-sm text-slate-300 max-w-[160px] truncate">{userInfo.username}</div>
             <Link
-            to="/"className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">Dashboard</Link>
+  to="/"
+  className="h-10 px-4 inline-flex items-center justify-center leading-none
+             rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900
+             text-slate-100 cursor-pointer"
+>
+  Dashboard
+</Link>
           </div>
         </div>
 

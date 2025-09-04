@@ -85,11 +85,16 @@ export default function Hub() {
             </div>
 
             <button
-              onClick={signOut}
-              className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
-            >
-              Sign out
-            </button>
+  type="button"
+  onClick={signOut}
+  className="h-10 px-4 inline-flex items-center justify-center leading-none rounded-xl
+             bg-rose-600 hover:bg-rose-500 text-white cursor-pointer
+             focus:outline-none focus:ring-2 focus:ring-rose-400/50
+             active:scale-[.99] transition"
+>
+  Sign out
+</button>
+
           </div>
         </div>
 
@@ -105,8 +110,8 @@ export default function Hub() {
               <div className="flex-1">
                 <div className="text-xl font-semibold">Order Book</div>
                 <div className="text-slate-400 text-sm">
-                  Track purchases, sales, fees, and inventory. Includes Quick Add, Mark as Sold,
-                  Stats, and Settings.
+                  Track purchases, sales, and inventory. Quickly add new orders, mark existing orders as sold,
+                  track your stats, and manage it all from anywhere!
                 </div>
                 <div className="mt-3 inline-flex items-center text-indigo-300 group-hover:text-indigo-200">
                   Open →
@@ -121,7 +126,7 @@ export default function Hub() {
               <div className="flex-1">
                 <div className="text-xl font-semibold">Automations</div>
                 <div className="text-slate-400 text-sm">
-                  Coming soon: alerts, rules, and scheduled actions.
+                  Coming soon: profile converter, account and email management, proxy tester and more..
                 </div>
                 <div className="mt-3 inline-flex items-center text-emerald-300 group-hover:text-emerald-200">
                   Open →
