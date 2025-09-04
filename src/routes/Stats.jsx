@@ -405,21 +405,19 @@ export default function Stats() {
           <h2 className="text-lg font-semibold mb-4">Date Range</h2>
           <div className="grid grid-cols-1 gap-4 min-w-0">
             {/* Date range dropdown (styled like item selector) */}
-            <div className="relative z-[65]">
-  <select
-    value={range}
-    onChange={(e) => setRange(e.target.value)}
-    className={`${inputBase} pr-10`}
-  >
-    <option value="all">All time</option>
-    <option value="month">This month</option>
-    <option value="30">Last 30 days</option>
-    <option value="custom">Custom…</option>
-  </select>
-  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-    ▾
-  </span>
-</div>
+            <div className="relative isolate">
+              <Select
+                value={range}
+                onChange={setRange}
+                options={[
+                  { value: "all", label: "All time" },
+                  { value: "month", label: "This month" },
+                  { value: "30", label: "Last 30 days" },
+                  { value: "custom", label: "Custom…" },
+                ]}
+                placeholder="All time"
+              />
+            </div>
 
             {range === "custom" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
