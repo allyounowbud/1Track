@@ -110,8 +110,8 @@ export default function Hub() {
               <div className="flex-1">
                 <div className="text-xl font-semibold">Order Book</div>
                 <div className="text-slate-400 text-sm">
-                  Track purchases, sales, and inventory. Quickly add new orders, mark existing orders as sold,
-                  track your stats, and manage it all from anywhere!
+                  Track purchases, sales, and inventory. Quickly add new orders, mark existing orders as sold, 
+                  and track your stats from anywhere!
                 </div>
                 <div className="mt-3 inline-flex items-center text-indigo-300 group-hover:text-indigo-200">
                   Open →
@@ -126,7 +126,8 @@ export default function Hub() {
               <div className="flex-1">
                 <div className="text-xl font-semibold">Automations</div>
                 <div className="text-slate-400 text-sm">
-                  Coming soon: profile converter, account and email management, proxy tester and more..
+                  Coming soon: Automations for things like building and converting profiles, email management, 
+                  testing proxies, jigging information and more..
                 </div>
                 <div className="mt-3 inline-flex items-center text-emerald-300 group-hover:text-emerald-200">
                   Open →
