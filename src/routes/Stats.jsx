@@ -1,27 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
-/* ----------------------------- helpers ----------------------------- */
-
+/* ----------------------------- UI helpers ----------------------------- */
 const tabBase =
   "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition";
 const tabActive =
   "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600";
+const card =
+  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
+const inputBase =
+  "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
 
-const card = "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
-
-const parseMoney = (v) => {
-  const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
-  return isNaN(n) ? 0 : n;
-};
+/* ----------------------------- data helpers ---------------------------- */
 const cents = (n) => Math.round(Number(n || 0));
-const moneyToCents = (v) => cents(parseMoney(v) * 100);
 const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
-const pctStr = (p) =>
-  isFinite(p) ? `${(p * 100).toFixed(2)}%` : "—";
-
+const pctStr = (p) => (isFinite(p) ? `${(p * 100).toFixed(2)}%` : "—");
 const within = (d, from, to) => {
   if (!d) return false;
   const x = new Date(d).getTime();
@@ -30,25 +25,10 @@ const within = (d, from, to) => {
   if (to && x > to) return false;
   return true;
 };
-
-// group helpers
-const groupMap = (arr, keyFn, valFn = (x) => x) => {
-  const m = new Map();
-  for (const it of arr) {
-    const k = keyFn(it);
-    if (!m.has(k)) m.set(k, []);
-    m.get(k).push(valFn(it));
-  }
-  return m;
-};
-const sum = (arr) => arr.reduce((a, b) => a + (b || 0), 0);
-
-// normalize “All Items” -> blank filter
 const normalizeItemFilter = (v) =>
   !v || v.trim().toLowerCase() === "all items" ? "" : v.trim();
 
-/* ------------------------------ queries ------------------------------ */
-
+/* -------------------------------- queries ------------------------------- */
 async function getOrders() {
   const { data, error } = await supabase
     .from("orders")
@@ -59,7 +39,6 @@ async function getOrders() {
   if (error) throw error;
   return data || [];
 }
-
 async function getItems() {
   const { data, error } = await supabase
     .from("items")
@@ -69,14 +48,18 @@ async function getItems() {
   return data || [];
 }
 
-/* ------------------------------- page ------------------------------- */
-
+/* --------------------------------- page --------------------------------- */
 export default function Stats() {
-  // data
-  const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
-  const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
+  const { data: orders = [] } = useQuery({
+    queryKey: ["orders"],
+    queryFn: getOrders,
+  });
+  const { data: items = [] } = useQuery({
+    queryKey: ["items"],
+    queryFn: getItems,
+  });
 
-  // user (for avatar/name)
+  /* user (avatar/name) */
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -84,7 +67,12 @@ export default function Stats() {
       if (!user) return setUserInfo({ avatar_url: "", username: "" });
       const m = user.user_metadata || {};
       const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
+        m.user_name ||
+        m.preferred_username ||
+        m.full_name ||
+        m.name ||
+        user.email ||
+        "Account";
       const avatar_url = m.avatar_url || m.picture || "";
       setUserInfo({ avatar_url, username });
     }
@@ -94,20 +82,53 @@ export default function Stats() {
       if (!user) return setUserInfo({ avatar_url: "", username: "" });
       const m = user.user_metadata || {};
       const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
+        m.user_name ||
+        m.preferred_username ||
+        m.full_name ||
+        m.name ||
+        user.email ||
+        "Account";
       const avatar_url = m.avatar_url || m.picture || "";
       setUserInfo({ avatar_url, username });
     });
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // filters (UI controls)
+  /* --------------------------- filter controls -------------------------- */
   const [range, setRange] = useState("all"); // all | month | 30 | custom
   const [fromStr, setFromStr] = useState("");
   const [toStr, setToStr] = useState("");
-  const [itemInput, setItemInput] = useState("All Items");
 
-  // applied filters (after clicking Apply)
+  // Searchable Item combobox
+  const [itemOpen, setItemOpen] = useState(false);
+  const [itemInput, setItemInput] = useState("All Items");
+  const comboRef = useRef(null);
+
+  // close dropdown on outside click
+  useEffect(() => {
+    function onDocClick(e) {
+      if (!comboRef.current) return;
+      if (!comboRef.current.contains(e.target)) setItemOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const itemOptions = useMemo(() => {
+    const names = items.map((i) => i.name).filter(Boolean);
+    const uniq = Array.from(new Set(names)).sort((a, b) =>
+      a.localeCompare(b)
+    );
+    return ["All Items", ...uniq];
+  }, [items]);
+
+  const filteredItemOptions = useMemo(() => {
+    const q = (itemInput || "").toLowerCase();
+    if (!q || q === "all items") return itemOptions;
+    return itemOptions.filter((n) => n.toLowerCase().includes(q));
+  }, [itemOptions, itemInput]);
+
+  // applied filter snapshot (on Apply)
   const [applied, setApplied] = useState({
     range: "all",
     from: null,
@@ -115,17 +136,28 @@ export default function Stats() {
     item: "",
   });
 
-  // compute date window from applied
   const { fromMs, toMs } = useMemo(() => {
     if (applied.range === "custom") {
-      const f = applied.from ? new Date(applied.from).setHours(0, 0, 0, 0) : null;
-      const t = applied.to ? new Date(applied.to).setHours(23, 59, 59, 999) : null;
+      const f = applied.from
+        ? new Date(applied.from).setHours(0, 0, 0, 0)
+        : null;
+      const t = applied.to
+        ? new Date(applied.to).setHours(23, 59, 59, 999)
+        : null;
       return { fromMs: f, toMs: t };
     }
     if (applied.range === "month") {
       const now = new Date();
       const f = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      const t = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+      const t = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      ).getTime();
       return { fromMs: f, toMs: t };
     }
     if (applied.range === "30") {
@@ -136,44 +168,47 @@ export default function Stats() {
     return { fromMs: null, toMs: null }; // all time
   }, [applied]);
 
-  // filter orders by date + item
+  // filter by date window + item (contains match)
   const filtered = useMemo(() => {
     const item = (applied.item || "").toLowerCase();
-    const itemFiltering = !!item;
+    const useItem = !!item;
     return orders.filter((o) => {
-      const matchesItem = !itemFiltering || (o.item || "").toLowerCase().includes(item);
-      // include both purchases (order_date) and sales (sale_date) in the window
-      // for KPIs we’ll pick the appropriate side later
+      const matchesItem =
+        !useItem || (o.item || "").toLowerCase().includes(item);
       const anyInWindow =
-        within(o.order_date, fromMs, toMs) || within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs);
+        within(o.order_date, fromMs, toMs) ||
+        within(o.sale_date, fromMs, toMs) ||
+        (!fromMs && !toMs);
       return matchesItem && anyInWindow;
     });
   }, [orders, applied, fromMs, toMs]);
 
-  /* ---------------------------- aggregates ---------------------------- */
-
+  /* ------------------------------- KPIs -------------------------------- */
   const kpis = useMemo(() => {
-    // purchases in window (by order_date)
-    const purchases = filtered.filter((o) => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
-    const spentC = sum(purchases.map((o) => cents(o.buy_price_cents)));
-    const itemsBought = purchases.length;
-
-    // sales in window (by sale_date)
+    const purchases = filtered.filter(
+      (o) => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs)
+    );
     const sales = filtered.filter(
       (o) =>
         cents(o.sale_price_cents) > 0 &&
         (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs))
     );
-    const revenueC = sum(sales.map((o) => cents(o.sale_price_cents)));
-    const feesC = sum(sales.map((o) => Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0))));
-    const shippingC = sum(sales.map((o) => cents(o.shipping_cents)));
-    const cogC = sum(sales.map((o) => cents(o.buy_price_cents))); // COGS from sold rows
-    const profitC = revenueC - feesC - shippingC - cogC;
 
-    const avgSale = revenueC && sales.length ? revenueC / sales.length : 0;
-    const avgBuy = spentC && purchases.length ? spentC / purchases.length : 0;
+    const spentC = purchases.reduce((a, o) => a + cents(o.buy_price_cents), 0);
+    const revenueC = sales.reduce((a, o) => a + cents(o.sale_price_cents), 0);
+    const feesC = sales.reduce(
+      (a, o) => a + Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0)),
+      0
+    );
+    const shippingC = sales.reduce((a, o) => a + cents(o.shipping_cents), 0);
+    const cogsC = sales.reduce((a, o) => a + cents(o.buy_price_cents), 0);
+    const profitC = revenueC - feesC - shippingC - cogsC;
+    const netAfterFeeShipC = revenueC - feesC - shippingC;
 
-    // avg hold time (sold only)
+    const avgBuy = purchases.length ? spentC / purchases.length : 0;
+    const avgSale = sales.length ? revenueC / sales.length : 0;
+
+    // hold time
     const holdDays = sales
       .map((o) => {
         const od = new Date(o.order_date).getTime();
@@ -182,39 +217,38 @@ export default function Stats() {
         return Math.max(0, Math.round((sd - od) / (24 * 3600 * 1000)));
       })
       .filter((x) => x != null);
-    const avgHold = holdDays.length ? holdDays.reduce((a, b) => a + b, 0) / holdDays.length : 0;
+    const avgHold = holdDays.length
+      ? holdDays.reduce((a, b) => a + b, 0) / holdDays.length
+      : 0;
 
     const roi = spentC > 0 ? profitC / spentC : NaN; // profit over cost
     const margin = revenueC > 0 ? profitC / revenueC : NaN;
     const sellThrough =
       purchases.length > 0 ? sales.length / purchases.length : NaN;
 
-    // on hand = “unsold” among filtered purchases
     const onHand = filtered.filter((o) => cents(o.sale_price_cents) <= 0).length;
 
     return {
-      itemsBought,
+      bought: purchases.length,
+      sold: sales.length,
+      onHand,
       spentC,
-      salesCount: sales.length,
       revenueC,
+      profitC,
       feesC,
       shippingC,
-      profitC,
-      avgSale,
       avgBuy,
-      avgHold,
+      avgSale,
       roi,
       margin,
+      avgHold,
       sellThrough,
-      onHand,
+      netAfterFeeShipC,
     };
   }, [filtered, fromMs, toMs]);
 
-  /* ------------------------------ charts ------------------------------ */
-
-  const [chartType, setChartType] = useState("purchases_month"); // default
-
-  // helper to month key
+  /* -------------------------------- charts ------------------------------- */
+  const [chartType, setChartType] = useState("purchases_month");
   const monthKey = (d) => {
     const dt = new Date(d);
     if (isNaN(dt.getTime())) return null;
@@ -222,122 +256,85 @@ export default function Stats() {
   };
 
   const chartData = useMemo(() => {
-    const purchasesInWindow = filtered.filter((o) => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
-    const salesInWindow = filtered.filter((o) =>
-      cents(o.sale_price_cents) > 0 &&
-      (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs))
+    const purchasesInWindow = filtered.filter(
+      (o) => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs)
+    );
+    const salesInWindow = filtered.filter(
+      (o) =>
+        cents(o.sale_price_cents) > 0 &&
+        (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs))
     );
 
     if (chartType === "purchases_month") {
-      const g = groupMap(purchasesInWindow, (o) => monthKey(o.order_date), (o) => cents(o.buy_price_cents));
-      const rows = [...g.entries()]
-        .filter(([k]) => !!k)
+      const m = new Map();
+      for (const o of purchasesInWindow) {
+        const k = monthKey(o.order_date);
+        if (!k) continue;
+        m.set(k, (m.get(k) || 0) + cents(o.buy_price_cents));
+      }
+      return [...m.entries()]
         .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([k, vals]) => ({ label: k, value: sum(vals) }));
-      return rows;
+        .map(([label, value]) => ({ label, value }));
     }
-
     if (chartType === "sales_month") {
-      const g = groupMap(salesInWindow, (o) => monthKey(o.sale_date), (o) => cents(o.sale_price_cents));
-      const rows = [...g.entries()]
-        .filter(([k]) => !!k)
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([k, vals]) => ({ label: k, value: sum(vals) }));
-      return rows;
-    }
-
-    if (chartType === "pl_month") {
-      const g = new Map();
+      const m = new Map();
       for (const o of salesInWindow) {
         const k = monthKey(o.sale_date);
         if (!k) continue;
-        const revenue = cents(o.sale_price_cents);
-        const fees = Math.round(revenue * (Number(o.fees_pct) || 0));
+        m.set(k, (m.get(k) || 0) + cents(o.sale_price_cents));
+      }
+      return [...m.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([label, value]) => ({ label, value }));
+    }
+    if (chartType === "pl_month") {
+      const m = new Map();
+      for (const o of salesInWindow) {
+        const k = monthKey(o.sale_date);
+        if (!k) continue;
+        const rev = cents(o.sale_price_cents);
+        const fee = Math.round(rev * (Number(o.fees_pct) || 0));
         const ship = cents(o.shipping_cents);
         const cost = cents(o.buy_price_cents);
-        const pl = revenue - fees - ship - cost;
-        g.set(k, (g.get(k) || 0) + pl);
+        const pl = rev - fee - ship - cost;
+        m.set(k, (m.get(k) || 0) + pl);
       }
-      const rows = [...g.entries()]
+      return [...m.entries()]
         .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([k, v]) => ({ label: k, value: v }));
-      return rows;
+        .map(([label, value]) => ({ label, value }));
     }
-
     if (chartType === "purchases_retailer") {
-      const g = groupMap(
-        purchasesInWindow,
-        (o) => o.retailer || "—",
-        (o) => cents(o.buy_price_cents)
-      );
-      const rows = [...g.entries()]
-        .map(([k, vals]) => ({ label: k, value: sum(vals) }))
+      const m = new Map();
+      for (const o of purchasesInWindow) {
+        const k = o.retailer || "—";
+        m.set(k, (m.get(k) || 0) + cents(o.buy_price_cents));
+      }
+      return [...m.entries()]
+        .map(([label, value]) => ({ label, value }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 12);
-      return rows;
     }
-
-    // sales by marketplace
-    const g = groupMap(
-      salesInWindow,
-      (o) => o.marketplace || "—",
-      (o) => cents(o.sale_price_cents)
-    );
-    const rows = [...g.entries()]
-      .map(([k, vals]) => ({ label: k, value: sum(vals) }))
+    // sales_market
+    const m = new Map();
+    for (const o of salesInWindow) {
+      const k = o.marketplace || "—";
+      m.set(k, (m.get(k) || 0) + cents(o.sale_price_cents));
+    }
+    return [...m.entries()]
+      .map(([label, value]) => ({ label, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 12);
-    return rows;
   }, [chartType, filtered, fromMs, toMs]);
 
   const maxVal = Math.max(1, ...chartData.map((r) => Math.abs(r.value)));
 
-  /* -------------------------- breakdown by item -------------------------- */
-
-  const itemBreakdown = useMemo(() => {
-    // group by item name (filtered set already applied)
-    const g = new Map();
-    for (const o of filtered) {
-      const key = o.item || "—";
-      if (!g.has(key)) {
-        g.set(key, {
-          item: key,
-          bought: 0,
-          sold: 0,
-          onHand: 0,
-          costC: 0,
-          revenueC: 0,
-          feesC: 0,
-          shipC: 0,
-          plC: 0,
-        });
-      }
-      const row = g.get(key);
-      row.bought += 1;
-      row.costC += cents(o.buy_price_cents);
-      if (cents(o.sale_price_cents) > 0) {
-        row.sold += 1;
-        row.revenueC += cents(o.sale_price_cents);
-        const fee = Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0));
-        row.feesC += fee;
-        row.shipC += cents(o.shipping_cents);
-        row.plC += cents(o.sale_price_cents) - fee - cents(o.shipping_cents) - cents(o.buy_price_cents);
-      } else {
-        row.onHand += 1;
-      }
-    }
-    return [...g.values()].sort((a, b) => b.revenueC - a.revenueC).slice(0, 100);
-  }, [filtered]);
-
   /* ------------------------------- actions ------------------------------- */
-
   async function signOut() {
     await supabase.auth.signOut();
     window.location.href = "/login";
   }
 
   /* -------------------------------- render -------------------------------- */
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
@@ -370,32 +367,22 @@ export default function Stats() {
 
         {/* Tabs */}
         <div className="flex flex-wrap items-center gap-2 mb-6">
-          <NavLink to="/app" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>
-            Quick Add
-          </NavLink>
-          <NavLink to="/sold" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>
-            Mark as Sold
-          </NavLink>
-          <NavLink to="/stats" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>
-            Stats
-          </NavLink>
+          <NavLink to="/app" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>Quick Add</NavLink>
+          <NavLink to="/sold" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>Mark as Sold</NavLink>
+          <NavLink to="/stats" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>Stats</NavLink>
           <button className={tabBase}>Inventory</button>
           <button className={tabBase}>Flex</button>
-          <NavLink to="/settings" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>
-            Settings
-          </NavLink>
+          <NavLink to="/settings" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>Settings</NavLink>
         </div>
 
         {/* Filters */}
         <div className={card}>
           <h2 className="text-lg font-semibold mb-4">Date Range</h2>
-
           <div className="grid grid-cols-1 gap-4 min-w-0">
-            {/* range */}
             <select
               value={range}
               onChange={(e) => setRange(e.target.value)}
-              className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100"
+              className={inputBase}
             >
               <option value="all">All time</option>
               <option value="month">This month</option>
@@ -403,43 +390,65 @@ export default function Stats() {
               <option value="custom">Custom…</option>
             </select>
 
-            {/* custom dates */}
             {range === "custom" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
                 <input
                   type="date"
                   value={fromStr}
                   onChange={(e) => setFromStr(e.target.value)}
-                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100"
+                  className={inputBase}
                 />
                 <input
                   type="date"
                   value={toStr}
                   onChange={(e) => setToStr(e.target.value)}
-                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100"
+                  className={inputBase}
                 />
               </div>
             )}
 
-            {/* item filter (searchable) */}
-            <div>
-              <label className="block text-slate-300 text-sm mb-1">Item filter</label>
+            {/* Item filter (custom searchable combobox) */}
+            <div ref={comboRef} className="relative">
+              <label className="sr-only">Item filter</label>
               <input
-                list="stats-items-list"
                 value={itemInput}
-                onChange={(e) => setItemInput(e.target.value)}
-                onBlur={(e) => {
-                  if (!e.target.value.trim()) setItemInput("All Items");
+                onChange={(e) => {
+                  setItemInput(e.target.value);
+                  setItemOpen(true);
                 }}
+                onFocus={() => setItemOpen(true)}
                 placeholder="Type to filter by item name…"
-                className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100"
+                className={inputBase}
               />
-              <datalist id="stats-items-list">
-                <option value="All Items" />
-                {items.map((it) => (
-                  <option key={it.id} value={it.name} />
-                ))}
-              </datalist>
+              <button
+                type="button"
+                onClick={() => setItemOpen((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                aria-label="Toggle items"
+              >
+                ▾
+              </button>
+
+              {itemOpen && (
+                <div className="absolute z-50 left-0 right-0 mt-2 max-h-60 overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                  {filteredItemOptions.map((name) => (
+                    <div
+                      key={name}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setItemInput(name);
+                        setItemOpen(false);
+                      }}
+                      className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-slate-100"
+                    >
+                      {name}
+                    </div>
+                  ))}
+                  {filteredItemOptions.length === 0 && (
+                    <div className="px-3 py-2 text-slate-400">No matches</div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-4">
@@ -457,55 +466,27 @@ export default function Stats() {
                 Apply
               </button>
               <div className="text-slate-400 text-sm">
-                {filtered.length ? null : "Stats unavailable."}
+                {filtered.length ? "" : "Stats unavailable."}
               </div>
             </div>
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-          <div className={card}>
-            <div className="text-slate-400 text-sm">Purchases</div>
-            <div className="text-2xl font-semibold mt-2">{kpis.itemsBought} items</div>
-            <div className="text-slate-400 text-sm">Spend ${centsToStr(kpis.spentC)}</div>
-          </div>
-
-          <div className={card}>
-            <div className="text-slate-400 text-sm">Sales</div>
-            <div className="text-2xl font-semibold mt-2">{kpis.salesCount} items</div>
-            <div className="text-slate-400 text-sm">Revenue ${centsToStr(kpis.revenueC)}</div>
-          </div>
-
-          <div className={card}>
-            <div className="text-slate-400 text-sm">Profit / Loss</div>
-            <div className="text-2xl font-semibold mt-2">
-              ${centsToStr(kpis.profitC)}
-            </div>
-            <div className="text-slate-400 text-sm">
-              Avg sale ${centsToStr(kpis.avgSale)}
-            </div>
-          </div>
-
-          <div className={card}>
-            <div className="text-slate-400 text-sm">Fees</div>
-            <div className="text-2xl font-semibold mt-2">${centsToStr(kpis.feesC)}</div>
-            <div className="text-slate-400 text-sm">Avg buy ${centsToStr(kpis.avgBuy)}</div>
-          </div>
-
-          <div className={card}>
-            <div className="text-slate-400 text-sm">Shipping</div>
-            <div className="text-2xl font-semibold mt-2">${centsToStr(kpis.shippingC)}</div>
-            <div className="text-slate-400 text-sm">On hand {kpis.onHand}</div>
-          </div>
-
-          <div className={card}>
-            <div className="text-slate-400 text-sm">ROI & Margin</div>
-            <div className="text-lg font-semibold mt-2">
-              ROI {pctStr(kpis.roi)} • Margin {pctStr(kpis.margin)}
-            </div>
-            <div className="text-slate-400 text-sm">Avg hold {kpis.avgHold.toFixed(1)} days • STR {pctStr(kpis.sellThrough)}</div>
-          </div>
+        {/* KPI grid (compact) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+          <Kpi title="Bought" value={`${kpis.bought} items`} subtitle={`Spend $${centsToStr(kpis.spentC)}`} />
+          <Kpi title="Sold" value={`${kpis.sold} items`} subtitle={`Revenue $${centsToStr(kpis.revenueC)}`} />
+          <Kpi
+            title="Profit / Loss"
+            value={`$${centsToStr(kpis.profitC)}`}
+            subtitle={`Net after fees/ship $${centsToStr(kpis.netAfterFeeShipC)}`}
+            tone={kpis.profitC >= 0 ? "pos" : "neg"}
+          />
+          <Kpi title="Fees" value={`$${centsToStr(kpis.feesC)}`} subtitle={`Avg buy $${centsToStr(kpis.avgBuy)}`} />
+          <Kpi title="Shipping" value={`$${centsToStr(kpis.shippingC)}`} subtitle={`Avg sale $${centsToStr(kpis.avgSale)}`} />
+          <Kpi title="On hand" value={`${kpis.onHand}`} subtitle="Unsold items" />
+          <Kpi title="ROI" value={pctStr(kpis.roi)} subtitle={`Margin ${pctStr(kpis.margin)}`} />
+          <Kpi title="Avg hold" value={`${kpis.avgHold.toFixed(1)} days`} subtitle={`STR ${pctStr(kpis.sellThrough)}`} />
         </div>
 
         {/* Chart */}
@@ -515,7 +496,7 @@ export default function Stats() {
             <select
               value={chartType}
               onChange={(e) => setChartType(e.target.value)}
-              className="w-[220px] bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100"
+              className="w-[240px] bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100"
             >
               <option value="purchases_month">Purchases by month</option>
               <option value="sales_month">Sales by month</option>
@@ -525,14 +506,15 @@ export default function Stats() {
             </select>
           </div>
 
-          {/* simple bar chart (CSS) */}
           <div className="space-y-2">
             {chartData.length === 0 && (
               <div className="text-slate-400">No data for this view.</div>
             )}
             {chartData.map((r, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="w-32 shrink-0 text-sm text-slate-300 truncate">{r.label}</div>
+                <div className="w-32 shrink-0 text-sm text-slate-300 truncate">
+                  {r.label}
+                </div>
                 <div className="flex-1 h-3 rounded bg-slate-800 overflow-hidden">
                   <div
                     className="h-full bg-indigo-600"
@@ -551,7 +533,7 @@ export default function Stats() {
         <div className={`${card} mt-6`}>
           <h3 className="text-lg font-semibold mb-4">Breakdown by item</h3>
           <div className="overflow-x-auto">
-            <table className="min-w-[720px] w-full text-sm">
+            <table className="min-w-[860px] w-full text-sm">
               <thead className="text-slate-300">
                 <tr className="text-left">
                   <th className="py-2 pr-3">Item Name</th>
@@ -566,7 +548,7 @@ export default function Stats() {
                 </tr>
               </thead>
               <tbody className="text-slate-200">
-                {itemBreakdown.map((r) => (
+                {makeItemBreakdown(filtered).map((r) => (
                   <tr key={r.item} className="border-t border-slate-800">
                     <td className="py-2 pr-3">{r.item}</td>
                     <td className="py-2 pr-3">{r.bought}</td>
@@ -576,10 +558,12 @@ export default function Stats() {
                     <td className="py-2 pr-3">${centsToStr(r.revenueC)}</td>
                     <td className="py-2 pr-3">${centsToStr(r.feesC)}</td>
                     <td className="py-2 pr-3">${centsToStr(r.shipC)}</td>
-                    <td className="py-2 pr-3">${centsToStr(r.plC)}</td>
+                    <td className={`py-2 pr-3 ${r.plC >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      ${centsToStr(r.plC)}
+                    </td>
                   </tr>
                 ))}
-                {itemBreakdown.length === 0 && (
+                {filtered.length === 0 && (
                   <tr>
                     <td className="py-6 text-slate-400" colSpan={9}>
                       No data in this range.
@@ -590,8 +574,58 @@ export default function Stats() {
             </table>
           </div>
         </div>
-
       </div>
     </div>
   );
+}
+
+/* --------------------------- small components --------------------------- */
+function Kpi({ title, value, subtitle, tone }) {
+  const toneClass =
+    tone === "pos"
+      ? "text-emerald-400"
+      : tone === "neg"
+      ? "text-rose-400"
+      : "text-slate-100";
+  return (
+    <div className={card}>
+      <div className="text-slate-400 text-sm">{title}</div>
+      <div className={`text-xl font-semibold mt-2 ${toneClass}`}>{value}</div>
+      {subtitle && <div className="text-slate-400 text-sm">{subtitle}</div>}
+    </div>
+  );
+}
+
+function makeItemBreakdown(filtered) {
+  const m = new Map();
+  for (const o of filtered) {
+    const key = o.item || "—";
+    if (!m.has(key)) {
+      m.set(key, {
+        item: key,
+        bought: 0,
+        sold: 0,
+        onHand: 0,
+        costC: 0,
+        revenueC: 0,
+        feesC: 0,
+        shipC: 0,
+        plC: 0,
+      });
+    }
+    const row = m.get(key);
+    row.bought += 1;
+    row.costC += cents(o.buy_price_cents);
+    if (cents(o.sale_price_cents) > 0) {
+      row.sold += 1;
+      row.revenueC += cents(o.sale_price_cents);
+      const fee = Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0));
+      row.feesC += fee;
+      row.shipC += cents(o.shipping_cents);
+      row.plC += cents(o.sale_price_cents) - fee - cents(o.shipping_cents) - cents(o.buy_price_cents);
+    } else {
+      row.onHand += 1;
+    }
+  }
+  return [...m.values()].sort((a, b) => b.revenueC - a.revenueC).slice(0, 200);
 }
