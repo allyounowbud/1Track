@@ -7,15 +7,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  // If already signed in, bounce to /app
+  // If already signed in, bounce to /
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) navigate("/app");
+      if (session) navigate("/");
     })();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
-      if (session) navigate("/app");
+      if (session) navigate("/");
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);

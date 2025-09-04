@@ -1,3 +1,4 @@
+// src/routes/QuickAdd.jsx
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { NavLink, Link } from 'react-router-dom'
@@ -54,7 +55,7 @@ async function getMarketplaces() {
   return data
 }
 
-export default function Dashboard() {
+export default function QuickAdd() {
   const { data: orders, isLoading, error, refetch } = useQuery({ queryKey:['orders'], queryFn:getOrders })
   const { data: retailers = [] } = useQuery({ queryKey:['retailers'], queryFn:getRetailers })
   const { data: items = [] } = useQuery({ queryKey:['items'], queryFn:getItems })
@@ -185,22 +186,22 @@ export default function Dashboard() {
             )}
             <div className="hidden sm:block text-sm text-slate-300 max-w-[160px] truncate">{userInfo.username}</div>
             <Link
-  to="/"
-  className="h-10 px-4 inline-flex items-center justify-center leading-none
-             rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900
-             text-slate-100 cursor-pointer"
->
-  Dashboard
-</Link>
+              to="/"
+              className="h-10 px-4 inline-flex items-center justify-center leading-none
+                         rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900
+                         text-slate-100 cursor-pointer"
+            >
+              Dashboard
+            </Link>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex flex-wrap items-center gap-2 mb-6">
-          <NavLink to="/orders"  className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Order Book</NavLink>
-          <NavLink to="/app" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Quick Add</NavLink>
-          <NavLink to="/sold" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Mark as Sold</NavLink>
-          <NavLink to="/stats" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Stats</NavLink>
+          <NavLink to="/orders" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Order Book</NavLink>
+          <NavLink to="/add"    className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Quick Add</NavLink>
+          <NavLink to="/sold"   className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Mark as Sold</NavLink>
+          <NavLink to="/stats"  className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Stats</NavLink>
           <button className={tabBase}>Inventory</button>
           <button className={tabBase}>Flex</button>
           <NavLink to="/settings" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Settings</NavLink>

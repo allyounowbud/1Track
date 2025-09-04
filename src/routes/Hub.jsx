@@ -86,7 +86,7 @@ export default function Hub() {
           <h2 className="text-lg font-semibold mb-4">Choose a workspace</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Link to="/app" className={tile}>
+            <Link to="/add" className={tile}>
               <div className="h-12 w-12 rounded-xl bg-indigo-600/20 grid place-items-center text-indigo-300">
                 🧾
               </div>

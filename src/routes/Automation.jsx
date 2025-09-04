@@ -58,7 +58,7 @@ export default function Automation() {
         {/* Tabs for order-book area + link back to hub */}
         <div className="flex flex-wrap items-center gap-2 mb-6">
           <Link to="/" className={tabBase}>← Hub</Link>
-          <NavLink to="/app"     className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Order Book</NavLink>
+          <NavLink to="/add"     className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Order Book</NavLink>
           <span className={`${tabBase} ${tabActive}`}>Automations</span>
         </div>
 
@@ -68,7 +68,7 @@ export default function Automation() {
             Nothing here yet. This area will host email management, profile creation, jigging and more.
           </p>
           <p className="text-slate-400 mt-3">
-            Tip: head to the <Link className="underline" to="/app">Order Book</Link> to keep tracking purchases and sales.
+            Tip: head to the <Link className="underline" to="/orders">Order Book</Link> to keep tracking purchases and sales.
           </p>
         </div>
       </div>

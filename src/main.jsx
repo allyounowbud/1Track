@@ -3,34 +3,33 @@ import "./index.css";
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import {
-  createBrowserRouter,
-  RouterProvider,
-  Navigate,
-} from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import App from "./routes/App.jsx";
+import Hub from "./routes/Hub.jsx";                 // Main hub (dashboard)
 import Login from "./routes/Login.jsx";
-import Dashboard from "./routes/Dashboard.jsx";
+import QuickAdd from "./routes/QuickAdd.jsx";       // Renamed from Dashboard.jsx
 import Settings from "./routes/Settings.jsx";
-import MarkSold from "./routes/MarkSold.jsx"; // <-- NEW
-import Stats from './routes/Stats.jsx';
-import OrderBook from './routes/OrderBook.jsx';
-import Hub from './routes/Hub.jsx';            // NEW
-import Automation from './routes/Automation.jsx' // NEW
+import MarkSold from "./routes/MarkSold.jsx";
+import Stats from "./routes/Stats.jsx";
+import OrderBook from "./routes/OrderBook.jsx";
+import Automation from "./routes/Automation.jsx";
 
 const router = createBrowserRouter([
-  { path: '/', element: <Hub /> },                 // NEW hub
-  { path: '/automation', element: <Automation /> },// NEW placeholder
-  { path: "/", element: <App /> },           // your auth gate/landing
+  { path: "/", element: <Hub /> },                 // Hub is now the root
   { path: "/login", element: <Login /> },
-  { path: "/app", element: <Dashboard /> },  // Quick Add
-  { path: '/stats', element: <Stats /> },
-  { path: '/orders', element: <OrderBook /> }, // 👈 NEW
-  { path: "/sold", element: <MarkSold /> },  // <-- NEW route
+
+  { path: "/add", element: <QuickAdd /> },         // Quick Add lives at /add
+  { path: "/orders", element: <OrderBook /> },
+  { path: "/sold", element: <MarkSold /> },
+  { path: "/stats", element: <Stats /> },
   { path: "/settings", element: <Settings /> },
-  { path: "*", element: <Navigate to="/app" replace /> }, // fallback
+
+  { path: "/automation", element: <Automation /> },
+
+  // Legacy + fallback routes
+  { path: "/app", element: <Navigate to="/add" replace /> }, // old Quick Add path
+  { path: "*", element: <Navigate to="/add" replace /> },
 ]);
 
 const qc = new QueryClient();

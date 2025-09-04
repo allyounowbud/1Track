@@ -376,7 +376,7 @@ export default function Stats() {
         <div className="flex flex-wrap items-center gap-2 mb-6">
           <NavLink to="/orders"  className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Order Book</NavLink>
           <NavLink
-            to="/app"
+            to="/add"
             className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}
           >
             Quick Add
