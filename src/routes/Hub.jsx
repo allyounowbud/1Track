@@ -42,26 +42,9 @@ export default function Hub() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* Header (no sign-out here) */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">OneTrack</h1>
-          <div className="flex items-center gap-3">
-            {userInfo.avatar_url ? (
-              <img
-                src={userInfo.avatar_url}
-                alt=""
-                className="h-8 w-8 rounded-full border border-slate-800 object-cover"
-              />
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-slate-800 grid place-items-center text-slate-300 text-xs">
-                {(userInfo.username || "U").slice(0, 1).toUpperCase()}
-              </div>
-            )}
-            <div className="hidden sm:block text-sm text-slate-300 max-w-[200px] truncate">
-              {userInfo.username}
-            </div>
-          </div>
-        </div>
+        <div className="mb-6">
+  <h1 className="text-3xl font-bold">OneTrack</h1>
+</div>
 
         {/* Welcome / account (Sign out button lives here) */}
         <div className={`${card} mb-6`}>
@@ -126,8 +109,8 @@ export default function Hub() {
               <div className="flex-1">
                 <div className="text-xl font-semibold">Automations</div>
                 <div className="text-slate-400 text-sm">
-                  Coming soon: Automations for things like building and converting profiles, email management, 
-                  testing proxies, jigging information and more..
+                  Coming soon: automations for things like building and converting profiles, email management, 
+                  jigging information and more..
                 </div>
                 <div className="mt-3 inline-flex items-center text-emerald-300 group-hover:text-emerald-200">
                   Open →
