@@ -9,7 +9,7 @@ const tabBase =
 const tabActive =
   "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600";
 const card =
-  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
+  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-visible";
 const inputBase =
   "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
 
@@ -63,7 +63,9 @@ export default function Stats() {
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return setUserInfo({ avatar_url: "", username: "" });
       const m = user.user_metadata || {};
       const username =
@@ -197,7 +199,9 @@ export default function Stats() {
     const spentC = purchases.reduce((a, o) => a + cents(o.buy_price_cents), 0);
     const revenueC = sales.reduce((a, o) => a + cents(o.sale_price_cents), 0);
     const feesC = sales.reduce(
-      (a, o) => a + Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0)),
+      (a, o) =>
+        a +
+        Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0)),
       0
     );
     const shippingC = sales.reduce((a, o) => a + cents(o.shipping_cents), 0);
@@ -226,7 +230,8 @@ export default function Stats() {
     const sellThrough =
       purchases.length > 0 ? sales.length / purchases.length : NaN;
 
-    const onHand = filtered.filter((o) => cents(o.sale_price_cents) <= 0).length;
+    const onHand = filtered.filter((o) => cents(o.sale_price_cents) <= 0)
+      .length;
 
     return {
       bought: purchases.length,
@@ -367,28 +372,52 @@ export default function Stats() {
 
         {/* Tabs */}
         <div className="flex flex-wrap items-center gap-2 mb-6">
-          <NavLink to="/app" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>Quick Add</NavLink>
-          <NavLink to="/sold" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>Mark as Sold</NavLink>
-          <NavLink to="/stats" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>Stats</NavLink>
+          <NavLink
+            to="/app"
+            className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}
+          >
+            Quick Add
+          </NavLink>
+          <NavLink
+            to="/sold"
+            className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}
+          >
+            Mark as Sold
+          </NavLink>
+          <NavLink
+            to="/stats"
+            className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}
+          >
+            Stats
+          </NavLink>
           <button className={tabBase}>Inventory</button>
           <button className={tabBase}>Flex</button>
-          <NavLink to="/settings" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>Settings</NavLink>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}
+          >
+            Settings
+          </NavLink>
         </div>
 
         {/* Filters */}
         <div className={card}>
           <h2 className="text-lg font-semibold mb-4">Date Range</h2>
           <div className="grid grid-cols-1 gap-4 min-w-0">
-            <select
-              value={range}
-              onChange={(e) => setRange(e.target.value)}
-              className={inputBase}
-            >
-              <option value="all">All time</option>
-              <option value="month">This month</option>
-              <option value="30">Last 30 days</option>
-              <option value="custom">Custom…</option>
-            </select>
+            {/* Date range dropdown (styled like item selector) */}
+            <div className="relative isolate">
+              <Select
+                value={range}
+                onChange={setRange}
+                options={[
+                  { value: "all", label: "All time" },
+                  { value: "month", label: "This month" },
+                  { value: "30", label: "Last 30 days" },
+                  { value: "custom", label: "Custom…" },
+                ]}
+                placeholder="All time"
+              />
+            </div>
 
             {range === "custom" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
@@ -408,7 +437,7 @@ export default function Stats() {
             )}
 
             {/* Item filter (custom searchable combobox) */}
-            <div ref={comboRef} className="relative">
+            <div ref={comboRef} className="relative isolate">
               <label className="sr-only">Item filter</label>
               <input
                 value={itemInput}
@@ -474,19 +503,43 @@ export default function Stats() {
 
         {/* KPI grid (compact) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-          <Kpi title="Bought" value={`${kpis.bought} items`} subtitle={`Spend $${centsToStr(kpis.spentC)}`} />
-          <Kpi title="Sold" value={`${kpis.sold} items`} subtitle={`Revenue $${centsToStr(kpis.revenueC)}`} />
+          <Kpi
+            title="Bought"
+            value={`${kpis.bought} items`}
+            subtitle={`Spend $${centsToStr(kpis.spentC)}`}
+          />
+          <Kpi
+            title="Sold"
+            value={`${kpis.sold} items`}
+            subtitle={`Revenue $${centsToStr(kpis.revenueC)}`}
+          />
           <Kpi
             title="Profit / Loss"
             value={`$${centsToStr(kpis.profitC)}`}
             subtitle={`Net after fees/ship $${centsToStr(kpis.netAfterFeeShipC)}`}
             tone={kpis.profitC >= 0 ? "pos" : "neg"}
           />
-          <Kpi title="Fees" value={`$${centsToStr(kpis.feesC)}`} subtitle={`Avg buy $${centsToStr(kpis.avgBuy)}`} />
-          <Kpi title="Shipping" value={`$${centsToStr(kpis.shippingC)}`} subtitle={`Avg sale $${centsToStr(kpis.avgSale)}`} />
+          <Kpi
+            title="Fees"
+            value={`$${centsToStr(kpis.feesC)}`}
+            subtitle={`Avg buy $${centsToStr(kpis.avgBuy)}`}
+          />
+          <Kpi
+            title="Shipping"
+            value={`$${centsToStr(kpis.shippingC)}`}
+            subtitle={`Avg sale $${centsToStr(kpis.avgSale)}`}
+          />
           <Kpi title="On hand" value={`${kpis.onHand}`} subtitle="Unsold items" />
-          <Kpi title="ROI" value={pctStr(kpis.roi)} subtitle={`Margin ${pctStr(kpis.margin)}`} />
-          <Kpi title="Avg hold" value={`${kpis.avgHold.toFixed(1)} days`} subtitle={`STR ${pctStr(kpis.sellThrough)}`} />
+          <Kpi
+            title="ROI"
+            value={pctStr(kpis.roi)}
+            subtitle={`Margin ${pctStr(kpis.margin)}`}
+          />
+          <Kpi
+            title="Avg hold"
+            value={`${kpis.avgHold.toFixed(1)} days`}
+            subtitle={`STR ${pctStr(kpis.sellThrough)}`}
+          />
         </div>
 
         {/* Chart */}
@@ -558,7 +611,11 @@ export default function Stats() {
                     <td className="py-2 pr-3">${centsToStr(r.revenueC)}</td>
                     <td className="py-2 pr-3">${centsToStr(r.feesC)}</td>
                     <td className="py-2 pr-3">${centsToStr(r.shipC)}</td>
-                    <td className={`py-2 pr-3 ${r.plC >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                    <td
+                      className={`py-2 pr-3 ${
+                        r.plC >= 0 ? "text-emerald-400" : "text-rose-400"
+                      }`}
+                    >
                       ${centsToStr(r.plC)}
                     </td>
                   </tr>
@@ -580,6 +637,63 @@ export default function Stats() {
 }
 
 /* --------------------------- small components --------------------------- */
+
+/** Styled dropdown used for Date Range (matches item selector look) */
+function Select({ value, onChange, options, placeholder = "Select…" }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    function onDoc(e) {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const current = options.find((o) => o.value === value);
+
+  return (
+    <div ref={rootRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`${inputBase} flex items-center justify-between`}
+      >
+        <span className={current ? "" : "text-slate-400"}>
+          {current ? current.label : placeholder}
+        </span>
+        <svg className="w-4 h-4 opacity-70" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl">
+          <ul className="max-h-64 overflow-auto py-1">
+            {options.map((opt) => (
+              <li key={opt.value}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 hover:bg-slate-800 ${
+                    opt.value === value ? "text-white" : "text-slate-200"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Kpi({ title, value, subtitle, tone }) {
   const toneClass =
     tone === "pos"
@@ -619,13 +733,21 @@ function makeItemBreakdown(filtered) {
     if (cents(o.sale_price_cents) > 0) {
       row.sold += 1;
       row.revenueC += cents(o.sale_price_cents);
-      const fee = Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0));
+      const fee = Math.round(
+        cents(o.sale_price_cents) * (Number(o.fees_pct) || 0)
+      );
       row.feesC += fee;
       row.shipC += cents(o.shipping_cents);
-      row.plC += cents(o.sale_price_cents) - fee - cents(o.shipping_cents) - cents(o.buy_price_cents);
+      row.plC +=
+        cents(o.sale_price_cents) -
+        fee -
+        cents(o.shipping_cents) -
+        cents(o.buy_price_cents);
     } else {
       row.onHand += 1;
     }
   }
-  return [...m.values()].sort((a, b) => b.revenueC - a.revenueC).slice(0, 200);
+  return [...m.values()]
+    .sort((a, b) => b.revenueC - a.revenueC)
+    .slice(0, 200);
 }
