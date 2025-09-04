@@ -4,13 +4,12 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import HeaderWithTabs from '../components/HeaderWithTabs.jsx'
 
-/* ---- shared UI tokens ---- */
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden"
 const inputSm =
   "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
 
-/* ---- helpers ---- */
+/* helpers */
 const parseMoney = (v) => {
   const n = Number(String(v ?? '').replace(/[^0-9.\-]/g, ''))
   return isNaN(n) ? 0 : n
@@ -24,7 +23,7 @@ const parsePct = (v) => {
   return n > 1 ? n / 100 : n
 }
 
-/* ---- queries ---- */
+/* queries */
 async function getOrders(limit=500){
   const { data, error } = await supabase
     .from('orders')
@@ -50,14 +49,12 @@ async function getMarkets() {
   return data ?? []
 }
 
-/* ====================== PAGE ====================== */
 export default function OrderBook(){
   const { data: orders=[], isLoading, error, refetch } = useQuery({ queryKey:['orders', 500], queryFn:() => getOrders(500) })
   const { data: items=[] }      = useQuery({ queryKey:['items'],      queryFn:getItems })
   const { data: retailers=[] }  = useQuery({ queryKey:['retailers'],  queryFn:getRetailers })
   const { data: markets=[] }    = useQuery({ queryKey:['markets'],    queryFn:getMarkets })
 
-  /* search */
   const [q, setQ] = useState('')
   const filtered = useMemo(() => {
     const t = (q || '').trim().toLowerCase()
@@ -72,46 +69,38 @@ export default function OrderBook(){
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Desktop grid CSS (no Tailwind arbitrary classes, so it works with your build) */}
+      {/* Desktop grid that fits inside each card. No horizontal scroll. */}
       <style>{`
-        /* mobile-first: rows stack by default */
-        .orderGrid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: .5rem;
-          align-items: center;
-          min-width: 0;
-        }
-        .orderHeader {
-          display: none;
-        }
-        @media (min-width: 1024px) {
-          /* same template for header and rows, guaranteed to fit in card width */
-          .orderGrid,
-          .orderHeader {
+        .orderHeader { display: none; }
+        .orderGrid   { display: grid; grid-template-columns: 1fr; gap: .5rem; align-items:center; min-width:0; }
+        @media (min-width: 1024px){
+          /* Fractions keep everything inside the card; minmax prevents overflow from content-min. */
+          .orderHeader,
+          .orderGrid {
             display: grid;
             grid-template-columns:
-              8.5rem           /* Order date  */
-              minmax(14rem,2fr)/* Item        */
-              7.5rem           /* Profile     */
-              9rem             /* Retailer    */
-              7rem             /* Buy $       */
-              7rem             /* Sale $      */
-              9.5rem           /* Sale date   */
-              12rem            /* Marketplace */
-              7rem             /* Ship $      */
-              5rem;            /* Actions     */
+              minmax(8rem, 1.1fr)   /* Order date   */
+              minmax(14rem, 2.2fr)  /* Item         */
+              minmax(6.5rem, .9fr)  /* Profile      */
+              minmax(7.5rem, 1.1fr) /* Retailer     */
+              minmax(5.75rem, .9fr) /* Buy $        */
+              minmax(5.75rem, .9fr) /* Sale $       */
+              minmax(9rem, 1.1fr)   /* Sale date    */
+              minmax(10rem,1.6fr)   /* Marketplace  */
+              minmax(5.75rem,.9fr)  /* Ship $       */
+              minmax(4.25rem,.6fr); /* Actions      */
             gap: .5rem;
             align-items: center;
           }
+          /* Header sits exactly over the inner content edge of each row card */
+          .orderHeader { margin: 0 .75rem .25rem .75rem; }
         }
       `}</style>
 
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* Header + tabs */}
         <HeaderWithTabs />
 
-        {/* Search card — input spans full width; count on the right */}
+        {/* Search (input spans full width of its card) */}
         <div className={`${card} mb-6`}>
           <div className="flex flex-col sm:flex-row sm:items-end gap-3">
             <div className="flex-1">
@@ -133,8 +122,8 @@ export default function OrderBook(){
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
-        {/* Desktop header labels — aligned with row grid and never overflowing */}
-        <div className="orderHeader text-xs text-slate-400 px-1 mb-1">
+        {/* Header labels — same grid as rows so everything lines up inside the row card */}
+        <div className="orderHeader text-xs text-slate-400 px-0">
           <div>Order date</div>
           <div>Item</div>
           <div>Profile</div>
@@ -169,7 +158,6 @@ export default function OrderBook(){
   )
 }
 
-/* ============== Row component ============== */
 function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   const [order_date, setOrderDate]     = useState(order.order_date || '')
   const [item, setItem]                 = useState(order.item || '')
@@ -230,7 +218,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
     else onDeleted && onDeleted()
   }
 
-  /* ghost labels (mobile only when field is empty) */
+  // mobile ghost labels only when blank
   const Ghost = ({ show, children }) => (
     <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none lg:hidden ${show ? 'block' : 'hidden'}`}>
       {children}
@@ -239,7 +227,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 overflow-hidden">
-      {/* Stacked on mobile; single line grid on desktop */}
       <div className="orderGrid">
         {/* Order date */}
         <div className="relative min-w-0">
@@ -323,7 +310,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
           <input value={shipping} onChange={e=>setShipping(e.target.value)} placeholder="Ship $" inputMode="decimal" className={inputSm} />
         </div>
 
-        {/* Actions – right aligned and fixed size */}
+        {/* Actions */}
         <div className="flex justify-end gap-2">
           <button
             type="button"
