@@ -181,7 +181,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   const [marketplace, setMarketplace]   = useState(order.marketplace || '')
   const [feesPct, setFeesPct]           = useState(((order.fees_pct ?? 0) * 100).toString())
   const [shipping, setShipping]         = useState(centsToStr(order.shipping_cents))
-  const [status, setStatus]             = useState(order.status || (Number(order.sale_price_cents) > 0 ? 'sold' : 'ordered'))
 
   const [busy, setBusy] = useState(false)
   const [msg, setMsg]   = useState('')
@@ -198,6 +197,8 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   async function save(){
     setBusy(true); setMsg('')
     try{
+      // derive status from current sale price (sold if > 0, else ordered)
+      const statusValue = moneyToCents(salePrice) > 0 ? 'sold' : 'ordered'
       const payload = {
         order_date: order_date || null,
         item: item || null,
@@ -273,12 +274,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
           {markets.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
         </select>
         <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="Ship"  className={`${inputSm} w-24`} />
-
-        <select value={status} onChange={e=>setStatus(e.target.value)} className={`${inputSm} w-28`}>
-          <option value="ordered">ordered</option>
-          <option value="sold">sold</option>
-          <option value="cancelled">cancelled</option>
-        </select>
 
         <div className="ml-auto flex gap-2">
           <button onClick={save} disabled={busy} className={`${btnSm} bg-slate-800 hover:bg-slate-700 text-slate-100`}>{busy ? 'Saving…' : 'Save'}</button>
