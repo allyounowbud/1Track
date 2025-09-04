@@ -10,9 +10,9 @@ const tabActive =
   "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600"
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]"
-const inputBase =
-  "w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
-const actionBtn = "w-[92px] px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100"
+const inputSm =
+  "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
+const btnSm  = "h-10 px-4 rounded-lg text-sm"
 
 /* ---------------- helpers ---------------- */
 const parseMoney = (v) => {
@@ -38,10 +38,28 @@ async function getOrders(limit=500){
   if (error) throw error
   return data ?? []
 }
+async function getItems() {
+  const { data, error } = await supabase.from('items').select('id, name').order('name', { ascending:true })
+  if (error) throw error
+  return data ?? []
+}
+async function getRetailers() {
+  const { data, error } = await supabase.from('retailers').select('id, name').order('name', { ascending:true })
+  if (error) throw error
+  return data ?? []
+}
+async function getMarkets() {
+  const { data, error } = await supabase.from('marketplaces').select('id, name, default_fees_pct').order('name', { ascending:true })
+  if (error) throw error
+  return data ?? []
+}
 
 /* ====================== PAGE ====================== */
 export default function OrderBook(){
   const { data: orders=[], isLoading, error, refetch } = useQuery({ queryKey:['orders', 500], queryFn:() => getOrders(500) })
+  const { data: items=[] }      = useQuery({ queryKey:['items'],      queryFn:getItems })
+  const { data: retailers=[] }  = useQuery({ queryKey:['retailers'],  queryFn:getRetailers })
+  const { data: markets=[] }    = useQuery({ queryKey:['markets'],    queryFn:getMarkets })
 
   /* current user (Discord avatar/name) */
   const [userInfo, setUserInfo] = useState({ avatar_url: '', username: '' })
@@ -105,10 +123,10 @@ export default function OrderBook(){
 
         {/* Tabs */}
         <div className="flex flex-wrap items-center gap-2 mb-6">
+          <NavLink to="/orders"  className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Order Book</NavLink>
           <NavLink to="/app"     className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Quick Add</NavLink>
           <NavLink to="/sold"    className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Mark as Sold</NavLink>
           <NavLink to="/stats"   className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Stats</NavLink>
-          <NavLink to="/orders"  className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Order Book</NavLink>
           <button className={tabBase}>Inventory</button>
           <button className={tabBase}>Flex</button>
           <NavLink to="/settings" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Settings</NavLink>
@@ -123,7 +141,7 @@ export default function OrderBook(){
                 value={q}
                 onChange={(e)=>setQ(e.target.value)}
                 placeholder="item / retailer / marketplace / profile…"
-                className={inputBase}
+                className={inputSm}
               />
             </div>
             <div>
@@ -137,26 +155,33 @@ export default function OrderBook(){
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
+        {/* Header labels (hide on small) */}
+        <div className="hidden xl:flex text-xs text-slate-400 px-1 mb-1 gap-2">
+          <div className="w-36">Order date</div>
+          <div className="min-w-[240px] flex-1">Item</div>
+          <div className="w-28">Profile</div>
+          <div className="w-28">Retailer</div>
+          <div className="w-24">Buy $</div>
+          <div className="w-24">Sale $</div>
+          <div className="w-36">Sale date</div>
+          <div className="w-32">Marketplace</div>
+          <div className="w-20">Fee %</div>
+          <div className="w-24">Ship $</div>
+          <div className="w-32 text-right">Actions</div>
+        </div>
+
         <div className="space-y-3">
-          {/* column headers (hide on mobile) */}
-          <div className="hidden lg:grid grid-cols-12 gap-2 text-xs text-slate-400 px-1">
-            <div className="col-span-2">Order date</div>
-            <div className="col-span-3">Item</div>
-            <div>Profile</div>
-            <div>Retailer</div>
-            <div>Buy $</div>
-            <div>Sale $</div>
-            <div>Sale date</div>
-            <div>Marketplace</div>
-            <div>Fee %</div>
-            <div>Ship $</div>
-            <div className="text-right">Actions</div>
-          </div>
-
           {filtered.map(o => (
-            <OrderRow key={o.id} order={o} onSaved={refetch} onDeleted={refetch} />
+            <OrderRow
+              key={o.id}
+              order={o}
+              items={items}
+              retailers={retailers}
+              markets={markets}
+              onSaved={refetch}
+              onDeleted={refetch}
+            />
           ))}
-
           {filtered.length === 0 && (
             <div className={`${card} text-slate-400`}>No orders found.</div>
           )}
@@ -167,7 +192,7 @@ export default function OrderBook(){
 }
 
 /* ============== Row component ============== */
-function OrderRow({ order, onSaved, onDeleted }){
+function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   const [order_date, setOrderDate]     = useState(order.order_date || '')
   const [item, setItem]                 = useState(order.item || '')
   const [profile_name, setProfile]      = useState(order.profile_name || '')
@@ -182,6 +207,16 @@ function OrderRow({ order, onSaved, onDeleted }){
 
   const [busy, setBusy] = useState(false)
   const [msg, setMsg]   = useState('')
+
+  // autofill fees when marketplace changes (only if fees == 0/blank)
+  function handleMarketplaceChange(name) {
+    setMarketplace(name)
+    const mk = markets.find(m => m.name === name)
+    const current = Number(String(feesPct).replace('%','')) || 0
+    if (mk && (!current || current === 0)) {
+      setFeesPct(((mk.default_fees_pct ?? 0) * 100).toString())
+    }
+  }
 
   async function save(){
     setBusy(true); setMsg('')
@@ -220,29 +255,59 @@ function OrderRow({ order, onSaved, onDeleted }){
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
-        <input type="date"   value={order_date} onChange={e=>setOrderDate(e.target.value)} className={`${inputBase} lg:col-span-2`} />
-        <input              value={item}        onChange={e=>setItem(e.target.value)}       placeholder="Item"          className={`${inputBase} lg:col-span-3`} />
-        <input              value={profile_name}onChange={e=>setProfile(e.target.value)}    placeholder="Profile"       className={`${inputBase} lg:col-span-1`} />
-        <input              value={retailer}    onChange={e=>setRetailer(e.target.value)}    placeholder="Retailer"      className={`${inputBase} lg:col-span-1`} />
-        <input              value={buyPrice}    onChange={e=>setBuyPrice(e.target.value)}    placeholder="Buy $"         className={`${inputBase} lg:col-span-1`} />
-        <input              value={salePrice}   onChange={e=>setSalePrice(e.target.value)}   placeholder="Sale $"        className={`${inputBase} lg:col-span-1`} />
-        <input type="date"  value={sale_date}   onChange={e=>setSaleDate(e.target.value)}    className={`${inputBase} lg:col-span-1`} />
-        <input              value={marketplace} onChange={e=>setMarketplace(e.target.value)} placeholder="Marketplace"   className={`${inputBase} lg:col-span-1`} />
-        <input              value={feesPct}     onChange={e=>setFeesPct(e.target.value)}     placeholder="Fee %"         className={`${inputBase} lg:col-span-1`} />
-        <input              value={shipping}    onChange={e=>setShipping(e.target.value)}    placeholder="Ship $"        className={`${inputBase} lg:col-span-1`} />
+      {/* One line on xl; wraps on small */}
+      <div className="flex flex-wrap xl:flex-nowrap items-center gap-2">
+        <input type="date" value={order_date} onChange={e=>setOrderDate(e.target.value)} className={`${inputSm} w-36`} />
 
-        <div className="flex items-center gap-2 lg:col-span-1">
-          <select value={status} onChange={e=>setStatus(e.target.value)} className={`${inputBase}`}>
-            <option value="ordered">ordered</option>
-            <option value="sold">sold</option>
-            <option value="cancelled">cancelled</option>
-          </select>
-        </div>
+        {/* Item dropdown (by name) */}
+        <select
+          value={item || ''}
+          onChange={e=>setItem(e.target.value)}
+          className={`${inputSm} min-w-[240px] flex-1`}
+        >
+          <option value=""></option>
+          {items.map(it => <option key={it.id} value={it.name}>{it.name}</option>)}
+        </select>
 
-        <div className="flex gap-2 justify-end lg:col-span-12">
-          <button onClick={save} disabled={busy} className={actionBtn}>{busy ? 'Saving…' : 'Save'}</button>
-          <button onClick={del}  className="w-[92px] px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white">Delete</button>
+        <input value={profile_name} onChange={e=>setProfile(e.target.value)} placeholder="Profile" className={`${inputSm} w-28`} />
+
+        {/* Retailer dropdown */}
+        <select
+          value={retailer || ''}
+          onChange={e=>setRetailer(e.target.value)}
+          className={`${inputSm} w-28`}
+        >
+          <option value=""></option>
+          {retailers.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+        </select>
+
+        <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy"  className={`${inputSm} w-24`} />
+        <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale" className={`${inputSm} w-24`} />
+
+        <input type="date" value={sale_date} onChange={e=>setSaleDate(e.target.value)} className={`${inputSm} w-36`} />
+
+        {/* Marketplace dropdown */}
+        <select
+          value={marketplace || ''}
+          onChange={e=>handleMarketplaceChange(e.target.value)}
+          className={`${inputSm} w-32`}
+        >
+          <option value=""></option>
+          {markets.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+        </select>
+
+        <input value={feesPct}   onChange={e=>setFeesPct(e.target.value)}   placeholder="Fee %" className={`${inputSm} w-20`} />
+        <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="Ship"  className={`${inputSm} w-24`} />
+
+        <select value={status} onChange={e=>setStatus(e.target.value)} className={`${inputSm} w-28`}>
+          <option value="ordered">ordered</option>
+          <option value="sold">sold</option>
+          <option value="cancelled">cancelled</option>
+        </select>
+
+        <div className="ml-auto flex gap-2">
+          <button onClick={save} disabled={busy} className={`${btnSm} bg-slate-800 hover:bg-slate-700 text-slate-100`}>{busy ? 'Saving…' : 'Save'}</button>
+          <button onClick={del} className={`${btnSm} bg-rose-600 hover:bg-rose-500 text-white`}>Delete</button>
         </div>
       </div>
 
