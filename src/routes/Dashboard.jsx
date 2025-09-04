@@ -193,7 +193,7 @@ export default function Dashboard() {
         {/* Tabs */}
         <div className="flex flex-wrap items-center gap-2 mb-6">
           <NavLink to="/app" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Quick Add</NavLink>
-          <button className={tabBase}>Mark as Sold</button>
+          <NavLink to="/sold" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Mark as Sold</NavLink>
           <button className={tabBase}>Stats</button>
           <button className={tabBase}>Inventory</button>
           <button className={tabBase}>Flex</button>
