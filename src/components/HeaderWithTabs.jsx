@@ -1,14 +1,14 @@
+// src/components/HeaderWithTabs.jsx
 import { useEffect, useState } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
-const tabBase =
-  "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition";
-const tabActive =
-  "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600";
-
-export default function HeaderWithTabs() {
-  // current user (Discord avatar/name)
+/**
+ * Props:
+ * - active: "orders" | "add" | "sold" | "stats" | "settings"
+ * - showTabs: boolean (default true)
+ */
+export default function HeaderWithTabs({ active = "", showTabs = true }) {
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
 
   useEffect(() => {
@@ -27,7 +27,6 @@ export default function HeaderWithTabs() {
       setUserInfo({ avatar_url, username });
     }
     loadUser();
-
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       const user = session?.user;
       if (!user) return setUserInfo({ avatar_url: "", username: "" });
@@ -45,14 +44,22 @@ export default function HeaderWithTabs() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  /* --- tokens --- */
+  const tabBase =
+    "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition";
+  // Solid indigo for the active tab (more obvious)
+  const tabActive =
+    "bg-indigo-600 text-white border-indigo-600 shadow-[0_8px_24px_rgba(79,70,229,.35)] hover:bg-indigo-600";
+
+  const tabClass = (key) => ({ isActive }) =>
+    `${tabBase} ${isActive || active === key ? tabActive : ""}`;
+
   return (
     <>
-      {/* Header bar */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">OneTrack</h1>
-
         <div className="flex items-center gap-3">
-          {/* avatar */}
           {userInfo.avatar_url ? (
             <img
               src={userInfo.avatar_url}
@@ -64,16 +71,14 @@ export default function HeaderWithTabs() {
               {(userInfo.username || "U").slice(0, 1).toUpperCase()}
             </div>
           )}
-
-          {/* username (hide on very small screens) */}
           <div className="hidden sm:block text-sm text-slate-300 max-w-[160px] truncate">
             {userInfo.username}
           </div>
-
-          {/* Dashboard button (text centered) */}
           <Link
             to="/"
-            className="inline-flex items-center justify-center px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
+            className="h-10 px-4 inline-flex items-center justify-center leading-none
+                       rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900
+                       text-slate-100 cursor-pointer"
           >
             Dashboard
           </Link>
@@ -81,17 +86,27 @@ export default function HeaderWithTabs() {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <NavLink to="/orders"   className={({isActive}) => `${tabBase} ${isActive ? tabActive : ""}`}>Order Book</NavLink>
-        <NavLink to="/add"      className={({isActive}) => `${tabBase} ${isActive ? tabActive : ""}`}>Quick Add</NavLink>
-        <NavLink to="/sold"     className={({isActive}) => `${tabBase} ${isActive ? tabActive : ""}`}>Mark as Sold</NavLink>
-        <NavLink to="/stats"    className={({isActive}) => `${tabBase} ${isActive ? tabActive : ""}`}>Stats</NavLink>
-        <NavLink to="/settings" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ""}`}>Settings</NavLink>
-        {/* Add more when routes exist:
-        <NavLink to="/inventory" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ""}`}>Inventory</NavLink>
-        <NavLink to="/flex"       className={({isActive}) => `${tabBase} ${isActive ? tabActive : ""}`}>Flex</NavLink>
-        */}
-      </div>
+      {showTabs && (
+        <div className="relative z-20 flex flex-wrap items-center gap-2 mb-6">
+          <NavLink to="/orders" end className={tabClass("orders")}>
+            Order Book
+          </NavLink>
+          <NavLink to="/add" end className={tabClass("add")}>
+            Quick Add
+          </NavLink>
+          <NavLink to="/sold" end className={tabClass("sold")}>
+            Mark as Sold
+          </NavLink>
+          <NavLink to="/stats" end className={tabClass("stats")}>
+            Stats
+          </NavLink>
+          <button className={tabBase}>Inventory</button>
+          <button className={tabBase}>Flex</button>
+          <NavLink to="/settings" end className={tabClass("settings")}>
+            Settings
+          </NavLink>
+        </div>
+      )}
     </>
   );
 }
