@@ -136,15 +136,15 @@ export default function OrderBook(){
 
         {/* Header labels (hide on small) */}
         <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
-          <div className="w-36">Order date</div>
-          <div className="min-w-[240px] flex-1">Item</div>
-          <div className="w-28">Profile</div>
-          <div className="w-28">Retailer</div>
-          <div className="w-24">Buy $</div>
-          <div className="w-24">Sale $</div>
-          <div className="w-36">Sale date</div>
-          <div className="w-32">Marketplace</div>
-          <div className="w-24">Ship $</div>
+          <div className="w-40">Order date</div>
+          <div className="min-w-[200px] flex-1">Item</div>
+          <div className="w-24">Profile</div>
+          <div className="w-30">Retailer</div>
+          <div className="w-22">Buy $</div>
+          <div className="w-22">Sale $</div>
+          <div className="w-40">Sale date</div>
+          <div className="w-30">Marketplace</div>
+          <div className="w-18">Ship $</div>
           <div className="w-20 text-right">Actions</div>
         </div>
 
