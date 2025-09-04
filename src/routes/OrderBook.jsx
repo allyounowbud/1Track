@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 
 /* ---------------- UI tokens to match the app ---------------- */
@@ -117,7 +117,8 @@ export default function OrderBook(){
               </div>
             )}
             <div className="hidden sm:block text-sm text-slate-300 max-w-[160px] truncate">{userInfo.username}</div>
-            <button onClick={signOut} className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">Sign out</button>
+            <Link
+            to="/"className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">Dashboard</Link>
           </div>
         </div>
 

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
-/* ---- same tokens used elsewhere ---- */
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
 const tile =
@@ -43,7 +42,7 @@ export default function Hub() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* Header */}
+        {/* Header (no sign-out here) */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">OneTrack</h1>
           <div className="flex items-center gap-3">
@@ -61,16 +60,10 @@ export default function Hub() {
             <div className="hidden sm:block text-sm text-slate-300 max-w-[200px] truncate">
               {userInfo.username}
             </div>
-            <button
-              onClick={signOut}
-              className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
-            >
-              Sign out
-            </button>
           </div>
         </div>
 
-        {/* Welcome / account */}
+        {/* Welcome / account (Sign out button lives here) */}
         <div className={`${card} mb-6`}>
           <div className="flex items-center gap-4">
             {userInfo.avatar_url ? (
@@ -84,12 +77,19 @@ export default function Hub() {
                 {(userInfo.username || "U").slice(0, 1).toUpperCase()}
               </div>
             )}
-            <div>
+            <div className="flex-1">
               <div className="text-lg font-semibold">Welcome, {userInfo.username}</div>
               {userInfo.email && (
                 <div className="text-slate-400 text-sm">{userInfo.email}</div>
               )}
             </div>
+
+            <button
+              onClick={signOut}
+              className="px-4 h-10 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
+            >
+              Sign out
+            </button>
           </div>
         </div>
 
@@ -98,7 +98,6 @@ export default function Hub() {
           <h2 className="text-lg font-semibold mb-4">Choose a workspace</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Order Book */}
             <Link to="/app" className={tile}>
               <div className="h-12 w-12 rounded-xl bg-indigo-600/20 grid place-items-center text-indigo-300">
                 🧾
@@ -110,12 +109,11 @@ export default function Hub() {
                   Stats, and Settings.
                 </div>
                 <div className="mt-3 inline-flex items-center text-indigo-300 group-hover:text-indigo-200">
-                  Open → 
+                  Open →
                 </div>
               </div>
             </Link>
 
-            {/* Automations */}
             <Link to="/automation" className={tile}>
               <div className="h-12 w-12 rounded-xl bg-emerald-600/20 grid place-items-center text-emerald-300">
                 🤖
