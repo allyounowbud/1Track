@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { NavLink, Link } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom' // <- you can remove NavLink/Link later if you want
 import { supabase } from '../lib/supabaseClient'
+import HeaderWithTabs from '../components/HeaderWithTabs.jsx' // <-- ADDED
 
 /* ---------------- UI tokens to match the app ---------------- */
 const tabBase =
@@ -105,39 +106,10 @@ export default function OrderBook(){
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">OneTrack</h1>
-          <div className="flex items-center gap-3">
-            {userInfo.avatar_url ? (
-              <img src={userInfo.avatar_url} alt="" className="h-8 w-8 rounded-full border border-slate-800 object-cover"/>
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-slate-800 grid place-items-center text-slate-300 text-xs">
-                {(userInfo.username || 'U').slice(0,1).toUpperCase()}
-              </div>
-            )}
-            <div className="hidden sm:block text-sm text-slate-300 max-w-[160px] truncate">{userInfo.username}</div>
-            <Link
-  to="/"
-  className="h-10 px-4 inline-flex items-center justify-center leading-none
-             rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900
-             text-slate-100 cursor-pointer"
->
-  Dashboard
-</Link>
-          </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex flex-wrap items-center gap-2 mb-6">
-          <NavLink to="/orders"  className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Order Book</NavLink>
-          <NavLink to="/app"     className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Quick Add</NavLink>
-          <NavLink to="/sold"    className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Mark as Sold</NavLink>
-          <NavLink to="/stats"   className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Stats</NavLink>
-          <button className={tabBase}>Inventory</button>
-          <button className={tabBase}>Flex</button>
-          <NavLink to="/settings" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Settings</NavLink>
-        </div>
+        {/* ======= SHARED HEADER + TABS ======= */}
+        <HeaderWithTabs />
+        {/* ==================================== */}
 
         {/* Search + meta */}
         <div className={`${card} mb-6`}>
@@ -215,7 +187,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   const [busy, setBusy] = useState(false)
   const [msg, setMsg]   = useState('')
 
-  // autofill fees when marketplace changes (only if fees == 0/blank)
   function handleMarketplaceChange(name) {
     setMarketplace(name)
     const mk = markets.find(m => m.name === name)
