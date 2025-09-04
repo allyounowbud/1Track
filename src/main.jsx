@@ -15,13 +15,15 @@ import Login from "./routes/Login.jsx";
 import Dashboard from "./routes/Dashboard.jsx";
 import Settings from "./routes/Settings.jsx";
 import MarkSold from "./routes/MarkSold.jsx"; // <-- NEW
-import Stats from './routes/Stats.jsx'
+import Stats from './routes/Stats.jsx';
+import OrderBook from './routes/OrderBook.jsx'
 
 const router = createBrowserRouter([
   { path: "/", element: <App /> },           // your auth gate/landing
   { path: "/login", element: <Login /> },
   { path: "/app", element: <Dashboard /> },  // Quick Add
   { path: '/stats', element: <Stats /> },
+  { path: '/orders', element: <OrderBook /> }, // 👈 NEW
   { path: "/sold", element: <MarkSold /> },  // <-- NEW route
   { path: "/settings", element: <Settings /> },
   { path: "*", element: <Navigate to="/app" replace /> }, // fallback
