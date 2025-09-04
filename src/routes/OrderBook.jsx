@@ -199,26 +199,26 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
 
   // Faux placeholder for date inputs (since native date doesn't show placeholder)
   const DateInput = ({ value, onChange, ghost, className }) => (
-    <div className={`relative ${className}`}>
-      <input
-        type="date"
-        value={value}
-        onChange={e=>onChange(e.target.value)}
-        className={`${inputSm} w-full`}
-      />
-      {!value && (
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-          {ghost}
-        </span>
-      )}
-    </div>
-  )
+  <div className={`relative w-full ${className || ''}`}>
+    <input
+      type="date"
+      value={value}
+      onChange={e=>onChange(e.target.value)}
+      className={`${inputSm} w-full`}
+    />
+    {!value && (
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
+        {ghost}
+      </span>
+    )}
+  </div>
+)
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
       {/* One line on lg; wraps on small */}
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
-        <DateInput value={order_date} onChange={setOrderDate} ghost="Order date" className="w-36" />
+        <DateInput value={order_date} onChange={setOrderDate} ghost="Order date" className="lg:w-36" />
 
         {/* Item */}
         <select
@@ -263,7 +263,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
         />
 
         {/* Sale date */}
-        <DateInput value={sale_date} onChange={setSaleDate} ghost="Sale date" className="w-36" />
+        <DateInput value={sale_date} onChange={setSaleDate} ghost="Sale date" className="lg:w-36" />
 
         {/* Marketplace */}
         <select
