@@ -171,8 +171,6 @@ export default function QuickAdd() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* Shared header, tabs hidden on Quick Add */}
-        <HeaderWithTabs active="add" showTabs={false} />
 
         {/* QUICK ADD */}
         <form onSubmit={saveOrder} className="space-y-6">
