@@ -275,7 +275,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
         </select>
         <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="Ship"  className={`${inputSm} w-24`} />
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="w-20 shrink-0 flex items-center justify-end gap-2">
   {/* Save (check) */}
   <button
     type="button"
