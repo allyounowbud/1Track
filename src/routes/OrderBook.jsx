@@ -6,30 +6,17 @@ import HeaderWithTabs from '../components/HeaderWithTabs.jsx'
 
 /* ---- shared UI tokens ---- */
 const card =
-  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden"
+  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]"
 const inputSm =
   "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
 
-/** Desktop grid: all columns use minmax(...) with fractional fallbacks so
- *  the row NEVER grows wider than the card. Every row and the header
- *  use the same template — widths are identical across rows.
- *
+/** Desktop grid column plan (keeps widths identical for every row + header).
+ *  We use a Tailwind arbitrary property for grid-template-columns at lg+.
  *  Order: orderDate | item | profile | retailer | buy | sale | saleDate | market | ship | actions
  */
 const GRID_COLS =
-  "lg:[grid-template-columns:" +
-  //  min width      flexible width
-  "minmax(7.5rem,1fr)_" +     // Order date
-  "minmax(16rem,2fr)_" +      // Item (wider)
-  "minmax(6.5rem,1fr)_" +     // Profile
-  "minmax(8.5rem,1fr)_" +     // Retailer
-  "minmax(6.5rem,1fr)_" +     // Buy $
-  "minmax(6.5rem,1fr)_" +     // Sale $
-  "minmax(9rem,1fr)_" +       // Sale date
-  "minmax(11rem,1.4fr)_" +    // Marketplace
-  "minmax(6.5rem,1fr)_" +     // Ship $
-  "minmax(5rem,.8fr)" +       // Actions
-  "]"
+  // 144 | flex | 96 | 128 | 96 | 96 | 144 | 160 | 96 | 80
+  "lg:[grid-template-columns:144px_minmax(18rem,1fr)_96px_128px_96px_96px_144px_160px_96px_80px]"
 
 /* ---- helpers ---- */
 const parseMoney = (v) => {
@@ -98,7 +85,7 @@ export default function OrderBook(){
         {/* Header + tabs */}
         <HeaderWithTabs />
 
-        {/* Search card — input spans full width; count on the right */}
+        {/* Search card — input spans full width; count floats right on desktop */}
         <div className={`${card} mb-6`}>
           <div className="flex flex-col sm:flex-row sm:items-end gap-3">
             <div className="flex-1">
@@ -120,7 +107,7 @@ export default function OrderBook(){
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
-        {/* Desktop header labels — aligned with row grid and never overflowing */}
+        {/* Desktop header labels — perfectly aligned with row grid */}
         <div className={`hidden lg:grid ${GRID_COLS} text-xs text-slate-400 px-1 mb-1 gap-2`}>
           <div>Order date</div>
           <div>Item</div>
@@ -225,8 +212,8 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   )
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 overflow-hidden">
-      {/* Single column on mobile; responsive grid at lg+ (never exceeds card width) */}
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+      {/* One DOM for both sizes: single column on mobile, fixed grid on desktop */}
       <div className={`grid grid-cols-1 gap-2 ${GRID_COLS} items-center`}>
 
         {/* Order date */}
@@ -252,7 +239,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
           </select>
         </div>
 
-        {/* Profile */}
+        {/* Profile (free text) */}
         <div>
           <input
             value={profile_name}
@@ -274,7 +261,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
           </select>
         </div>
 
-        {/* Buy / Sale */}
+        {/* Buy/Sale */}
         <div>
           <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy $"  inputMode="decimal" className={inputSm} />
         </div>
@@ -282,7 +269,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
           <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale $" inputMode="decimal" className={inputSm} />
         </div>
 
-        {/* Sale date */}
+        {/* Sale date (with mobile ghost label) */}
         <div className="relative">
           <Ghost show={!sale_date}>Sale date</Ghost>
           <input
@@ -295,6 +282,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
 
         {/* Marketplace */}
         <div className="relative">
+          {/* ghost label for mobile if empty */}
           <Ghost show={!marketplace}>Marketplace</Ghost>
           <select
             value={marketplace || ''}
@@ -311,8 +299,9 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
           <input value={shipping} onChange={e=>setShipping(e.target.value)} placeholder="Ship $" inputMode="decimal" className={inputSm} />
         </div>
 
-        {/* Actions – right aligned on both mobile and desktop */}
+        {/* Actions (always at far right on desktop, right-aligned on mobile) */}
         <div className="flex justify-end gap-2">
+          {/* Save (check) */}
           <button
             type="button"
             onClick={save}
@@ -328,6 +317,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
             </svg>
           </button>
 
+          {/* Delete (trash) */}
           <button
             type="button"
             onClick={del}
