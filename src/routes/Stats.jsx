@@ -82,7 +82,10 @@ export default function Stats() {
   const [range, setRange] = useState("all"); // all | last30 | month | ytd | custom
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [itemFilterInput, setItemFilterInput] = useState("");
+  const [itemFilterInput, setItemFilterInput] = useState("All Items");
+
+  const normalizeItemFilter = (v) =>
+  !v || v.trim().toLowerCase() === "all items" ? "" : v;
 
   // “Apply” locks values into the query key
   const [applied, setApplied] = useState({
@@ -323,6 +326,7 @@ export default function Stats() {
                 placeholder="Search or pick an item…"
               />
               <datalist id="stats-items-list">
+                <option value="All Items" />
                 {items.map((it) => (
                   <option key={it.id} value={it.name} />
                 ))}
@@ -332,13 +336,19 @@ export default function Stats() {
             <div className="flex items-center justify-between gap-4">
               <button
                 onClick={() =>
-                  setApplied({
-                    range,
-                    from,
-                    to,
-                    item: itemFilterInput,
-                  })
-                }
+  setApplied({
+    range,
+    from,
+    to,
+    item: normalizeItemFilter(itemFilterInput),
+  })
+}
+
+onBlur={(e) => {
+  if (!e.target.value.trim()) setItemFilterInput("All Items");
+}}
+
+
                 className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white"
               >
                 Apply
