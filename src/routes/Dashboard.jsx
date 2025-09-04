@@ -204,7 +204,7 @@ export default function Dashboard() {
         <form onSubmit={saveOrder} className="space-y-6">
           {/* Order details */}
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden">
-            <h2 className="text-lg font-semibold mb-4">Order details</h2>
+            <h2 className="text-lg font-semibold mb-4">Order Details</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
               <div className="min-w-0">
@@ -296,7 +296,7 @@ export default function Dashboard() {
 
           {/* Sale details */}
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden">
-            <h2 className="text-lg font-semibold mb-4">Sale details (optional — for already-sold items)</h2>
+            <h2 className="text-lg font-semibold mb-4">Sale Details (optional — for sold items)</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
               <div className="min-w-0">
