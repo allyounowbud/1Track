@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 
-/* ---------- helpers ---------- */
+/* ---------- helpers (same as other pages) ---------- */
 const parseMoney = (v) => {
   const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
   return isNaN(n) ? 0 : n;
@@ -20,7 +20,7 @@ const parsePct = (v) => {
 
 /* ---------- queries ---------- */
 async function getUnsoldOrders() {
-  // Any row without a sale price is considered "open"/inventory
+  // Inventory = orders with no sale or 0 sale
   const { data, error } = await supabase
     .from("orders")
     .select("id, order_date, item, retailer, buy_price_cents")
@@ -40,15 +40,14 @@ async function getMarketplaces() {
   return data || [];
 }
 
-/* ---------- sign out ---------- */
+/* ---------- auth ---------- */
 async function signOut() {
   await supabase.auth.signOut();
   window.location.href = "/login";
 }
 
-/* ---------- component ---------- */
 export default function MarkSold() {
-  // current user (avatar/name shown in header)
+  // current user (avatar/name in header)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -93,21 +92,21 @@ export default function MarkSold() {
   const [saleDate, setSaleDate] = useState(today);
   const [marketId, setMarketId] = useState("");
   const [marketName, setMarketName] = useState("");
-  const [feesPct, setFeesPct] = useState("");
+  const [feesPct, setFeesPct] = useState("");       // shown as % text, e.g. "10" or "10.5"
   const [feesLocked, setFeesLocked] = useState(false);
   const [shipping, setShipping] = useState("0");
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  // ---------- search/filter ----------
+  // ---------- searchable dropdown (mobile-safe) ----------
   const boxRef = useRef(null);
   useEffect(() => {
     const onClick = (e) => {
       if (!boxRef.current) return;
       if (!boxRef.current.contains(e.target)) setDropdownOpen(false);
     };
-    window.addEventListener("click", onClick);
+    window.addEventListener("click", onClick, { passive: true });
     return () => window.removeEventListener("click", onClick);
   }, []);
 
@@ -126,13 +125,14 @@ export default function MarkSold() {
     );
   }, [openOrders, search]);
 
-  // ---------- marketplace -> auto fee ----------
+  // ---------- marketplace -> autofill fee ----------
   function onMarketChange(id) {
     setMarketId(id);
     const m = markets.find((x) => x.id === id);
     setMarketName(m?.name || "");
     if (m) {
-      setFeesPct((m.default_fees_pct ?? 0).toString());
+      // show % to the user (like Quick Add)
+      setFeesPct(((m.default_fees_pct ?? 0) * 100).toString());
       setFeesLocked(true);
     } else {
       setFeesPct("");
@@ -165,7 +165,7 @@ export default function MarkSold() {
       if (error) throw error;
 
       setMsg("Marked sold ✓");
-      // reset fields but keep marketplace choice (handy for multiple entries)
+      // reset most fields; keep marketplace if you want—here we keep it to speed multiple entries
       setSelected(null);
       setSearch("");
       setSalePrice("");
@@ -180,13 +180,14 @@ export default function MarkSold() {
     }
   }
 
+  // ---------- shared tab styles ----------
   const tabBase =
     "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition";
   const tabActive = "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">OneTrack</h1>
@@ -214,15 +215,12 @@ export default function MarkSold() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex flex-wrap items-center gap-2 mb-6">
+        {/* Tabs (same look + mobile-safe) */}
+        <div className="relative z-20 flex flex-wrap items-center gap-2 mb-6">
           <NavLink to="/app" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>
             Quick Add
           </NavLink>
-          <NavLink
-            to="/sold"
-            className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}
-          >
+          <NavLink to="/sold" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>
             Mark as Sold
           </NavLink>
           <button className={tabBase}>Stats</button>
@@ -236,13 +234,13 @@ export default function MarkSold() {
           </NavLink>
         </div>
 
-        {/* Card */}
+        {/* Card (mobile-friendly: overflow-hidden, min-w-0, responsive gaps) */}
         <form
           onSubmit={markSold}
-          className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] space-y-5"
+          className="relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden space-y-5"
         >
-          {/* Select open purchase (searchable) */}
-          <div>
+          {/* Open purchase (searchable) */}
+          <div className="min-w-0">
             <label className="text-slate-300 mb-1 block text-sm">Select Open Purchase</label>
             <div ref={boxRef} className="relative">
               <input
@@ -253,10 +251,10 @@ export default function MarkSold() {
                 }}
                 onFocus={() => setDropdownOpen(true)}
                 placeholder="Type to search…"
-                className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
               />
               {dropdownOpen && (
-                <div className="absolute z-20 mt-2 w-full max-h-64 overflow-auto rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
+                <div className="absolute left-0 right-0 z-20 mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
                   {filtered.length === 0 && (
                     <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
                   )}
@@ -279,68 +277,69 @@ export default function MarkSold() {
             </div>
           </div>
 
-          {/* Sell price */}
-          <div>
-            <label className="text-slate-300 mb-1 block text-sm">Sell Price</label>
-            <input
-              value={salePrice}
-              onChange={(e) => setSalePrice(e.target.value)}
-              className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="e.g. 120.00"
-            />
-          </div>
+          {/* Grid of inputs (stacks on mobile) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Sell Price</label>
+              <input
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+                placeholder="e.g. 120.00"
+                className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
 
-          {/* Sale date */}
-          <div>
-            <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
-            <input
-              type="date"
-              value={saleDate}
-              onChange={(e) => setSaleDate(e.target.value)}
-              className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
+              <input
+                type="date"
+                value={saleDate}
+                onChange={(e) => setSaleDate(e.target.value)}
+                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
 
-          {/* Marketplace */}
-          <div>
-            <label className="text-slate-300 mb-1 block text-sm">Sale Location</label>
-            <select
-              value={marketId}
-              onChange={(e) => onMarketChange(e.target.value)}
-              className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">— Select marketplace —</option>
-              {markets.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Sale Location</label>
+              <select
+                value={marketId}
+                onChange={(e) => onMarketChange(e.target.value)}
+                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">— Select marketplace —</option>
+                {markets.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {/* Fee % */}
-          <div>
-            <label className="text-slate-300 mb-1 block text-sm">Fee % (blank = auto)</label>
-            <input
-              value={feesPct}
-              onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
-              placeholder="e.g. 0.109 or 10.9"
-              disabled={feesLocked}
-              className={`w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 ${
-                feesLocked ? "opacity-60 cursor-not-allowed" : ""
-              }`}
-            />
-          </div>
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Fee (%)</label>
+              <input
+                value={feesPct}
+                onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
+                placeholder="e.g. 9 or 9.5"
+                disabled={feesLocked}
+                className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  feesLocked ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+              />
+              {feesLocked && (
+                <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
+              )}
+            </div>
 
-          {/* Shipping */}
-          <div>
-            <label className="text-slate-300 mb-1 block text-sm">Shipping</label>
-            <input
-              value={shipping}
-              onChange={(e) => setShipping(e.target.value)}
-              className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="0"
-            />
+            <div className="min-w-0 md:col-span-2">
+              <label className="text-slate-300 mb-1 block text-sm">Shipping</label>
+              <input
+                value={shipping}
+                onChange={(e) => setShipping(e.target.value)}
+                className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="0"
+              />
+            </div>
           </div>
 
           {/* Submit */}
