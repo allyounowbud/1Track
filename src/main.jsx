@@ -16,9 +16,13 @@ import Dashboard from "./routes/Dashboard.jsx";
 import Settings from "./routes/Settings.jsx";
 import MarkSold from "./routes/MarkSold.jsx"; // <-- NEW
 import Stats from './routes/Stats.jsx';
-import OrderBook from './routes/OrderBook.jsx'
+import OrderBook from './routes/OrderBook.jsx';
+import Hub from './routes/Hub.jsx';            // NEW
+import Automation from './routes/Automation.jsx' // NEW
 
 const router = createBrowserRouter([
+  { path: '/', element: <Hub /> },                 // NEW hub
+  { path: '/automation', element: <Automation /> },// NEW placeholder
   { path: "/", element: <App /> },           // your auth gate/landing
   { path: "/login", element: <Login /> },
   { path: "/app", element: <Dashboard /> },  // Quick Add

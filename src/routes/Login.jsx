@@ -24,7 +24,7 @@ export default function Login() {
     try {
       setErr("");
       setLoading(true);
-      const redirectTo = `${window.location.origin}/app`; // after Supabase finishes OAuth
+      const redirectTo = `${window.location.origin}/`; // after Supabase finishes OAuth
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "discord",
         options: { redirectTo }
