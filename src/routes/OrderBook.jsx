@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import HeaderWithTabs from '../components/HeaderWithTabs.jsx'
 
-/* ---------------- UI tokens to match the app ---------------- */
+/* ---------------- UI tokens ---------------- */
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]"
 const inputSm =
@@ -32,7 +32,7 @@ async function getOrders(limit=500){
     .order('order_date', { ascending:false })
     .limit(limit)
   if (error) throw error
-  return data ?? []
+  return (data ?? [])
 }
 async function getItems() {
   const { data, error } = await supabase.from('items').select('id, name').order('name', { ascending:true })
@@ -57,7 +57,6 @@ export default function OrderBook(){
   const { data: retailers=[] }  = useQuery({ queryKey:['retailers'],  queryFn:getRetailers })
   const { data: markets=[] }    = useQuery({ queryKey:['markets'],    queryFn:getMarkets })
 
-  /* search */
   const [q, setQ] = useState('')
   const filtered = useMemo(() => {
     const t = (q || '').trim().toLowerCase()
@@ -73,8 +72,6 @@ export default function OrderBook(){
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-
-        {/* Header + Tabs */}
         <HeaderWithTabs />
 
         {/* Search + meta */}
@@ -96,15 +93,11 @@ export default function OrderBook(){
           </div>
         </div>
 
-        {/* Loading / error */}
-        {isLoading && <div className="text-slate-400">Loading…</div>}
-        {error && <div className="text-rose-400">{String(error.message || error)}</div>}
-
-        {/* Column headers (desktop only) — widths match row inputs exactly */}
+        {/* Header labels (desktop) */}
         <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
           <div className="w-36">Order date</div>
-          <div className="min-w-[240px] flex-1">Item</div>
-          <div className="w-28">Profile</div>
+          <div className="min-w-[200px] flex-1">Item</div>
+          <div className="w-24">Profile</div>
           <div className="w-28">Retailer</div>
           <div className="w-24">Buy $</div>
           <div className="w-24">Sale $</div>
@@ -114,7 +107,9 @@ export default function OrderBook(){
           <div className="w-20 text-right">Actions</div>
         </div>
 
-        {/* Orders */}
+        {isLoading && <div className="text-slate-400">Loading…</div>}
+        {error && <div className="text-rose-400">{String(error.message || error)}</div>}
+
         <div className="space-y-3">
           {filtered.map(o => (
             <OrderRow
@@ -136,18 +131,41 @@ export default function OrderBook(){
   )
 }
 
+/* ============== Date input with text placeholder ============== */
+/* Shows a plain text placeholder until focused, then switches to `type="date`. */
+function DateInput({ value, onChange, label, className }) {
+  const [asText, setAsText] = useState(!value)
+
+  // Keep modes in sync if value changes externally
+  useEffect(() => { setAsText(!value) }, [value])
+
+  return (
+    <input
+      type={asText ? 'text' : 'date'}
+      value={value}
+      placeholder={asText ? label : undefined}
+      onFocus={() => setAsText(false)}
+      onBlur={(e) => {
+        if (!e.target.value) setAsText(true)
+      }}
+      onChange={(e) => onChange(e.target.value)}
+      className={`${inputSm} w-full ${className || ''}`}
+    />
+  )
+}
+
 /* ============== Row component ============== */
 function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   const [order_date, setOrderDate]     = useState(order.order_date || '')
-  const [item, setItem]                = useState(order.item || '')
-  const [profile_name, setProfile]     = useState(order.profile_name || '')
-  const [retailer, setRetailer]        = useState(order.retailer || '')
-  const [buyPrice, setBuyPrice]        = useState(centsToStr(order.buy_price_cents))
-  const [salePrice, setSalePrice]      = useState(centsToStr(order.sale_price_cents))
-  const [sale_date, setSaleDate]       = useState(order.sale_date || '')
-  const [marketplace, setMarketplace]  = useState(order.marketplace || '')
-  const [feesPct, setFeesPct]          = useState(((order.fees_pct ?? 0) * 100).toString())
-  const [shipping, setShipping]        = useState(centsToStr(order.shipping_cents))
+  const [item, setItem]                 = useState(order.item || '')
+  const [profile_name, setProfile]      = useState(order.profile_name || '')
+  const [retailer, setRetailer]         = useState(order.retailer || '')
+  const [buyPrice, setBuyPrice]         = useState(centsToStr(order.buy_price_cents))
+  const [salePrice, setSalePrice]       = useState(centsToStr(order.sale_price_cents))
+  const [sale_date, setSaleDate]        = useState(order.sale_date || '')
+  const [marketplace, setMarketplace]   = useState(order.marketplace || '')
+  const [feesPct, setFeesPct]           = useState(((order.fees_pct ?? 0) * 100).toString())
+  const [shipping, setShipping]         = useState(centsToStr(order.shipping_cents))
 
   const [busy, setBusy] = useState(false)
   const [msg, setMsg]   = useState('')
@@ -197,34 +215,20 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
     else onDeleted && onDeleted()
   }
 
-  // Faux placeholder for date inputs (since native date doesn't show placeholder)
-  const DateInput = ({ value, onChange, ghost, className }) => (
-  <div className={`relative w-full ${className || ''}`}>
-    <input
-      type="date"
-      value={value}
-      onChange={e=>onChange(e.target.value)}
-      className={`${inputSm} w-full`}
-    />
-    {!value && (
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-        {ghost}
-      </span>
-    )}
-  </div>
-)
-
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-      {/* One line on lg; wraps on small */}
+      {/* One line on xl; wraps on small */}
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
-        <DateInput value={order_date} onChange={setOrderDate} ghost="Order date" className="lg:w-36" />
+        {/* Order date */}
+        <div className="w-full lg:w-36">
+          <DateInput value={order_date} onChange={setOrderDate} label="Order date" />
+        </div>
 
         {/* Item */}
         <select
           value={item || ''}
           onChange={e=>setItem(e.target.value)}
-          className={`${inputSm} min-w-[240px] flex-1`}
+          className={`${inputSm} min-w-[200px] flex-1`}
         >
           <option value="">Item</option>
           {items.map(it => <option key={it.id} value={it.name}>{it.name}</option>)}
@@ -235,7 +239,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
           value={profile_name}
           onChange={e=>setProfile(e.target.value)}
           placeholder="Profile"
-          className={`${inputSm} w-28`}
+          className={`${inputSm} w-24`}
         />
 
         {/* Retailer */}
@@ -249,21 +253,13 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
         </select>
 
         {/* Buy / Sale */}
-        <input
-          value={buyPrice}
-          onChange={e=>setBuyPrice(e.target.value)}
-          placeholder="Buy $"
-          className={`${inputSm} w-24`}
-        />
-        <input
-          value={salePrice}
-          onChange={e=>setSalePrice(e.target.value)}
-          placeholder="Sale $"
-          className={`${inputSm} w-24`}
-        />
+        <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy $"  className={`${inputSm} w-24`} />
+        <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale $" className={`${inputSm} w-24`} />
 
         {/* Sale date */}
-        <DateInput value={sale_date} onChange={setSaleDate} ghost="Sale date" className="lg:w-36" />
+        <div className="w-full lg:w-36">
+          <DateInput value={sale_date} onChange={setSaleDate} label="Sale date" />
+        </div>
 
         {/* Marketplace */}
         <select
@@ -275,16 +271,11 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
           {markets.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
         </select>
 
-        {/* Shipping */}
-        <input
-          value={shipping}
-          onChange={e=>setShipping(e.target.value)}
-          placeholder="Ship $"
-          className={`${inputSm} w-24`}
-        />
+        {/* Ship */}
+        <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="Ship $"  className={`${inputSm} w-24`} />
 
-        {/* Actions — full width on mobile so icons stay on the right */}
-        <div className="w-full lg:w-20 shrink-0 flex items-center justify-end gap-2 mt-2 lg:mt-0">
+        {/* Actions */}
+        <div className="w-full lg:w-20 lg:shrink-0 ml-auto flex items-center justify-end gap-2 mt-2 lg:mt-0">
           {/* Save (check) */}
           <button
             type="button"
@@ -292,7 +283,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
             disabled={busy}
             aria-label={busy ? "Saving…" : "Save"}
             title={busy ? "Saving…" : "Save"}
-            className={`inline-flex items-center justify-center h-9 w-9 rounded-lg
+            className={`inline-flex items-center justify-center h-10 w-10 rounded-lg
                         ${busy ? 'bg-slate-700 text-slate-300 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700 text-slate-100'}
                         border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
           >
@@ -307,7 +298,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
             onClick={del}
             aria-label="Delete"
             title="Delete"
-            className="inline-flex items-center justify-center h-9 w-9 rounded-lg
+            className="inline-flex items-center justify-center h-10 w-10 rounded-lg
                        bg-rose-600 hover:bg-rose-500 text-white border border-rose-700
                        focus:outline-none focus:ring-2 focus:ring-rose-500"
           >
