@@ -176,7 +176,7 @@ export default function Settings() {
         <div className="flex flex-wrap items-center gap-2 mb-6">
           <NavLink to="/app" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Quick Add</NavLink>
           <NavLink to="/sold" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Mark as Sold</NavLink>
-          <button className={tabBase}>Stats</button>
+          <NavLink to="/stats" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Stats</NavLink>
           <button className={tabBase}>Inventory</button>
           <button className={tabBase}>Flex</button>
           <NavLink to="/settings" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Settings</NavLink>

@@ -223,7 +223,7 @@ export default function MarkSold() {
           <NavLink to="/sold" className={({ isActive }) => `${tabBase} ${isActive ? tabActive : ""}`}>
             Mark as Sold
           </NavLink>
-          <button className={tabBase}>Stats</button>
+          <NavLink to="/stats" className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Stats</NavLink>
           <button className={tabBase}>Inventory</button>
           <button className={tabBase}>Flex</button>
           <NavLink
