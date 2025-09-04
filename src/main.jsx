@@ -23,6 +23,7 @@ const router = createBrowserRouter([
   { path: "/app", element: <Dashboard /> },  // Quick Add
   { path: '/stats', element: <Stats /> },
   { path: "/sold", element: <MarkSold /> },  // <-- NEW route
+  { path: '/orders', element: <OrderBook /> }, // 👈 NEW
   { path: "/settings", element: <Settings /> },
   { path: "*", element: <Navigate to="/app" replace /> }, // fallback
 ]);
