@@ -65,7 +65,7 @@ export default function Automation() {
         <div className={card}>
           <h2 className="text-lg font-semibold mb-2">Automations</h2>
           <p className="text-slate-300">
-            Nothing here yet. This area will host alerts, rules, and scheduled actions.
+            Nothing here yet. This area will host email management, profile creation, jigging and more.
           </p>
           <p className="text-slate-400 mt-3">
             Tip: head to the <Link className="underline" to="/app">Order Book</Link> to keep tracking purchases and sales.
