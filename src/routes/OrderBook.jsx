@@ -210,7 +210,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
         sale_date: sale_date || null,
         fees_pct: parsePct(feesPct),
         shipping_cents: moneyToCents(shipping),
-        status: status || null,
+        status: statusValue,
       }
       const { error } = await supabase.from('orders').update(payload).eq('id', order.id)
       if (error) throw error
