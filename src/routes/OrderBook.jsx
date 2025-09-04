@@ -4,13 +4,13 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import HeaderWithTabs from '../components/HeaderWithTabs.jsx'
 
-/* ---------------- UI tokens ---------------- */
+/* ---------- UI tokens ---------- */
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]"
 const inputSm =
   "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
 
-/* ---------------- helpers ---------------- */
+/* ---------- helpers ---------- */
 const parseMoney = (v) => {
   const n = Number(String(v ?? '').replace(/[^0-9.\-]/g, ''))
   return isNaN(n) ? 0 : n
@@ -24,7 +24,7 @@ const parsePct = (v) => {
   return n > 1 ? n / 100 : n
 }
 
-/* --------------- queries --------------- */
+/* ---------- queries ---------- */
 async function getOrders(limit=500){
   const { data, error } = await supabase
     .from('orders')
@@ -32,7 +32,7 @@ async function getOrders(limit=500){
     .order('order_date', { ascending:false })
     .limit(limit)
   if (error) throw error
-  return (data ?? [])
+  return data ?? []
 }
 async function getItems() {
   const { data, error } = await supabase.from('items').select('id, name').order('name', { ascending:true })
@@ -50,13 +50,17 @@ async function getMarkets() {
   return data ?? []
 }
 
-/* ====================== PAGE ====================== */
+/* Grid template used for the header + each row on lg+ screens */
+const GRID_TEMPLATE =
+  '10rem minmax(16rem,1fr) 7rem 8rem 6.5rem 6.5rem 10rem 9rem 6rem 4rem'
+
 export default function OrderBook(){
   const { data: orders=[], isLoading, error, refetch } = useQuery({ queryKey:['orders', 500], queryFn:() => getOrders(500) })
   const { data: items=[] }      = useQuery({ queryKey:['items'],      queryFn:getItems })
   const { data: retailers=[] }  = useQuery({ queryKey:['retailers'],  queryFn:getRetailers })
   const { data: markets=[] }    = useQuery({ queryKey:['markets'],    queryFn:getMarkets })
 
+  /* search */
   const [q, setQ] = useState('')
   const filtered = useMemo(() => {
     const t = (q || '').trim().toLowerCase()
@@ -93,23 +97,27 @@ export default function OrderBook(){
           </div>
         </div>
 
-        {/* Header labels (desktop) */}
-        <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
-          <div className="w-36">Order date</div>
-          <div className="min-w-[200px] flex-1">Item</div>
-          <div className="w-24">Profile</div>
-          <div className="w-28">Retailer</div>
-          <div className="w-24">Buy $</div>
-          <div className="w-24">Sale $</div>
-          <div className="w-36">Sale date</div>
-          <div className="w-32">Marketplace</div>
-          <div className="w-24">Ship $</div>
-          <div className="w-20 text-right">Actions</div>
-        </div>
-
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
+        {/* Header labels on lg+, aligned by the same grid */}
+        <div
+          className="hidden lg:grid text-xs text-slate-400 px-1 mb-1 gap-2"
+          style={{ gridTemplateColumns: GRID_TEMPLATE }}
+        >
+          <div>Order date</div>
+          <div>Item</div>
+          <div>Profile</div>
+          <div>Retailer</div>
+          <div>Buy $</div>
+          <div>Sale $</div>
+          <div>Sale date</div>
+          <div>Marketplace</div>
+          <div>Ship $</div>
+          <div className="text-right">Actions</div>
+        </div>
+
+        {/* Rows */}
         <div className="space-y-3">
           {filtered.map(o => (
             <OrderRow
@@ -131,30 +139,7 @@ export default function OrderBook(){
   )
 }
 
-/* ============== Date input with text placeholder ============== */
-/* Shows a plain text placeholder until focused, then switches to `type="date`. */
-function DateInput({ value, onChange, label, className }) {
-  const [asText, setAsText] = useState(!value)
-
-  // Keep modes in sync if value changes externally
-  useEffect(() => { setAsText(!value) }, [value])
-
-  return (
-    <input
-      type={asText ? 'text' : 'date'}
-      value={value}
-      placeholder={asText ? label : undefined}
-      onFocus={() => setAsText(false)}
-      onBlur={(e) => {
-        if (!e.target.value) setAsText(true)
-      }}
-      onChange={(e) => onChange(e.target.value)}
-      className={`${inputSm} w-full ${className || ''}`}
-    />
-  )
-}
-
-/* ============== Row component ============== */
+/* ---------------- Row ---------------- */
 function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   const [order_date, setOrderDate]     = useState(order.order_date || '')
   const [item, setItem]                 = useState(order.item || '')
@@ -217,20 +202,25 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-      {/* One line on xl; wraps on small */}
-      <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
+      {/* Mobile: stack; Desktop: lock to fixed grid columns */}
+      <div
+        className="grid gap-2 lg:gap-2 grid-cols-1 lg:grid-cols-[10rem_minmax(16rem,1fr)_7rem_8rem_6.5rem_6.5rem_10rem_9rem_6rem_4rem] items-center"
+      >
         {/* Order date */}
-        <div className="w-full lg:w-36">
-          <DateInput value={order_date} onChange={setOrderDate} label="Order date" />
-        </div>
+        <input
+          type="date"
+          value={order_date || ''}
+          onChange={e=>setOrderDate(e.target.value)}
+          className={`${inputSm}`}
+        />
 
         {/* Item */}
         <select
           value={item || ''}
           onChange={e=>setItem(e.target.value)}
-          className={`${inputSm} min-w-[200px] flex-1`}
+          className={inputSm}
         >
-          <option value="">Item</option>
+          <option value="">{/* blank keeps height consistent */}</option>
           {items.map(it => <option key={it.id} value={it.name}>{it.name}</option>)}
         </select>
 
@@ -239,51 +229,61 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
           value={profile_name}
           onChange={e=>setProfile(e.target.value)}
           placeholder="Profile"
-          className={`${inputSm} w-24`}
+          className={inputSm}
         />
 
         {/* Retailer */}
         <select
           value={retailer || ''}
           onChange={e=>setRetailer(e.target.value)}
-          className={`${inputSm} w-28`}
+          className={inputSm}
         >
-          <option value="">Retailer</option>
+          <option value=""></option>
           {retailers.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
         </select>
 
         {/* Buy / Sale */}
-        <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy $"  className={`${inputSm} w-24`} />
-        <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale $" className={`${inputSm} w-24`} />
+        <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy $"  className={inputSm} />
+        <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale $" className={inputSm} />
 
-        {/* Sale date */}
-        <div className="w-full lg:w-36">
-          <DateInput value={sale_date} onChange={setSaleDate} label="Sale date" />
+        {/* Sale date with ghost label when empty (works on desktop + mobile) */}
+        <div className="relative">
+          <input
+            type="date"
+            value={sale_date || ''}
+            onChange={e=>setSaleDate(e.target.value)}
+            className={`${inputSm}`}
+          />
+          {!sale_date && (
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
+              Sale date
+            </span>
+          )}
         </div>
 
         {/* Marketplace */}
         <select
           value={marketplace || ''}
           onChange={e=>handleMarketplaceChange(e.target.value)}
-          className={`${inputSm} w-32`}
+          className={inputSm}
         >
-          <option value="">Marketplace</option>
+          <option value="">{/* placeholder via blank */}Marketplace</option>
           {markets.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
         </select>
 
-        {/* Ship */}
-        <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="Ship $"  className={`${inputSm} w-24`} />
+        {/* Shipping */}
+        <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="Ship $"  className={inputSm} />
 
-        {/* Actions */}
-        <div className="w-full lg:w-20 lg:shrink-0 ml-auto flex items-center justify-end gap-2 mt-2 lg:mt-0">
-          {/* Save (check) */}
+        {/* Actions (right-aligned on all sizes) */}
+        <div className="flex items-center justify-end gap-2">
+          {/* Save */}
           <button
             type="button"
             onClick={save}
             disabled={busy}
             aria-label={busy ? "Saving…" : "Save"}
             title={busy ? "Saving…" : "Save"}
-            className={`inline-flex items-center justify-center h-10 w-10 rounded-lg
+            className={`inline-flex items-center justify-center h-9 w-9 rounded-lg
                         ${busy ? 'bg-slate-700 text-slate-300 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700 text-slate-100'}
                         border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
           >
@@ -292,13 +292,13 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
             </svg>
           </button>
 
-          {/* Delete (trash) */}
+          {/* Delete */}
           <button
             type="button"
             onClick={del}
             aria-label="Delete"
             title="Delete"
-            className="inline-flex items-center justify-center h-10 w-10 rounded-lg
+            className="inline-flex items-center justify-center h-9 w-9 rounded-lg
                        bg-rose-600 hover:bg-rose-500 text-white border border-rose-700
                        focus:outline-none focus:ring-2 focus:ring-rose-500"
           >
@@ -320,3 +320,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
     </div>
   )
 }
+
+/* small helper */
+function centsToStr(c){ return (Number(c || 0) / 100).toFixed(2) }
