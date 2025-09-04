@@ -1,19 +1,28 @@
+// src/routes/OrderBook.jsx
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { NavLink, Link } from 'react-router-dom' // <- you can remove NavLink/Link later if you want
 import { supabase } from '../lib/supabaseClient'
-import HeaderWithTabs from '../components/HeaderWithTabs.jsx' // <-- ADDED
+import HeaderWithTabs from '../components/HeaderWithTabs.jsx'
 
-/* ---------------- UI tokens to match the app ---------------- */
-const tabBase =
-  "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
-const tabActive =
-  "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600"
+/* ---------------- UI tokens ---------------- */
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]"
 const inputSm =
   "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
-const btnSm  = "h-10 px-4 rounded-lg text-sm"
+
+/* Column width tokens — shared by header + row */
+const COL = {
+  date:      'w-36',
+  item:      'min-w-[240px] flex-1',
+  profile:   'w-28',
+  retailer:  'w-28',
+  buy:       'w-24',
+  sale:      'w-24',
+  saleDate:  'w-36',
+  market:    'w-32',
+  ship:      'w-24',
+  actions:   'w-20',
+}
 
 /* ---------------- helpers ---------------- */
 const parseMoney = (v) => {
@@ -62,34 +71,6 @@ export default function OrderBook(){
   const { data: retailers=[] }  = useQuery({ queryKey:['retailers'],  queryFn:getRetailers })
   const { data: markets=[] }    = useQuery({ queryKey:['markets'],    queryFn:getMarkets })
 
-  /* current user (Discord avatar/name) */
-  const [userInfo, setUserInfo] = useState({ avatar_url: '', username: '' })
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return setUserInfo({ avatar_url: '', username: '' })
-      const m = user.user_metadata || {}
-      const username = m.user_name || m.preferred_username || m.full_name || m.name || user.email || 'Account'
-      const avatar_url = m.avatar_url || m.picture || ''
-      setUserInfo({ avatar_url, username })
-    }
-    loadUser()
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      const user = session?.user
-      if (!user) return setUserInfo({ avatar_url: '', username: '' })
-      const m = user.user_metadata || {}
-      const username = m.user_name || m.preferred_username || m.full_name || m.name || user.email || 'Account'
-      const avatar_url = m.avatar_url || m.picture || ''
-      setUserInfo({ avatar_url, username })
-    })
-    return () => sub.subscription.unsubscribe()
-  }, [])
-
-  async function signOut(){
-    await supabase.auth.signOut()
-    window.location.href = '/login'
-  }
-
   /* search */
   const [q, setQ] = useState('')
   const filtered = useMemo(() => {
@@ -107,9 +88,8 @@ export default function OrderBook(){
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
 
-        {/* ======= SHARED HEADER + TABS ======= */}
+        {/* Header + tabs */}
         <HeaderWithTabs />
-        {/* ==================================== */}
 
         {/* Search + meta */}
         <div className={`${card} mb-6`}>
@@ -130,22 +110,21 @@ export default function OrderBook(){
           </div>
         </div>
 
-        {/* Orders list */}
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
-        {/* Header labels (hide on small) */}
-        <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
-          <div className="w-40">Order date</div>
-          <div className="min-w-[200px] flex-1">Item</div>
-          <div className="w-24">Profile</div>
-          <div className="w-30">Retailer</div>
-          <div className="w-22">Buy $</div>
-          <div className="w-22">Sale $</div>
-          <div className="w-40">Sale date</div>
-          <div className="w-30">Marketplace</div>
-          <div className="w-18">Ship $</div>
-          <div className="w-20 text-right">Actions</div>
+        {/* Header labels — same column widths as the row below */}
+        <div className="hidden lg:flex text-xs text-slate-400 px-3 mb-1 gap-2">
+          <div className={`${COL.date}`}>Order date</div>
+          <div className={`${COL.item}`}>Item</div>
+          <div className={`${COL.profile}`}>Profile</div>
+          <div className={`${COL.retailer}`}>Retailer</div>
+          <div className={`${COL.buy}`}>Buy $</div>
+          <div className={`${COL.sale}`}>Sale $</div>
+          <div className={`${COL.saleDate}`}>Sale date</div>
+          <div className={`${COL.market}`}>Marketplace</div>
+          <div className={`${COL.ship}`}>Ship $</div>
+          <div className={`${COL.actions} text-right`}>Actions</div>
         </div>
 
         <div className="space-y-3">
@@ -235,84 +214,82 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
       {/* One line on xl; wraps on small */}
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
-        <input type="date" value={order_date} onChange={e=>setOrderDate(e.target.value)} className={`${inputSm} w-36`} />
+        <input type="date" value={order_date} onChange={e=>setOrderDate(e.target.value)} className={`${inputSm} ${COL.date}`} />
 
         {/* Item dropdown (by name) */}
         <select
           value={item || ''}
           onChange={e=>setItem(e.target.value)}
-          className={`${inputSm} min-w-[240px] flex-1`}
+          className={`${inputSm} ${COL.item}`}
         >
           <option value=""></option>
           {items.map(it => <option key={it.id} value={it.name}>{it.name}</option>)}
         </select>
 
-        <input value={profile_name} onChange={e=>setProfile(e.target.value)} placeholder="Profile" className={`${inputSm} w-28`} />
+        <input value={profile_name} onChange={e=>setProfile(e.target.value)} placeholder="Profile" className={`${inputSm} ${COL.profile}`} />
 
         {/* Retailer dropdown */}
         <select
           value={retailer || ''}
           onChange={e=>setRetailer(e.target.value)}
-          className={`${inputSm} w-28`}
+          className={`${inputSm} ${COL.retailer}`}
         >
           <option value=""></option>
           {retailers.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
         </select>
 
-        <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy"  className={`${inputSm} w-24`} />
-        <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale" className={`${inputSm} w-24`} />
+        <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy"  className={`${inputSm} ${COL.buy}`} />
+        <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale" className={`${inputSm} ${COL.sale}`} />
 
-        <input type="date" value={sale_date} onChange={e=>setSaleDate(e.target.value)} className={`${inputSm} w-36`} />
+        <input type="date" value={sale_date} onChange={e=>setSaleDate(e.target.value)} className={`${inputSm} ${COL.saleDate}`} />
 
         {/* Marketplace dropdown */}
         <select
           value={marketplace || ''}
           onChange={e=>handleMarketplaceChange(e.target.value)}
-          className={`${inputSm} w-32`}
+          className={`${inputSm} ${COL.market}`}
         >
           <option value=""></option>
           {markets.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
         </select>
-        <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="Ship"  className={`${inputSm} w-24`} />
 
-        <div className="w-20 shrink-0 flex items-center justify-end gap-2">
-  {/* Save (check) */}
-  <button
-    type="button"
-    onClick={save}
-    disabled={busy}
-    aria-label={busy ? "Saving…" : "Save"}
-    title={busy ? "Saving…" : "Save"}
-    className={`inline-flex items-center justify-center h-9 w-9 rounded-lg
-                ${busy ? 'bg-slate-700 text-slate-300 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700 text-slate-100'}
-                border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-  >
-    {/* check icon */}
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
-  </button>
+        <input value={shipping} onChange={e=>setShipping(e.target.value)} placeholder="Ship" className={`${inputSm} ${COL.ship}`} />
 
-  {/* Delete (trash) */}
-  <button
-    type="button"
-    onClick={del}
-    aria-label="Delete"
-    title="Delete"
-    className="inline-flex items-center justify-center h-9 w-9 rounded-lg
-               bg-rose-600 hover:bg-rose-500 text-white border border-rose-700
-               focus:outline-none focus:ring-2 focus:ring-rose-500"
-  >
-    {/* trash icon */}
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 6h18" />
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-      <path d="M10 11v6M14 11v6" />
-      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-    </svg>
-  </button>
-</div>
+        <div className={`${COL.actions} shrink-0 flex items-center justify-end gap-2`}>
+          {/* Save (check) */}
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy}
+            aria-label={busy ? "Saving…" : "Save"}
+            title={busy ? "Saving…" : "Save"}
+            className={`inline-flex items-center justify-center h-9 w-9 rounded-lg
+                        ${busy ? 'bg-slate-700 text-slate-300 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700 text-slate-100'}
+                        border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </button>
 
+          {/* Delete (trash) */}
+          <button
+            type="button"
+            onClick={del}
+            aria-label="Delete"
+            title="Delete"
+            className="inline-flex items-center justify-center h-9 w-9 rounded-lg
+                       bg-rose-600 hover:bg-rose-500 text-white border border-rose-700
+                       focus:outline-none focus:ring-2 focus:ring-rose-500"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6M14 11v6" />
+              <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {msg && (
