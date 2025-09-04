@@ -1,16 +1,24 @@
 // src/routes/OrderBook.jsx
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import HeaderWithTabs from '../components/HeaderWithTabs.jsx'
 
-/* ---------- UI tokens ---------- */
+/* ---- shared UI tokens ---- */
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]"
 const inputSm =
   "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
 
-/* ---------- helpers ---------- */
+/** Desktop grid column plan (keeps widths identical for every row + header).
+ *  We use a Tailwind arbitrary property for grid-template-columns at lg+.
+ *  Order: orderDate | item | profile | retailer | buy | sale | saleDate | market | ship | actions
+ */
+const GRID_COLS =
+  // 144 | flex | 96 | 128 | 96 | 96 | 144 | 160 | 96 | 80
+  "lg:[grid-template-columns:144px_minmax(18rem,1fr)_96px_128px_96px_96px_144px_160px_96px_80px]"
+
+/* ---- helpers ---- */
 const parseMoney = (v) => {
   const n = Number(String(v ?? '').replace(/[^0-9.\-]/g, ''))
   return isNaN(n) ? 0 : n
@@ -24,7 +32,7 @@ const parsePct = (v) => {
   return n > 1 ? n / 100 : n
 }
 
-/* ---------- queries ---------- */
+/* ---- queries ---- */
 async function getOrders(limit=500){
   const { data, error } = await supabase
     .from('orders')
@@ -50,13 +58,7 @@ async function getMarkets() {
   return data ?? []
 }
 
-/* 
-   Fixed grid for lg+ so columns keep identical widths across rows.
-   Chosen to fit comfortably inside a 6xl container (72rem) including gaps/padding.
-*/
-const GRID_COLS =
-  '9rem minmax(14rem,1fr) 7rem 6rem 5.5rem 5.5rem 9rem 8rem 5rem 5rem'
-
+/* ====================== PAGE ====================== */
 export default function OrderBook(){
   const { data: orders=[], isLoading, error, refetch } = useQuery({ queryKey:['orders', 500], queryFn:() => getOrders(500) })
   const { data: items=[] }      = useQuery({ queryKey:['items'],      queryFn:getItems })
@@ -79,21 +81,23 @@ export default function OrderBook(){
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
+
+        {/* Header + tabs */}
         <HeaderWithTabs />
 
-        {/* Search + rows meta (input stretches full width of card) */}
+        {/* Search card — input spans full width; count floats right on desktop */}
         <div className={`${card} mb-6`}>
-          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
-            <div className="w-full">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+            <div className="flex-1">
               <label className="text-slate-300 mb-1 block text-sm">Search</label>
               <input
                 value={q}
                 onChange={(e)=>setQ(e.target.value)}
                 placeholder="item / retailer / marketplace / profile…"
-                className={`${inputSm} w-full`}
+                className={inputSm}
               />
             </div>
-            <div className="md:pl-3 md:pb-0">
+            <div className="sm:min-w-[96px]">
               <div className="text-slate-400 text-sm">Rows</div>
               <div className="text-xl font-semibold">{filtered.length}</div>
             </div>
@@ -103,11 +107,8 @@ export default function OrderBook(){
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
-        {/* Header labels on lg+, aligned by the same grid */}
-        <div
-          className="hidden lg:grid text-xs text-slate-400 px-1 mb-1 gap-2"
-          style={{ gridTemplateColumns: GRID_COLS }}
-        >
+        {/* Desktop header labels — perfectly aligned with row grid */}
+        <div className={`hidden lg:grid ${GRID_COLS} text-xs text-slate-400 px-1 mb-1 gap-2`}>
           <div>Order date</div>
           <div>Item</div>
           <div>Profile</div>
@@ -142,7 +143,7 @@ export default function OrderBook(){
   )
 }
 
-/* ---------------- Row ---------------- */
+/* ============== Row component ============== */
 function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   const [order_date, setOrderDate]     = useState(order.order_date || '')
   const [item, setItem]                 = useState(order.item || '')
@@ -203,99 +204,104 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
     else onDeleted && onDeleted()
   }
 
+  /* ghost labels (mobile only when field is empty) */
+  const Ghost = ({ show, children }) => (
+    <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none lg:hidden ${show ? 'block' : 'hidden'}`}>
+      {children}
+    </span>
+  )
+
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 overflow-hidden">
-      {/* Mobile: stack; Desktop: fixed grid (columns identical across rows) */}
-      <div
-        className="grid gap-2 lg:gap-2 grid-cols-1 lg:grid-cols-[9rem_minmax(14rem,1fr)_7rem_6rem_5.5rem_5.5rem_9rem_8rem_5rem_5rem] items-center"
-      >
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+      {/* One DOM for both sizes: single column on mobile, fixed grid on desktop */}
+      <div className={`grid grid-cols-1 gap-2 ${GRID_COLS} items-center`}>
+
         {/* Order date */}
-        <div className="w-full">
+        <div className="relative">
+          <Ghost show={!order_date}>Order date</Ghost>
           <input
             type="date"
             value={order_date || ''}
             onChange={e=>setOrderDate(e.target.value)}
-            className={`${inputSm} w-full`}
+            className={inputSm}
           />
         </div>
 
         {/* Item */}
-        <div className="w-full">
+        <div>
           <select
             value={item || ''}
             onChange={e=>setItem(e.target.value)}
-            className={`${inputSm} w-full`}
+            className={inputSm}
           >
-            <option value=""></option>
+            <option value="">{item ? item : 'Item'}</option>
             {items.map(it => <option key={it.id} value={it.name}>{it.name}</option>)}
           </select>
         </div>
 
-        {/* Profile */}
-        <div className="w-full">
+        {/* Profile (free text) */}
+        <div>
           <input
             value={profile_name}
             onChange={e=>setProfile(e.target.value)}
             placeholder="Profile"
-            className={`${inputSm} w-full`}
+            className={inputSm}
           />
         </div>
 
         {/* Retailer */}
-        <div className="w-full">
+        <div>
           <select
             value={retailer || ''}
             onChange={e=>setRetailer(e.target.value)}
-            className={`${inputSm} w-full`}
+            className={inputSm}
           >
-            <option value=""></option>
+            <option value="">{retailer ? retailer : 'Retailer'}</option>
             {retailers.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
           </select>
         </div>
 
-        {/* Buy / Sale */}
-        <div className="w-full">
-          <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy $"  className={`${inputSm} w-full`} />
+        {/* Buy/Sale */}
+        <div>
+          <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy $"  inputMode="decimal" className={inputSm} />
         </div>
-        <div className="w-full">
-          <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale $" className={`${inputSm} w-full`} />
+        <div>
+          <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale $" inputMode="decimal" className={inputSm} />
         </div>
 
-        {/* Sale date with ghost label when empty (never overflows) */}
-        <div className="relative w-full">
+        {/* Sale date (with mobile ghost label) */}
+        <div className="relative">
+          <Ghost show={!sale_date}>Sale date</Ghost>
           <input
             type="date"
             value={sale_date || ''}
             onChange={e=>setSaleDate(e.target.value)}
-            className={`${inputSm} w-full`}
+            className={inputSm}
           />
-          {!sale_date && (
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-              Sale date
-            </span>
-          )}
         </div>
 
         {/* Marketplace */}
-        <div className="w-full">
+        <div className="relative">
+          {/* ghost label for mobile if empty */}
+          <Ghost show={!marketplace}>Marketplace</Ghost>
           <select
             value={marketplace || ''}
             onChange={e=>handleMarketplaceChange(e.target.value)}
-            className={`${inputSm} w-full`}
+            className={inputSm}
           >
-            <option value="">Marketplace</option>
+            <option value="">{marketplace ? marketplace : 'Marketplace'}</option>
             {markets.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
           </select>
         </div>
 
         {/* Shipping */}
-        <div className="w-full">
-          <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="Ship $"  className={`${inputSm} w-full`} />
+        <div>
+          <input value={shipping} onChange={e=>setShipping(e.target.value)} placeholder="Ship $" inputMode="decimal" className={inputSm} />
         </div>
 
-        {/* Actions (right-aligned on all sizes, fixed column width on lg+) */}
-        <div className="flex items-center justify-end gap-2">
-          {/* Save */}
+        {/* Actions (always at far right on desktop, right-aligned on mobile) */}
+        <div className="flex justify-end gap-2">
+          {/* Save (check) */}
           <button
             type="button"
             onClick={save}
@@ -311,7 +317,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
             </svg>
           </button>
 
-          {/* Delete */}
+          {/* Delete (trash) */}
           <button
             type="button"
             onClick={del}
