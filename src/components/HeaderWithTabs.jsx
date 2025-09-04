@@ -1,27 +1,15 @@
 // src/components/HeaderWithTabs.jsx
 import { useEffect, useState } from "react";
-import { NavLink, Link, useLocation } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 /**
  * Props:
- * - showTabs?: boolean (default true)
- * - active?: string  // optional manual override: "orders" | "add" | "sold" | "stats" | "settings"
+ * - active: "orders" | "add" | "sold" | "stats" | "settings"
+ * - showTabs: boolean (default true)
  */
-export default function HeaderWithTabs({ showTabs = true, active = "" }) {
+export default function HeaderWithTabs({ active = "", showTabs = true }) {
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
-  const { pathname } = useLocation();
-
-  // --- derive the current tab from the URL (works even with subpaths) ---
-  const derived = (() => {
-    if (pathname.startsWith("/orders"))   return "orders";
-    if (pathname.startsWith("/add") || pathname === "/app") return "add";
-    if (pathname.startsWith("/sold"))     return "sold";
-    if (pathname.startsWith("/stats"))    return "stats";
-    if (pathname.startsWith("/settings")) return "settings";
-    return "";
-  })();
-  const current = active || derived;
 
   useEffect(() => {
     async function loadUser() {
@@ -56,15 +44,16 @@ export default function HeaderWithTabs({ showTabs = true, active = "" }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // --- tokens ---
+  // Base + variants (so we never have two conflicting bg- classes)
   const tabBase =
-    "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition";
-  // Solid indigo for active tab (like your screenshots)
+    "inline-flex items-center justify-center h-10 px-4 rounded-xl border transition";
+  const tabIdle =
+    "border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900";
   const tabActive =
-    "bg-indigo-600 text-white border-indigo-600 shadow-[0_8px_24px_rgba(79,70,229,.35)] hover:bg-indigo-600";
+    "border-indigo-600 bg-indigo-600 text-white shadow-[0_8px_24px_rgba(79,70,229,.35)] hover:bg-indigo-600";
 
   const tabClass = (key) => ({ isActive }) =>
-    `${tabBase} ${(isActive || current === key) ? tabActive : ""}`;
+    `${tabBase} ${isActive || active === key ? tabActive : tabIdle}`;
 
   return (
     <>
@@ -100,13 +89,23 @@ export default function HeaderWithTabs({ showTabs = true, active = "" }) {
       {/* Tabs */}
       {showTabs && (
         <div className="relative z-20 flex flex-wrap items-center gap-2 mb-6">
-          <NavLink to="/orders"  className={tabClass("orders")}>Order Book</NavLink>
-          <NavLink to="/add"     className={tabClass("add")}>Quick Add</NavLink>
-          <NavLink to="/sold"    className={tabClass("sold")}>Mark as Sold</NavLink>
-          <NavLink to="/stats"   className={tabClass("stats")}>Stats</NavLink>
-          <button className={tabBase}>Inventory</button>
-          <button className={tabBase}>Flex</button>
-          <NavLink to="/settings" className={tabClass("settings")}>Settings</NavLink>
+          <NavLink to="/orders" end className={tabClass("orders")}>
+            Order Book
+          </NavLink>
+          <NavLink to="/add" end className={tabClass("add")}>
+            Quick Add
+          </NavLink>
+          <NavLink to="/sold" end className={tabClass("sold")}>
+            Mark as Sold
+          </NavLink>
+          <NavLink to="/stats" end className={tabClass("stats")}>
+            Stats
+          </NavLink>
+          <button className={`${tabBase} ${tabIdle}`}>Inventory</button>
+          <button className={`${tabBase} ${tabIdle}`}>Flex</button>
+          <NavLink to="/settings" end className={tabClass("settings")}>
+            Settings
+          </NavLink>
         </div>
       )}
     </>
