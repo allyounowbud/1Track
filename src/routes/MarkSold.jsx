@@ -1,6 +1,6 @@
 // src/routes/MarkSold.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from 'react-router-dom'
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 

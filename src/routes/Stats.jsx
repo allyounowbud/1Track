@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from 'react-router-dom'
 import { supabase } from "../lib/supabaseClient";
 
 /* ----------------------------- UI helpers ----------------------------- */
