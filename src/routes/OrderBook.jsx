@@ -144,7 +144,6 @@ export default function OrderBook(){
           <div className="w-24">Sale $</div>
           <div className="w-36">Sale date</div>
           <div className="w-32">Marketplace</div>
-          <div className="w-20">Fee %</div>
           <div className="w-24">Ship $</div>
           <div className="w-32 text-right">Actions</div>
         </div>
@@ -273,8 +272,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
           <option value=""></option>
           {markets.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
         </select>
-
-        <input value={feesPct}   onChange={e=>setFeesPct(e.target.value)}   placeholder="Fee %" className={`${inputSm} w-20`} />
         <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="Ship"  className={`${inputSm} w-24`} />
 
         <select value={status} onChange={e=>setStatus(e.target.value)} className={`${inputSm} w-28`}>
