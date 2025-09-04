@@ -320,6 +320,3 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
     </div>
   )
 }
-
-/* small helper */
-function centsToStr(c){ return (Number(c || 0) / 100).toFixed(2) }
