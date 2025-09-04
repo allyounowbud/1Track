@@ -401,7 +401,7 @@ export default function Stats() {
         </div>
 
         {/* Filters */}
-        <div className={card}>
+        <div className={`${card} relative z-[60]`}>
           <h2 className="text-lg font-semibold mb-4">Date Range</h2>
           <div className="grid grid-cols-1 gap-4 min-w-0">
             {/* Date range dropdown (styled like item selector) */}
