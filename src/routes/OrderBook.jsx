@@ -4,25 +4,11 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import HeaderWithTabs from '../components/HeaderWithTabs.jsx'
 
-/* ---------------- UI tokens ---------------- */
+/* ---------------- UI tokens to match the app ---------------- */
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]"
 const inputSm =
   "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
-
-/* Column width tokens — shared by header + row */
-const COL = {
-  date:      'w-36',
-  item:      'min-w-[240px] flex-1',
-  profile:   'w-28',
-  retailer:  'w-28',
-  buy:       'w-24',
-  sale:      'w-24',
-  saleDate:  'w-36',
-  market:    'w-32',
-  ship:      'w-24',
-  actions:   'w-20',
-}
 
 /* ---------------- helpers ---------------- */
 const parseMoney = (v) => {
@@ -88,7 +74,7 @@ export default function OrderBook(){
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
 
-        {/* Header + tabs */}
+        {/* Header + Tabs */}
         <HeaderWithTabs />
 
         {/* Search + meta */}
@@ -110,23 +96,25 @@ export default function OrderBook(){
           </div>
         </div>
 
+        {/* Loading / error */}
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
-        {/* Header labels — same column widths as the row below */}
-        <div className="hidden lg:flex text-xs text-slate-400 px-3 mb-1 gap-2">
-          <div className={`${COL.date}`}>Order date</div>
-          <div className={`${COL.item}`}>Item</div>
-          <div className={`${COL.profile}`}>Profile</div>
-          <div className={`${COL.retailer}`}>Retailer</div>
-          <div className={`${COL.buy}`}>Buy $</div>
-          <div className={`${COL.sale}`}>Sale $</div>
-          <div className={`${COL.saleDate}`}>Sale date</div>
-          <div className={`${COL.market}`}>Marketplace</div>
-          <div className={`${COL.ship}`}>Ship $</div>
-          <div className={`${COL.actions} text-right`}>Actions</div>
+        {/* Column headers (desktop only) — widths match row inputs exactly */}
+        <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
+          <div className="w-36">Order date</div>
+          <div className="min-w-[240px] flex-1">Item</div>
+          <div className="w-28">Profile</div>
+          <div className="w-28">Retailer</div>
+          <div className="w-24">Buy $</div>
+          <div className="w-24">Sale $</div>
+          <div className="w-36">Sale date</div>
+          <div className="w-32">Marketplace</div>
+          <div className="w-24">Ship $</div>
+          <div className="w-20 text-right">Actions</div>
         </div>
 
+        {/* Orders */}
         <div className="space-y-3">
           {filtered.map(o => (
             <OrderRow
@@ -151,15 +139,15 @@ export default function OrderBook(){
 /* ============== Row component ============== */
 function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   const [order_date, setOrderDate]     = useState(order.order_date || '')
-  const [item, setItem]                 = useState(order.item || '')
-  const [profile_name, setProfile]      = useState(order.profile_name || '')
-  const [retailer, setRetailer]         = useState(order.retailer || '')
-  const [buyPrice, setBuyPrice]         = useState(centsToStr(order.buy_price_cents))
-  const [salePrice, setSalePrice]       = useState(centsToStr(order.sale_price_cents))
-  const [sale_date, setSaleDate]        = useState(order.sale_date || '')
-  const [marketplace, setMarketplace]   = useState(order.marketplace || '')
-  const [feesPct, setFeesPct]           = useState(((order.fees_pct ?? 0) * 100).toString())
-  const [shipping, setShipping]         = useState(centsToStr(order.shipping_cents))
+  const [item, setItem]                = useState(order.item || '')
+  const [profile_name, setProfile]     = useState(order.profile_name || '')
+  const [retailer, setRetailer]        = useState(order.retailer || '')
+  const [buyPrice, setBuyPrice]        = useState(centsToStr(order.buy_price_cents))
+  const [salePrice, setSalePrice]      = useState(centsToStr(order.sale_price_cents))
+  const [sale_date, setSaleDate]       = useState(order.sale_date || '')
+  const [marketplace, setMarketplace]  = useState(order.marketplace || '')
+  const [feesPct, setFeesPct]          = useState(((order.fees_pct ?? 0) * 100).toString())
+  const [shipping, setShipping]        = useState(centsToStr(order.shipping_cents))
 
   const [busy, setBusy] = useState(false)
   const [msg, setMsg]   = useState('')
@@ -176,7 +164,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   async function save(){
     setBusy(true); setMsg('')
     try{
-      // derive status from current sale price (sold if > 0, else ordered)
       const statusValue = moneyToCents(salePrice) > 0 ? 'sold' : 'ordered'
       const payload = {
         order_date: order_date || null,
@@ -210,52 +197,94 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
     else onDeleted && onDeleted()
   }
 
+  // Faux placeholder for date inputs (since native date doesn't show placeholder)
+  const DateInput = ({ value, onChange, ghost, className }) => (
+    <div className={`relative ${className}`}>
+      <input
+        type="date"
+        value={value}
+        onChange={e=>onChange(e.target.value)}
+        className={`${inputSm} w-full`}
+      />
+      {!value && (
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
+          {ghost}
+        </span>
+      )}
+    </div>
+  )
+
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-      {/* One line on xl; wraps on small */}
+      {/* One line on lg; wraps on small */}
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
-        <input type="date" value={order_date} onChange={e=>setOrderDate(e.target.value)} className={`${inputSm} ${COL.date}`} />
+        <DateInput value={order_date} onChange={setOrderDate} ghost="Order date" className="w-36" />
 
-        {/* Item dropdown (by name) */}
+        {/* Item */}
         <select
           value={item || ''}
           onChange={e=>setItem(e.target.value)}
-          className={`${inputSm} ${COL.item}`}
+          className={`${inputSm} min-w-[240px] flex-1`}
         >
-          <option value=""></option>
+          <option value="">Item</option>
           {items.map(it => <option key={it.id} value={it.name}>{it.name}</option>)}
         </select>
 
-        <input value={profile_name} onChange={e=>setProfile(e.target.value)} placeholder="Profile" className={`${inputSm} ${COL.profile}`} />
+        {/* Profile */}
+        <input
+          value={profile_name}
+          onChange={e=>setProfile(e.target.value)}
+          placeholder="Profile"
+          className={`${inputSm} w-28`}
+        />
 
-        {/* Retailer dropdown */}
+        {/* Retailer */}
         <select
           value={retailer || ''}
           onChange={e=>setRetailer(e.target.value)}
-          className={`${inputSm} ${COL.retailer}`}
+          className={`${inputSm} w-28`}
         >
-          <option value=""></option>
+          <option value="">Retailer</option>
           {retailers.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
         </select>
 
-        <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy"  className={`${inputSm} ${COL.buy}`} />
-        <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale" className={`${inputSm} ${COL.sale}`} />
+        {/* Buy / Sale */}
+        <input
+          value={buyPrice}
+          onChange={e=>setBuyPrice(e.target.value)}
+          placeholder="Buy $"
+          className={`${inputSm} w-24`}
+        />
+        <input
+          value={salePrice}
+          onChange={e=>setSalePrice(e.target.value)}
+          placeholder="Sale $"
+          className={`${inputSm} w-24`}
+        />
 
-        <input type="date" value={sale_date} onChange={e=>setSaleDate(e.target.value)} className={`${inputSm} ${COL.saleDate}`} />
+        {/* Sale date */}
+        <DateInput value={sale_date} onChange={setSaleDate} ghost="Sale date" className="w-36" />
 
-        {/* Marketplace dropdown */}
+        {/* Marketplace */}
         <select
           value={marketplace || ''}
           onChange={e=>handleMarketplaceChange(e.target.value)}
-          className={`${inputSm} ${COL.market}`}
+          className={`${inputSm} w-32`}
         >
-          <option value=""></option>
+          <option value="">Marketplace</option>
           {markets.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
         </select>
 
-        <input value={shipping} onChange={e=>setShipping(e.target.value)} placeholder="Ship" className={`${inputSm} ${COL.ship}`} />
+        {/* Shipping */}
+        <input
+          value={shipping}
+          onChange={e=>setShipping(e.target.value)}
+          placeholder="Ship $"
+          className={`${inputSm} w-24`}
+        />
 
-        <div className={`${COL.actions} shrink-0 flex items-center justify-end gap-2`}>
+        {/* Actions — full width on mobile so icons stay on the right */}
+        <div className="w-full lg:w-20 shrink-0 flex items-center justify-end gap-2 mt-2 lg:mt-0">
           {/* Save (check) */}
           <button
             type="button"
