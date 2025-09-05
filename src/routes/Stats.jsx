@@ -53,31 +53,11 @@ async function getItems() {
   return data || [];
 }
 
-/* ----------------------------- window size hook ----------------------------- */
-function useMonthsToShow() {
-  const [n, setN] = useState(() => {
-    const w = typeof window !== "undefined" ? window.innerWidth : 1280;
-    if (w < 640) return 6;     // mobile
-    if (w < 1024) return 9;    // tablet/sm desktop
-    return 12;                 // desktop
-  });
-  useEffect(() => {
-    function onResize() {
-      const w = window.innerWidth;
-      setN(w < 640 ? 6 : w < 1024 ? 9 : 12);
-    }
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return n;
-}
-
 /* --------------------------------- page --------------------------------- */
 export default function Stats() {
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
 
-  // header user (unchanged)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -155,7 +135,7 @@ export default function Stats() {
     if (applied.range === "year") {
       const now = new Date();
       const f = new Date(now.getFullYear(), 0, 1).getTime();
-      const t = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999).getTime();
+      const t = new Date(now.getFullYear(), 11, 31, 23,59,59,999).getTime();
       return { fromMs: f, toMs: t };
     }
     return { fromMs: null, toMs: null };
@@ -188,7 +168,6 @@ export default function Stats() {
   }, [orders, applied, fromMs, toMs]);
 
   /* ------------------------------- CHART DATA ------------------------------- */
-  const monthsToShow = useMonthsToShow();
   const chartSeries = useMemo(() => {
     const purchases = filtered.filter(o => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
     const sales = filtered.filter(o => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs)));
@@ -211,27 +190,19 @@ export default function Stats() {
       revenue.set(k, revenue.get(k)+cents(o.sale_price_cents));
     }
 
-    // Trim to last N buckets for current screen width
-    const takeLast = (arr) => arr.slice(Math.max(0, arr.length - monthsToShow));
-    const M = takeLast(months);
     return {
-      months: M,
-      purchasesCount: takeLast(M.map(m => purCnt.get(m)||0)),
-      salesCount:     takeLast(M.map(m => salCnt.get(m)||0)),
-      costC:          takeLast(M.map(m => cost.get(m)||0)),
-      revenueC:       takeLast(M.map(m => revenue.get(m)||0)),
+      months,
+      purchasesCount: months.map(m => purCnt.get(m)||0),
+      salesCount: months.map(m => salCnt.get(m)||0),
+      costC: months.map(m => cost.get(m)||0),
+      revenueC: months.map(m => revenue.get(m)||0),
     };
-  }, [filtered, fromMs, toMs, monthsToShow]);
+  }, [filtered, fromMs, toMs]);
 
-  /* ------------------------- item groups for cards ------------------------- */
+  /* ---------------------------- chart tab state ---------------------------- */
+  const [chartTab, setChartTab] = useState("ps"); // "ps" | "cr"
+
   const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
-
-  // If a specific item is selected, only show that card
-  const shownGroups = useMemo(() => {
-    if (!applied.item) return itemGroups;
-    const target = applied.item.toLowerCase();
-    return itemGroups.filter((g) => g.item.toLowerCase() === target);
-  }, [itemGroups, applied.item]);
 
   const [openSet, setOpenSet] = useState(() => new Set());
   const toggleItem = (key) => {
@@ -243,68 +214,65 @@ export default function Stats() {
     });
   };
 
-  /* which combined chart is visible */
-  const [chartTab, setChartTab] = useState("units"); // 'units' | 'money'
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="stats" showTabs />
 
-        {/* ------------------------- Filters (top) ------------------------- */}
-        <div className={`${card} relative z-[120]`}>
-          <div className="flex items-center justify-between">
+        {/* Filters */}
+        <div className={`${card} relative z-50 overflow-visible`}>
+          <div className="flex items-center justify-between gap-2">
             <h2 className="text-lg font-semibold">Filters</h2>
             <div className="text-slate-400 text-sm">{filtered.length} rows</div>
           </div>
 
-          {/* quick range chips */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {[
-              ["all","All time"],
-              ["month","This month"],
-              ["30","Last 30 days"],
-              ["year","This year"],
-              ["custom","Custom…"],
-            ].map(([v, label]) => (
-              <button
-                key={v}
-                onClick={() => setRange(v)}
-                className={`px-4 py-2 rounded-full border transition
-                  ${range===v ? "bg-indigo-600 border-indigo-500 text-white" : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"}`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <QuickBtn active={range==="all"} onClick={()=>setRange("all")} label="All time" />
+            <QuickBtn active={range==="month"} onClick={()=>setRange("month")} label="This month" />
+            <QuickBtn active={range==="30"} onClick={()=>setRange("30")} label="Last 30 days" />
+            <QuickBtn active={range==="year"} onClick={()=>setRange("year")} label="This year" />
+            <QuickBtn active={range==="custom"} onClick={()=>setRange("custom")} label="Custom…" />
           </div>
 
-          {/* custom dates */}
           {range === "custom" && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input type="date" value={fromStr} onChange={(e)=>setFromStr(e.target.value)} className={inputBase} placeholder="Start date"/>
-              <input type="date" value={toStr} onChange={(e)=>setToStr(e.target.value)} className={inputBase} placeholder="End date"/>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="date"
+                value={fromStr}
+                onChange={(e)=>setFromStr(e.target.value)}
+                className={inputBase}
+                placeholder="Start date"
+              />
+              <input
+                type="date"
+                value={toStr}
+                onChange={(e)=>setToStr(e.target.value)}
+                className={inputBase}
+                placeholder="End date"
+              />
             </div>
           )}
 
-          {/* item dropdown */}
-          <div ref={comboRef} className="relative isolate mt-4">
+          {/* Item combobox */}
+          <div ref={comboRef} className="relative isolate mt-3">
             <input
               value={itemInput}
               onChange={(e) => { setItemInput(e.target.value); setItemOpen(true); }}
               onFocus={() => setItemOpen(true)}
               placeholder="All Items"
-              className={`${inputBase} pr-10`}
+              className={inputBase}
             />
             <button
               type="button"
               onClick={() => setItemOpen((v) => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-              aria-label="Toggle items">
+              aria-label="Toggle items"
+            >
               ▾
             </button>
 
             {itemOpen && (
-              <div className="absolute z-[200] left-0 right-0 mt-2 max-h-60 overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+              <div className="absolute z-[200] left-0 right-0 mt-2 max-h-64 overflow-auto rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl">
                 {filteredItemOptions.map((name) => (
                   <div
                     key={name}
@@ -322,8 +290,7 @@ export default function Stats() {
             )}
           </div>
 
-          {/* apply */}
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-3">
             <button
               onClick={() =>
                 setApplied({
@@ -333,80 +300,54 @@ export default function Stats() {
                   item: normalizeItemFilter(itemInput),
                 })
               }
-              className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white">
+              className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white"
+            >
               Apply
-            </button>
-            <button
-              onClick={() => {
-                setRange("all"); setFromStr(""); setToStr("");
-                setItemInput("All Items"); setApplied({range:"all",from:null,to:null,item:""});
-              }}
-              className="px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">
-              Reset
             </button>
           </div>
         </div>
 
-        {/* --------------------- Single chart with tabs --------------------- */}
-        <div className={`${card} mt-6 relative z-[0]`}>
-          <div className="flex items-start justify-between gap-4">
+        {/* Chart (single card, tabbed) */}
+        <div className={`${card} mt-6 relative z-0`}>
+          <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-lg font-semibold">
-                {chartTab === "units" ? "Purchases & Sales" : "Cost & Revenue"}
+                {chartTab === "ps" ? "Purchases & Sales" : "Cost & Revenue"}
               </div>
-              <div className="text-xs text-slate-400">by month</div>
+              <div className="text-xs text-slate-400 -mt-0.5">by month</div>
             </div>
-
             <div className="flex gap-2">
-              <ChartChip active={chartTab==="units"} onClick={()=>setChartTab("units")}>Units</ChartChip>
-              <ChartChip active={chartTab==="money"} onClick={()=>setChartTab("money")}>Money</ChartChip>
+              <ChartTab value="ps" label="Purchases / Sales" cur={chartTab} setCur={setChartTab} />
+              <ChartTab value="cr" label="Cost / Revenue" cur={chartTab} setCur={setChartTab} />
             </div>
           </div>
 
           <div className="mt-4">
-            {chartTab === "units" ? (
-              <>
-                <LegendStack className="mb-2">
-                  <LegendDot className="bg-indigo-400" label="Purchases" />
-                  <LegendDot className="bg-indigo-300" label="Sales" />
-                </LegendStack>
-                <GroupedBarsNoScroll
-                  labels={chartSeries.months}
-                  aValues={chartSeries.purchasesCount}
-                  bValues={chartSeries.salesCount}
-                  aColor="bg-indigo-400"
-                  bColor="bg-indigo-300"
-                  valueFmt={(v) => v}
-                  money={false}
-                />
-              </>
+            {chartTab === "ps" ? (
+              <DualBars
+                labels={chartSeries.months}
+                a={{ name: "Purchases", values: chartSeries.purchasesCount, color: "#6475ff" }}
+                b={{ name: "Sales",     values: chartSeries.salesCount,     color: "#9aa5ff" }}
+                money={false}
+              />
             ) : (
-              <>
-                <LegendStack className="mb-2">
-                  <LegendDot className="bg-teal-400" label="Cost" />
-                  <LegendDot className="bg-teal-300" label="Revenue" />
-                </LegendStack>
-                <GroupedBarsNoScroll
-                  labels={chartSeries.months}
-                  aValues={chartSeries.costC}
-                  bValues={chartSeries.revenueC}
-                  aColor="bg-teal-400"
-                  bColor="bg-teal-300"
-                  valueFmt={(v) => `$${centsToStr(v)}`}
-                  money
-                />
-              </>
+              <DualBars
+                labels={chartSeries.months}
+                a={{ name: "Cost",    values: chartSeries.costC,    color: "#22c9c7" }}
+                b={{ name: "Revenue", values: chartSeries.revenueC, color: "#76e0df" }}
+                money={true}
+              />
             )}
           </div>
         </div>
 
-        {/* ------------------ Item breakdown as cards ------------------ */}
+        {/* Item breakdown (unchanged) */}
         <div className="mt-6 space-y-4">
-          {shownGroups.map((g) => {
+          {itemGroups.map((g) => {
             const open = openSet.has(g.item);
             return (
               <div key={g.item} className={rowCard}>
-                {/* header (unchanged) */}
+                {/* header */}
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-lg font-semibold truncate">{g.item}</div>
@@ -418,12 +359,10 @@ export default function Stats() {
                     title={open ? "Collapse" : "Expand"}
                   >
                     {open ? (
-                      // X icon
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     ) : (
-                      // chevron-down
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m6 9 6 6 6-6" />
                       </svg>
@@ -431,31 +370,32 @@ export default function Stats() {
                   </button>
                 </div>
 
-                {/* body (keep exactly as you liked) */}
+                {/* body */}
                 {open && (
                   <div className="mt-4 space-y-4">
+                    {/* responsive 2→3→4→5 columns */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                       <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} sub="total purchases" />
                       <MiniPill title="Sold" value={`${g.sold}`} num={g.sold} sub="total sold" />
                       <MiniPill title="On Hand" value={`${g.onHand}`} num={g.onHand} sub="total inventory" />
-                      <MiniPill title="Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="total amt spent" />
-                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from marketplace" />
+                      <MiniPill title="Total Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="amount spent" />
+                      <MiniPill title="Total Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="amount made" />
+                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from sales" />
                       <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} sub="from sales" />
-                      <MiniPill title="Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="total from sales" />
                       <MiniPill title="Realized P/L" value={`$${centsToStr(g.realizedPlC)}`} num={g.realizedPlC} sub="after fees + ship" tone="realized" />
-                      <MiniPill title="ROI" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profit / cost" />
-                      <MiniPill title="Margin" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="profit / revenue" />
+                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from tcgplayer" />
+                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on market" tone="unrealized" />
+                      <MiniPill title="ROI%" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profitability" />
+                      <MiniPill title="Margin%" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="worth it or not" />
                       <MiniPill title="Avg Hold" value={`${g.avgHoldDays.toFixed(0)}d`} num={g.avgHoldDays} sub="time in days" />
                       <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} sub="average sale price" />
-                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from database" />
-                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on mkt price" tone="unrealized" />
                     </div>
                   </div>
                 )}
               </div>
             );
           })}
-          {shownGroups.length === 0 && (
+          {itemGroups.length === 0 && (
             <div className={`${card} text-slate-400`}>No items in this view.</div>
           )}
         </div>
@@ -466,111 +406,224 @@ export default function Stats() {
 
 /* --------------------------- small components --------------------------- */
 
-function ChartChip({ active, onClick, children }) {
+function QuickBtn({ active, onClick, label }) {
   return (
     <button
       onClick={onClick}
+      className={`h-10 px-4 rounded-full border ${
+        active
+          ? "bg-indigo-600 border-indigo-500 text-white"
+          : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function Select({ value, onChange, options, placeholder = "Select…" }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    function onDoc(e) {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const current = options.find((o) => o.value === value);
+
+  return (
+    <div ref={rootRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`${inputBase} flex items-center justify-between`}
+      >
+        <span className={current ? "" : "text-slate-400"}>
+          {current ? current.label : placeholder}
+        </span>
+        <svg className="w-4 h-4 opacity-70" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl">
+          <ul className="max-h-64 overflow-auto py-1">
+            {options.map((opt) => (
+              <li key={opt.value}>
+                <button
+                  type="button"
+                  onClick={() => { onChange(opt.value); setOpen(false); }}
+                  className={`w-full text-left px-3 py-2 hover:bg-slate-800 ${
+                    opt.value === value ? "text-white" : "text-slate-200"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChartTab({ value, label, cur, setCur }) {
+  const active = cur === value;
+  return (
+    <button
+      onClick={() => setCur(value)}
       className={`px-3 py-1.5 rounded-full border ${
         active
           ? "bg-indigo-600 border-indigo-500 text-white"
           : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
       }`}
     >
-      {children}
+      {label}
     </button>
   );
 }
 
-function LegendStack({ children, className = "" }) {
-  return <div className={`flex flex-col items-end gap-1 ${className}`}>{children}</div>;
-}
-function LegendDot({ className = "", label }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className={`inline-block w-3 h-3 rounded ${className}`} />
-      <span className="text-xs text-slate-300">{label}</span>
-    </div>
-  );
-}
+/* ---------------------- Responsive dual-series bars ---------------------- */
+/* Pure SVG; fits any container without horizontal scroll. */
+function DualBars({ labels = [], a, b, money = false }) {
+  // nothing to show?
+  const hasAny = (arr) => arr && arr.some((v) => Number(v) > 0);
+  if (!labels.length || (!hasAny(a.values) && !hasAny(b.values))) {
+    return <div className="text-slate-400">No data in this view.</div>;
+  }
 
-/* -------- No-scroll grouped bar chart with left Y axis ---------- */
-function GroupedBarsNoScroll({
-  labels = [],
-  aValues = [],
-  bValues = [],
-  aColor = "bg-indigo-400",
-  bColor = "bg-indigo-300",
-  valueFmt = (v) => v,
-  money = false,
-}) {
-  const N = labels.length;
-  const hasData =
-    N > 0 && (aValues.some((v) => v) || bValues.some((v) => v));
-  if (!hasData) return <div className="text-slate-400">No data in this view.</div>;
+  // Trim to last 12 buckets for readability
+  const clip = Math.max(0, labels.length - 12);
+  const L = labels.slice(clip);
+  const A = a.values.slice(clip);
+  const B = b.values.slice(clip);
 
-  const max = Math.max(
-    1,
-    ...aValues.map((v) => Math.abs(v)),
-    ...bValues.map((v) => Math.abs(v))
-  );
+  // Nice padded max so tallest bar never hits the top
+  const maxVal = niceMax(Math.max(1, ...A, ...B));
+  const ticks = 4; // y grid lines (plus 0)
+  const H = 240;  // inner chart height
+  const M = { top: 6, right: 12, bottom: 28, left: 64 }; // margins
+  const W = 820; // viewBox width (scales to container)
 
-  // Y ticks: 0, 25%, 50%, 75%, 100%
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((p) => p * max);
-  const fmt = money ? (v) => `$${centsToStr(v)}` : (v) => `${Math.round(v)}`;
+  const innerW = W - M.left - M.right;
+  const innerH = H - 0; // already left space with M.top/bottom
+
+  const barBand = innerW / L.length;
+  const gap = Math.min(10, barBand * 0.2);
+  const groupWidth = Math.max(10, barBand - gap);
+  const single = Math.max(6, groupWidth / 2 - 2);
+
+  // y scale (0 bottom -> maxVal top)
+  const y = (v) => {
+    const t = Math.min(maxVal, Math.max(0, Number(v)));
+    const ratio = t / maxVal;
+    return M.top + (H - ratio * H); // 0 at bottom
+  };
+
+  const fmtY = (v) => (money ? `$${centsToStr(v)}` : `${v}`);
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-[60px_1fr] gap-2 items-stretch rounded-xl border border-slate-800 bg-slate-900/40 p-3">
-        {/* y-axis */}
-        <div className="relative">
-          <div className="flex flex-col justify-between h-[240px]">
-            {ticks.map((t, i) => (
-              <div key={i} className="text-[11px] text-slate-400 tabular-nums">
-                {fmt(t)}
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Legend (stacked) */}
+      <div className="flex flex-col items-end text-xs text-slate-300 gap-1">
+        <LegendDot color={a.color} label={a.name} />
+        <LegendDot color={b.color} label={b.name} />
+      </div>
 
-        {/* plot area */}
-        <div className="relative h-[240px]">
-          {/* grid lines */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="flex flex-col justify-between h-full">
-              {ticks.map((_, i) => (
-                <div key={i} className={`h-px w-full ${i===ticks.length-1 ? "opacity-0" : ""} bg-slate-800`} />
-              ))}
-            </div>
-          </div>
+      <div className="mt-2 w-full">
+        <svg viewBox={`0 0 ${W} ${H + M.bottom}`} className="w-full h-[260px] block">
+          {/* grid + axes */}
+          {[0,1,2,3,4].map((i) => {
+            const val = (maxVal / 4) * i;
+            const yy = y(val);
+            return (
+              <g key={i}>
+                <line x1={M.left} y1={yy} x2={W - M.right} y2={yy} stroke="#0f172a" opacity="0.7" />
+                <text x={M.left - 8} y={yy+4} textAnchor="end" className="fill-slate-300 text-[10px]">
+                  {fmtY(val)}
+                </text>
+              </g>
+            );
+          })}
 
           {/* bars */}
-          <div className="absolute inset-0 flex items-end gap-3">
-            {labels.map((_, i) => {
-              const a = aValues[i] || 0;
-              const b = bValues[i] || 0;
-              const hA = (Math.abs(a) / max) * 100;
-              const hB = (Math.abs(b) / max) * 100;
-              return (
-                <div key={i} className="flex-1 min-w-0 flex items-end justify-center gap-1">
-                  <div className={`w-3 sm:w-4 rounded-t ${aColor}`} style={{ height: `${hA}%` }} />
-                  <div className={`w-3 sm:w-4 rounded-t ${bColor}`} style={{ height: `${hB}%` }} />
-                </div>
-              );
-            })}
-          </div>
+          {L.map((label, i) => {
+            const x0 = M.left + i * barBand + gap/2 + (groupWidth - single*2)/2;
 
-          {/* x-axis labels */}
-          <div className="absolute left-0 right-0 bottom-[-18px]">
-            <div className="flex justify-between text-[11px] text-slate-400">
-              {labels.map((l, i) => (
-                <div key={i} className="flex-1 text-center truncate">{l}</div>
-              ))}
-            </div>
-          </div>
-        </div>
+            const aH = H - (y(A[i]) - M.top);
+            const bH = H - (y(B[i]) - M.top);
+
+            return (
+              <g key={label}>
+                {/* A */}
+                <rect
+                  x={x0}
+                  y={y(A[i])}
+                  width={single}
+                  height={aH}
+                  rx="4"
+                  fill={a.color}
+                  opacity="0.85"
+                />
+                {/* B */}
+                <rect
+                  x={x0 + single + 4}
+                  y={y(B[i])}
+                  width={single}
+                  height={bH}
+                  rx="4"
+                  fill={b.color}
+                  opacity="0.85"
+                />
+                {/* x labels */}
+                <text
+                  x={M.left + i * barBand + barBand/2}
+                  y={H + 18}
+                  textAnchor="middle"
+                  className="fill-slate-400 text-[10px]"
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
     </div>
   );
+}
+
+function LegendDot({ color, label }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className="inline-block w-3 h-3 rounded-full"
+        style={{ backgroundColor: color, opacity: 0.9 }}
+      />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+// Pad the y-axis max to “nice” 1/2/5 steps.
+function niceMax(v) {
+  if (v <= 0) return 1;
+  const pow = Math.pow(10, Math.floor(Math.log10(v)));
+  const n = v / pow;
+  let step;
+  if (n <= 1) step = 1;
+  else if (n <= 2) step = 2;
+  else if (n <= 5) step = 5;
+  else step = 10;
+  const max = step * pow;
+  // Add a little headroom (10%) so tallest bar never hits the top edge
+  return Math.ceil(max * 1.1);
 }
 
 /* -------- per-item aggregation for expandable cards -------- */
@@ -622,7 +675,7 @@ function makeItemGroups(filtered, marketByName) {
       row.onHand += 1;
       const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
-      row.unitMarketC = mv; // unit market value snapshot
+      row.unitMarketC = mv;
     }
   }
 
@@ -634,7 +687,6 @@ function makeItemGroups(filtered, marketByName) {
     return { ...r, margin, roi, avgHoldDays, aspC };
   });
 
-  // order: revenue then on-hand market
   out.sort((a, b) => (b.revenueC - a.revenueC) || (b.onHandMarketC - a.onHandMarketC));
   return out.slice(0, 400);
 }
@@ -643,13 +695,9 @@ function makeItemGroups(filtered, marketByName) {
 function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
   const n = Number.isFinite(num) ? num : 0;
   const isZero = n === 0;
-
-  // Default white for everything; only colored:
-  // - Est. Value (tone="unrealized") -> blue when >0, else dim
-  // - Realized P/L (tone="realized") -> green when >0, else dim
   let color = "text-slate-100";
   if (tone === "unrealized") color = isZero ? "text-slate-400" : "text-indigo-400";
-  if (tone === "realized") color = isZero ? "text-slate-400" : "text-emerald-400";
+  if (tone === "realized") color = n > 0 ? "text-emerald-400" : isZero ? "text-slate-400" : "text-slate-100";
   if (tone === "neutral") color = isZero ? "text-slate-400" : "text-slate-100";
 
   return (
