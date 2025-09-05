@@ -166,7 +166,7 @@ export default function Settings() {
 
         {/* ---------- Items ---------- */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] mb-6 overflow-hidden">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-4 sm:mb-6">
             <div>
               <h2 className="text-lg font-semibold">Items</h2>
               <p className="text-xs text-slate-400">Total: {items.length}</p>
@@ -228,7 +228,7 @@ export default function Settings() {
 
         {/* ---------- Retailers ---------- */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] mb-6 overflow-hidden">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-4 sm:mb-6">
             <div>
               <h2 className="text-lg font-semibold">Retailers</h2>
               <p className="text-xs text-slate-400">Total: {retailers.length}</p>
@@ -286,7 +286,7 @@ export default function Settings() {
 
         {/* ---------- Marketplaces ---------- */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-4 sm:mb-6">
             <div>
               <h2 className="text-lg font-semibold">Marketplaces</h2>
               <p className="text-xs text-slate-400">Total: {markets.length}</p>
