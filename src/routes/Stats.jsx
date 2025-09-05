@@ -163,7 +163,7 @@ export default function Stats() {
     });
   }, [orders, applied, fromMs, toMs]);
 
-  /* ------------------------------- KPIs (light) ------------------------------- */
+  /* ------------------------------- KPIs ------------------------------- */
   const kpis = useMemo(() => {
     const purchases = filtered.filter(o => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
     const sales = filtered.filter(o => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs)));
@@ -246,7 +246,6 @@ export default function Stats() {
 
   const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
 
-  // which item cards are expanded
   const [openSet, setOpenSet] = useState(() => new Set());
   const toggleItem = (key) => {
     setOpenSet((prev) => {
@@ -367,7 +366,7 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* Charts - simple, legible, mobile-friendly */}
+        {/* Charts - visible bars now */}
         <div className={`${card} mt-6`}>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div className="text-lg font-semibold">{currentChart.title}</div>
@@ -396,38 +395,22 @@ export default function Stats() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-lg font-semibold truncate">{g.item}</div>
-                    <div className="text-slate-400 text-sm">{g.bought} bought • {g.sold} sold</div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 rounded-full border border-slate-800 bg-slate-900/60 text-slate-200 text-sm">
-                      {g.onHand} on hand
-                    </span>
-                    {!open ? (
-                      <button onClick={() => toggleItem(g.item)} className="px-5 py-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">
-                        Expand
-                      </button>
-                    ) : (
-                      <button onClick={() => toggleItem(g.item)} className="px-5 py-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">
-                        Collapse
-                      </button>
-                    )}
-                  </div>
+                  <button onClick={() => toggleItem(g.item)} className="px-5 py-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">
+                    {open ? "Collapse" : "Expand"}
+                  </button>
                 </div>
 
                 {/* body */}
                 {open && (
                   <div className="mt-4 space-y-4">
-                    {/* Row A */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <MiniPill title="Avg cost" value={`$${centsToStr(g.avgCostC)}`} tone="cost"/>
-                      <MiniPill title="Total cost" value={`$${centsToStr(g.totalCostC)}`} tone="cost"/>
-                      <MiniPill title="Mkt value" value={`$${centsToStr(g.unitMarketC)}`} />
-                      <MiniPill title="Est. value" value={`$${centsToStr(g.onHandMarketC)}`} tone="unrealized" />
-                    </div>
-                    {/* Row B */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <MiniPill title="Revenue" value={`$${centsToStr(g.revenueC)}`} />
+                    {/* pills in your specified order */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <MiniPill title="Bought" value={`${g.bought}`} />
+                      <MiniPill title="Sold" value={`${g.sold}`} />
+                      <MiniPill title="On Hand" value={`${g.onHand}`} />
+                      <MiniPill title="Total Cost" value={`$${centsToStr(g.totalCostC)}`} tone="cost" />
+                      <MiniPill title="Total Revenue" value={`$${centsToStr(g.revenueC)}`} />
                       <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} tone="cost" />
                       <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} tone="cost" />
                       <MiniPill
@@ -435,6 +418,8 @@ export default function Stats() {
                         value={`$${centsToStr(g.realizedPlC)}`}
                         tone={g.realizedPlC > 0 ? "realized-pos" : g.realizedPlC < 0 ? "realized-neg" : "neutral"}
                       />
+                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} />
+                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} tone="unrealized" />
                     </div>
                   </div>
                 )}
@@ -546,27 +531,44 @@ function ChartTab({ value, label, cur, setCur }) {
   );
 }
 
-/* Simple vertical bar chart (works great on mobile) */
+/* Visible vertical bar chart */
 function BarsVertical({ labels = [], values = [], money = false, emptyLabel = "No data." }) {
-  if (!values.length) return <div className="text-slate-400">{emptyLabel}</div>;
-  const max = Math.max(1, ...values.map((v) => Math.abs(v)));
+  if (!values.length || values.every(v => !v)) return <div className="text-slate-400">{emptyLabel}</div>;
+
+  // limit to last 12 buckets for readability on mobile
+  const start = Math.max(0, values.length - 12);
+  const L = labels.slice(start);
+  const V = values.slice(start);
+  const max = Math.max(1, ...V.map((v) => Math.abs(v)));
+
   return (
     <div className="w-full">
-      <div className="flex items-end gap-2 h-44">
-        {values.map((v, i) => {
-          const h = (Math.abs(v) / max) * 100;
-          return (
-            <div key={i} className="flex-1 flex flex-col items-center">
-              <div className="w-full rounded-t bg-indigo-500" style={{ height: `${h}%` }} />
-              <div className="mt-1 text-[10px] text-slate-400 truncate">
-                {money ? `$${centsToStr(v)}` : v}
+      <div className="relative h-48">
+        {/* faint grid */}
+        <div className="absolute inset-0">
+          <div className="absolute left-0 right-0 top-1/4 border-t border-slate-800/70" />
+          <div className="absolute left-0 right-0 top-1/2 border-t border-slate-800/70" />
+          <div className="absolute left-0 right-0 top-3/4 border-t border-slate-800/70" />
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 flex items-end" style={{ gap: "10px" }}>
+          {V.map((v, i) => {
+            const hPct = (Math.abs(v) / max) * 100;
+            return (
+              <div key={i} className="flex-1 min-w-[16px] flex flex-col items-center">
+                <div className="w-full rounded-t bg-indigo-500" style={{ height: `${hPct}%` }} />
+                <div className="mt-1 text-[10px] text-slate-300">
+                  {money ? `$${centsToStr(v)}` : v}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
+
+      {/* bottom labels */}
       <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
-        {labels.map((l, i) => (
+        {L.map((l, i) => (
           <div key={i} className="truncate">{l}</div>
         ))}
       </div>
@@ -612,13 +614,10 @@ function makeItemGroups(filtered, marketByName) {
       row.onHand += 1;
       const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
-      row.unitMarketC = mv; // show one unit mkt value
+      row.unitMarketC = mv; // unit market price from items table
     }
   }
-  const out = [...m.values()].map((r) => ({
-    ...r,
-    avgCostC: r.bought > 0 ? Math.round(r.totalCostC / r.bought) : 0,
-  }));
+  const out = [...m.values()];
   // order by revenue then on-hand market
   out.sort((a, b) => (b.revenueC - a.revenueC) || (b.onHandMarketC - a.onHandMarketC));
   return out.slice(0, 400);
