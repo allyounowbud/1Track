@@ -24,9 +24,6 @@ const within = (d, from, to) => {
   if (to && x > to) return false;
   return true;
 };
-const normalizeItemFilter = (v) =>
-  !v || v.trim().toLowerCase() === "all items" ? "" : v.trim();
-
 const monthKey = (d) => {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return null;
@@ -58,7 +55,7 @@ export default function Stats() {
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
 
-  // header user (unchanged)
+  // user (header)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -84,14 +81,16 @@ export default function Stats() {
   }, []);
 
   /* --------------------------- filter controls -------------------------- */
-  const [range, setRange] = useState("all"); // all | month | 30 | custom
+  // quick range: all | month | 30 | year | custom
+  const [range, setRange] = useState("all");
   const [fromStr, setFromStr] = useState("");
   const [toStr, setToStr] = useState("");
 
+  // searchable item combobox
   const [itemOpen, setItemOpen] = useState(false);
   const [itemInput, setItemInput] = useState("All Items");
+  const [itemIsExact, setItemIsExact] = useState(false); // exact match when chosen from list
   const comboRef = useRef(null);
-
   useEffect(() => {
     function onDocClick(e) {
       if (!comboRef.current) return;
@@ -113,24 +112,36 @@ export default function Stats() {
     return itemOptions.filter((n) => n.toLowerCase().includes(q));
   }, [itemOptions, itemInput]);
 
-  // applied snapshot
-  const [applied, setApplied] = useState({ range: "all", from: null, to: null, item: "" });
+  // applied snapshot (drives everything)
+  const [applied, setApplied] = useState({
+    range: "all",
+    from: null,
+    to: null,
+    item: "",
+    itemIsExact: false,
+  });
 
   const { fromMs, toMs } = useMemo(() => {
     if (applied.range === "custom") {
-      const f = applied.from ? new Date(applied.from).setHours(0,0,0,0) : null;
-      const t = applied.to ? new Date(applied.to).setHours(23,59,59,999) : null;
+      const f = applied.from ? new Date(applied.from).setHours(0, 0, 0, 0) : null;
+      const t = applied.to ? new Date(applied.to).setHours(23, 59, 59, 999) : null;
       return { fromMs: f, toMs: t };
     }
     if (applied.range === "month") {
       const now = new Date();
       const f = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      const t = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999).getTime();
+      const t = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
       return { fromMs: f, toMs: t };
     }
     if (applied.range === "30") {
       const t = Date.now();
       const f = t - 29 * 24 * 3600 * 1000;
+      return { fromMs: f, toMs: t };
+    }
+    if (applied.range === "year") {
+      const now = new Date();
+      const f = new Date(now.getFullYear(), 0, 1).getTime();
+      const t = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999).getTime();
       return { fromMs: f, toMs: t };
     }
     return { fromMs: null, toMs: null };
@@ -150,10 +161,11 @@ export default function Stats() {
 
   /* ---------- filtered orders by time + item ---------- */
   const filtered = useMemo(() => {
-    const item = (applied.item || "").toLowerCase();
-    const useItem = !!item;
+    const q = (applied.item || "").toLowerCase();
+    const exact = applied.itemIsExact && q;
     return orders.filter((o) => {
-      const matchesItem = !useItem || (o.item || "").toLowerCase().includes(item);
+      const name = (o.item || "").toLowerCase();
+      const matchesItem = !q || (exact ? name === q : name.includes(q));
       const anyInWindow =
         within(o.order_date, fromMs, toMs) ||
         within(o.sale_date, fromMs, toMs) ||
@@ -164,98 +176,191 @@ export default function Stats() {
 
   /* ------------------------------- CHART DATA ------------------------------- */
   const chartSeries = useMemo(() => {
-    const purchases = filtered.filter(o => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
-    const sales = filtered.filter(o => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs)));
+    const purchases = filtered.filter(
+      (o) => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs)
+    );
+    const sales = filtered.filter(
+      (o) => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs))
+    );
 
-    const months = Array.from(new Set([
-      ...purchases.map((o) => monthKey(o.order_date)).filter(Boolean),
-      ...sales.map((o) => monthKey(o.sale_date)).filter(Boolean),
-    ])).sort((a,b)=>a.localeCompare(b));
+    const months = Array.from(
+      new Set([
+        ...purchases.map((o) => monthKey(o.order_date)).filter(Boolean),
+        ...sales.map((o) => monthKey(o.sale_date)).filter(Boolean),
+      ])
+    ).sort((a, b) => a.localeCompare(b));
 
-    const purCnt = new Map(), salCnt = new Map(), cost = new Map(), revenue = new Map();
-    for (const m of months) { purCnt.set(m,0); salCnt.set(m,0); cost.set(m,0); revenue.set(m,0); }
+    const purCnt = new Map(),
+      salCnt = new Map(),
+      cost = new Map(),
+      revenue = new Map();
+    for (const m of months) {
+      purCnt.set(m, 0);
+      salCnt.set(m, 0);
+      cost.set(m, 0);
+      revenue.set(m, 0);
+    }
     for (const o of purchases) {
-      const k = monthKey(o.order_date); if (!k) continue;
-      purCnt.set(k, purCnt.get(k)+1);
-      cost.set(k, cost.get(k)+cents(o.buy_price_cents));
+      const k = monthKey(o.order_date);
+      if (!k) continue;
+      purCnt.set(k, purCnt.get(k) + 1);
+      cost.set(k, cost.get(k) + cents(o.buy_price_cents));
     }
     for (const o of sales) {
-      const k = monthKey(o.sale_date); if (!k) continue;
-      salCnt.set(k, salCnt.get(k)+1);
-      revenue.set(k, revenue.get(k)+cents(o.sale_price_cents));
+      const k = monthKey(o.sale_date);
+      if (!k) continue;
+      salCnt.set(k, salCnt.get(k) + 1);
+      revenue.set(k, revenue.get(k) + cents(o.sale_price_cents));
     }
 
     return {
       months,
-      purchasesCount: months.map(m => purCnt.get(m)||0),
-      salesCount: months.map(m => salCnt.get(m)||0),
-      costC: months.map(m => cost.get(m)||0),
-      revenueC: months.map(m => revenue.get(m)||0),
+      purchasesCount: months.map((m) => purCnt.get(m) || 0),
+      salesCount: months.map((m) => salCnt.get(m) || 0),
+      costC: months.map((m) => cost.get(m) || 0),
+      revenueC: months.map((m) => revenue.get(m) || 0),
     };
   }, [filtered, fromMs, toMs]);
 
   /* -------------------------------- render -------------------------------- */
   const [chartKind, setChartKind] = useState("purchases"); // purchases | sales | cost | revenue
   const chartMap = {
-    purchases: { title: "Purchases by month", labels: chartSeries.months, values: chartSeries.purchasesCount, money: false },
-    sales:     { title: "Sales by month",     labels: chartSeries.months, values: chartSeries.salesCount,     money: false },
-    cost:      { title: "Cost by month",      labels: chartSeries.months, values: chartSeries.costC,          money: true  },
-    revenue:   { title: "Revenue by month",   labels: chartSeries.months, values: chartSeries.revenueC,       money: true  },
+    purchases: {
+      title: "Purchases by month",
+      labels: chartSeries.months,
+      values: chartSeries.purchasesCount,
+      money: false,
+      accent: "bg-indigo-500",
+    },
+    sales: {
+      title: "Sales by month",
+      labels: chartSeries.months,
+      values: chartSeries.salesCount,
+      money: false,
+      accent: "bg-emerald-500",
+    },
+    cost: {
+      title: "Cost by month",
+      labels: chartSeries.months,
+      values: chartSeries.costC,
+      money: true,
+      accent: "bg-rose-500",
+    },
+    revenue: {
+      title: "Revenue by month",
+      labels: chartSeries.months,
+      values: chartSeries.revenueC,
+      money: true,
+      accent: "bg-sky-500",
+    },
   };
   const currentChart = chartMap[chartKind];
 
-  const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
+  const itemGroups = useMemo(
+    () => makeItemGroups(filtered, marketByName),
+    [filtered, marketByName]
+  );
 
   const [openSet, setOpenSet] = useState(() => new Set());
-  const toggleItem = (key) => {
+  const toggleItem = (key) =>
     setOpenSet((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
-  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="stats" showTabs />
 
-        {/* Filters */}
-        <div className={`${card} relative z-[60]`}>
-          <h2 className="text-lg font-semibold mb-4">Date Range</h2>
-          <div className="grid grid-cols-1 gap-4 min-w-0">
-            <div className="relative isolate">
-              <Select
-                value={range}
-                onChange={setRange}
-                options={[
-                  { value: "all", label: "All time" },
-                  { value: "month", label: "This month" },
-                  { value: "30", label: "Last 30 days" },
-                  { value: "custom", label: "Custom…" },
-                ]}
-                placeholder="All time"
-              />
+        {/* ----------------------- Filters (new look) ----------------------- */}
+        <div className={`${card} relative`}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h2 className="text-lg font-semibold">Filters</h2>
+            <div className="text-slate-400 text-sm">
+              {filtered.length ? `${filtered.length} rows` : "No rows"}
             </div>
+          </div>
 
-            {range === "custom" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
-                <input type="date" value={fromStr} onChange={(e)=>setFromStr(e.target.value)} className={inputBase} />
-                <input type="date" value={toStr} onChange={(e)=>setToStr(e.target.value)} className={inputBase} />
-              </div>
+          {/* Quick range pills */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[
+              ["all", "All time"],
+              ["month", "This month"],
+              ["30", "Last 30 days"],
+              ["year", "This year"],
+              ["custom", "Custom…"],
+            ].map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => setRange(val)}
+                className={`px-3 py-1.5 rounded-full border ${
+                  range === val
+                    ? "bg-indigo-600 border-indigo-500 text-white"
+                    : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Dates + Item */}
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {range === "custom" ? (
+              <>
+                <input
+                  type="date"
+                  value={fromStr}
+                  onChange={(e) => setFromStr(e.target.value)}
+                  className={inputBase}
+                />
+                <input
+                  type="date"
+                  value={toStr}
+                  onChange={(e) => setToStr(e.target.value)}
+                  className={inputBase}
+                />
+              </>
+            ) : (
+              <>
+                <div className="opacity-60 pointer-events-none select-none">
+                  <input className={inputBase} placeholder="Start date" disabled />
+                </div>
+                <div className="opacity-60 pointer-events-none select-none">
+                  <input className={inputBase} placeholder="End date" disabled />
+                </div>
+              </>
             )}
 
-            {/* Item filter combobox */}
-            <div ref={comboRef} className="relative isolate">
+            {/* Item combobox */}
+            <div ref={comboRef} className="sm:col-span-2 relative isolate">
               <label className="sr-only">Item filter</label>
               <input
                 value={itemInput}
-                onChange={(e) => { setItemInput(e.target.value); setItemOpen(true); }}
+                onChange={(e) => {
+                  setItemInput(e.target.value);
+                  setItemIsExact(false);
+                  setItemOpen(true);
+                }}
                 onFocus={() => setItemOpen(true)}
-                placeholder="Type to filter by item name…"
+                placeholder="Search item (type to filter, then pick to apply exactly)…"
                 className={inputBase}
               />
+              <button
+                type="button"
+                onClick={() => {
+                  setItemInput("All Items");
+                  setItemIsExact(false);
+                }}
+                className="absolute right-10 top-1/2 -translate-y-1/2 text-slate-400"
+                aria-label="Clear item"
+                title="Clear item"
+              >
+                ×
+              </button>
               <button
                 type="button"
                 onClick={() => setItemOpen((v) => !v)}
@@ -271,7 +376,11 @@ export default function Stats() {
                     <div
                       key={name}
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => { setItemInput(name); setItemOpen(false); }}
+                      onClick={() => {
+                        setItemInput(name);
+                        setItemIsExact(name !== "All Items");
+                        setItemOpen(false);
+                      }}
                       className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-slate-100"
                     >
                       {name}
@@ -283,48 +392,79 @@ export default function Stats() {
                 </div>
               )}
             </div>
+          </div>
 
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() =>
-                  setApplied({
-                    range,
-                    from: range === "custom" ? fromStr || null : null,
-                    to:   range === "custom" ? toStr   || null : null,
-                    item: normalizeItemFilter(itemInput),
-                  })
-                }
-                className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white"
-              >
-                Apply
-              </button>
-              <div className="text-slate-400 text-sm">
-                {filtered.length ? "" : "Stats unavailable."}
-              </div>
-            </div>
+          {/* Apply / Reset */}
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              onClick={() =>
+                setApplied({
+                  range,
+                  from: range === "custom" ? fromStr || null : null,
+                  to: range === "custom" ? toStr || null : null,
+                  item:
+                    itemInput && itemInput.toLowerCase() !== "all items"
+                      ? itemInput.trim()
+                      : "",
+                  itemIsExact: itemIsExact && itemInput.toLowerCase() !== "all items",
+                })
+              }
+              className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white"
+            >
+              Apply
+            </button>
+            <button
+              onClick={() => {
+                setRange("all");
+                setFromStr("");
+                setToStr("");
+                setItemInput("All Items");
+                setItemIsExact(false);
+                setApplied({ range: "all", from: null, to: null, item: "", itemIsExact: false });
+              }}
+              className="px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+            >
+              Reset
+            </button>
           </div>
         </div>
 
-        {/* Charts */}
+        {/* --------------------------- Charts panel --------------------------- */}
         <div className={`${card} mt-6`}>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div className="text-lg font-semibold">{currentChart.title}</div>
             <div className="flex gap-2">
-              <ChartTab value="purchases" label="Purchases" cur={chartKind} setCur={setChartKind} />
-              <ChartTab value="sales" label="Sales" cur={chartKind} setCur={setChartKind} />
-              <ChartTab value="cost" label="Cost" cur={chartKind} setCur={setChartKind} />
-              <ChartTab value="revenue" label="Revenue" cur={chartKind} setCur={setChartKind} />
+              {Object.entries({
+                purchases: "Purchases",
+                sales: "Sales",
+                cost: "Cost",
+                revenue: "Revenue",
+              }).map(([val, label]) => (
+                <button
+                  key={val}
+                  onClick={() => setChartKind(val)}
+                  className={`px-3 py-1.5 rounded-full border ${
+                    chartKind === val
+                      ? "bg-indigo-600 border-indigo-500 text-white"
+                      : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
+
           <BarsVertical
             labels={currentChart.labels}
             values={currentChart.values}
             money={currentChart.money}
+            accentClass={currentChart.accent}
             emptyLabel="No data in this view."
           />
         </div>
 
-        {/* Item breakdown as expandable cards */}
+        {/* --------------------- Expandable item cards (unchanged) --------------------- */}
         <div className="mt-6 space-y-4">
           {itemGroups.map((g) => {
             const open = openSet.has(g.item);
@@ -342,12 +482,10 @@ export default function Stats() {
                     title={open ? "Collapse" : "Expand"}
                   >
                     {open ? (
-                      // X icon
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     ) : (
-                      // chevron-down
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m6 9 6 6 6-6" />
                       </svg>
@@ -358,7 +496,7 @@ export default function Stats() {
                 {/* body */}
                 {open && (
                   <div className="mt-4 space-y-4">
-                    {/* pills in requested order; responsive 2→3→4→5 columns */}
+                    {/* your pills grid kept intact */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                       <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} sub="total purchases" />
                       <MiniPill title="Sold" value={`${g.sold}`} num={g.sold} sub="total sold" />
@@ -390,11 +528,66 @@ export default function Stats() {
 }
 
 /* --------------------------- small components --------------------------- */
+function BarsVertical({ labels = [], values = [], money = false, accentClass = "bg-indigo-500", emptyLabel = "No data." }) {
+  if (!values.length || values.every((v) => !v)) {
+    return <div className="text-slate-400">{emptyLabel}</div>;
+  }
+
+  // last 12 buckets max
+  const start = Math.max(0, values.length - 12);
+  const L = labels.slice(start);
+  const V = values.slice(start);
+  const max = Math.max(1, ...V.map((v) => Math.abs(v)));
+  const H = 200; // px
+
+  return (
+    <div className="w-full">
+      <div className="relative w-full h-[240px] rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
+        {/* gridlines */}
+        <div className="absolute inset-0">
+          {[0.25, 0.5, 0.75].map((p) => (
+            <div key={p} className="absolute left-0 right-0" style={{ top: `${p * 100}%` }}>
+              <div className="h-px bg-slate-800/80" />
+            </div>
+          ))}
+        </div>
+
+        {/* bars */}
+        <div className="absolute inset-x-0 bottom-10 px-3 sm:px-4 flex items-end gap-4 sm:gap-6">
+          {V.map((v, i) => {
+            const hpx = Math.max(2, Math.round((Math.abs(v) / max) * H)); // min height 2 for visibility
+            return (
+              <div key={i} className="flex-1 min-w-[18px] flex flex-col items-center justify-end">
+                <div
+                  className={`w-4 sm:w-6 rounded-t ${accentClass}`}
+                  style={{ height: `${hpx}px`, transition: "height .25s ease" }}
+                  aria-hidden
+                />
+                <div className="mt-1 text-[10px] text-slate-200">
+                  {money ? `$${centsToStr(v)}` : v}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* baseline */}
+        <div className="absolute left-0 right-0 bottom-9 h-px bg-slate-800" />
+      </div>
+
+      {/* month labels */}
+      <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
+        {L.map((l, i) => (
+          <div key={i} className="truncate">{l}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Select({ value, onChange, options, placeholder = "Select…" }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
-
   useEffect(() => {
     function onDoc(e) {
       if (!rootRef.current?.contains(e.target)) setOpen(false);
@@ -402,9 +595,7 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
-
   const current = options.find((o) => o.value === value);
-
   return (
     <div ref={rootRef} className="relative w-full">
       <button
@@ -427,7 +618,10 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
               <li key={opt.value}>
                 <button
                   type="button"
-                  onClick={() => { onChange(opt.value); setOpen(false); }}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
                   className={`w-full text-left px-3 py-2 hover:bg-slate-800 ${
                     opt.value === value ? "text-white" : "text-slate-200"
                   }`}
@@ -443,64 +637,18 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
   );
 }
 
-function ChartTab({ value, label, cur, setCur }) {
-  const active = cur === value;
+function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
+  const n = Number.isFinite(num) ? num : 0;
+  const isZero = n === 0;
+  let color = "text-slate-100";
+  if (tone === "unrealized") color = isZero ? "text-slate-400" : "text-indigo-400";
+  if (tone === "realized") color = n > 0 ? "text-emerald-400" : isZero ? "text-slate-400" : "text-slate-100";
+  if (tone === "neutral") color = isZero ? "text-slate-400" : "text-slate-100";
   return (
-    <button
-      onClick={() => setCur(value)}
-      className={`px-3 py-1.5 rounded-full border ${
-        active
-          ? "bg-indigo-600 border-indigo-500 text-white"
-          : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-/* -------- Visible, mobile-friendly vertical bar chart ---------- */
-function BarsVertical({ labels = [], values = [], money = false, emptyLabel = "No data." }) {
-  // show nothing if all zero
-  if (!values.length || values.every((v) => !v)) {
-    return <div className="text-slate-400">{emptyLabel}</div>;
-  }
-
-  // show the last up to 12 buckets
-  const start = Math.max(0, values.length - 12);
-  const L = labels.slice(start);
-  const V = values.slice(start);
-  const max = Math.max(1, ...V.map((v) => Math.abs(v)));
-  const H = 180; // px chart height for bars
-
-  return (
-    <div className="w-full">
-      <div className="relative w-full h-[200px] rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
-        <div className="absolute inset-x-0 bottom-9 px-2 flex items-end gap-6">
-          {V.map((v, i) => {
-            const hpx = Math.round((Math.abs(v) / max) * H);
-            return (
-              <div key={i} className="flex-1 min-w-[18px] flex flex-col items-center justify-end">
-                <div
-                  className="w-4 sm:w-6 rounded-t bg-indigo-500"
-                  style={{ height: `${hpx}px` }}
-                  aria-hidden
-                />
-                <div className="mt-1 text-[10px] text-slate-200">
-                  {money ? `$${centsToStr(v)}` : v}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {/* subtle baseline */}
-        <div className="absolute left-0 right-0 bottom-8 h-px bg-slate-800" />
-      </div>
-      <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
-        {L.map((l, i) => (
-          <div key={i} className="truncate">{l}</div>
-        ))}
-      </div>
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3">
+      <div className="text-slate-400 text-xs">{title}</div>
+      <div className={`text-base font-semibold mt-0.5 ${color}`}>{value}</div>
+      {sub && <div className="text-[10px] leading-4 text-slate-400 mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -554,7 +702,7 @@ function makeItemGroups(filtered, marketByName) {
       row.onHand += 1;
       const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
-      row.unitMarketC = mv; // unit market value snapshot
+      row.unitMarketC = mv;
     }
   }
 
@@ -566,29 +714,6 @@ function makeItemGroups(filtered, marketByName) {
     return { ...r, margin, roi, avgHoldDays, aspC };
   });
 
-  // order: revenue then on-hand market
   out.sort((a, b) => (b.revenueC - a.revenueC) || (b.onHandMarketC - a.onHandMarketC));
   return out.slice(0, 400);
-}
-
-/* -------------------------- tiny UI atoms -------------------------- */
-function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
-  const n = Number.isFinite(num) ? num : 0;
-  const isZero = n === 0;
-
-  // Default white for everything; only 2 colored cases:
-  // - Est. Value (tone="unrealized") -> blue when >0, else dim
-  // - Realized P/L (tone="realized") -> green when >0, else white/dim
-  let color = "text-slate-100";
-  if (tone === "unrealized") color = isZero ? "text-slate-400" : "text-indigo-400";
-  if (tone === "realized") color = n > 0 ? "text-emerald-400" : isZero ? "text-slate-400" : "text-slate-100";
-  if (tone === "neutral") color = isZero ? "text-slate-400" : "text-slate-100";
-
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3">
-      <div className="text-slate-400 text-xs">{title}</div>
-      <div className={`text-base font-semibold mt-0.5 ${color}`}>{value}</div>
-      {sub && <div className="text-[10px] leading-4 text-slate-400 mt-0.5">{sub}</div>}
-    </div>
-  );
 }
