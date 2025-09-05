@@ -14,16 +14,16 @@ const iconBtn =
 
 /* Column widths (desktop) – tuned to keep everything inside the row card */
 const COL = {
-  orderDate: "w-[90px]", // 04/17
-  item: "min-w-[240px] flex-1",
-  profile: "w-[92px]",
-  retailer: "w-[120px]",
-  buy: "w-[90px]",
-  sale: "w-[92px]",
-  saleDate: "w-[140px]", // mm/dd/yyyy + picker icon
-  market: "w-[170px]",
-  ship: "w-[92px]",
-  actions: "w-[74px]",
+  orderDate: "w-[130px]", // 04/17
+  item: "min-w-[200px] flex-1",
+  profile: "w-[85px]",
+  retailer: "w-[130px]",
+  buy: "w-[95px]",
+  sale: "w-[95px]",
+  saleDate: "w-[130px]", // mm/dd/yyyy + picker icon
+  market: "w-[130px]",
+  ship: "w-[95px]",
+  actions: "w-[70px]",
 };
 
 /* ---------------- helpers ---------------- */
