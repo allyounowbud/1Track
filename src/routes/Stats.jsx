@@ -6,13 +6,19 @@ import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 /* ----------------------------- UI helpers ----------------------------- */
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-visible";
+
+/* smaller pill style used inside the KPIs wrapper card */
+const pill =
+  "rounded-xl border border-slate-800 bg-slate-900/60 p-4";
+
+/* inputs */
 const inputBase =
   "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
 
 /* ----------------------------- data helpers ---------------------------- */
 const cents = (n) => Math.round(Number(n || 0));
 const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
-const pctStr = (p) => (isFinite(p) ? `${(p * 100).toFixed(2)}%` : "—");
+const pctStr = (p) => (isFinite(p) ? `${(p * 100).toFixed(0)}%` : "—");
 const within = (d, from, to) => {
   if (!d) return false;
   const x = new Date(d).getTime();
@@ -29,6 +35,12 @@ const median = (arr) => {
   const a = [...arr].sort((x, y) => x - y);
   const m = Math.floor(a.length / 2);
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+};
+
+const monthKey = (d) => {
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return null;
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
 };
 
 /* -------------------------------- queries ------------------------------- */
@@ -173,7 +185,7 @@ export default function Stats() {
     return { fromMs: null, toMs: null }; // all time
   }, [applied]);
 
-  // market map for MTM (match by item name, case-insensitive; prefer max if duplicates)
+  // market values (by item name) for MTM
   const marketByName = useMemo(() => {
     const m = new Map();
     for (const it of items) {
@@ -220,7 +232,7 @@ export default function Stats() {
       return a + fee;
     }, 0);
     const shipOutC = sales.reduce((a, o) => a + cents(o.shipping_cents), 0);
-    const cogsC = sales.reduce((a, o) => a + cents(o.buy_price_cents), 0); // cost of items sold
+    const cogsC = sales.reduce((a, o) => a + cents(o.buy_price_cents), 0);
 
     const realizedPlC = revenueC - feesC - shipOutC - cogsC;
     const netAfterFeeShipC = revenueC - feesC - shipOutC;
@@ -233,13 +245,13 @@ export default function Stats() {
     }, 0);
     const unrealizedPlC = onHandMarketC - onHandCostC;
 
-    const cashFlowC = revenueC - feesC - shipOutC - spentC; // net cash in window
+    const cashFlowC = revenueC - feesC - shipOutC - spentC;
 
     const avgBuy = purchases.length ? spentC / purchases.length : 0;
     const avgSale = sales.length ? revenueC / sales.length : 0;
     const asp = avgSale;
 
-    // hold time (days) for sold only
+    // hold time (days)
     const holdDays = sales
       .map((o) => {
         const od = new Date(o.order_date).getTime();
@@ -253,12 +265,10 @@ export default function Stats() {
       : 0;
     const medianHold = holdDays.length ? median(holdDays) : 0;
 
-    const roiSold = cogsC > 0 ? realizedPlC / cogsC : NaN; // profit over cost (sold)
-    const margin = revenueC > 0 ? realizedPlC / revenueC : NaN;
-    const avgFeeRate = revenueC > 0 ? feesC / revenueC : NaN;
     const purchasesCount = purchases.length;
     const salesCount = sales.length;
     const sellThrough = purchasesCount > 0 ? salesCount / purchasesCount : NaN;
+
     const winRate =
       salesCount > 0
         ? sales.filter((o) => {
@@ -269,6 +279,10 @@ export default function Stats() {
             return pl > 0;
           }).length / salesCount
         : NaN;
+
+    const avgFeeRate = revenueC > 0 ? feesC / revenueC : NaN;
+    const margin = revenueC > 0 ? realizedPlC / revenueC : NaN;
+    const roiSold = cogsC > 0 ? realizedPlC / cogsC : NaN;
 
     return {
       purchasesCount,
@@ -288,148 +302,100 @@ export default function Stats() {
       cashFlowC,
       avgBuy,
       asp,
-      roiSold,
-      margin,
-      avgFeeRate,
       avgHold,
       medianHold,
       sellThrough,
       winRate,
+      avgFeeRate,
+      margin,
+      roiSold,
     };
   }, [filtered, fromMs, toMs, marketByName]);
 
-  /* -------------------------------- charts ------------------------------- */
-  const [chartType, setChartType] = useState("realized_pl_month");
-  const monthKey = (d) => {
-    const dt = new Date(d);
-    if (isNaN(dt.getTime())) return null;
-    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
-  };
-
-  const chartData = useMemo(() => {
-    const purchasesInWindow = filtered.filter(
+  /* ------------------------------- charts ------------------------------- */
+  const monthSeries = useMemo(() => {
+    // build monthly series from filtered (respects time & item)
+    const sales = filtered.filter(
+      (o) => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs))
+    );
+    const purchases = filtered.filter(
       (o) => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs)
     );
-    const salesInWindow = filtered.filter(
-      (o) =>
-        cents(o.sale_price_cents) > 0 &&
-        (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs))
-    );
-    const unsoldInWindow = filtered.filter((o) => cents(o.sale_price_cents) <= 0);
 
-    if (chartType === "purchases_month") {
-      const m = new Map();
-      for (const o of purchasesInWindow) {
-        const k = monthKey(o.order_date);
-        if (!k) continue;
-        m.set(k, (m.get(k) || 0) + cents(o.buy_price_cents));
-      }
-      return [...m.entries()]
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([label, value]) => ({ label, value }));
+    const monthsSet = new Set();
+    for (const o of purchases) {
+      const k = monthKey(o.order_date);
+      if (k) monthsSet.add(k);
+    }
+    for (const o of sales) {
+      const k = monthKey(o.sale_date);
+      if (k) monthsSet.add(k);
+    }
+    const months = [...monthsSet].sort((a, b) => a.localeCompare(b));
+
+    const realizedPL = new Map();
+    const cashFlow = new Map();
+    const asp = new Map();
+    const aspCount = new Map();
+    const stPurch = new Map();
+    const stSales = new Map();
+
+    for (const m of months) {
+      realizedPL.set(m, 0);
+      cashFlow.set(m, 0);
+      asp.set(m, 0);
+      aspCount.set(m, 0);
+      stPurch.set(m, 0);
+      stSales.set(m, 0);
     }
 
-    if (chartType === "sales_month") {
-      const m = new Map();
-      for (const o of salesInWindow) {
-        const k = monthKey(o.sale_date);
-        if (!k) continue;
-        m.set(k, (m.get(k) || 0) + cents(o.sale_price_cents));
-      }
-      return [...m.entries()]
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([label, value]) => ({ label, value }));
+    for (const o of purchases) {
+      const k = monthKey(o.order_date);
+      if (!k) continue;
+      stPurch.set(k, stPurch.get(k) + 1);
+      cashFlow.set(k, cashFlow.get(k) - cents(o.buy_price_cents)); // cash out
+    }
+    for (const o of sales) {
+      const k = monthKey(o.sale_date);
+      if (!k) continue;
+      const rev = cents(o.sale_price_cents);
+      const fee = Math.round(rev * (Number(o.fees_pct) || 0));
+      const ship = cents(o.shipping_cents);
+      const cost = cents(o.buy_price_cents);
+
+      realizedPL.set(k, realizedPL.get(k) + (rev - fee - ship - cost));
+      cashFlow.set(k, cashFlow.get(k) + (rev - fee - ship)); // cash in
+      asp.set(k, asp.get(k) + rev);
+      aspCount.set(k, aspCount.get(k) + 1);
+      stSales.set(k, stSales.get(k) + 1);
     }
 
-    if (chartType === "realized_pl_month" || chartType === "pl_month") {
-      // realized P/L by sale month
-      const m = new Map();
-      for (const o of salesInWindow) {
-        const k = monthKey(o.sale_date);
-        if (!k) continue;
-        const rev = cents(o.sale_price_cents);
-        const fee = Math.round(rev * (Number(o.fees_pct) || 0));
-        const ship = cents(o.shipping_cents);
-        const cost = cents(o.buy_price_cents);
-        const pl = rev - fee - ship - cost;
-        m.set(k, (m.get(k) || 0) + pl);
-      }
-      return [...m.entries()]
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([label, value]) => ({ label, value }));
+    const sellThroughPct = new Map();
+    for (const m of months) {
+      const p = stPurch.get(m) || 0;
+      const s = stSales.get(m) || 0;
+      sellThroughPct.set(m, p > 0 ? s / p : NaN);
     }
 
-    if (chartType === "cash_flow_month") {
-      // cash flow = sales (rev - fee - ship) - purchases (cost) per calendar month
-      const cash = new Map();
-      // purchases (cash out) keyed by purchase month
-      for (const o of purchasesInWindow) {
-        const k = monthKey(o.order_date);
-        if (!k) continue;
-        cash.set(k, (cash.get(k) || 0) - cents(o.buy_price_cents));
-      }
-      // sales (cash in) keyed by sale month
-      for (const o of salesInWindow) {
-        const k = monthKey(o.sale_date);
-        if (!k) continue;
-        const rev = cents(o.sale_price_cents);
-        const fee = Math.round(rev * (Number(o.fees_pct) || 0));
-        const ship = cents(o.shipping_cents);
-        const netIn = rev - fee - ship;
-        cash.set(k, (cash.get(k) || 0) + netIn);
-      }
-      return [...cash.entries()]
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([label, value]) => ({ label, value }));
+    const aspAvg = new Map();
+    for (const m of months) {
+      const c = aspCount.get(m) || 0;
+      aspAvg.set(m, c > 0 ? Math.round(asp.get(m) / c) : 0);
     }
 
-    if (chartType === "purchases_retailer") {
-      const m = new Map();
-      for (const o of purchasesInWindow) {
-        const k = o.retailer || "—";
-        m.set(k, (m.get(k) || 0) + cents(o.buy_price_cents));
-      }
-      return [...m.entries()]
-        .map(([label, value]) => ({ label, value }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 12);
-    }
-
-    if (chartType === "sales_market") {
-      const m = new Map();
-      for (const o of salesInWindow) {
-        const k = o.marketplace || "—";
-        m.set(k, (m.get(k) || 0) + cents(o.sale_price_cents));
-      }
-      return [...m.entries()]
-        .map(([label, value]) => ({ label, value }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 12);
-    }
-
-    if (chartType === "onhand_cost_month") {
-      // On-hand inventory cost bucketed by purchase month
-      const m = new Map();
-      for (const o of unsoldInWindow) {
-        const k = monthKey(o.order_date);
-        if (!k) continue;
-        m.set(k, (m.get(k) || 0) + cents(o.buy_price_cents));
-      }
-      return [...m.entries()]
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([label, value]) => ({ label, value }));
-    }
-
-    return [];
-  }, [chartType, filtered, fromMs, toMs]);
-
-  const maxVal = Math.max(1, ...chartData.map((r) => Math.abs(r.value)));
+    return {
+      months,
+      realizedPL,
+      cashFlow,
+      sellThroughPct,
+      aspAvg,
+    };
+  }, [filtered, fromMs, toMs]);
 
   /* -------------------------------- render -------------------------------- */
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* Shared header with tabs */}
         <HeaderWithTabs active="stats" showTabs />
 
         {/* Filters */}
@@ -533,61 +499,64 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* KPI grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-          <Kpi title="Bought" value={`${kpis.purchasesCount} items`} subtitle={`Spend $${centsToStr(kpis.spentC)}`} />
-          <Kpi title="Sold" value={`${kpis.salesCount} items`} subtitle={`Revenue $${centsToStr(kpis.revenueC)}`} />
-          <Kpi title="Realized P/L" value={`$${centsToStr(kpis.realizedPlC)}`} subtitle={`Net after fees/ship $${centsToStr(kpis.netAfterFeeShipC)}`} tone={kpis.realizedPlC >= 0 ? "pos" : "neg"} />
-          <Kpi title="Cash Flow" value={`$${centsToStr(kpis.cashFlowC)}`} subtitle="Net cash this window" tone={kpis.cashFlowC >= 0 ? "pos" : "neg"} />
-          <Kpi title="Inventory at Cost" value={`$${centsToStr(kpis.onHandCostC)}`} subtitle={`${kpis.onHandCount} unsold`} />
-          <Kpi title="Unrealized P/L" value={`$${centsToStr(kpis.unrealizedPlC)}`} subtitle={`On-hand mkt $${centsToStr(kpis.onHandMarketC)}`} tone={kpis.unrealizedPlC >= 0 ? "pos" : "neg"} />
-          <Kpi title="Total P/L (MTM)" value={`$${centsToStr(kpis.totalPlMtmC)}`} subtitle="Realized + Unrealized" tone={kpis.totalPlMtmC >= 0 ? "pos" : "neg"} />
-          <Kpi title="ASP" value={`$${centsToStr(kpis.asp)}`} subtitle={`Avg Fee ${pctStr(kpis.avgFeeRate)}`} />
-          <Kpi title="ROI (sold)" value={pctStr(kpis.roiSold)} subtitle={`Margin ${pctStr(kpis.margin)}`} />
-          <Kpi title="Hold Time" value={`${kpis.avgHold.toFixed(1)} days`} subtitle={`Median ${kpis.medianHold.toFixed(0)} d`} />
-          <Kpi title="Sell-Through" value={pctStr(kpis.sellThrough)} subtitle={`Win Rate ${pctStr(kpis.winRate)}`} />
+        {/* KPI wrapper card (like Inventory) */}
+        <div className={`${card} mt-6`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <KpiPill title="Bought" value={`${kpis.purchasesCount} items`} sub={`Spend $${centsToStr(kpis.spentC)}`} />
+            <KpiPill title="Inventory" value={`${kpis.onHandCount} on hand`} sub={`Cost $${centsToStr(kpis.onHandCostC)}`} />
+            <KpiPill title="Est. Value" value={`$${centsToStr(kpis.onHandMarketC)}`} sub="on-hand market" tone="unrealized" />
+            <KpiPill title="Unrealized P/L" value={`$${centsToStr(kpis.unrealizedPlC)}`} sub="mark-to-market" tone="unrealized" />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            <KpiPill title="Sold" value={`${kpis.salesCount} items`} sub={`Revenue $${centsToStr(kpis.revenueC)}`} />
+            <KpiPill
+              title="Realized P/L"
+              value={`$${centsToStr(kpis.realizedPlC)}`}
+              sub={`Net after fees/ship $${centsToStr(kpis.netAfterFeeShipC)}`}
+              tone={kpis.realizedPlC > 0 ? "realized-pos" : kpis.realizedPlC < 0 ? "realized-neg" : "neutral"}
+            />
+            <KpiPill title="Cash Flow" value={`$${centsToStr(kpis.cashFlowC)}`} sub="Net cash this window" />
+            <KpiPill title="ASP" value={`$${centsToStr(kpis.asp)}`} sub={`Avg Fee ${pctStr(kpis.avgFeeRate)}`} />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            <KpiPill title="Sell-Through" value={pctStr(kpis.sellThrough)} sub={`Win Rate ${pctStr(kpis.winRate)}`} />
+            <KpiPill title="Hold Time" value={`${kpis.avgHold.toFixed(1)} d`} sub={`Median ${kpis.medianHold.toFixed(0)} d`} />
+            <KpiPill title="Margin" value={pctStr(kpis.margin)} sub={`ROI (sold) ${pctStr(kpis.roiSold)}`} />
+            <KpiPill title="Fees + Ship" value={`$${centsToStr(kpis.feesC + kpis.shipOutC)}`} sub={`Fees $${centsToStr(kpis.feesC)} • Ship $${centsToStr(kpis.shipOutC)}`} />
+          </div>
         </div>
 
-        {/* Chart */}
-        <div className={`${card} mt-6`}>
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="text-lg font-semibold">Chart</div>
-            <select
-              value={chartType}
-              onChange={(e) => setChartType(e.target.value)}
-              className="w-[260px] bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100"
-            >
-              <option value="realized_pl_month">Realized P/L by month</option>
-              <option value="cash_flow_month">Cash flow by month</option>
-              <option value="purchases_month">Purchases by month</option>
-              <option value="sales_month">Sales by month</option>
-              <option value="onhand_cost_month">On-hand cost by purchase month</option>
-              <option value="purchases_retailer">Purchases by retailer</option>
-              <option value="sales_market">Sales by marketplace</option>
-            </select>
-          </div>
+        {/* Charts grid — all charts are filter-aware */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+          <ChartCard title="Realized P/L by month">
+            <BarsVertical
+              labels={monthSeries.months}
+              values={monthSeries.months.map((m) => monthSeries.realizedPL.get(m) || 0)}
+            />
+          </ChartCard>
 
-          <div className="space-y-2">
-            {chartData.length === 0 && (
-              <div className="text-slate-400">No data for this view.</div>
-            )}
-            {chartData.map((r, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-36 shrink-0 text-sm text-slate-300 truncate">
-                  {r.label}
-                </div>
-                <div className="flex-1 h-3 rounded bg-slate-800 overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-600"
-                    style={{ width: `${(Math.abs(r.value) / maxVal) * 100}%` }}
-                  />
-                </div>
-                <div className="w-28 shrink-0 text-right text-sm text-slate-300">
-                  ${centsToStr(r.value)}
-                </div>
-              </div>
-            ))}
-          </div>
+          <ChartCard title="Cash flow by month">
+            <Sparkline
+              values={monthSeries.months.map((m) => monthSeries.cashFlow.get(m) || 0)}
+              labels={monthSeries.months}
+            />
+          </ChartCard>
+
+          <ChartCard title="Sell-Through by month">
+            <PercentBars
+              labels={monthSeries.months}
+              values={monthSeries.months.map((m) => monthSeries.sellThroughPct.get(m))}
+            />
+          </ChartCard>
+
+          <ChartCard title="ASP (Average Sale Price) by month">
+            <Sparkline
+              values={monthSeries.months.map((m) => monthSeries.aspAvg.get(m) || 0)}
+              labels={monthSeries.months}
+            />
+          </ChartCard>
         </div>
 
         {/* Breakdown by item */}
@@ -623,15 +592,17 @@ export default function Stats() {
                     <td className="py-2 pr-3">${centsToStr(r.revenueC)}</td>
                     <td className="py-2 pr-3">${centsToStr(r.feesC)}</td>
                     <td className="py-2 pr-3">${centsToStr(r.shipC)}</td>
-                    <td className={`py-2 pr-3 ${r.realizedPlC >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                    <td className={`py-2 pr-3 ${
+                      r.realizedPlC > 0 ? "text-emerald-400" : r.realizedPlC < 0 ? "text-rose-400" : "text-slate-200"
+                    }`}>
                       ${centsToStr(r.realizedPlC)}
                     </td>
                     <td className="py-2 pr-3">${centsToStr(r.onHandCostC)}</td>
-                    <td className="py-2 pr-3">${centsToStr(r.onHandMarketC)}</td>
-                    <td className={`py-2 pr-3 ${r.unrealizedPlC >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      ${centsToStr(r.unrealizedPlC)}
-                    </td>
-                    <td className={`py-2 pr-3 ${r.totalPlMtmC >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                    <td className="py-2 pr-3 text-indigo-400">${centsToStr(r.onHandMarketC)}</td>
+                    <td className="py-2 pr-3 text-indigo-400">${centsToStr(r.unrealizedPlC)}</td>
+                    <td className={`py-2 pr-3 ${
+                      r.totalPlMtmC > 0 ? "text-emerald-400/70" : r.totalPlMtmC < 0 ? "text-rose-400" : "text-slate-200"
+                    }`}>
                       ${centsToStr(r.totalPlMtmC)}
                     </td>
                   </tr>
@@ -654,7 +625,6 @@ export default function Stats() {
 
 /* --------------------------- small components --------------------------- */
 
-/** Styled dropdown used for Date Range (matches item selector look) */
 function Select({ value, onChange, options, placeholder = "Select…" }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -710,18 +680,108 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
   );
 }
 
-function Kpi({ title, value, subtitle, tone }) {
-  const toneClass =
-    tone === "pos"
-      ? "text-emerald-400"
-      : tone === "neg"
-      ? "text-rose-400"
-      : "text-slate-100";
+/* KPI pill — ONLY realized positive shows green; unrealized uses blue */
+function KpiPill({ title, value, sub, tone = "neutral" }) {
+  let valueClass = "text-slate-100";
+  if (tone === "unrealized") valueClass = "text-indigo-400";
+  if (tone === "realized-pos") valueClass = "text-emerald-400";
+  if (tone === "realized-neg") valueClass = "text-rose-400";
+
+  return (
+    <div className={pill}>
+      <div className="text-slate-400 text-sm">{title}</div>
+      <div className={`text-xl font-semibold mt-1 ${valueClass}`}>{value}</div>
+      {sub && <div className="text-slate-400 text-sm mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+/* Chart wrapper */
+function ChartCard({ title, children }) {
   return (
     <div className={card}>
-      <div className="text-slate-400 text-sm">{title}</div>
-      <div className={`text-xl font-semibold mt-2 ${toneClass}`}>{value}</div>
-      {subtitle && <div className="text-slate-400 text-sm">{subtitle}</div>}
+      <div className="text-lg font-semibold mb-4">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+/* Vertical bar chart with sign colors (green/red) */
+function BarsVertical({ labels, values }) {
+  const max = Math.max(1, ...values.map((v) => Math.abs(v)));
+  return (
+    <div className="flex items-end gap-2 h-40">
+      {values.map((v, i) => {
+        const h = (Math.abs(v) / max) * 100;
+        const pos = v > 0;
+        const neg = v < 0;
+        const color = pos ? "bg-emerald-500" : neg ? "bg-rose-500" : "bg-slate-600";
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center">
+            <div className={`w-full rounded-t ${color}`} style={{ height: `${h}%` }} />
+            <div className="mt-2 text-[10px] text-slate-400 truncate">{labels[i]}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Sparkline (SVG) — neutral indigo line */
+function Sparkline({ values, labels }) {
+  const w = 560; // container width (approx)
+  const h = 140;
+  const pad = 8;
+
+  const n = values.length || 1;
+  const xs = (i) => (n === 1 ? pad : pad + (i * (w - pad * 2)) / (n - 1));
+
+  const max = Math.max(1, ...values.map((v) => Math.abs(v)));
+  const ys = (v) => h / 2 - (v / max) * (h / 2 - pad);
+
+  const points = values.map((v, i) => `${xs(i)},${ys(v)}`).join(" ");
+
+  return (
+    <div className="w-full overflow-hidden">
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-36">
+        {/* midline */}
+        <line x1="0" y1={h / 2} x2={w} y2={h / 2} className="stroke-slate-700" strokeWidth="1" />
+        {/* line */}
+        <polyline points={points} fill="none" className="stroke-indigo-400" strokeWidth="2" />
+        {/* last point dot */}
+        {values.length > 0 && (
+          <circle cx={xs(values.length - 1)} cy={ys(values[values.length - 1])} r="3" className="fill-indigo-400" />
+        )}
+      </svg>
+      <div className="mt-1 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
+        {labels.map((l, i) => (
+          <div key={i} className="truncate">{l}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Percentage bars (0–100%) for sell-through */
+function PercentBars({ labels, values }) {
+  return (
+    <div className="space-y-2">
+      {labels.map((l, i) => {
+        const p = values[i];
+        const pct = isFinite(p) ? Math.max(0, Math.min(1, p)) : 0;
+        return (
+          <div key={i} className="flex items-center gap-3">
+            <div className="w-28 shrink-0 text-xs text-slate-300 truncate">{l}</div>
+            <div className="flex-1 h-3 rounded bg-slate-800 overflow-hidden">
+              <div className="h-full bg-indigo-500" style={{ width: `${pct * 100}%` }} />
+            </div>
+            <div className="w-10 shrink-0 text-right text-xs text-slate-300">
+              {pctStr(pct)}
+            </div>
+          </div>
+        );
+      })}
+      {labels.length === 0 && <div className="text-slate-400">No data for this view.</div>}
     </div>
   );
 }
@@ -764,17 +824,15 @@ function makeItemBreakdown(filtered, marketByName) {
       row.shipC += ship;
       row.realizedPlC += rev - fee - ship - cost;
     } else {
-      // Unsold, sits in inventory
+      // Unsold
       row.onHand += 1;
       const cost = cents(o.buy_price_cents);
       row.onHandCostC += cost;
-      const mv =
-        marketByName.get((o.item || "").toLowerCase()) || 0;
+      const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
     }
   }
 
-  // finalize unrealized & total
   for (const row of m.values()) {
     row.unrealizedPlC = row.onHandMarketC - row.onHandCostC;
     row.totalPlMtmC = row.realizedPlC + row.unrealizedPlC;
