@@ -54,16 +54,13 @@ function dateKeywords(yyyyMmDd) {
   const d2 = d.toString().padStart(2,"0");
 
   return [
-    // plain month/day/year permutations
     `${m1}/${d1}`, `${m2}/${d2}`, `${m1}/${d1}/${y}`, `${m2}/${d2}/${y}`,
-    // month names
     `${monthLong}`, `${monthShort}`,
     `${monthLong} ${d1}`, `${monthLong} ${d2}`,
     `${monthShort} ${d1}`, `${monthShort} ${d2}`,
     `${monthLong} ${y}`, `${monthShort} ${y}`,
     `${monthLong} ${d1} ${y}`, `${monthLong} ${d2} ${y}`,
     `${monthShort} ${d1} ${y}`, `${monthShort} ${d2} ${y}`,
-    // iso
     `${yStr}-${mStr}-${dStr}`,
   ].join(" ").toLowerCase();
 }
@@ -140,7 +137,6 @@ export default function OrderBook() {
     const query = (q || "").trim().toLowerCase();
     if (!query) return orders;
 
-    // Token-based AND search (order of tokens doesn't matter)
     const tokens = query.split(/\s+/).filter(Boolean);
 
     return orders.filter((o) => {
@@ -150,14 +146,12 @@ export default function OrderBook() {
           o.retailer || "",
           o.marketplace || "",
           o.profile_name || "",
-          // Add very permissive date keywords for both dates
           dateKeywords(o.order_date || ""),
           dateKeywords(o.sale_date || ""),
         ]
           .join(" ")
           .toLowerCase();
 
-      // every token must be present somewhere
       return tokens.every((t) => haystack.includes(t));
     });
   }, [orders, q]);
@@ -220,13 +214,13 @@ export default function OrderBook() {
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
         <div className="space-y-5">
-          {grouped.map((g, idx) => (
+          {grouped.map((g) => (
             <DayCard
               key={g.key}
               title={g.nice}
               dateKey={g.key}
               count={g.rows.length}
-              defaultOpen={idx === 0}
+              defaultOpen={false}  // <-- all collapsed on load
               rows={g.rows}
               items={items}
               retailers={retailers}
@@ -291,26 +285,28 @@ function DayCard({
   return (
     <div className={pageCard}>
       {/* header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div>
           <h3 className="text-lg font-semibold">{title}</h3>
           <p className="text-xs text-slate-400">{count} order{count !== 1 ? "s" : ""}</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* right-aligned controls (stay on the right on all breakpoints) */}
+        <div className="w-full sm:w-auto ml-auto flex justify-end items-center gap-2">
           {/* Only show Add when expanded */}
           {open && (
             <button
               onClick={addNewForDay}
               disabled={!dateKey || dateKey === "__unknown__" || adding}
-              className={`h-9 px-4 rounded-xl border border-slate-800 ${
+              className={`h-9 w-9 rounded-xl border border-slate-800 grid place-items-center ${
                 adding
                   ? "bg-slate-800 text-slate-300 cursor-not-allowed"
                   : "bg-slate-900/60 hover:bg-slate-900 text-slate-100"
               }`}
+              aria-label="Add order"
               title={dateKey === "__unknown__" ? "Unknown date" : `Add order on ${title}`}
             >
-              {adding ? "Adding…" : "Add Order"}
+              +
             </button>
           )}
 
@@ -427,7 +423,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
   return (
     <div className={rowCard}>
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
-        {/* order date */}
         <input
           type="date"
           value={order_date || ""}
@@ -435,7 +430,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           className={`tw-date ${inputSm} w-36`}
         />
 
-        {/* item */}
         <select
           value={item || ""}
           onChange={(e) => setItem(e.target.value)}
@@ -449,7 +443,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           ))}
         </select>
 
-        {/* profile */}
         <input
           value={profile_name}
           onChange={(e) => setProfile(e.target.value)}
@@ -457,7 +450,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           className={`${inputSm} w-28`}
         />
 
-        {/* retailer */}
         <select
           value={retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
@@ -471,7 +463,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           ))}
         </select>
 
-        {/* buy / sale */}
         <input
           value={buyPrice}
           onChange={(e) => setBuyPrice(e.target.value)}
@@ -485,7 +476,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           className={`${inputSm} w-24`}
         />
 
-        {/* sale date */}
         <input
           type="date"
           value={sale_date || ""}
@@ -493,7 +483,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           className={`tw-date ${inputSm} w-36`}
         />
 
-        {/* marketplace */}
         <select
           value={marketplace || ""}
           onChange={(e) => handleMarketplaceChange(e.target.value)}
@@ -507,7 +496,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           ))}
         </select>
 
-        {/* ship */}
         <input
           value={shipping}
           onChange={(e) => setShipping(e.target.value)}
@@ -522,7 +510,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
             lg:order-none lg:w-20 lg:mt-0 lg:shrink-0
           "
         >
-          {/* Save */}
           <button
             type="button"
             onClick={save}
@@ -546,7 +533,6 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
             </svg>
           </button>
 
-          {/* Delete */}
           <button
             type="button"
             onClick={del}
