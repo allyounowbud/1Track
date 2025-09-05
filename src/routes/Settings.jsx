@@ -75,46 +75,151 @@ function isSubset(sub, sup) {
   return true;
 }
 
-/* --------- OCR → extract item titles + market prices --------- */
-function extractProductsFromText(text) {
-  // Parse line-by-line, look for "Market Price: $x.xx", pair with most recent title above it.
-  const lines = String(text)
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+/* --------- OCR → extract item titles + market prices (bbox-aware) --------- */
+function toTitleCaseSmart(s) {
+  const small = new Set([
+    "a", "an", "and", "as", "at", "but", "by",
+    "for", "in", "of", "on", "or", "the", "to", "with"
+  ]);
+  const words = String(s).toLowerCase().split(/\s+/);
+  return words
+    .map((w, i) => {
+      if (!w) return w;
+      if (/^(ii|iii|iv|vi|vii|viii|ix|x|tcg|sv|xl|xv|xvi|xx)$/i.test(w)) return w.toUpperCase();
+      if (i > 0 && small.has(w)) return w;
+      return w[0].toUpperCase() + w.slice(1);
+    })
+    .join(" ");
+}
+function overlapRatio(a, b) {
+  const left = Math.max(a.x0, b.x0);
+  const right = Math.min(a.x1, b.x1);
+  const inter = Math.max(0, right - left);
+  const minW = Math.max(1, Math.min(a.x1 - a.x0, b.x1 - b.x0));
+  return inter / minW;
+}
+function isBadTitleLine(txt) {
+  if (!txt) return true;
+  if (/market\s*price/i.test(txt)) return true;
+  if (/listings?\s+from/i.test(txt)) return true;
+  if (/^sv[:\s-]/i.test(txt)) return true;
+  if (/^\$?\d+(?:\.\d{2})?$/.test(txt)) return true;
+  const alpha = txt.replace(/[^a-z]/gi, "");
+  if (alpha.length < 3) return true;
+  return false;
+}
+function extractProductsFromText(ocrData) {
+  // If we only get a string, fallback to simple parsing
+  if (!ocrData || typeof ocrData !== "object" || !ocrData.lines) {
+    const txt = typeof ocrData === "string" ? ocrData : (ocrData?.text || "");
+    const lines = String(txt)
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-  const found = [];
-  for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(
-      /market\s*price[:\s]*\$?\s*([0-9]+(?:\.[0-9]{2})?)/i
-    );
-    if (!m) continue;
-    const priceStr = m[1];
-
-    // find the nearest reasonable title upward
-    let title = "";
-    for (let j = i - 1; j >= 0; j--) {
-      const L = lines[j];
-      if (/^sv[:\s]/i.test(L)) continue; // "SV: Black Bolt"
-      if (/listings?\s+from/i.test(L)) continue;
-      if (/^\$?\d+(?:\.\d{2})?$/.test(L)) continue; // big price
-      if (/market\s*price/i.test(L)) continue;
-      if (/[a-z]/i.test(L) && L.length >= 3) {
+    const found = [];
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/market\s*price[:\s]*\$?\s*([0-9]+(?:\.[0-9]{2})?)/i);
+      if (!m) continue;
+      let title = "";
+      for (let j = i - 1; j >= 0; j--) {
+        const L = lines[j];
+        if (isBadTitleLine(L)) continue;
         title = L;
         break;
       }
+      if (title) {
+        found.push({ name: toTitleCaseSmart(title.trim()), marketValue: parseMoney(m[1]) });
+      }
     }
-    if (!title) continue;
-
-    found.push({
-      name: title,
-      marketValue: parseMoney(priceStr),
+    const seen = new Set();
+    return found.filter((f) => {
+      const k = f.name.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
     });
   }
 
-  // de-dupe identical names within this import
+  // Preferred structured path (Tesseract lines with bboxes)
+  const lines = (ocrData.lines || [])
+    .map((ln) => ({
+      text: (ln.text || "").trim(),
+      conf: typeof ln.confidence === "number" ? ln.confidence : (ln.confidence ?? 0),
+      bbox: ln.bbox || { x0: ln.x0 ?? 0, y0: ln.y0 ?? 0, x1: ln.x1 ?? 0, y1: ln.y1 ?? 0 },
+    }))
+    .filter((ln) => ln.text);
+
+  function nearestSVAbove(mpBox) {
+    const candidates = lines.filter(
+      (ln) =>
+        /^sv[:\s-]/i.test(ln.text) &&
+        ln.bbox.y1 <= mpBox.y0 &&
+        overlapRatio(ln.bbox, mpBox) >= 0.45 &&
+        ln.conf >= 55
+    );
+    candidates.sort((a, b) => b.bbox.y1 - a.bbox.y1);
+    return candidates[0] || null;
+  }
+
+  const mpLines = lines
+    .map((ln, idx) => ({
+      ...ln,
+      idx,
+      match: ln.text.match(/market\s*price[:\s]*\$?\s*([0-9]+(?:\.[0-9]{2})?)/i),
+    }))
+    .filter((x) => x.match);
+
+  const results = [];
+
+  for (const mp of mpLines) {
+    const price = parseMoney(mp.match[1]);
+    let titleCandidate = null;
+
+    const sv = nearestSVAbove(mp.bbox);
+    if (sv) {
+      const aboveSV = lines
+        .filter(
+          (ln) =>
+            ln.bbox.y1 <= sv.bbox.y0 &&
+            overlapRatio(ln.bbox, mp.bbox) >= 0.45 &&
+            ln.conf >= 55 &&
+            !isBadTitleLine(ln.text)
+        )
+        .sort((a, b) => b.bbox.y1 - a.bbox.y1);
+      if (aboveSV.length) titleCandidate = aboveSV[0];
+    }
+
+    if (!titleCandidate) {
+      const nearAbove = lines
+        .filter(
+          (ln) =>
+            ln.bbox.y1 <= mp.bbox.y0 &&
+            (mp.bbox.y0 - ln.bbox.y1) <= 180 &&
+            overlapRatio(ln.bbox, mp.bbox) >= 0.45 &&
+            ln.conf >= 55 &&
+            !isBadTitleLine(ln.text)
+        )
+        .sort((a, b) => {
+          const dv = (mp.bbox.y0 - a.bbox.y1) - (mp.bbox.y0 - b.bbox.y1);
+          if (dv !== 0) return dv;
+          return b.text.length - a.text.length;
+        });
+      if (nearAbove.length) titleCandidate = nearAbove[0];
+    }
+
+    if (!titleCandidate) continue;
+
+    let title = titleCandidate.text.trim();
+    if (/^[A-Z0-9\s\-:&]+$/.test(title) && /[A-Z]/.test(title)) {
+      title = toTitleCaseSmart(title);
+    }
+
+    results.push({ name: title, marketValue: price });
+  }
+
   const seen = new Set();
-  return found.filter((f) => {
+  return results.filter((f) => {
     const key = f.name.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
@@ -202,7 +307,8 @@ export default function Settings() {
       // lazy-load tesseract so it doesn't affect first paint
       const Tesseract = await import("tesseract.js");
       const { data } = await Tesseract.recognize(file, "eng");
-      const found = extractProductsFromText(data.text);
+      // ⬇️ pass the full OCR data (bbox-aware), not just data.text
+      const found = extractProductsFromText(data);
 
       // build token sets for duplicate detection
       const existingTokens = items.map((i) => normalizeTokens(i.name));
