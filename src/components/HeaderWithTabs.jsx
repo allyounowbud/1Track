@@ -89,19 +89,19 @@ export default function HeaderWithTabs({ active = "", showTabs = true }) {
       {/* Tabs */}
       {showTabs && (
         <div className="relative z-20 flex flex-wrap items-center gap-2 mb-6">
-          <NavLink to="/orders" end className={tabClass("orders")}>
-            Order Book
-          </NavLink>
           <NavLink to="/add" end className={tabClass("add")}>
             Quick Add
           </NavLink>
           <NavLink to="/sold" end className={tabClass("sold")}>
             Mark as Sold
           </NavLink>
+          <NavLink to="/orders" end className={tabClass("orders")}>
+            Order Book
+          </NavLink>
+          <button className={`${tabBase} ${tabIdle}`}>Inventory</button>
           <NavLink to="/stats" end className={tabClass("stats")}>
             Stats
           </NavLink>
-          <button className={`${tabBase} ${tabIdle}`}>Inventory</button>
           <NavLink to="/settings" end className={tabClass("settings")}>
             Database
           </NavLink>

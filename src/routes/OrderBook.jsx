@@ -36,33 +36,55 @@ const fmtNiceDate = (yyyyMmDd) => {
   });
 };
 
-/* Build a fat keyword string for a yyyy-mm-dd to allow matches like
-   "april", "apr 17", "april 2025", "04/17", "4/17/2025", etc. */
+/* Build permissive keywords for date search */
 function dateKeywords(yyyyMmDd) {
   if (!yyyyMmDd) return "";
   const [yStr, mStr, dStr] = yyyyMmDd.split("-");
-  const y = Number(yStr), m = Number(mStr), d = Number(dStr);
+  const y = Number(yStr),
+    m = Number(mStr),
+    d = Number(dStr);
   const monthLong = [
-    "january","february","march","april","may","june",
-    "july","august","september","october","november","december"
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
   ][(m || 1) - 1];
-  const monthShort = monthLong.slice(0,3);
+  const monthShort = monthLong.slice(0, 3);
 
   const m1 = String(m);
-  const m2 = m.toString().padStart(2,"0");
+  const m2 = m.toString().padStart(2, "0");
   const d1 = String(d);
-  const d2 = d.toString().padStart(2,"0");
+  const d2 = d.toString().padStart(2, "0");
 
   return [
-    `${m1}/${d1}`, `${m2}/${d2}`, `${m1}/${d1}/${y}`, `${m2}/${d2}/${y}`,
-    `${monthLong}`, `${monthShort}`,
-    `${monthLong} ${d1}`, `${monthLong} ${d2}`,
-    `${monthShort} ${d1}`, `${monthShort} ${d2}`,
-    `${monthLong} ${y}`, `${monthShort} ${y}`,
-    `${monthLong} ${d1} ${y}`, `${monthLong} ${d2} ${y}`,
-    `${monthShort} ${d1} ${y}`, `${monthShort} ${d2} ${y}`,
+    `${m1}/${d1}`,
+    `${m2}/${d2}`,
+    `${m1}/${d1}/${y}`,
+    `${m2}/${d2}/${y}`,
+    `${monthLong}`,
+    `${monthShort}`,
+    `${monthLong} ${d1}`,
+    `${monthLong} ${d2}`,
+    `${monthShort} ${d1}`,
+    `${monthShort} ${d2}`,
+    `${monthLong} ${y}`,
+    `${monthShort} ${y}`,
+    `${monthLong} ${d1} ${y}`,
+    `${monthLong} ${d2} ${y}`,
+    `${monthShort} ${d1} ${y}`,
+    `${monthShort} ${d2} ${y}`,
     `${yStr}-${mStr}-${dStr}`,
-  ].join(" ").toLowerCase();
+  ]
+    .join(" ")
+    .toLowerCase();
 }
 
 /* ---------- queries ---------- */
@@ -104,10 +126,12 @@ async function getMarkets() {
 
 /* ====================== PAGE ====================== */
 export default function OrderBook() {
-  const { data: orders = [], isLoading, error, refetch } = useQuery({
-    queryKey: ["orders", 500],
-    queryFn: () => getOrders(500),
-  });
+  const {
+    data: orders = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({ queryKey: ["orders", 500], queryFn: () => getOrders(500) });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
   const { data: retailers = [] } = useQuery({
     queryKey: ["retailers"],
@@ -137,20 +161,19 @@ export default function OrderBook() {
     const query = (q || "").trim().toLowerCase();
     if (!query) return orders;
 
-    const tokens = query.split(/\s+/).filter(Boolean);
+    const tokens = query.split(/\s+/).filter(Boolean); // AND tokens
 
     return orders.filter((o) => {
-      const haystack =
-        [
-          o.item || "",
-          o.retailer || "",
-          o.marketplace || "",
-          o.profile_name || "",
-          dateKeywords(o.order_date || ""),
-          dateKeywords(o.sale_date || ""),
-        ]
-          .join(" ")
-          .toLowerCase();
+      const haystack = [
+        o.item || "",
+        o.retailer || "",
+        o.marketplace || "",
+        o.profile_name || "",
+        dateKeywords(o.order_date || ""),
+        dateKeywords(o.sale_date || ""),
+      ]
+        .join(" ")
+        .toLowerCase();
 
       return tokens.every((t) => haystack.includes(t));
     });
@@ -220,7 +243,7 @@ export default function OrderBook() {
               title={g.nice}
               dateKey={g.key}
               count={g.rows.length}
-              defaultOpen={false}  // <-- all collapsed on load
+              defaultOpen={false}       // collapsed by default
               rows={g.rows}
               items={items}
               retailers={retailers}
@@ -284,29 +307,24 @@ function DayCard({
 
   return (
     <div className={pageCard}>
-      {/* header */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div>
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <p className="text-xs text-slate-400">{count} order{count !== 1 ? "s" : ""}</p>
-        </div>
-
-        {/* right-aligned controls (stay on the right on all breakpoints) */}
-        <div className="w-full sm:w-auto ml-auto flex justify-end items-center gap-2">
-          {/* Only show Add when expanded */}
+      {/* header - controls pinned top-right (mobile & desktop) */}
+      <div className="relative min-h-[2.25rem]">
+        {/* Controls */}
+        <div className="absolute right-0 top-0 flex items-center gap-2">
           {open && (
             <button
               onClick={addNewForDay}
               disabled={!dateKey || dateKey === "__unknown__" || adding}
-              className={`h-9 w-9 rounded-xl border border-slate-800 grid place-items-center ${
+              className={`h-9 w-9 rounded-xl border border-slate-800 text-lg leading-none ${
                 adding
                   ? "bg-slate-800 text-slate-300 cursor-not-allowed"
                   : "bg-slate-900/60 hover:bg-slate-900 text-slate-100"
               }`}
-              aria-label="Add order"
-              title={dateKey === "__unknown__" ? "Unknown date" : `Add order on ${title}`}
+              title={
+                dateKey === "__unknown__" ? "Unknown date" : `Add order on ${title}`
+              }
             >
-              +
+              {adding ? "…" : "+"}
             </button>
           )}
 
@@ -316,6 +334,14 @@ function DayCard({
           >
             {open ? "Collapse" : "Expand"}
           </button>
+        </div>
+
+        {/* Title (reserve space so it never overlaps controls) */}
+        <div className="pr-36 sm:pr-40">
+          <h3 className="text-lg font-semibold leading-tight break-words">{title}</h3>
+          <p className="text-xs text-slate-400">
+            {count} order{count !== 1 ? "s" : ""}
+          </p>
         </div>
       </div>
 
@@ -398,10 +424,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
         shipping_cents: moneyToCents(shipping),
         status: statusValue,
       };
-      const { error } = await supabase
-        .from("orders")
-        .update(payload)
-        .eq("id", order.id);
+      const { error } = await supabase.from("orders").update(payload).eq("id", order.id);
       if (error) throw error;
       setMsg("Saved ✓");
       onSaved && onSaved();
@@ -423,6 +446,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
   return (
     <div className={rowCard}>
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
+        {/* order date */}
         <input
           type="date"
           value={order_date || ""}
@@ -430,6 +454,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           className={`tw-date ${inputSm} w-36`}
         />
 
+        {/* item */}
         <select
           value={item || ""}
           onChange={(e) => setItem(e.target.value)}
@@ -443,6 +468,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           ))}
         </select>
 
+        {/* profile */}
         <input
           value={profile_name}
           onChange={(e) => setProfile(e.target.value)}
@@ -450,6 +476,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           className={`${inputSm} w-28`}
         />
 
+        {/* retailer */}
         <select
           value={retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
@@ -463,6 +490,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           ))}
         </select>
 
+        {/* buy / sale */}
         <input
           value={buyPrice}
           onChange={(e) => setBuyPrice(e.target.value)}
@@ -476,6 +504,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           className={`${inputSm} w-24`}
         />
 
+        {/* sale date */}
         <input
           type="date"
           value={sale_date || ""}
@@ -483,6 +512,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           className={`tw-date ${inputSm} w-36`}
         />
 
+        {/* marketplace */}
         <select
           value={marketplace || ""}
           onChange={(e) => handleMarketplaceChange(e.target.value)}
@@ -496,6 +526,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           ))}
         </select>
 
+        {/* ship */}
         <input
           value={shipping}
           onChange={(e) => setShipping(e.target.value)}
@@ -504,21 +535,19 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
         />
 
         {/* actions — pinned bottom-right on mobile, fixed column on desktop */}
-        <div
-          className="
-            order-2 w-full flex justify-end gap-2 mt-2
-            lg:order-none lg:w-20 lg:mt-0 lg:shrink-0
-          "
-        >
+        <div className="order-2 w-full flex justify-end gap-2 mt-2 lg:order-none lg:w-20 lg:mt-0 lg:shrink-0">
+          {/* Save */}
           <button
             type="button"
             onClick={save}
             disabled={busy}
             aria-label={busy ? "Saving…" : "Save"}
             title={busy ? "Saving…" : "Save"}
-            className={`inline-flex items-center justify-center h-9 w-9 rounded-lg
-                ${busy ? "bg-slate-700 text-slate-300 cursor-not-allowed" : "bg-slate-800 hover:bg-slate-700 text-slate-100"}
-                border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+            className={`inline-flex items-center justify-center h-9 w-9 rounded-lg ${
+              busy
+                ? "bg-slate-700 text-slate-300 cursor-not-allowed"
+                : "bg-slate-800 hover:bg-slate-700 text-slate-100"
+            } border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
           >
             <svg
               viewBox="0 0 24 24"
@@ -533,14 +562,13 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
             </svg>
           </button>
 
+          {/* Delete */}
           <button
             type="button"
             onClick={del}
             aria-label="Delete"
             title="Delete"
-            className="inline-flex items-center justify-center h-9 w-9 rounded-lg
-               bg-rose-600 hover:bg-rose-500 text-white border border-rose-700
-               focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-rose-600 hover:bg-rose-500 text-white border border-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
           >
             <svg
               viewBox="0 0 24 24"
