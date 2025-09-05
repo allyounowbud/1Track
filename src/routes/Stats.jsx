@@ -53,6 +53,25 @@ async function getItems() {
   return data || [];
 }
 
+/* ----------------------------- window size hook ----------------------------- */
+function useMonthsToShow() {
+  const [n, setN] = useState(() => {
+    const w = typeof window !== "undefined" ? window.innerWidth : 1280;
+    if (w < 640) return 6;     // mobile
+    if (w < 1024) return 9;    // tablet/sm desktop
+    return 12;                 // desktop
+  });
+  useEffect(() => {
+    function onResize() {
+      const w = window.innerWidth;
+      setN(w < 640 ? 6 : w < 1024 ? 9 : 12);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return n;
+}
+
 /* --------------------------------- page --------------------------------- */
 export default function Stats() {
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
@@ -103,9 +122,7 @@ export default function Stats() {
 
   const itemOptions = useMemo(() => {
     const names = items.map((i) => i.name).filter(Boolean);
-    const uniq = Array.from(new Set(names)).sort((a, b) =>
-      a.localeCompare(b)
-    );
+    const uniq = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
     return ["All Items", ...uniq];
   }, [items]);
 
@@ -161,8 +178,7 @@ export default function Stats() {
     const item = (applied.item || "").toLowerCase();
     const useItem = !!item;
     return orders.filter((o) => {
-      const matchesItem =
-        !useItem || (o.item || "").toLowerCase().includes(item);
+      const matchesItem = !useItem || (o.item || "").toLowerCase().includes(item);
       const anyInWindow =
         within(o.order_date, fromMs, toMs) ||
         within(o.sale_date, fromMs, toMs) ||
@@ -172,6 +188,7 @@ export default function Stats() {
   }, [orders, applied, fromMs, toMs]);
 
   /* ------------------------------- CHART DATA ------------------------------- */
+  const monthsToShow = useMonthsToShow();
   const chartSeries = useMemo(() => {
     const purchases = filtered.filter(o => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
     const sales = filtered.filter(o => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs)));
@@ -194,8 +211,8 @@ export default function Stats() {
       revenue.set(k, revenue.get(k)+cents(o.sale_price_cents));
     }
 
-    // limit to last 12 buckets for readability
-    const takeLast = (arr) => arr.slice(Math.max(0, arr.length - 12));
+    // Trim to last N buckets for current screen width
+    const takeLast = (arr) => arr.slice(Math.max(0, arr.length - monthsToShow));
     const M = takeLast(months);
     return {
       months: M,
@@ -204,7 +221,7 @@ export default function Stats() {
       costC:          takeLast(M.map(m => cost.get(m)||0)),
       revenueC:       takeLast(M.map(m => revenue.get(m)||0)),
     };
-  }, [filtered, fromMs, toMs]);
+  }, [filtered, fromMs, toMs, monthsToShow]);
 
   /* ------------------------- item groups for cards ------------------------- */
   const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
@@ -225,6 +242,9 @@ export default function Stats() {
       return next;
     });
   };
+
+  /* which combined chart is visible */
+  const [chartTab, setChartTab] = useState("units"); // 'units' | 'money'
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -327,44 +347,56 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* --------------------- Charts (combined) --------------------- */}
-        <div className="mt-6 space-y-6 relative z-[0]">
-          {/* Units chart */}
-          <div className={`${card}`}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-lg font-semibold">Purchases & Sales by month</div>
-              <Legend>
-                <LegendDot className="bg-indigo-500" label="Purchases" />
-                <LegendDot className="bg-cyan-400" label="Sales" />
-              </Legend>
+        {/* --------------------- Single chart with tabs --------------------- */}
+        <div className={`${card} mt-6 relative z-[0]`}>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-lg font-semibold">
+                {chartTab === "units" ? "Purchases & Sales" : "Cost & Revenue"}
+              </div>
+              <div className="text-xs text-slate-400">by month</div>
             </div>
-            <GroupedBars
-              labels={chartSeries.months}
-              aValues={chartSeries.purchasesCount}
-              bValues={chartSeries.salesCount}
-              aColor="bg-indigo-500"
-              bColor="bg-cyan-400"
-              valueFmt={(v) => v}
-            />
+
+            <div className="flex gap-2">
+              <ChartChip active={chartTab==="units"} onClick={()=>setChartTab("units")}>Units</ChartChip>
+              <ChartChip active={chartTab==="money"} onClick={()=>setChartTab("money")}>Money</ChartChip>
+            </div>
           </div>
 
-          {/* Money chart */}
-          <div className={`${card}`}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-lg font-semibold">Cost & Revenue by month</div>
-              <Legend>
-                <LegendDot className="bg-rose-400" label="Cost" />
-                <LegendDot className="bg-emerald-400" label="Revenue" />
-              </Legend>
-            </div>
-            <GroupedBars
-              labels={chartSeries.months}
-              aValues={chartSeries.costC}
-              bValues={chartSeries.revenueC}
-              aColor="bg-rose-400"
-              bColor="bg-emerald-400"
-              valueFmt={(v) => `$${centsToStr(v)}`}
-            />
+          <div className="mt-4">
+            {chartTab === "units" ? (
+              <>
+                <LegendStack className="mb-2">
+                  <LegendDot className="bg-indigo-400" label="Purchases" />
+                  <LegendDot className="bg-indigo-300" label="Sales" />
+                </LegendStack>
+                <GroupedBarsNoScroll
+                  labels={chartSeries.months}
+                  aValues={chartSeries.purchasesCount}
+                  bValues={chartSeries.salesCount}
+                  aColor="bg-indigo-400"
+                  bColor="bg-indigo-300"
+                  valueFmt={(v) => v}
+                  money={false}
+                />
+              </>
+            ) : (
+              <>
+                <LegendStack className="mb-2">
+                  <LegendDot className="bg-teal-400" label="Cost" />
+                  <LegendDot className="bg-teal-300" label="Revenue" />
+                </LegendStack>
+                <GroupedBarsNoScroll
+                  labels={chartSeries.months}
+                  aValues={chartSeries.costC}
+                  bValues={chartSeries.revenueC}
+                  aColor="bg-teal-400"
+                  bColor="bg-teal-300"
+                  valueFmt={(v) => `$${centsToStr(v)}`}
+                  money
+                />
+              </>
+            )}
           </div>
         </div>
 
@@ -374,7 +406,7 @@ export default function Stats() {
             const open = openSet.has(g.item);
             return (
               <div key={g.item} className={rowCard}>
-                {/* header */}
+                {/* header (unchanged) */}
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-lg font-semibold truncate">{g.item}</div>
@@ -399,10 +431,9 @@ export default function Stats() {
                   </button>
                 </div>
 
-                {/* body (unchanged layout you liked) */}
+                {/* body (keep exactly as you liked) */}
                 {open && (
                   <div className="mt-4 space-y-4">
-                    {/* pills in responsive 2→3→4→5 columns */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                       <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} sub="total purchases" />
                       <MiniPill title="Sold" value={`${g.sold}`} num={g.sold} sub="total sold" />
@@ -435,79 +466,42 @@ export default function Stats() {
 
 /* --------------------------- small components --------------------------- */
 
-function Legend({ children }) {
-  return <div className="flex items-center gap-3">{children}</div>;
+function ChartChip({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-full border ${
+        active
+          ? "bg-indigo-600 border-indigo-500 text-white"
+          : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function LegendStack({ children, className = "" }) {
+  return <div className={`flex flex-col items-end gap-1 ${className}`}>{children}</div>;
 }
 function LegendDot({ className = "", label }) {
   return (
     <div className="flex items-center gap-2">
       <span className={`inline-block w-3 h-3 rounded ${className}`} />
-      <span className="text-sm text-slate-200">{label}</span>
+      <span className="text-xs text-slate-300">{label}</span>
     </div>
   );
 }
 
-/** Styled dropdown used elsewhere if needed */
-function Select({ value, onChange, options, placeholder = "Select…" }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
-
-  useEffect(() => {
-    function onDoc(e) {
-      if (!rootRef.current?.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
-
-  const current = options.find((o) => o.value === value);
-
-  return (
-    <div ref={rootRef} className="relative w-full">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`${inputBase} flex items-center justify-between`}
-      >
-        <span className={current ? "" : "text-slate-400"}>
-          {current ? current.label : placeholder}
-        </span>
-        <svg className="w-4 h-4 opacity-70" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl">
-          <ul className="max-h-64 overflow-auto py-1">
-            {options.map((opt) => (
-              <li key={opt.value}>
-                <button
-                  type="button"
-                  onClick={() => { onChange(opt.value); setOpen(false); }}
-                  className={`w-full text-left px-3 py-2 hover:bg-slate-800 ${
-                    opt.value === value ? "text-white" : "text-slate-200"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* -------- Responsive grouped bar chart (two series) -------- */
-function GroupedBars({
+/* -------- No-scroll grouped bar chart with left Y axis ---------- */
+function GroupedBarsNoScroll({
   labels = [],
   aValues = [],
   bValues = [],
-  aColor = "bg-indigo-500",
-  bColor = "bg-cyan-400",
+  aColor = "bg-indigo-400",
+  bColor = "bg-indigo-300",
   valueFmt = (v) => v,
+  money = false,
 }) {
   const N = labels.length;
   const hasData =
@@ -519,70 +513,59 @@ function GroupedBars({
     ...aValues.map((v) => Math.abs(v)),
     ...bValues.map((v) => Math.abs(v))
   );
-  const H = 220; // drawing height
-  const topPad = 8;
 
-  // width: ensure bars are never cramped; allow horizontal scroll
-  const perGroup = 40; // px minimal width per month
-  const innerWidth = Math.max(labels.length * perGroup + 32, 520);
+  // Y ticks: 0, 25%, 50%, 75%, 100%
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((p) => p * max);
+  const fmt = money ? (v) => `$${centsToStr(v)}` : (v) => `${Math.round(v)}`;
 
   return (
-    <div className="w-full overflow-x-auto">
-      <div
-        className="relative rounded-xl border border-slate-800 bg-slate-900/40"
-        style={{ width: innerWidth }}
-      >
-        {/* grid */}
-        <div className="absolute inset-x-2 top-3 bottom-10">
-          <div className="h-full w-full grid grid-rows-4">
-            {[0,1,2,3].map((i) => (
-              <div key={i} className="border-b border-slate-800/80" />
+    <div className="w-full">
+      <div className="grid grid-cols-[60px_1fr] gap-2 items-stretch rounded-xl border border-slate-800 bg-slate-900/40 p-3">
+        {/* y-axis */}
+        <div className="relative">
+          <div className="flex flex-col justify-between h-[240px]">
+            {ticks.map((t, i) => (
+              <div key={i} className="text-[11px] text-slate-400 tabular-nums">
+                {fmt(t)}
+              </div>
             ))}
           </div>
         </div>
 
-        {/* bars */}
-        <div className="relative px-4 pt-3 pb-10" style={{ height: H + topPad }}>
-          <div className="flex items-end gap-4">
+        {/* plot area */}
+        <div className="relative h-[240px]">
+          {/* grid lines */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="flex flex-col justify-between h-full">
+              {ticks.map((_, i) => (
+                <div key={i} className={`h-px w-full ${i===ticks.length-1 ? "opacity-0" : ""} bg-slate-800`} />
+              ))}
+            </div>
+          </div>
+
+          {/* bars */}
+          <div className="absolute inset-0 flex items-end gap-3">
             {labels.map((_, i) => {
               const a = aValues[i] || 0;
               const b = bValues[i] || 0;
-              const hA = Math.round((Math.abs(a) / max) * (H - topPad));
-              const hB = Math.round((Math.abs(b) / max) * (H - topPad));
+              const hA = (Math.abs(a) / max) * 100;
+              const hB = (Math.abs(b) / max) * 100;
               return (
-                <div key={i} className="flex-0 w-12 flex items-end justify-center gap-1">
-                  <div className={`w-5 rounded-t ${aColor}`} style={{ height: `${hA}px` }} />
-                  <div className={`w-5 rounded-t ${bColor}`} style={{ height: `${hB}px` }} />
+                <div key={i} className="flex-1 min-w-0 flex items-end justify-center gap-1">
+                  <div className={`w-3 sm:w-4 rounded-t ${aColor}`} style={{ height: `${hA}%` }} />
+                  <div className={`w-3 sm:w-4 rounded-t ${bColor}`} style={{ height: `${hB}%` }} />
                 </div>
               );
             })}
           </div>
 
-          {/* value labels (under bars) */}
-          <div className="absolute left-0 right-0 bottom-6 px-2">
-            <div className="flex gap-4">
-              {labels.map((_, i) => {
-                const a = aValues[i] || 0;
-                const b = bValues[i] || 0;
-                return (
-                  <div key={i} className="w-12 text-center text-[10px] text-slate-300">
-                    <div>{valueFmt(a)}</div>
-                    <div>{valueFmt(b)}</div>
-                  </div>
-                );
-              })}
+          {/* x-axis labels */}
+          <div className="absolute left-0 right-0 bottom-[-18px]">
+            <div className="flex justify-between text-[11px] text-slate-400">
+              {labels.map((l, i) => (
+                <div key={i} className="flex-1 text-center truncate">{l}</div>
+              ))}
             </div>
-          </div>
-        </div>
-
-        {/* month labels (no extra gap) */}
-        <div className="px-2 pb-3">
-          <div className="flex gap-4">
-            {labels.map((l, i) => (
-              <div key={i} className="w-12 text-center text-[11px] text-slate-400 truncate">
-                {l}
-              </div>
-            ))}
           </div>
         </div>
       </div>
@@ -661,7 +644,7 @@ function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
   const n = Number.isFinite(num) ? num : 0;
   const isZero = n === 0;
 
-  // Default white for everything; only 2 colored cases:
+  // Default white for everything; only colored:
   // - Est. Value (tone="unrealized") -> blue when >0, else dim
   // - Realized P/L (tone="realized") -> green when >0, else dim
   let color = "text-slate-100";
