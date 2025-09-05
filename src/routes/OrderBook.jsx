@@ -4,12 +4,13 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import HeaderWithTabs from '../components/HeaderWithTabs.jsx'
 
+/* ---------------- UI tokens ---------------- */
 const card =
-  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden"
+  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]"
 const inputSm =
   "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
 
-/* helpers */
+/* ---------------- helpers ---------------- */
 const parseMoney = (v) => {
   const n = Number(String(v ?? '').replace(/[^0-9.\-]/g, ''))
   return isNaN(n) ? 0 : n
@@ -23,7 +24,7 @@ const parsePct = (v) => {
   return n > 1 ? n / 100 : n
 }
 
-/* queries */
+/* --------------- queries --------------- */
 async function getOrders(limit=500){
   const { data, error } = await supabase
     .from('orders')
@@ -49,12 +50,41 @@ async function getMarkets() {
   return data ?? []
 }
 
+/* ============ Small building blocks ============ */
+
+/** A date input wrapped so iOS can't overflow its card.
+ *  - On mobile it fills width; on desktop it keeps the exact width passed.
+ *  - Shows an overlay placeholder when empty.
+ */
+function DateField({ value, onChange, widthClass = "w-full", placeholderText = "mm/dd/yyyy" }) {
+  return (
+    <div
+      className={`${inputSm} ${widthClass} relative overflow-hidden p-0 focus-within:ring-2 focus-within:ring-indigo-500`}
+      style={{ minWidth: 0 }}
+    >
+      {!value && (
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          {placeholderText}
+        </span>
+      )}
+      <input
+        type="date"
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full min-w-0 bg-transparent border-0 outline-none px-3 py-2 text-slate-100"
+      />
+    </div>
+  )
+}
+
+/* ====================== PAGE ====================== */
 export default function OrderBook(){
   const { data: orders=[], isLoading, error, refetch } = useQuery({ queryKey:['orders', 500], queryFn:() => getOrders(500) })
   const { data: items=[] }      = useQuery({ queryKey:['items'],      queryFn:getItems })
   const { data: retailers=[] }  = useQuery({ queryKey:['retailers'],  queryFn:getRetailers })
   const { data: markets=[] }    = useQuery({ queryKey:['markets'],    queryFn:getMarkets })
 
+  /* search */
   const [q, setQ] = useState('')
   const filtered = useMemo(() => {
     const t = (q || '').trim().toLowerCase()
@@ -69,73 +99,48 @@ export default function OrderBook(){
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Desktop grid: uses minmax(0, …fr) so columns can shrink inside the row card */}
-      <style>{`
-        .orderHeader { display: none; }
-        .orderGrid   { display: grid; grid-template-columns: 1fr; gap: .5rem; align-items:center; min-width:0; }
-        @media (min-width: 1024px){
-          .orderHeader,
-          .orderGrid {
-            display: grid;
-            grid-template-columns:
-              minmax(0, 1.05fr)  /* Order date    */
-              minmax(0, 2.00fr)  /* Item          */
-              minmax(0, 0.80fr)  /* Profile       */
-              minmax(0, 0.95fr)  /* Retailer      */
-              minmax(0, 0.80fr)  /* Buy $         */
-              minmax(0, 0.80fr)  /* Sale $        */
-              minmax(0, 1.10fr)  /* Sale date     */
-              minmax(0, 1.30fr)  /* Marketplace   */
-              minmax(0, 0.70fr)  /* Ship $        */
-              minmax(0, 0.60fr); /* Actions       */
-            gap: .5rem;
-            align-items: center;
-          }
-          /* Header aligns to the inner padding of row cards */
-          .orderHeader { margin: 0 .75rem .25rem .75rem; }
-        }
-      `}</style>
-
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        <HeaderWithTabs />
 
-        {/* Search (full-width inside its card) */}
+        {/* Header with tabs */}
+        <HeaderWithTabs active="orders" />
+
+        {/* Search + meta */}
         <div className={`${card} mb-6`}>
-          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+            <div className="sm:col-[1]">
               <label className="text-slate-300 mb-1 block text-sm">Search</label>
               <input
                 value={q}
                 onChange={(e)=>setQ(e.target.value)}
                 placeholder="item / retailer / marketplace / profile…"
-                className={inputSm}
+                className={`${inputSm} w-full`}
               />
             </div>
-            <div className="sm:min-w-[96px]">
+            <div className="sm:justify-self-end">
               <div className="text-slate-400 text-sm">Rows</div>
               <div className="text-xl font-semibold">{filtered.length}</div>
             </div>
           </div>
         </div>
 
+        {/* Header labels (desktop only) */}
+        <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
+          <div className="w-36">Order date</div>
+          <div className="min-w-[220px] flex-1">Item</div>
+          <div className="w-28">Profile</div>
+          <div className="w-28">Retailer</div>
+          <div className="w-24">Buy $</div>
+          <div className="w-24">Sale $</div>
+          <div className="w-36">Sale date</div>
+          <div className="w-32">Marketplace</div>
+          <div className="w-24">Ship $</div>
+          <div className="w-20 text-right">Actions</div>
+        </div>
+
+        {/* Orders */}
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
-        {/* Header labels — exact same grid as the rows */}
-        <div className="orderHeader text-xs text-slate-400">
-          <div>Order date</div>
-          <div>Item</div>
-          <div>Profile</div>
-          <div>Retailer</div>
-          <div>Buy $</div>
-          <div>Sale $</div>
-          <div>Sale date</div>
-          <div>Marketplace</div>
-          <div>Ship $</div>
-          <div className="text-right">Actions</div>
-        </div>
-
-        {/* Rows */}
         <div className="space-y-3">
           {filtered.map(o => (
             <OrderRow
@@ -157,6 +162,7 @@ export default function OrderBook(){
   )
 }
 
+/* ============== Row component ============== */
 function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
   const [order_date, setOrderDate]     = useState(order.order_date || '')
   const [item, setItem]                 = useState(order.item || '')
@@ -217,100 +223,71 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
     else onDeleted && onDeleted()
   }
 
-  // mobile ghost labels only when blank
-  const Ghost = ({ show, children }) => (
-    <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none lg:hidden ${show ? 'block' : 'hidden'}`}>
-      {children}
-    </span>
-  )
-
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 overflow-hidden">
-      <div className="orderGrid">
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+      <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
         {/* Order date */}
-        <div className="relative min-w-0">
-          <Ghost show={!order_date}>Order date</Ghost>
-          <input
-            type="date"
-            value={order_date || ''}
-            onChange={e=>setOrderDate(e.target.value)}
-            className={inputSm}
-          />
-        </div>
+        <DateField
+          value={order_date}
+          onChange={setOrderDate}
+          widthClass="w-full lg:w-36"
+        />
 
         {/* Item */}
-        <div className="min-w-0">
-          <select
-            value={item || ''}
-            onChange={e=>setItem(e.target.value)}
-            className={inputSm}
-          >
-            <option value="">{item ? item : 'Item'}</option>
-            {items.map(it => <option key={it.id} value={it.name}>{it.name}</option>)}
-          </select>
-        </div>
+        <select
+          value={item || ''}
+          onChange={e=>setItem(e.target.value)}
+          className={`${inputSm} min-w-[220px] flex-1`}
+        >
+          <option value=""></option>
+          {items.map(it => <option key={it.id} value={it.name}>{it.name}</option>)}
+        </select>
 
         {/* Profile */}
-        <div className="min-w-0">
-          <input
-            value={profile_name}
-            onChange={e=>setProfile(e.target.value)}
-            placeholder="Profile"
-            className={inputSm}
-          />
-        </div>
+        <input
+          value={profile_name}
+          onChange={e=>setProfile(e.target.value)}
+          placeholder="Profile"
+          className={`${inputSm} w-full lg:w-28`}
+        />
 
         {/* Retailer */}
-        <div className="min-w-0">
-          <select
-            value={retailer || ''}
-            onChange={e=>setRetailer(e.target.value)}
-            className={inputSm}
-          >
-            <option value="">{retailer ? retailer : 'Retailer'}</option>
-            {retailers.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-          </select>
-        </div>
+        <select
+          value={retailer || ''}
+          onChange={e=>setRetailer(e.target.value)}
+          className={`${inputSm} w-full lg:w-28`}
+        >
+          <option value=""></option>
+          {retailers.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+        </select>
 
-        {/* Buy / Sale */}
-        <div className="min-w-0">
-          <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="Buy $"  inputMode="decimal" className={inputSm} />
-        </div>
-        <div className="min-w-0">
-          <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="Sale $" inputMode="decimal" className={inputSm} />
-        </div>
+        {/* Buy/Sale */}
+        <input value={buyPrice}  onChange={e=>setBuyPrice(e.target.value)}  placeholder="0.00" className={`${inputSm} w-full lg:w-24`} />
+        <input value={salePrice} onChange={e=>setSalePrice(e.target.value)} placeholder="0.00" className={`${inputSm} w-full lg:w-24`} />
 
         {/* Sale date */}
-        <div className="relative min-w-0">
-          <Ghost show={!sale_date}>Sale date</Ghost>
-          <input
-            type="date"
-            value={sale_date || ''}
-            onChange={e=>setSaleDate(e.target.value)}
-            className={inputSm}
-          />
-        </div>
+        <DateField
+          value={sale_date}
+          onChange={setSaleDate}
+          widthClass="w-full lg:w-36"
+        />
 
         {/* Marketplace */}
-        <div className="relative min-w-0">
-          <Ghost show={!marketplace}>Marketplace</Ghost>
-          <select
-            value={marketplace || ''}
-            onChange={e=>handleMarketplaceChange(e.target.value)}
-            className={inputSm}
-          >
-            <option value="">{marketplace ? marketplace : 'Marketplace'}</option>
-            {markets.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-          </select>
-        </div>
+        <select
+          value={marketplace || ''}
+          onChange={e=>handleMarketplaceChange(e.target.value)}
+          className={`${inputSm} w-full lg:w-32`}
+        >
+          <option value="">Marketplace</option>
+          {markets.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+        </select>
 
         {/* Shipping */}
-        <div className="min-w-0">
-          <input value={shipping} onChange={e=>setShipping(e.target.value)} placeholder="Ship $" inputMode="decimal" className={inputSm} />
-        </div>
+        <input value={shipping}  onChange={e=>setShipping(e.target.value)}  placeholder="0.00" className={`${inputSm} w-full lg:w-24`} />
 
         {/* Actions */}
-        <div className="flex justify-end gap-2">
+        <div className="w-full lg:w-20 shrink-0 flex items-center justify-end gap-2 mt-1 lg:mt-0">
+          {/* Save */}
           <button
             type="button"
             onClick={save}
@@ -326,6 +303,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }){
             </svg>
           </button>
 
+          {/* Delete */}
           <button
             type="button"
             onClick={del}
