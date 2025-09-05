@@ -360,21 +360,20 @@ export default function Stats() {
                   <div className="mt-4 space-y-4">
                     {/* pills in requested order; responsive 2→3→4→5 columns */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} sub="total bought" />
+                      <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} sub="total purchases" />
                       <MiniPill title="Sold" value={`${g.sold}`} num={g.sold} sub="total sold" />
-                      <MiniPill title="On Hand" value={`${g.onHand}`} num={g.onHand} sub="inventory" />
-                      <MiniPill title="Total Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="amount spent" />
-                      <MiniPill title="Total Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="amount made" />
-                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from sales" />
+                      <MiniPill title="On Hand" value={`${g.onHand}`} num={g.onHand} sub="total inventory" />
+                      <MiniPill title="Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="total amt spent" />
+                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from marketplace" />
                       <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} sub="from sales" />
+                      <MiniPill title="Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="total from sales" />
                       <MiniPill title="Realized P/L" value={`$${centsToStr(g.realizedPlC)}`} num={g.realizedPlC} sub="after fees + ship" tone="realized" />
-                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from TCGplayer" />
-                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on market" tone="unrealized" />
-
                       <MiniPill title="ROI%" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profit / cost" />
                       <MiniPill title="Margin%" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="profit / revenue" />
                       <MiniPill title="Avg Hold" value={`${g.avgHoldDays.toFixed(0)}d`} num={g.avgHoldDays} sub="time in days" />
                       <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} sub="average sale price" />
+                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from database" />
+                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on mkt price" tone="unrealized" />
                     </div>
                   </div>
                 )}
