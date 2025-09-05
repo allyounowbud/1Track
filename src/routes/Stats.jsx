@@ -7,11 +7,9 @@ import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-visible";
 
-/* smaller pill style used inside the KPIs wrapper card */
 const pill =
   "rounded-xl border border-slate-800 bg-slate-900/60 p-4";
 
-/* inputs */
 const inputBase =
   "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
 
@@ -74,7 +72,6 @@ export default function Stats() {
     queryFn: getItems,
   });
 
-  /* user (avatar/name) — header uses this */
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -116,12 +113,10 @@ export default function Stats() {
   const [fromStr, setFromStr] = useState("");
   const [toStr, setToStr] = useState("");
 
-  // Searchable Item combobox
   const [itemOpen, setItemOpen] = useState(false);
   const [itemInput, setItemInput] = useState("All Items");
   const comboRef = useRef(null);
 
-  // close dropdown on outside click
   useEffect(() => {
     function onDocClick(e) {
       if (!comboRef.current) return;
@@ -145,7 +140,6 @@ export default function Stats() {
     return itemOptions.filter((n) => n.toLowerCase().includes(q));
   }, [itemOptions, itemInput]);
 
-  // applied filter snapshot (on Apply)
   const [applied, setApplied] = useState({
     range: "all",
     from: null,
@@ -182,10 +176,10 @@ export default function Stats() {
       const f = t - 29 * 24 * 3600 * 1000;
       return { fromMs: f, toMs: t };
     }
-    return { fromMs: null, toMs: null }; // all time
+    return { fromMs: null, toMs: null };
   }, [applied]);
 
-  // market values (by item name) for MTM
+  /* ---------- MTM lookups (by normalized item name) ---------- */
   const marketByName = useMemo(() => {
     const m = new Map();
     for (const it of items) {
@@ -197,7 +191,7 @@ export default function Stats() {
     return m;
   }, [items]);
 
-  // filter by date window + item (contains match)
+  /* ---------- filtered orders by time + item ---------- */
   const filtered = useMemo(() => {
     const item = (applied.item || "").toLowerCase();
     const useItem = !!item;
@@ -251,7 +245,6 @@ export default function Stats() {
     const avgSale = sales.length ? revenueC / sales.length : 0;
     const asp = avgSale;
 
-    // hold time (days)
     const holdDays = sales
       .map((o) => {
         const od = new Date(o.order_date).getTime();
@@ -268,7 +261,6 @@ export default function Stats() {
     const purchasesCount = purchases.length;
     const salesCount = sales.length;
     const sellThrough = purchasesCount > 0 ? salesCount / purchasesCount : NaN;
-
     const winRate =
       salesCount > 0
         ? sales.filter((o) => {
@@ -298,7 +290,6 @@ export default function Stats() {
       onHandCostC,
       onHandMarketC,
       unrealizedPlC,
-      totalPlMtmC: realizedPlC + unrealizedPlC,
       cashFlowC,
       avgBuy,
       asp,
@@ -314,7 +305,6 @@ export default function Stats() {
 
   /* ------------------------------- charts ------------------------------- */
   const monthSeries = useMemo(() => {
-    // build monthly series from filtered (respects time & item)
     const sales = filtered.filter(
       (o) => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs))
     );
@@ -322,74 +312,43 @@ export default function Stats() {
       (o) => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs)
     );
 
-    const monthsSet = new Set();
-    for (const o of purchases) {
-      const k = monthKey(o.order_date);
-      if (k) monthsSet.add(k);
-    }
-    for (const o of sales) {
-      const k = monthKey(o.sale_date);
-      if (k) monthsSet.add(k);
-    }
-    const months = [...monthsSet].sort((a, b) => a.localeCompare(b));
+    const mset = new Set();
+    for (const o of purchases) { const k = monthKey(o.order_date); if (k) mset.add(k); }
+    for (const o of sales) { const k = monthKey(o.sale_date); if (k) mset.add(k); }
+    const months = [...mset].sort((a, b) => a.localeCompare(b));
 
-    const realizedPL = new Map();
-    const cashFlow = new Map();
-    const asp = new Map();
-    const aspCount = new Map();
-    const stPurch = new Map();
-    const stSales = new Map();
-
-    for (const m of months) {
-      realizedPL.set(m, 0);
-      cashFlow.set(m, 0);
-      asp.set(m, 0);
-      aspCount.set(m, 0);
-      stPurch.set(m, 0);
-      stSales.set(m, 0);
-    }
+    const realizedPL = new Map(), cashFlow = new Map(), asp = new Map(), aspCnt = new Map(), stPurch = new Map(), stSales = new Map();
+    for (const m of months) { realizedPL.set(m,0); cashFlow.set(m,0); asp.set(m,0); aspCnt.set(m,0); stPurch.set(m,0); stSales.set(m,0); }
 
     for (const o of purchases) {
-      const k = monthKey(o.order_date);
-      if (!k) continue;
+      const k = monthKey(o.order_date); if (!k) continue;
       stPurch.set(k, stPurch.get(k) + 1);
-      cashFlow.set(k, cashFlow.get(k) - cents(o.buy_price_cents)); // cash out
+      cashFlow.set(k, cashFlow.get(k) - cents(o.buy_price_cents));
     }
     for (const o of sales) {
-      const k = monthKey(o.sale_date);
-      if (!k) continue;
+      const k = monthKey(o.sale_date); if (!k) continue;
       const rev = cents(o.sale_price_cents);
       const fee = Math.round(rev * (Number(o.fees_pct) || 0));
       const ship = cents(o.shipping_cents);
       const cost = cents(o.buy_price_cents);
-
       realizedPL.set(k, realizedPL.get(k) + (rev - fee - ship - cost));
-      cashFlow.set(k, cashFlow.get(k) + (rev - fee - ship)); // cash in
+      cashFlow.set(k, cashFlow.get(k) + (rev - fee - ship));
       asp.set(k, asp.get(k) + rev);
-      aspCount.set(k, aspCount.get(k) + 1);
+      aspCnt.set(k, aspCnt.get(k) + 1);
       stSales.set(k, stSales.get(k) + 1);
     }
 
     const sellThroughPct = new Map();
+    const aspAvg = new Map();
     for (const m of months) {
       const p = stPurch.get(m) || 0;
       const s = stSales.get(m) || 0;
       sellThroughPct.set(m, p > 0 ? s / p : NaN);
-    }
-
-    const aspAvg = new Map();
-    for (const m of months) {
-      const c = aspCount.get(m) || 0;
+      const c = aspCnt.get(m) || 0;
       aspAvg.set(m, c > 0 ? Math.round(asp.get(m) / c) : 0);
     }
 
-    return {
-      months,
-      realizedPL,
-      cashFlow,
-      sellThroughPct,
-      aspAvg,
-    };
+    return { months, realizedPL, cashFlow, sellThroughPct, aspAvg };
   }, [filtered, fromMs, toMs]);
 
   /* -------------------------------- render -------------------------------- */
@@ -402,7 +361,6 @@ export default function Stats() {
         <div className={`${card} relative z-[60]`}>
           <h2 className="text-lg font-semibold mb-4">Date Range</h2>
           <div className="grid grid-cols-1 gap-4 min-w-0">
-            {/* Date range dropdown */}
             <div className="relative isolate">
               <Select
                 value={range}
@@ -419,30 +377,17 @@ export default function Stats() {
 
             {range === "custom" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
-                <input
-                  type="date"
-                  value={fromStr}
-                  onChange={(e) => setFromStr(e.target.value)}
-                  className={inputBase}
-                />
-                <input
-                  type="date"
-                  value={toStr}
-                  onChange={(e) => setToStr(e.target.value)}
-                  className={inputBase}
-                />
+                <input type="date" value={fromStr} onChange={(e)=>setFromStr(e.target.value)} className={inputBase} />
+                <input type="date" value={toStr} onChange={(e)=>setToStr(e.target.value)} className={inputBase} />
               </div>
             )}
 
-            {/* Item filter (custom searchable combobox) */}
+            {/* Item filter */}
             <div ref={comboRef} className="relative isolate">
               <label className="sr-only">Item filter</label>
               <input
                 value={itemInput}
-                onChange={(e) => {
-                  setItemInput(e.target.value);
-                  setItemOpen(true);
-                }}
+                onChange={(e) => { setItemInput(e.target.value); setItemOpen(true); }}
                 onFocus={() => setItemOpen(true)}
                 placeholder="Type to filter by item name…"
                 className={inputBase}
@@ -462,10 +407,7 @@ export default function Stats() {
                     <div
                       key={name}
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        setItemInput(name);
-                        setItemOpen(false);
-                      }}
+                      onClick={() => { setItemInput(name); setItemOpen(false); }}
                       className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-slate-100"
                     >
                       {name}
@@ -499,16 +441,16 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* KPI wrapper card (like Inventory) */}
+        {/* KPI wrapper (two columns on mobile like Inventory) */}
         <div className={`${card} mt-6`}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <KpiPill title="Bought" value={`${kpis.purchasesCount} items`} sub={`Spend $${centsToStr(kpis.spentC)}`} />
             <KpiPill title="Inventory" value={`${kpis.onHandCount} on hand`} sub={`Cost $${centsToStr(kpis.onHandCostC)}`} />
             <KpiPill title="Est. Value" value={`$${centsToStr(kpis.onHandMarketC)}`} sub="on-hand market" tone="unrealized" />
             <KpiPill title="Unrealized P/L" value={`$${centsToStr(kpis.unrealizedPlC)}`} sub="mark-to-market" tone="unrealized" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
             <KpiPill title="Sold" value={`${kpis.salesCount} items`} sub={`Revenue $${centsToStr(kpis.revenueC)}`} />
             <KpiPill
               title="Realized P/L"
@@ -520,7 +462,7 @@ export default function Stats() {
             <KpiPill title="ASP" value={`$${centsToStr(kpis.asp)}`} sub={`Avg Fee ${pctStr(kpis.avgFeeRate)}`} />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
             <KpiPill title="Sell-Through" value={pctStr(kpis.sellThrough)} sub={`Win Rate ${pctStr(kpis.winRate)}`} />
             <KpiPill title="Hold Time" value={`${kpis.avgHold.toFixed(1)} d`} sub={`Median ${kpis.medianHold.toFixed(0)} d`} />
             <KpiPill title="Margin" value={pctStr(kpis.margin)} sub={`ROI (sold) ${pctStr(kpis.roiSold)}`} />
@@ -528,19 +470,21 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* Charts grid — all charts are filter-aware */}
+        {/* Charts — responsive + clear on mobile */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
           <ChartCard title="Realized P/L by month">
             <BarsVertical
               labels={monthSeries.months}
               values={monthSeries.months.map((m) => monthSeries.realizedPL.get(m) || 0)}
+              emptyLabel="No sales in this range."
             />
           </ChartCard>
 
           <ChartCard title="Cash flow by month">
-            <Sparkline
+            <AreaSparkline
               values={monthSeries.months.map((m) => monthSeries.cashFlow.get(m) || 0)}
               labels={monthSeries.months}
+              emptyLabel="No activity in this range."
             />
           </ChartCard>
 
@@ -548,25 +492,27 @@ export default function Stats() {
             <PercentBars
               labels={monthSeries.months}
               values={monthSeries.months.map((m) => monthSeries.sellThroughPct.get(m))}
+              emptyLabel="No purchases in this range."
             />
           </ChartCard>
 
           <ChartCard title="ASP (Average Sale Price) by month">
-            <Sparkline
+            <DotLine
               values={monthSeries.months.map((m) => monthSeries.aspAvg.get(m) || 0)}
               labels={monthSeries.months}
+              emptyLabel="No sales in this range."
             />
           </ChartCard>
         </div>
 
-        {/* Breakdown by item */}
+        {/* Breakdown by item — trimmed & no horizontal scroll */}
         <div className={`${card} mt-6`}>
           <h3 className="text-lg font-semibold mb-4">Breakdown by item</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-[1200px] w-full text-sm">
+          <div className="overflow-x-hidden">
+            <table className="w-full text-sm">
               <thead className="text-slate-300">
                 <tr className="text-left">
-                  <th className="py-2 pr-3">Item Name</th>
+                  <th className="py-2 pr-3">Item</th>
                   <th className="py-2 pr-3">Bought</th>
                   <th className="py-2 pr-3">Sold</th>
                   <th className="py-2 pr-3">On Hand</th>
@@ -578,38 +524,40 @@ export default function Stats() {
                   <th className="py-2 pr-3">On-hand Cost</th>
                   <th className="py-2 pr-3">On-hand Mkt</th>
                   <th className="py-2 pr-3">Unrealized P/L</th>
-                  <th className="py-2 pr-3">Total P/L (MTM)</th>
                 </tr>
               </thead>
               <tbody className="text-slate-200">
                 {makeItemBreakdown(filtered, marketByName).map((r) => (
                   <tr key={r.item} className="border-t border-slate-800">
-                    <td className="py-2 pr-3">{r.item}</td>
+                    <td className="py-2 pr-3 truncate">{r.item}</td>
                     <td className="py-2 pr-3">{r.bought}</td>
                     <td className="py-2 pr-3">{r.sold}</td>
                     <td className="py-2 pr-3">{r.onHand}</td>
-                    <td className="py-2 pr-3">${centsToStr(r.cogsC)}</td>
+                    <td className={`py-2 pr-3 ${r.cogsC !== 0 ? (r.cogsC > 0 ? "text-rose-400" : "text-emerald-400") : ""}`}>
+                      ${centsToStr(r.cogsC)}
+                    </td>
                     <td className="py-2 pr-3">${centsToStr(r.revenueC)}</td>
-                    <td className="py-2 pr-3">${centsToStr(r.feesC)}</td>
-                    <td className="py-2 pr-3">${centsToStr(r.shipC)}</td>
+                    <td className={`py-2 pr-3 ${r.feesC !== 0 ? (r.feesC > 0 ? "text-rose-400" : "text-emerald-400") : ""}`}>
+                      ${centsToStr(r.feesC)}
+                    </td>
+                    <td className={`py-2 pr-3 ${r.shipC !== 0 ? (r.shipC > 0 ? "text-rose-400" : "text-emerald-400") : ""}`}>
+                      ${centsToStr(r.shipC)}
+                    </td>
                     <td className={`py-2 pr-3 ${
-                      r.realizedPlC > 0 ? "text-emerald-400" : r.realizedPlC < 0 ? "text-rose-400" : "text-slate-200"
+                      r.realizedPlC > 0 ? "text-emerald-400" : r.realizedPlC < 0 ? "text-rose-400" : ""
                     }`}>
                       ${centsToStr(r.realizedPlC)}
                     </td>
-                    <td className="py-2 pr-3">${centsToStr(r.onHandCostC)}</td>
-                    <td className="py-2 pr-3 text-indigo-400">${centsToStr(r.onHandMarketC)}</td>
-                    <td className="py-2 pr-3 text-indigo-400">${centsToStr(r.unrealizedPlC)}</td>
-                    <td className={`py-2 pr-3 ${
-                      r.totalPlMtmC > 0 ? "text-emerald-400/70" : r.totalPlMtmC < 0 ? "text-rose-400" : "text-slate-200"
-                    }`}>
-                      ${centsToStr(r.totalPlMtmC)}
+                    <td className={`py-2 pr-3 ${r.onHandCostC !== 0 ? (r.onHandCostC > 0 ? "text-rose-400" : "text-emerald-400") : ""}`}>
+                      ${centsToStr(r.onHandCostC)}
                     </td>
+                    <td className="py-2 pr-3">${centsToStr(r.onHandMarketC)}</td>
+                    <td className="py-2 pr-3 text-indigo-400">${centsToStr(r.unrealizedPlC)}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td className="py-6 text-slate-400" colSpan={13}>
+                    <td className="py-6 text-slate-400" colSpan={12}>
                       No data in this range.
                     </td>
                   </tr>
@@ -623,7 +571,7 @@ export default function Stats() {
   );
 }
 
-/* --------------------------- small components --------------------------- */
+/* --------------------------- components --------------------------- */
 
 function Select({ value, onChange, options, placeholder = "Select…" }) {
   const [open, setOpen] = useState(false);
@@ -661,10 +609,7 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
               <li key={opt.value}>
                 <button
                   type="button"
-                  onClick={() => {
-                    onChange(opt.value);
-                    setOpen(false);
-                  }}
+                  onClick={() => { onChange(opt.value); setOpen(false); }}
                   className={`w-full text-left px-3 py-2 hover:bg-slate-800 ${
                     opt.value === value ? "text-white" : "text-slate-200"
                   }`}
@@ -680,7 +625,7 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
   );
 }
 
-/* KPI pill — ONLY realized positive shows green; unrealized uses blue */
+/* KPI pill (green only when realized > 0; blue for unrealized) */
 function KpiPill({ title, value, sub, tone = "neutral" }) {
   let valueClass = "text-slate-100";
   if (tone === "unrealized") valueClass = "text-indigo-400";
@@ -706,54 +651,24 @@ function ChartCard({ title, children }) {
   );
 }
 
-/* Vertical bar chart with sign colors (green/red) */
-function BarsVertical({ labels, values }) {
+/* Vertical bars with sign color and labels */
+function BarsVertical({ labels, values, emptyLabel = "No data." }) {
+  if (!values?.length) return <EmptyChart label={emptyLabel} />;
   const max = Math.max(1, ...values.map((v) => Math.abs(v)));
   return (
-    <div className="flex items-end gap-2 h-40">
-      {values.map((v, i) => {
-        const h = (Math.abs(v) / max) * 100;
-        const pos = v > 0;
-        const neg = v < 0;
-        const color = pos ? "bg-emerald-500" : neg ? "bg-rose-500" : "bg-slate-600";
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center">
-            <div className={`w-full rounded-t ${color}`} style={{ height: `${h}%` }} />
-            <div className="mt-2 text-[10px] text-slate-400 truncate">{labels[i]}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* Sparkline (SVG) — neutral indigo line */
-function Sparkline({ values, labels }) {
-  const w = 560; // container width (approx)
-  const h = 140;
-  const pad = 8;
-
-  const n = values.length || 1;
-  const xs = (i) => (n === 1 ? pad : pad + (i * (w - pad * 2)) / (n - 1));
-
-  const max = Math.max(1, ...values.map((v) => Math.abs(v)));
-  const ys = (v) => h / 2 - (v / max) * (h / 2 - pad);
-
-  const points = values.map((v, i) => `${xs(i)},${ys(v)}`).join(" ");
-
-  return (
-    <div className="w-full overflow-hidden">
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-36">
-        {/* midline */}
-        <line x1="0" y1={h / 2} x2={w} y2={h / 2} className="stroke-slate-700" strokeWidth="1" />
-        {/* line */}
-        <polyline points={points} fill="none" className="stroke-indigo-400" strokeWidth="2" />
-        {/* last point dot */}
-        {values.length > 0 && (
-          <circle cx={xs(values.length - 1)} cy={ys(values[values.length - 1])} r="3" className="fill-indigo-400" />
-        )}
-      </svg>
-      <div className="mt-1 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
+    <div className="w-full">
+      <div className="flex items-end gap-2 h-44">
+        {values.map((v, i) => {
+          const h = (Math.abs(v) / max) * 100;
+          const color = v > 0 ? "bg-emerald-500" : v < 0 ? "bg-rose-500" : "bg-slate-600";
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center">
+              <div className={`w-full rounded-t ${color}`} style={{ height: `${h}%` }} />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
         {labels.map((l, i) => (
           <div key={i} className="truncate">{l}</div>
         ))}
@@ -762,8 +677,60 @@ function Sparkline({ values, labels }) {
   );
 }
 
-/* Percentage bars (0–100%) for sell-through */
-function PercentBars({ labels, values }) {
+/* Filled area sparkline with midline */
+function AreaSparkline({ values, labels, emptyLabel = "No data." }) {
+  if (!values?.length) return <EmptyChart label={emptyLabel} />;
+  const w = 560, h = 140, pad = 8;
+  const n = values.length;
+  const xs = (i) => (n === 1 ? pad : pad + (i * (w - pad * 2)) / (n - 1));
+  const max = Math.max(1, ...values.map((v) => Math.abs(v)));
+  const y = (v) => h / 2 - (v / max) * (h / 2 - pad);
+
+  const linePts = values.map((v, i) => `${xs(i)},${y(v)}`).join(" ");
+  const areaPts = `0,${h/2} ${pad},${y(values[0])} ${linePts} ${w-pad},${y(values[n-1])} ${w},${h/2} 0,${h/2}`;
+
+  return (
+    <div className="w-full">
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-36">
+        <line x1="0" y1={h/2} x2={w} y2={h/2} className="stroke-slate-700" strokeWidth="1" />
+        <polyline points={linePts} fill="none" className="stroke-indigo-400" strokeWidth="2" />
+        <polygon points={areaPts} className="fill-indigo-500/20" />
+      </svg>
+      <div className="mt-1 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
+        {labels.map((l, i) => <div key={i} className="truncate">{l}</div>)}
+      </div>
+    </div>
+  );
+}
+
+/* Dot line sparkline */
+function DotLine({ values, labels, emptyLabel = "No data." }) {
+  if (!values?.length) return <EmptyChart label={emptyLabel} />;
+  const w = 560, h = 140, pad = 10;
+  const n = values.length;
+  const xs = (i) => (n === 1 ? pad : pad + (i * (w - pad * 2)) / (n - 1));
+  const max = Math.max(1, ...values);
+  const y = (v) => h - pad - (v / max) * (h - pad * 2);
+
+  const pts = values.map((v, i) => `${xs(i)},${y(v)}`).join(" ");
+
+  return (
+    <div className="w-full">
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-36">
+        <polyline points={pts} fill="none" className="stroke-indigo-400" strokeWidth="2" />
+        {values.map((v, i) => (
+          <circle key={i} cx={xs(i)} cy={y(v)} r="3" className="fill-indigo-400" />
+        ))}
+      </svg>
+      <div className="mt-1 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
+        {labels.map((l, i) => <div key={i} className="truncate">{l}</div>)}
+      </div>
+    </div>
+  );
+}
+
+function PercentBars({ labels, values, emptyLabel = "No data." }) {
+  if (!labels?.length) return <EmptyChart label={emptyLabel} />;
   return (
     <div className="space-y-2">
       {labels.map((l, i) => {
@@ -771,22 +738,23 @@ function PercentBars({ labels, values }) {
         const pct = isFinite(p) ? Math.max(0, Math.min(1, p)) : 0;
         return (
           <div key={i} className="flex items-center gap-3">
-            <div className="w-28 shrink-0 text-xs text-slate-300 truncate">{l}</div>
+            <div className="w-24 shrink-0 text-xs text-slate-300 truncate">{l}</div>
             <div className="flex-1 h-3 rounded bg-slate-800 overflow-hidden">
               <div className="h-full bg-indigo-500" style={{ width: `${pct * 100}%` }} />
             </div>
-            <div className="w-10 shrink-0 text-right text-xs text-slate-300">
-              {pctStr(pct)}
-            </div>
+            <div className="w-10 shrink-0 text-right text-xs text-slate-300">{pctStr(pct)}</div>
           </div>
         );
       })}
-      {labels.length === 0 && <div className="text-slate-400">No data for this view.</div>}
     </div>
   );
 }
 
-/** Item breakdown with realized & MTM metrics */
+function EmptyChart({ label }) {
+  return <div className="text-slate-400">{label}</div>;
+}
+
+/** Item breakdown w/ colors + no horizontal scroll */
 function makeItemBreakdown(filtered, marketByName) {
   const m = new Map();
   for (const o of filtered) {
@@ -805,26 +773,23 @@ function makeItemBreakdown(filtered, marketByName) {
         onHandCostC: 0,
         onHandMarketC: 0,
         unrealizedPlC: 0,
-        totalPlMtmC: 0,
       });
     }
     const row = m.get(key);
     row.bought += 1;
 
     if (cents(o.sale_price_cents) > 0) {
-      // Sold
-      row.sold += 1;
       const rev = cents(o.sale_price_cents);
       const fee = Math.round(rev * (Number(o.fees_pct) || 0));
       const ship = cents(o.shipping_cents);
       const cost = cents(o.buy_price_cents);
+      row.sold += 1;
       row.cogsC += cost;
       row.revenueC += rev;
       row.feesC += fee;
       row.shipC += ship;
       row.realizedPlC += rev - fee - ship - cost;
     } else {
-      // Unsold
       row.onHand += 1;
       const cost = cents(o.buy_price_cents);
       row.onHandCostC += cost;
@@ -835,7 +800,6 @@ function makeItemBreakdown(filtered, marketByName) {
 
   for (const row of m.values()) {
     row.unrealizedPlC = row.onHandMarketC - row.onHandCostC;
-    row.totalPlMtmC = row.realizedPlC + row.unrealizedPlC;
   }
 
   return [...m.values()]
