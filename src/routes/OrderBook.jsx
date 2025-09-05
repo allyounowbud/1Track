@@ -69,30 +69,29 @@ export default function OrderBook(){
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Desktop grid that fits inside each card. No horizontal scroll. */}
+      {/* Desktop grid: uses minmax(0, …fr) so columns can shrink inside the row card */}
       <style>{`
         .orderHeader { display: none; }
         .orderGrid   { display: grid; grid-template-columns: 1fr; gap: .5rem; align-items:center; min-width:0; }
         @media (min-width: 1024px){
-          /* Fractions keep everything inside the card; minmax prevents overflow from content-min. */
           .orderHeader,
           .orderGrid {
             display: grid;
             grid-template-columns:
-              minmax(8rem, 1.1fr)   /* Order date   */
-              minmax(14rem, 2.2fr)  /* Item         */
-              minmax(6.5rem, .9fr)  /* Profile      */
-              minmax(7.5rem, 1.1fr) /* Retailer     */
-              minmax(5.75rem, .9fr) /* Buy $        */
-              minmax(5.75rem, .9fr) /* Sale $       */
-              minmax(9rem, 1.1fr)   /* Sale date    */
-              minmax(10rem,1.6fr)   /* Marketplace  */
-              minmax(5.75rem,.9fr)  /* Ship $       */
-              minmax(4.25rem,.6fr); /* Actions      */
+              minmax(0, 1.05fr)  /* Order date    */
+              minmax(0, 2.00fr)  /* Item          */
+              minmax(0, 0.80fr)  /* Profile       */
+              minmax(0, 0.95fr)  /* Retailer      */
+              minmax(0, 0.80fr)  /* Buy $         */
+              minmax(0, 0.80fr)  /* Sale $        */
+              minmax(0, 1.10fr)  /* Sale date     */
+              minmax(0, 1.30fr)  /* Marketplace   */
+              minmax(0, 0.70fr)  /* Ship $        */
+              minmax(0, 0.60fr); /* Actions       */
             gap: .5rem;
             align-items: center;
           }
-          /* Header sits exactly over the inner content edge of each row card */
+          /* Header aligns to the inner padding of row cards */
           .orderHeader { margin: 0 .75rem .25rem .75rem; }
         }
       `}</style>
@@ -100,7 +99,7 @@ export default function OrderBook(){
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs />
 
-        {/* Search (input spans full width of its card) */}
+        {/* Search (full-width inside its card) */}
         <div className={`${card} mb-6`}>
           <div className="flex flex-col sm:flex-row sm:items-end gap-3">
             <div className="flex-1">
@@ -122,8 +121,8 @@ export default function OrderBook(){
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
-        {/* Header labels — same grid as rows so everything lines up inside the row card */}
-        <div className="orderHeader text-xs text-slate-400 px-0">
+        {/* Header labels — exact same grid as the rows */}
+        <div className="orderHeader text-xs text-slate-400">
           <div>Order date</div>
           <div>Item</div>
           <div>Profile</div>
