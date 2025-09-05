@@ -11,6 +11,7 @@ import Login from "./routes/Login.jsx";
 import QuickAdd from "./routes/QuickAdd.jsx";       // Renamed from Dashboard.jsx
 import Settings from "./routes/Settings.jsx";
 import MarkSold from "./routes/MarkSold.jsx";
+import Inventory from "./routes/Inventory.jsx";
 import Stats from "./routes/Stats.jsx";
 import OrderBook from "./routes/OrderBook.jsx";
 import Automation from "./routes/Automation.jsx";
@@ -18,10 +19,10 @@ import Automation from "./routes/Automation.jsx";
 const router = createBrowserRouter([
   { path: "/", element: <Hub /> },                 // Hub is now the root
   { path: "/login", element: <Login /> },
-
   { path: "/add", element: <QuickAdd /> },         // Quick Add lives at /add
   { path: "/orders", element: <OrderBook /> },
   { path: "/sold", element: <MarkSold /> },
+  { path: "/inventory", element: <Inventory /> },
   { path: "/stats", element: <Stats /> },
   { path: "/settings", element: <Settings /> },
 

@@ -98,7 +98,9 @@ export default function HeaderWithTabs({ active = "", showTabs = true }) {
           <NavLink to="/orders" end className={tabClass("orders")}>
             Order Book
           </NavLink>
-          <button className={`${tabBase} ${tabIdle}`}>Inventory</button>
+          <NavLink to="/inventory" end className={tabClass("inventory")}>
+            Inventory
+          </NavLink>
           <NavLink to="/stats" end className={tabClass("stats")}>
             Stats
           </NavLink>
