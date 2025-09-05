@@ -8,15 +8,13 @@ const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
 const inputBase =
   "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
-const pill =
-  "rounded-xl border border-slate-800 bg-slate-900/60 p-4";
 const rowCard =
   "rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-4 sm:px-5 sm:py-5";
 
 /* ----------------------------- data helpers ---------------------------- */
 const cents = (n) => Math.round(Number(n || 0));
 const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
-const pctStr = (p) => (isFinite(p) ? `${(p * 100).toFixed(0)}%` : "—");
+const pctStr = (p) => (Number.isFinite(p) ? `${(p * 100).toFixed(0)}%` : "—");
 const within = (d, from, to) => {
   if (!d) return false;
   const x = new Date(d).getTime();
@@ -59,7 +57,7 @@ export default function Stats() {
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
 
-  /* user (avatar/name) for header */
+  // header user (unchanged)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -114,7 +112,7 @@ export default function Stats() {
     return itemOptions.filter((n) => n.toLowerCase().includes(q));
   }, [itemOptions, itemInput]);
 
-  // snapshot of applied filters
+  // applied snapshot
   const [applied, setApplied] = useState({ range: "all", from: null, to: null, item: "" });
 
   const { fromMs, toMs } = useMemo(() => {
@@ -163,54 +161,15 @@ export default function Stats() {
     });
   }, [orders, applied, fromMs, toMs]);
 
-  /* ------------------------------- KPIs ------------------------------- */
-  const kpis = useMemo(() => {
-    const purchases = filtered.filter(o => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
-    const sales = filtered.filter(o => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs)));
-    const unsold = filtered.filter(o => cents(o.sale_price_cents) <= 0);
-
-    const spentC = purchases.reduce((a,o)=>a+cents(o.buy_price_cents),0);
-    const revenueC = sales.reduce((a,o)=>a+cents(o.sale_price_cents),0);
-    const feesC = sales.reduce((a,o)=>a+Math.round(cents(o.sale_price_cents)*(Number(o.fees_pct)||0)),0);
-    const shipOutC = sales.reduce((a,o)=>a+cents(o.shipping_cents),0);
-    const cogsC = sales.reduce((a,o)=>a+cents(o.buy_price_cents),0);
-
-    const realizedPlC = revenueC - feesC - shipOutC - cogsC;
-    const netAfterFeeShipC = revenueC - feesC - shipOutC;
-
-    const onHandCount = unsold.length;
-    const onHandCostC = unsold.reduce((a,o)=>a+cents(o.buy_price_cents),0);
-    const onHandMarketC = unsold.reduce((a,o)=>a+(marketByName.get((o.item||"").toLowerCase())||0),0);
-    const unrealizedPlC = onHandMarketC - onHandCostC;
-
-    return {
-      purchasesCount: purchases.length,
-      salesCount: sales.length,
-      onHandCount,
-      spentC,
-      revenueC,
-      feesC,
-      shipOutC,
-      cogsC,
-      realizedPlC,
-      netAfterFeeShipC,
-      onHandCostC,
-      onHandMarketC,
-      unrealizedPlC,
-      asp: sales.length ? revenueC / sales.length : 0,
-      avgFeeRate: revenueC > 0 ? feesC / revenueC : NaN,
-    };
-  }, [filtered, fromMs, toMs, marketByName]);
-
   /* ------------------------------- CHART DATA ------------------------------- */
   const chartSeries = useMemo(() => {
     const purchases = filtered.filter(o => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
     const sales = filtered.filter(o => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs)));
 
-    const mset = new Set();
-    for (const o of purchases) { const k = monthKey(o.order_date); if (k) mset.add(k); }
-    for (const o of sales) { const k = monthKey(o.sale_date); if (k) mset.add(k); }
-    const months = [...mset].sort((a,b)=>a.localeCompare(b));
+    const months = Array.from(new Set([
+      ...purchases.map((o) => monthKey(o.order_date)).filter(Boolean),
+      ...sales.map((o) => monthKey(o.sale_date)).filter(Boolean),
+    ])).sort((a,b)=>a.localeCompare(b));
 
     const purCnt = new Map(), salCnt = new Map(), cost = new Map(), revenue = new Map();
     for (const m of months) { purCnt.set(m,0); salCnt.set(m,0); cost.set(m,0); revenue.set(m,0); }
@@ -345,28 +304,7 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* KPI wrapper like Inventory: two columns on mobile */}
-        <div className={`${card} mt-6`}>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <KpiPill title="Bought" value={`${kpis.purchasesCount} items`} sub={`Spend $${centsToStr(kpis.spentC)}`} />
-            <KpiPill title="Sold" value={`${kpis.salesCount} items`} sub={`Revenue $${centsToStr(kpis.revenueC)}`} />
-            <KpiPill title="Inventory" value={`${kpis.onHandCount} on hand`} sub={`Cost $${centsToStr(kpis.onHandCostC)}`} />
-            <KpiPill title="Est. Value" value={`$${centsToStr(kpis.onHandMarketC)}`} sub="on-hand market" tone="unrealized" />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-            <KpiPill
-              title="Realized P/L"
-              value={`$${centsToStr(kpis.realizedPlC)}`}
-              sub={`Net after fees/ship $${centsToStr(kpis.netAfterFeeShipC)}`}
-              tone={kpis.realizedPlC > 0 ? "realized-pos" : kpis.realizedPlC < 0 ? "realized-neg" : "neutral"}
-            />
-            <KpiPill title="Fees" value={`$${centsToStr(kpis.feesC)}`} sub={`Avg Fee ${pctStr(kpis.avgFeeRate)}`} tone="cost" />
-            <KpiPill title="Shipping" value={`$${centsToStr(kpis.shipOutC)}`} tone="cost" />
-            <KpiPill title="ASP" value={`$${centsToStr(kpis.asp)}`} />
-          </div>
-        </div>
-
-        {/* Charts - visible bars now */}
+        {/* Charts */}
         <div className={`${card} mt-6`}>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div className="text-lg font-semibold">{currentChart.title}</div>
@@ -396,30 +334,52 @@ export default function Stats() {
                   <div className="min-w-0">
                     <div className="text-lg font-semibold truncate">{g.item}</div>
                   </div>
-                  <button onClick={() => toggleItem(g.item)} className="px-5 py-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">
-                    {open ? "Collapse" : "Expand"}
+                  <button
+                    onClick={() => toggleItem(g.item)}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
+                    aria-label={open ? "Collapse" : "Expand"}
+                    title={open ? "Collapse" : "Expand"}
+                  >
+                    {open ? (
+                      // X icon
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    ) : (
+                      // chevron-down
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    )}
                   </button>
                 </div>
 
                 {/* body */}
                 {open && (
                   <div className="mt-4 space-y-4">
-                    {/* pills in your specified order */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      <MiniPill title="Bought" value={`${g.bought}`} />
-                      <MiniPill title="Sold" value={`${g.sold}`} />
-                      <MiniPill title="On Hand" value={`${g.onHand}`} />
-                      <MiniPill title="Total Cost" value={`$${centsToStr(g.totalCostC)}`} tone="cost" />
-                      <MiniPill title="Total Revenue" value={`$${centsToStr(g.revenueC)}`} />
-                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} tone="cost" />
-                      <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} tone="cost" />
+                    {/* pills in requested order; responsive 2→3→4→5 columns */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} />
+                      <MiniPill title="Sold" value={`${g.sold}`} num={g.sold} />
+                      <MiniPill title="On Hand" value={`${g.onHand}`} num={g.onHand} />
+                      <MiniPill title="Total Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} tone="cost" />
+                      <MiniPill title="Total Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} />
+                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} tone="cost" />
+                      <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} tone="cost" />
                       <MiniPill
                         title="Realized P/L"
                         value={`$${centsToStr(g.realizedPlC)}`}
-                        tone={g.realizedPlC > 0 ? "realized-pos" : g.realizedPlC < 0 ? "realized-neg" : "neutral"}
+                        num={g.realizedPlC}
+                        tone="realized"
                       />
-                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} />
-                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} tone="unrealized" />
+                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} />
+                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} tone="unrealized" />
+
+                      {/* New pills */}
+                      <MiniPill title="ROI%" value={pctStr(g.roi)} num={g.roi} tone="ratio" />
+                      <MiniPill title="Margin%" value={pctStr(g.margin)} num={g.margin} tone="ratio" />
+                      <MiniPill title="Avg Hold" value={`${g.avgHoldDays.toFixed(0)}d`} num={g.avgHoldDays} />
+                      <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} />
                     </div>
                   </div>
                 )}
@@ -489,36 +449,6 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
   );
 }
 
-function KpiPill({ title, value, sub, tone = "neutral" }) {
-  let valueClass = "text-slate-100";
-  if (tone === "unrealized") valueClass = "text-indigo-400";
-  if (tone === "realized-pos") valueClass = "text-emerald-400";
-  if (tone === "realized-neg") valueClass = "text-rose-400";
-  if (tone === "cost") valueClass = "text-rose-400";
-
-  return (
-    <div className={pill}>
-      <div className="text-slate-400 text-sm">{title}</div>
-      <div className={`text-xl font-semibold mt-1 ${valueClass}`}>{value}</div>
-      {sub && <div className="text-slate-400 text-sm mt-0.5">{sub}</div>}
-    </div>
-  );
-}
-
-function MiniPill({ title, value, tone = "neutral" }) {
-  let cls = "text-slate-100";
-  if (tone === "cost") cls = "text-rose-400";
-  if (tone === "unrealized") cls = "text-indigo-400";
-  if (tone === "realized-pos") cls = "text-emerald-400";
-  if (tone === "realized-neg") cls = "text-rose-400";
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3">
-      <div className="text-slate-400 text-xs">{title}</div>
-      <div className={`text-base font-semibold mt-0.5 ${cls}`}>{value}</div>
-    </div>
-  );
-}
-
 function ChartTab({ value, label, cur, setCur }) {
   const active = cur === value;
   return (
@@ -531,42 +461,31 @@ function ChartTab({ value, label, cur, setCur }) {
   );
 }
 
-/* Visible vertical bar chart */
+/* Visible vertical bar chart (mobile-friendly) */
 function BarsVertical({ labels = [], values = [], money = false, emptyLabel = "No data." }) {
-  if (!values.length || values.every(v => !v)) return <div className="text-slate-400">{emptyLabel}</div>;
+  if (!values.length || values.every((v) => !v))
+    return <div className="text-slate-400">{emptyLabel}</div>;
 
-  // limit to last 12 buckets for readability on mobile
-  const start = Math.max(0, values.length - 12);
+  const start = Math.max(0, values.length - 12); // show last 12 buckets
   const L = labels.slice(start);
   const V = values.slice(start);
   const max = Math.max(1, ...V.map((v) => Math.abs(v)));
 
   return (
     <div className="w-full">
-      <div className="relative h-48">
-        {/* faint grid */}
-        <div className="absolute inset-0">
-          <div className="absolute left-0 right-0 top-1/4 border-t border-slate-800/70" />
-          <div className="absolute left-0 right-0 top-1/2 border-t border-slate-800/70" />
-          <div className="absolute left-0 right-0 top-3/4 border-t border-slate-800/70" />
-        </div>
-
-        <div className="absolute inset-x-0 bottom-0 flex items-end" style={{ gap: "10px" }}>
-          {V.map((v, i) => {
-            const hPct = (Math.abs(v) / max) * 100;
-            return (
-              <div key={i} className="flex-1 min-w-[16px] flex flex-col items-center">
-                <div className="w-full rounded-t bg-indigo-500" style={{ height: `${hPct}%` }} />
-                <div className="mt-1 text-[10px] text-slate-300">
-                  {money ? `$${centsToStr(v)}` : v}
-                </div>
+      <div className="h-48 flex items-end gap-2">
+        {V.map((v, i) => {
+          const h = (Math.abs(v) / max) * 100;
+          return (
+            <div key={i} className="flex-1 min-w-[18px] flex flex-col items-center">
+              <div className="w-full rounded-t bg-indigo-500/90" style={{ height: `${h}%` }} />
+              <div className="mt-1 text-[10px] text-slate-200">
+                {money ? `$${centsToStr(v)}` : v}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
-
-      {/* bottom labels */}
       <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
         {L.map((l, i) => (
           <div key={i} className="truncate">{l}</div>
@@ -587,11 +506,14 @@ function makeItemGroups(filtered, marketByName) {
         bought: 0,
         sold: 0,
         onHand: 0,
-        feesC: 0,
-        shipC: 0,
         totalCostC: 0,
         revenueC: 0,
+        feesC: 0,
+        shipC: 0,
         realizedPlC: 0,
+        soldCostC: 0,
+        holdDaysTotal: 0,
+        holdSamples: 0,
         onHandMarketC: 0,
         unitMarketC: 0,
       });
@@ -610,15 +532,50 @@ function makeItemGroups(filtered, marketByName) {
       row.feesC += fee;
       row.shipC += ship;
       row.realizedPlC += rev - fee - ship - cost;
+      row.soldCostC += cost;
+
+      const od = new Date(o.order_date).getTime();
+      const sd = new Date(o.sale_date).getTime();
+      if (!isNaN(od) && !isNaN(sd) && sd >= od) {
+        row.holdDaysTotal += Math.round((sd - od) / (24 * 3600 * 1000));
+        row.holdSamples += 1;
+      }
     } else {
       row.onHand += 1;
       const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
-      row.unitMarketC = mv; // unit market price from items table
+      row.unitMarketC = mv; // unit market value snapshot
     }
   }
-  const out = [...m.values()];
-  // order by revenue then on-hand market
+
+  const out = [...m.values()].map((r) => {
+    const margin = r.revenueC > 0 ? r.realizedPlC / r.revenueC : NaN;
+    const roi = r.soldCostC > 0 ? r.realizedPlC / r.soldCostC : NaN;
+    const avgHoldDays = r.holdSamples > 0 ? r.holdDaysTotal / r.holdSamples : 0;
+    const aspC = r.sold > 0 ? Math.round(r.revenueC / r.sold) : 0;
+    return { ...r, margin, roi, avgHoldDays, aspC };
+  });
+
+  // order: revenue then on-hand market
   out.sort((a, b) => (b.revenueC - a.revenueC) || (b.onHandMarketC - a.onHandMarketC));
   return out.slice(0, 400);
+}
+
+/* -------------------------- tiny UI atoms -------------------------- */
+function MiniPill({ title, value, tone = "neutral", num = null }) {
+  // Zero is always neutral (white)
+  const isZero = num === 0;
+  let cls = "text-slate-100";
+  if (!isZero) {
+    if (tone === "cost") cls = "text-rose-400";
+    if (tone === "unrealized") cls = "text-indigo-400";
+    if (tone === "realized") cls = num > 0 ? "text-emerald-400" : "text-rose-400";
+    if (tone === "ratio") cls = num > 0 ? "text-emerald-400" : num < 0 ? "text-rose-400" : "text-slate-100";
+  }
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3">
+      <div className="text-slate-400 text-xs">{title}</div>
+      <div className={`text-base font-semibold mt-0.5 ${cls}`}>{value}</div>
+    </div>
+  );
 }
