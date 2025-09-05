@@ -58,6 +58,7 @@ export default function Stats() {
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
 
+  // header user (unchanged)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -308,7 +309,7 @@ export default function Stats() {
         </div>
 
         {/* Chart (single card, tabbed) */}
-        <div className={`${card} mt-6 relative z-0`}>
+        <div className={`${card} mt-6`}>
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-lg font-semibold">
@@ -359,10 +360,12 @@ export default function Stats() {
                     title={open ? "Collapse" : "Expand"}
                   >
                     {open ? (
+                      // X icon
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     ) : (
+                      // chevron-down
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m6 9 6 6 6-6" />
                       </svg>
@@ -373,7 +376,7 @@ export default function Stats() {
                 {/* body */}
                 {open && (
                   <div className="mt-4 space-y-4">
-                    {/* responsive 2→3→4→5 columns */}
+                    {/* pills in your chosen order; responsive 2→3→4→5 columns */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                       <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} sub="total purchases" />
                       <MiniPill title="Sold" value={`${g.sold}`} num={g.sold} sub="total sold" />
@@ -405,7 +408,6 @@ export default function Stats() {
 }
 
 /* --------------------------- small components --------------------------- */
-
 function QuickBtn({ active, onClick, label }) {
   return (
     <button
@@ -490,62 +492,63 @@ function ChartTab({ value, label, cur, setCur }) {
 }
 
 /* ---------------------- Responsive dual-series bars ---------------------- */
-/* Pure SVG; fits any container without horizontal scroll. */
+/* Pure SVG that fills the card width. */
 function DualBars({ labels = [], a, b, money = false }) {
-  // nothing to show?
   const hasAny = (arr) => arr && arr.some((v) => Number(v) > 0);
   if (!labels.length || (!hasAny(a.values) && !hasAny(b.values))) {
     return <div className="text-slate-400">No data in this view.</div>;
   }
 
-  // Trim to last 12 buckets for readability
+  // Last up to 12 buckets for readability
   const clip = Math.max(0, labels.length - 12);
   const L = labels.slice(clip);
   const A = a.values.slice(clip);
   const B = b.values.slice(clip);
 
-  // Nice padded max so tallest bar never hits the top
-  const maxVal = niceMax(Math.max(1, ...A, ...B));
-  const ticks = 4; // y grid lines (plus 0)
-  const H = 240;  // inner chart height
-  const M = { top: 6, right: 12, bottom: 28, left: 64 }; // margins
-  const W = 820; // viewBox width (scales to container)
+  // Y axis: 1.5x headroom, then rounded to a nice step
+  const rawMax = Math.max(1, ...A, ...B);
+  const maxVal = niceMax(rawMax * 1.5);
 
+  const H = 280;                     // inner chart height
+  const M = { top: 8, right: 12, bottom: 32, left: 64 };
+  const W = 1200;                    // viewBox width; scales to container
   const innerW = W - M.left - M.right;
-  const innerH = H - 0; // already left space with M.top/bottom
 
   const barBand = innerW / L.length;
-  const gap = Math.min(10, barBand * 0.2);
+  const gap = Math.min(12, barBand * 0.25);
   const groupWidth = Math.max(10, barBand - gap);
-  const single = Math.max(6, groupWidth / 2 - 2);
+  const single = Math.max(8, groupWidth / 2 - 4);
 
-  // y scale (0 bottom -> maxVal top)
+  // y scale (0 at bottom)
   const y = (v) => {
     const t = Math.min(maxVal, Math.max(0, Number(v)));
     const ratio = t / maxVal;
-    return M.top + (H - ratio * H); // 0 at bottom
+    return M.top + (H - ratio * H);
   };
 
   const fmtY = (v) => (money ? `$${centsToStr(v)}` : `${v}`);
 
   return (
     <div className="w-full">
-      {/* Legend (stacked) */}
+      {/* Legend (stacked; dots on the RIGHT) */}
       <div className="flex flex-col items-end text-xs text-slate-300 gap-1">
-        <LegendDot color={a.color} label={a.name} />
-        <LegendDot color={b.color} label={b.name} />
+        <LegendDot color={a.color} label={a.name} rightDot />
+        <LegendDot color={b.color} label={b.name} rightDot />
       </div>
 
       <div className="mt-2 w-full">
-        <svg viewBox={`0 0 ${W} ${H + M.bottom}`} className="w-full h-[260px] block">
-          {/* grid + axes */}
+        <svg
+          viewBox={`0 0 ${W} ${H + M.bottom}`}
+          className="w-full h-[320px] block"
+        >
+          {/* grid + y labels */}
           {[0,1,2,3,4].map((i) => {
             const val = (maxVal / 4) * i;
             const yy = y(val);
             return (
               <g key={i}>
                 <line x1={M.left} y1={yy} x2={W - M.right} y2={yy} stroke="#0f172a" opacity="0.7" />
-                <text x={M.left - 8} y={yy+4} textAnchor="end" className="fill-slate-300 text-[10px]">
+                <text x={M.left - 8} y={yy + 4} textAnchor="end" className="fill-slate-300 text-[10px]">
                   {fmtY(val)}
                 </text>
               </g>
@@ -554,7 +557,7 @@ function DualBars({ labels = [], a, b, money = false }) {
 
           {/* bars */}
           {L.map((label, i) => {
-            const x0 = M.left + i * barBand + gap/2 + (groupWidth - single*2)/2;
+            const xLeft = M.left + i * barBand + (barBand - (single * 2 + 6)) / 2;
 
             const aH = H - (y(A[i]) - M.top);
             const bH = H - (y(B[i]) - M.top);
@@ -563,7 +566,7 @@ function DualBars({ labels = [], a, b, money = false }) {
               <g key={label}>
                 {/* A */}
                 <rect
-                  x={x0}
+                  x={xLeft}
                   y={y(A[i])}
                   width={single}
                   height={aH}
@@ -573,7 +576,7 @@ function DualBars({ labels = [], a, b, money = false }) {
                 />
                 {/* B */}
                 <rect
-                  x={x0 + single + 4}
+                  x={xLeft + single + 6}
                   y={y(B[i])}
                   width={single}
                   height={bH}
@@ -583,8 +586,8 @@ function DualBars({ labels = [], a, b, money = false }) {
                 />
                 {/* x labels */}
                 <text
-                  x={M.left + i * barBand + barBand/2}
-                  y={H + 18}
+                  x={M.left + i * barBand + barBand / 2}
+                  y={H + 22}
                   textAnchor="middle"
                   className="fill-slate-400 text-[10px]"
                 >
@@ -599,19 +602,17 @@ function DualBars({ labels = [], a, b, money = false }) {
   );
 }
 
-function LegendDot({ color, label }) {
+function LegendDot({ color, label, rightDot = false }) {
   return (
     <div className="flex items-center gap-2">
-      <span
-        className="inline-block w-3 h-3 rounded-full"
-        style={{ backgroundColor: color, opacity: 0.9 }}
-      />
+      {!rightDot && <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: color, opacity: 0.9 }} />}
       <span>{label}</span>
+      {rightDot && <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: color, opacity: 0.9 }} />}
     </div>
   );
 }
 
-// Pad the y-axis max to “nice” 1/2/5 steps.
+// Round to “nice” 1/2/5 steps (no extra 2x jump)
 function niceMax(v) {
   if (v <= 0) return 1;
   const pow = Math.pow(10, Math.floor(Math.log10(v)));
@@ -621,9 +622,7 @@ function niceMax(v) {
   else if (n <= 2) step = 2;
   else if (n <= 5) step = 5;
   else step = 10;
-  const max = step * pow;
-  // Add a little headroom (10%) so tallest bar never hits the top edge
-  return Math.ceil(max * 1.1);
+  return step * pow;
 }
 
 /* -------- per-item aggregation for expandable cards -------- */
@@ -675,7 +674,7 @@ function makeItemGroups(filtered, marketByName) {
       row.onHand += 1;
       const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
-      row.unitMarketC = mv;
+      row.unitMarketC = mv; // unit market value snapshot
     }
   }
 
@@ -687,6 +686,7 @@ function makeItemGroups(filtered, marketByName) {
     return { ...r, margin, roi, avgHoldDays, aspC };
   });
 
+  // order: revenue then on-hand market
   out.sort((a, b) => (b.revenueC - a.revenueC) || (b.onHandMarketC - a.onHandMarketC));
   return out.slice(0, 400);
 }
@@ -695,6 +695,8 @@ function makeItemGroups(filtered, marketByName) {
 function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
   const n = Number.isFinite(num) ? num : 0;
   const isZero = n === 0;
+
+  // Default white; only special cases: unrealized (blue), realized>0 (green). Zero dims.
   let color = "text-slate-100";
   if (tone === "unrealized") color = isZero ? "text-slate-400" : "text-indigo-400";
   if (tone === "realized") color = n > 0 ? "text-emerald-400" : isZero ? "text-slate-400" : "text-slate-100";
