@@ -35,11 +35,38 @@ const fmtNiceDate = (yyyyMmDd) => {
     year: "numeric",
   });
 };
-const toMDY = (yyyyMmDd) => {
+
+/* Build a fat keyword string for a yyyy-mm-dd to allow matches like
+   "april", "apr 17", "april 2025", "04/17", "4/17/2025", etc. */
+function dateKeywords(yyyyMmDd) {
   if (!yyyyMmDd) return "";
-  const [y, m, d] = yyyyMmDd.split("-");
-  return `${m}/${d}/${y}`;
-};
+  const [yStr, mStr, dStr] = yyyyMmDd.split("-");
+  const y = Number(yStr), m = Number(mStr), d = Number(dStr);
+  const monthLong = [
+    "january","february","march","april","may","june",
+    "july","august","september","october","november","december"
+  ][(m || 1) - 1];
+  const monthShort = monthLong.slice(0,3);
+
+  const m1 = String(m);
+  const m2 = m.toString().padStart(2,"0");
+  const d1 = String(d);
+  const d2 = d.toString().padStart(2,"0");
+
+  return [
+    // plain month/day/year permutations
+    `${m1}/${d1}`, `${m2}/${d2}`, `${m1}/${d1}/${y}`, `${m2}/${d2}/${y}`,
+    // month names
+    `${monthLong}`, `${monthShort}`,
+    `${monthLong} ${d1}`, `${monthLong} ${d2}`,
+    `${monthShort} ${d1}`, `${monthShort} ${d2}`,
+    `${monthLong} ${y}`, `${monthShort} ${y}`,
+    `${monthLong} ${d1} ${y}`, `${monthLong} ${d2} ${y}`,
+    `${monthShort} ${d1} ${y}`, `${monthShort} ${d2} ${y}`,
+    // iso
+    `${yStr}-${mStr}-${dStr}`,
+  ].join(" ").toLowerCase();
+}
 
 /* ---------- queries ---------- */
 async function getOrders(limit = 500) {
@@ -94,7 +121,7 @@ export default function OrderBook() {
     queryFn: getMarkets,
   });
 
-  // Date input consistency (mobile/desktop)
+  // Normalize native date input rendering
   useEffect(() => {
     const tag = document.createElement("style");
     tag.innerHTML = `
@@ -106,41 +133,34 @@ export default function OrderBook() {
     return () => document.head.removeChild(tag);
   }, []);
 
-  /* search + date filters */
+  /* single fuzzy search bar */
   const [q, setQ] = useState("");
-  const [filterOrderDate, setFilterOrderDate] = useState(""); // YYYY-MM-DD
-  const [filterSaleDate, setFilterSaleDate] = useState(""); // YYYY-MM-DD
 
   const filtered = useMemo(() => {
-    const t = (q || "").trim().toLowerCase();
-    let list = orders;
+    const query = (q || "").trim().toLowerCase();
+    if (!query) return orders;
 
-    if (t) {
-      list = list.filter((o) => {
-        const mdyOrder = toMDY(o.order_date || "");
-        const mdySale = toMDY(o.sale_date || "");
-        return (
-          (o.item || "").toLowerCase().includes(t) ||
-          (o.retailer || "").toLowerCase().includes(t) ||
-          (o.marketplace || "").toLowerCase().includes(t) ||
-          (o.profile_name || "").toLowerCase().includes(t) ||
-          (o.order_date || "").includes(t) ||
-          (o.sale_date || "").includes(t) ||
-          mdyOrder.toLowerCase().includes(t) ||
-          mdySale.toLowerCase().includes(t)
-        );
-      });
-    }
+    // Token-based AND search (order of tokens doesn't matter)
+    const tokens = query.split(/\s+/).filter(Boolean);
 
-    if (filterOrderDate) {
-      list = list.filter((o) => (o.order_date || "") === filterOrderDate);
-    }
-    if (filterSaleDate) {
-      list = list.filter((o) => (o.sale_date || "") === filterSaleDate);
-    }
+    return orders.filter((o) => {
+      const haystack =
+        [
+          o.item || "",
+          o.retailer || "",
+          o.marketplace || "",
+          o.profile_name || "",
+          // Add very permissive date keywords for both dates
+          dateKeywords(o.order_date || ""),
+          dateKeywords(o.sale_date || ""),
+        ]
+          .join(" ")
+          .toLowerCase();
 
-    return list;
-  }, [orders, q, filterOrderDate, filterSaleDate]);
+      // every token must be present somewhere
+      return tokens.every((t) => haystack.includes(t));
+    });
+  }, [orders, q]);
 
   /* group by order_date */
   const grouped = useMemo(() => {
@@ -169,48 +189,26 @@ export default function OrderBook() {
 
         {/* Search + meta */}
         <div className={`${pageCard} mb-6`}>
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 items-end">
-            <div className="lg:col-span-3">
+          <div className="grid grid-cols-1 gap-3 items-end">
+            <div>
               <label className="text-slate-300 mb-1 block text-sm">Search</label>
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="item / retailer / marketplace / profile / date…"
+                placeholder="item / retailer / marketplace / profile / date (e.g., April, Jun 17, 04/17/2025)…"
                 className={inputSm}
               />
             </div>
 
-            <div>
-              <label className="text-slate-300 mb-1 block text-sm">Order date</label>
-              <input
-                type="date"
-                value={filterOrderDate}
-                onChange={(e) => setFilterOrderDate(e.target.value)}
-                className={`tw-date ${inputSm}`}
-              />
-            </div>
-
-            <div>
-              <label className="text-slate-300 mb-1 block text-sm">Sale date</label>
-              <input
-                type="date"
-                value={filterSaleDate}
-                onChange={(e) => setFilterSaleDate(e.target.value)}
-                className={`tw-date ${inputSm}`}
-              />
-            </div>
-
-            <div className="lg:col-span-5 flex items-center gap-4">
+            <div className="flex items-center gap-4">
               <div className="text-slate-400 text-sm">Rows</div>
               <div className="text-xl font-semibold">{filtered.length}</div>
-              {(filterOrderDate || filterSaleDate || q) && (
+              {!!q && (
                 <button
-                  onClick={() => {
-                    setQ(""); setFilterOrderDate(""); setFilterSaleDate("");
-                  }}
+                  onClick={() => setQ("")}
                   className="ml-auto h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                 >
-                  Clear filters
+                  Clear search
                 </button>
               )}
             </div>
@@ -266,7 +264,6 @@ function DayCard({
     if (!dateKey || dateKey === "__unknown__") return;
     setAdding(true);
     try {
-      // Insert a minimal blank row for this day
       const base = {
         order_date: dateKey,
         item: null,
@@ -301,18 +298,21 @@ function DayCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={addNewForDay}
-            disabled={!dateKey || dateKey === "__unknown__" || adding}
-            className={`h-9 px-4 rounded-xl border border-slate-800 ${
-              adding
-                ? "bg-slate-800 text-slate-300 cursor-not-allowed"
-                : "bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-            }`}
-            title={dateKey === "__unknown__" ? "Unknown date" : `Add new for ${title}`}
-          >
-            {adding ? "Adding…" : "+ New on this date"}
-          </button>
+          {/* Only show Add when expanded */}
+          {open && (
+            <button
+              onClick={addNewForDay}
+              disabled={!dateKey || dateKey === "__unknown__" || adding}
+              className={`h-9 px-4 rounded-xl border border-slate-800 ${
+                adding
+                  ? "bg-slate-800 text-slate-300 cursor-not-allowed"
+                  : "bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+              }`}
+              title={dateKey === "__unknown__" ? "Unknown date" : `Add order on ${title}`}
+            >
+              {adding ? "Adding…" : "Add Order"}
+            </button>
+          )}
 
           <button
             onClick={() => setOpen((v) => !v)}
@@ -515,8 +515,13 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
           className={`${inputSm} w-24`}
         />
 
-        {/* actions */}
-        <div className="w-20 shrink-0 flex items-center justify-end gap-2">
+        {/* actions — pinned bottom-right on mobile, fixed column on desktop */}
+        <div
+          className="
+            order-2 w-full flex justify-end gap-2 mt-2
+            lg:order-none lg:w-20 lg:mt-0 lg:shrink-0
+          "
+        >
           {/* Save */}
           <button
             type="button"
