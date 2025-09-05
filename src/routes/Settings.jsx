@@ -1,11 +1,21 @@
+// src/routes/Settings.jsx
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import HeaderWithTabs from '../components/HeaderWithTabs.jsx'
 
-const tabBase = "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
-const tabActive = "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600"
-const actionBtn = "w-full sm:w-[92px] h-10 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100"
+const tabBase =
+  "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
+const tabActive =
+  "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600"
+
+// small utility button (kept for “Add”)
+const actionBtn =
+  "w-full sm:w-[92px] h-10 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100"
+
+// match Order Book Expand button
+const expandBtn =
+  "h-11 px-5 inline-flex items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 transition"
 
 // money helpers
 const parseMoney = (v) => {
@@ -42,9 +52,9 @@ async function getMarkets() {
 }
 
 export default function Settings() {
-  const { data: items = [], refetch: refetchItems } = useQuery({ queryKey: ['items'],      queryFn: getItems })
-  const { data: retailers = [], refetch: refetchRetailers } = useQuery({ queryKey: ['retailers'],  queryFn: getRetailers })
-  const { data: markets = [], refetch: refetchMarkets } = useQuery({ queryKey: ['markets'],   queryFn: getMarkets })
+  const { data: items = [], refetch: refetchItems } = useQuery({ queryKey: ['items'], queryFn: getItems })
+  const { data: retailers = [], refetch: refetchRetailers } = useQuery({ queryKey: ['retailers'], queryFn: getRetailers })
+  const { data: markets = [], refetch: refetchMarkets } = useQuery({ queryKey: ['markets'], queryFn: getMarkets })
 
   // current user (avatar/name)
   const [userInfo, setUserInfo] = useState({ avatar_url: '', username: '' })
@@ -168,7 +178,7 @@ export default function Settings() {
               )}
               <button
                 onClick={() => { const n = !openItems; setOpenItems(n); if (!n) setAddingItem(false) }}
-                className={actionBtn}
+                className={expandBtn}
               >
                 {openItems ? 'Collapse' : 'Expand'}
               </button>
@@ -225,7 +235,7 @@ export default function Settings() {
               )}
               <button
                 onClick={() => { const n = !openRetailers; setOpenRetailers(n); if (!n) setAddingRetailer(false) }}
-                className={actionBtn}
+                className={expandBtn}
               >
                 {openRetailers ? 'Collapse' : 'Expand'}
               </button>
@@ -280,7 +290,7 @@ export default function Settings() {
               )}
               <button
                 onClick={() => { const n = !openMarkets; setOpenMarkets(n); if (!n) setAddingMarket(false) }}
-                className={actionBtn}
+                className={expandBtn}
               >
                 {openMarkets ? 'Collapse' : 'Expand'}
               </button>
@@ -329,15 +339,67 @@ export default function Settings() {
 
 /* ---------- Row components ---------- */
 
+function IconSave({ className = 'h-5 w-5' }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  )
+}
+function IconTrash({ className = 'h-5 w-5' }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+    </svg>
+  )
+}
+
+function IconBtnSave({ onClick, disabled, title }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={title || (disabled ? 'Saving…' : 'Save')}
+      title={title || (disabled ? 'Saving…' : 'Save')}
+      className={`inline-flex items-center justify-center h-9 w-9 rounded-lg
+                  ${disabled ? 'bg-slate-700 text-slate-300 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700 text-slate-100'}
+                  border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+    >
+      <IconSave />
+    </button>
+  )
+}
+function IconBtnTrash({ onClick, title }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={title || 'Delete'}
+      title={title || 'Delete'}
+      className="inline-flex items-center justify-center h-9 w-9 rounded-lg
+                 bg-rose-600 hover:bg-rose-500 text-white border border-rose-700
+                 focus:outline-none focus:ring-2 focus:ring-rose-500"
+    >
+      <IconTrash />
+    </button>
+  )
+}
+
 function ItemRow({ it, isNew=false, onSave, onDelete }) {
   const [name, setName] = useState(it?.name ?? '')
   const [mv, setMv] = useState(centsToStr(it?.market_value_cents ?? 0))
   const [status, setStatus] = useState('')
+  const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    setStatus('Saving…')
+    setSaving(true); setStatus('Saving…')
     const ok = await onSave(name, mv)
     setStatus(ok ? 'Saved ✓' : 'Error')
+    setSaving(false)
     if (ok) setTimeout(() => setStatus(''), 1500)
   }
 
@@ -356,14 +418,9 @@ function ItemRow({ it, isNew=false, onSave, onDelete }) {
           onChange={(e) => setMv(e.target.value)}
           placeholder="e.g. 129.99"
         />
-        <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-          <button onClick={handleSave} className="w-full sm:w-[92px] h-10 px-4 rounded-lg bg-slate-800 hover:bg-slate-700">Save</button>
-          <button
-            onClick={onDelete}
-            className={`w-full sm:w-[92px] h-10 px-4 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
-          >
-            {isNew ? 'Cancel' : 'Delete'}
-          </button>
+        <div className="flex items-center justify-end gap-2">
+          <IconBtnSave onClick={handleSave} disabled={saving} />
+          <IconBtnTrash onClick={onDelete} title={isNew ? 'Cancel' : 'Delete'} />
         </div>
       </div>
       {status && (
@@ -378,11 +435,13 @@ function ItemRow({ it, isNew=false, onSave, onDelete }) {
 function RetailerRow({ r, isNew=false, onSave, onDelete }) {
   const [name, setName] = useState(r?.name ?? '')
   const [status, setStatus] = useState('')
+  const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    setStatus('Saving…')
+    setSaving(true); setStatus('Saving…')
     const ok = await onSave(name)
     setStatus(ok ? 'Saved ✓' : 'Error')
+    setSaving(false)
     if (ok) setTimeout(() => setStatus(''), 1500)
   }
 
@@ -395,14 +454,9 @@ function RetailerRow({ r, isNew=false, onSave, onDelete }) {
           onChange={(e) => setName(e.target.value)}
           placeholder="Retailer name…"
         />
-        <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-          <button onClick={handleSave} className="w-full sm:w-[92px] h-10 px-4 rounded-lg bg-slate-800 hover:bg-slate-700">Save</button>
-          <button
-            onClick={onDelete}
-            className={`w-full sm:w-[92px] h-10 px-4 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
-          >
-            {isNew ? 'Cancel' : 'Delete'}
-          </button>
+        <div className="flex items-center justify-end gap-2">
+          <IconBtnSave onClick={handleSave} disabled={saving} />
+          <IconBtnTrash onClick={onDelete} title={isNew ? 'Cancel' : 'Delete'} />
         </div>
       </div>
       {status && (
@@ -418,11 +472,13 @@ function MarketRow({ m, isNew=false, onSave, onDelete }) {
   const [name, setName] = useState(m?.name ?? '')
   const [fee, setFee] = useState(((m?.default_fees_pct ?? 0) * 100).toString())
   const [status, setStatus] = useState('')
+  const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    setStatus('Saving…')
+    setSaving(true); setStatus('Saving…')
     const ok = await onSave(name, fee)
     setStatus(ok ? 'Saved ✓' : 'Error')
+    setSaving(false)
     if (ok) setTimeout(() => setStatus(''), 1500)
   }
 
@@ -441,14 +497,9 @@ function MarketRow({ m, isNew=false, onSave, onDelete }) {
           onChange={(e) => setFee(e.target.value)}
           placeholder="Fee %"
         />
-        <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-          <button onClick={handleSave} className="w-full sm:w-[92px] h-10 px-4 rounded-lg bg-slate-800 hover:bg-slate-700">Save</button>
-          <button
-            onClick={onDelete}
-            className={`w-full sm:w-[92px] h-10 px-4 rounded-lg ${isNew ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
-          >
-            {isNew ? 'Cancel' : 'Delete'}
-          </button>
+        <div className="flex items-center justify-end gap-2">
+          <IconBtnSave onClick={handleSave} disabled={saving} />
+          <IconBtnTrash onClick={onDelete} title={isNew ? 'Cancel' : 'Delete'} />
         </div>
       </div>
       {status && (
