@@ -1,5 +1,5 @@
 // src/routes/Settings.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
@@ -60,6 +60,68 @@ async function getMarkets() {
   return data;
 }
 
+/* --------- duplicate helpers for import --------- */
+function normalizeTokens(str) {
+  return new Set(
+    String(str)
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 1)
+  );
+}
+function isSubset(sub, sup) {
+  for (const t of sub) if (!sup.has(t)) return false;
+  return true;
+}
+
+/* --------- OCR → extract item titles + market prices --------- */
+function extractProductsFromText(text) {
+  // Parse line-by-line, look for "Market Price: $x.xx", pair with most recent title above it.
+  const lines = String(text)
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const found = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(
+      /market\s*price[:\s]*\$?\s*([0-9]+(?:\.[0-9]{2})?)/i
+    );
+    if (!m) continue;
+    const priceStr = m[1];
+
+    // find the nearest reasonable title upward
+    let title = "";
+    for (let j = i - 1; j >= 0; j--) {
+      const L = lines[j];
+      if (/^sv[:\s]/i.test(L)) continue; // "SV: Black Bolt"
+      if (/listings?\s+from/i.test(L)) continue;
+      if (/^\$?\d+(?:\.\d{2})?$/.test(L)) continue; // big price
+      if (/market\s*price/i.test(L)) continue;
+      if (/[a-z]/i.test(L) && L.length >= 3) {
+        title = L;
+        break;
+      }
+    }
+    if (!title) continue;
+
+    found.push({
+      name: title,
+      marketValue: parseMoney(priceStr),
+    });
+  }
+
+  // de-dupe identical names within this import
+  const seen = new Set();
+  return found.filter((f) => {
+    const key = f.name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export default function Settings() {
   const { data: items = [], refetch: refetchItems } = useQuery({
     queryKey: ["items"],
@@ -78,7 +140,9 @@ export default function Settings() {
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return setUserInfo({ avatar_url: "", username: "" });
       const m = user.user_metadata || {};
       const username =
@@ -118,6 +182,79 @@ export default function Settings() {
   const [addingItem, setAddingItem] = useState(false);
   const [addingRetailer, setAddingRetailer] = useState(false);
   const [addingMarket, setAddingMarket] = useState(false);
+
+  /* ---------- NEW: import-from-image state ---------- */
+  const [importedItems, setImportedItems] = useState([]); // [{name, market_value_cents}]
+  const [importWarnings, setImportWarnings] = useState([]);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  function askImportImage() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleImportImage(ev) {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    setImportWarnings([]);
+    setImporting(true);
+    try {
+      // lazy-load tesseract so it doesn't affect first paint
+      const Tesseract = await import("tesseract.js");
+      const { data } = await Tesseract.recognize(file, "eng");
+      const found = extractProductsFromText(data.text);
+
+      // build token sets for duplicate detection
+      const existingTokens = items.map((i) => normalizeTokens(i.name));
+      const stagedTokens = importedItems.map((i) => normalizeTokens(i.name));
+
+      const next = [];
+      const warns = [];
+      for (const f of found) {
+        const name = f.name.trim();
+        const tokens = normalizeTokens(name);
+
+        // duplicate if all words already contained in any existing/staged name
+        let dup = false;
+        for (let t of existingTokens) {
+          if (isSubset(tokens, t)) {
+            dup = true;
+            break;
+          }
+        }
+        if (!dup) {
+          for (let t of stagedTokens) {
+            if (isSubset(tokens, t)) {
+              dup = true;
+              break;
+            }
+          }
+        }
+        if (dup) {
+          warns.push(`Skipped duplicate: "${name}"`);
+          continue;
+        }
+
+        next.push({
+          name,
+          market_value_cents: Math.round((f.marketValue || 0) * 100),
+        });
+      }
+
+      if (next.length) {
+        if (!openItems) setOpenItems(true);
+        setImportedItems((prev) => [...next, ...prev]);
+      }
+      if (warns.length) setImportWarnings(warns);
+    } catch (err) {
+      setImportWarnings([
+        `Import failed: ${err?.message || String(err)}`,
+      ]);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   /* ----- CRUD: Items ----- */
   async function createItem(name, mvStr) {
@@ -211,6 +348,37 @@ export default function Settings() {
             </div>
 
             <div className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0">
+              {/* hidden file input for image import */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImportImage}
+              />
+              {openItems && (
+                <button
+                  onClick={askImportImage}
+                  className={headerIconBtn}
+                  aria-label={importing ? "Importing…" : "Import from image"}
+                  title={importing ? "Importing…" : "Import from image"}
+                  disabled={importing}
+                >
+                  {/* image/import icon */}
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 7a2 2 0 0 1 2-2h2l1-2h6l1 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+                    <circle cx="12" cy="13" r="3" />
+                  </svg>
+                </button>
+              )}
               {openItems && !addingItem && (
                 <button
                   onClick={() => setAddingItem(true)}
@@ -235,7 +403,10 @@ export default function Settings() {
                 onClick={() => {
                   const n = !openItems;
                   setOpenItems(n);
-                  if (!n) setAddingItem(false);
+                  if (!n) {
+                    setAddingItem(false);
+                    setImportWarnings([]);
+                  }
                 }}
                 className={headerGhostBtn}
               >
@@ -243,6 +414,15 @@ export default function Settings() {
               </button>
             </div>
           </div>
+
+          {/* import warnings */}
+          {!!importWarnings.length && openItems && (
+            <div className="mt-3 rounded-lg border border-amber-600/50 bg-amber-500/10 text-amber-300 text-sm px-3 py-2">
+              {importWarnings.map((w, i) => (
+                <div key={i}>{w}</div>
+              ))}
+            </div>
+          )}
 
           {openItems && (
             <div className="pt-5">
@@ -253,6 +433,26 @@ export default function Settings() {
               </div>
 
               <div className="space-y-3">
+                {/* NEW: staged imported rows (unsaved) */}
+                {importedItems.map((it, idx) => (
+                  <ItemRow
+                    key={`imp-${idx}-${it.name}`}
+                    it={it}
+                    isNew
+                    onSave={async (name, mv) => {
+                      const ok = await createItem(name, mv);
+                      if (ok)
+                        setImportedItems((prev) =>
+                          prev.filter((_, i) => i !== idx)
+                        );
+                      return ok;
+                    }}
+                    onDelete={() =>
+                      setImportedItems((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                  />
+                ))}
+
                 {addingItem && (
                   <ItemRow
                     isNew
@@ -272,7 +472,7 @@ export default function Settings() {
                     onDelete={() => deleteItem(it.id)}
                   />
                 ))}
-                {!items.length && !addingItem && (
+                {!items.length && !addingItem && !importedItems.length && (
                   <div className="text-slate-400">No items yet.</div>
                 )}
               </div>
