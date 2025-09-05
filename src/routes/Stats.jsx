@@ -24,6 +24,9 @@ const within = (d, from, to) => {
   if (to && x > to) return false;
   return true;
 };
+const normalizeItemFilter = (v) =>
+  !v || v.trim().toLowerCase() === "all items" ? "" : v.trim();
+
 const monthKey = (d) => {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return null;
@@ -55,7 +58,7 @@ export default function Stats() {
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
 
-  // user (header)
+  // header user (unchanged)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -81,16 +84,14 @@ export default function Stats() {
   }, []);
 
   /* --------------------------- filter controls -------------------------- */
-  // quick range: all | month | 30 | year | custom
-  const [range, setRange] = useState("all");
+  const [range, setRange] = useState("all"); // all | month | 30 | year | custom
   const [fromStr, setFromStr] = useState("");
   const [toStr, setToStr] = useState("");
 
-  // searchable item combobox
   const [itemOpen, setItemOpen] = useState(false);
   const [itemInput, setItemInput] = useState("All Items");
-  const [itemIsExact, setItemIsExact] = useState(false); // exact match when chosen from list
   const comboRef = useRef(null);
+
   useEffect(() => {
     function onDocClick(e) {
       if (!comboRef.current) return;
@@ -102,7 +103,9 @@ export default function Stats() {
 
   const itemOptions = useMemo(() => {
     const names = items.map((i) => i.name).filter(Boolean);
-    const uniq = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+    const uniq = Array.from(new Set(names)).sort((a, b) =>
+      a.localeCompare(b)
+    );
     return ["All Items", ...uniq];
   }, [items]);
 
@@ -112,25 +115,19 @@ export default function Stats() {
     return itemOptions.filter((n) => n.toLowerCase().includes(q));
   }, [itemOptions, itemInput]);
 
-  // applied snapshot (drives everything)
-  const [applied, setApplied] = useState({
-    range: "all",
-    from: null,
-    to: null,
-    item: "",
-    itemIsExact: false,
-  });
+  // applied snapshot
+  const [applied, setApplied] = useState({ range: "all", from: null, to: null, item: "" });
 
   const { fromMs, toMs } = useMemo(() => {
     if (applied.range === "custom") {
-      const f = applied.from ? new Date(applied.from).setHours(0, 0, 0, 0) : null;
-      const t = applied.to ? new Date(applied.to).setHours(23, 59, 59, 999) : null;
+      const f = applied.from ? new Date(applied.from).setHours(0,0,0,0) : null;
+      const t = applied.to ? new Date(applied.to).setHours(23,59,59,999) : null;
       return { fromMs: f, toMs: t };
     }
     if (applied.range === "month") {
       const now = new Date();
       const f = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      const t = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+      const t = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999).getTime();
       return { fromMs: f, toMs: t };
     }
     if (applied.range === "30") {
@@ -161,11 +158,11 @@ export default function Stats() {
 
   /* ---------- filtered orders by time + item ---------- */
   const filtered = useMemo(() => {
-    const q = (applied.item || "").toLowerCase();
-    const exact = applied.itemIsExact && q;
+    const item = (applied.item || "").toLowerCase();
+    const useItem = !!item;
     return orders.filter((o) => {
-      const name = (o.item || "").toLowerCase();
-      const matchesItem = !q || (exact ? name === q : name.includes(q));
+      const matchesItem =
+        !useItem || (o.item || "").toLowerCase().includes(item);
       const anyInWindow =
         within(o.order_date, fromMs, toMs) ||
         within(o.sale_date, fromMs, toMs) ||
@@ -176,297 +173,204 @@ export default function Stats() {
 
   /* ------------------------------- CHART DATA ------------------------------- */
   const chartSeries = useMemo(() => {
-    const purchases = filtered.filter(
-      (o) => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs)
-    );
-    const sales = filtered.filter(
-      (o) => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs))
-    );
+    const purchases = filtered.filter(o => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
+    const sales = filtered.filter(o => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs)));
 
-    const months = Array.from(
-      new Set([
-        ...purchases.map((o) => monthKey(o.order_date)).filter(Boolean),
-        ...sales.map((o) => monthKey(o.sale_date)).filter(Boolean),
-      ])
-    ).sort((a, b) => a.localeCompare(b));
+    const months = Array.from(new Set([
+      ...purchases.map((o) => monthKey(o.order_date)).filter(Boolean),
+      ...sales.map((o) => monthKey(o.sale_date)).filter(Boolean),
+    ])).sort((a,b)=>a.localeCompare(b));
 
-    const purCnt = new Map(),
-      salCnt = new Map(),
-      cost = new Map(),
-      revenue = new Map();
-    for (const m of months) {
-      purCnt.set(m, 0);
-      salCnt.set(m, 0);
-      cost.set(m, 0);
-      revenue.set(m, 0);
-    }
+    const purCnt = new Map(), salCnt = new Map(), cost = new Map(), revenue = new Map();
+    for (const m of months) { purCnt.set(m,0); salCnt.set(m,0); cost.set(m,0); revenue.set(m,0); }
     for (const o of purchases) {
-      const k = monthKey(o.order_date);
-      if (!k) continue;
-      purCnt.set(k, purCnt.get(k) + 1);
-      cost.set(k, cost.get(k) + cents(o.buy_price_cents));
+      const k = monthKey(o.order_date); if (!k) continue;
+      purCnt.set(k, purCnt.get(k)+1);
+      cost.set(k, cost.get(k)+cents(o.buy_price_cents));
     }
     for (const o of sales) {
-      const k = monthKey(o.sale_date);
-      if (!k) continue;
-      salCnt.set(k, salCnt.get(k) + 1);
-      revenue.set(k, revenue.get(k) + cents(o.sale_price_cents));
+      const k = monthKey(o.sale_date); if (!k) continue;
+      salCnt.set(k, salCnt.get(k)+1);
+      revenue.set(k, revenue.get(k)+cents(o.sale_price_cents));
     }
 
+    // limit to last 12 buckets for readability
+    const takeLast = (arr) => arr.slice(Math.max(0, arr.length - 12));
+    const M = takeLast(months);
     return {
-      months,
-      purchasesCount: months.map((m) => purCnt.get(m) || 0),
-      salesCount: months.map((m) => salCnt.get(m) || 0),
-      costC: months.map((m) => cost.get(m) || 0),
-      revenueC: months.map((m) => revenue.get(m) || 0),
+      months: M,
+      purchasesCount: takeLast(M.map(m => purCnt.get(m)||0)),
+      salesCount:     takeLast(M.map(m => salCnt.get(m)||0)),
+      costC:          takeLast(M.map(m => cost.get(m)||0)),
+      revenueC:       takeLast(M.map(m => revenue.get(m)||0)),
     };
   }, [filtered, fromMs, toMs]);
 
-  /* -------------------------------- render -------------------------------- */
-  const [chartKind, setChartKind] = useState("purchases"); // purchases | sales | cost | revenue
-  const chartMap = {
-    purchases: {
-      title: "Purchases by month",
-      labels: chartSeries.months,
-      values: chartSeries.purchasesCount,
-      money: false,
-      accent: "bg-indigo-500",
-    },
-    sales: {
-      title: "Sales by month",
-      labels: chartSeries.months,
-      values: chartSeries.salesCount,
-      money: false,
-      accent: "bg-emerald-500",
-    },
-    cost: {
-      title: "Cost by month",
-      labels: chartSeries.months,
-      values: chartSeries.costC,
-      money: true,
-      accent: "bg-rose-500",
-    },
-    revenue: {
-      title: "Revenue by month",
-      labels: chartSeries.months,
-      values: chartSeries.revenueC,
-      money: true,
-      accent: "bg-sky-500",
-    },
-  };
-  const currentChart = chartMap[chartKind];
+  /* ------------------------- item groups for cards ------------------------- */
+  const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
 
-  const itemGroups = useMemo(
-    () => makeItemGroups(filtered, marketByName),
-    [filtered, marketByName]
-  );
+  // If a specific item is selected, only show that card
+  const shownGroups = useMemo(() => {
+    if (!applied.item) return itemGroups;
+    const target = applied.item.toLowerCase();
+    return itemGroups.filter((g) => g.item.toLowerCase() === target);
+  }, [itemGroups, applied.item]);
 
   const [openSet, setOpenSet] = useState(() => new Set());
-  const toggleItem = (key) =>
+  const toggleItem = (key) => {
     setOpenSet((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="stats" showTabs />
 
-        {/* ----------------------- Filters (new look) ----------------------- */}
-        <div className={`${card} relative`}>
-          <div className="flex items-center justify-between flex-wrap gap-3">
+        {/* ------------------------- Filters (top) ------------------------- */}
+        <div className={`${card} relative z-[120]`}>
+          <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Filters</h2>
-            <div className="text-slate-400 text-sm">
-              {filtered.length ? `${filtered.length} rows` : "No rows"}
-            </div>
+            <div className="text-slate-400 text-sm">{filtered.length} rows</div>
           </div>
 
-          {/* Quick range pills */}
-          <div className="mt-3 flex flex-wrap gap-2">
+          {/* quick range chips */}
+          <div className="mt-4 flex flex-wrap gap-2">
             {[
-              ["all", "All time"],
-              ["month", "This month"],
-              ["30", "Last 30 days"],
-              ["year", "This year"],
-              ["custom", "Custom…"],
-            ].map(([val, label]) => (
+              ["all","All time"],
+              ["month","This month"],
+              ["30","Last 30 days"],
+              ["year","This year"],
+              ["custom","Custom…"],
+            ].map(([v, label]) => (
               <button
-                key={val}
-                onClick={() => setRange(val)}
-                className={`px-3 py-1.5 rounded-full border ${
-                  range === val
-                    ? "bg-indigo-600 border-indigo-500 text-white"
-                    : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                }`}
+                key={v}
+                onClick={() => setRange(v)}
+                className={`px-4 py-2 rounded-full border transition
+                  ${range===v ? "bg-indigo-600 border-indigo-500 text-white" : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"}`}
               >
                 {label}
               </button>
             ))}
           </div>
 
-          {/* Dates + Item */}
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {range === "custom" ? (
-              <>
-                <input
-                  type="date"
-                  value={fromStr}
-                  onChange={(e) => setFromStr(e.target.value)}
-                  className={inputBase}
-                />
-                <input
-                  type="date"
-                  value={toStr}
-                  onChange={(e) => setToStr(e.target.value)}
-                  className={inputBase}
-                />
-              </>
-            ) : (
-              <>
-                <div className="opacity-60 pointer-events-none select-none">
-                  <input className={inputBase} placeholder="Start date" disabled />
-                </div>
-                <div className="opacity-60 pointer-events-none select-none">
-                  <input className={inputBase} placeholder="End date" disabled />
-                </div>
-              </>
-            )}
-
-            {/* Item combobox */}
-            <div ref={comboRef} className="sm:col-span-2 relative isolate">
-              <label className="sr-only">Item filter</label>
-              <input
-                value={itemInput}
-                onChange={(e) => {
-                  setItemInput(e.target.value);
-                  setItemIsExact(false);
-                  setItemOpen(true);
-                }}
-                onFocus={() => setItemOpen(true)}
-                placeholder="Search item (type to filter, then pick to apply exactly)…"
-                className={inputBase}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setItemInput("All Items");
-                  setItemIsExact(false);
-                }}
-                className="absolute right-10 top-1/2 -translate-y-1/2 text-slate-400"
-                aria-label="Clear item"
-                title="Clear item"
-              >
-                ×
-              </button>
-              <button
-                type="button"
-                onClick={() => setItemOpen((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                aria-label="Toggle items"
-              >
-                ▾
-              </button>
-
-              {itemOpen && (
-                <div className="absolute z-50 left-0 right-0 mt-2 max-h-60 overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-                  {filteredItemOptions.map((name) => (
-                    <div
-                      key={name}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        setItemInput(name);
-                        setItemIsExact(name !== "All Items");
-                        setItemOpen(false);
-                      }}
-                      className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-slate-100"
-                    >
-                      {name}
-                    </div>
-                  ))}
-                  {filteredItemOptions.length === 0 && (
-                    <div className="px-3 py-2 text-slate-400">No matches</div>
-                  )}
-                </div>
-              )}
+          {/* custom dates */}
+          {range === "custom" && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <input type="date" value={fromStr} onChange={(e)=>setFromStr(e.target.value)} className={inputBase} placeholder="Start date"/>
+              <input type="date" value={toStr} onChange={(e)=>setToStr(e.target.value)} className={inputBase} placeholder="End date"/>
             </div>
+          )}
+
+          {/* item dropdown */}
+          <div ref={comboRef} className="relative isolate mt-4">
+            <input
+              value={itemInput}
+              onChange={(e) => { setItemInput(e.target.value); setItemOpen(true); }}
+              onFocus={() => setItemOpen(true)}
+              placeholder="All Items"
+              className={`${inputBase} pr-10`}
+            />
+            <button
+              type="button"
+              onClick={() => setItemOpen((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              aria-label="Toggle items">
+              ▾
+            </button>
+
+            {itemOpen && (
+              <div className="absolute z-[200] left-0 right-0 mt-2 max-h-60 overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                {filteredItemOptions.map((name) => (
+                  <div
+                    key={name}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setItemInput(name); setItemOpen(false); }}
+                    className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-slate-100"
+                  >
+                    {name}
+                  </div>
+                ))}
+                {filteredItemOptions.length === 0 && (
+                  <div className="px-3 py-2 text-slate-400">No matches</div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Apply / Reset */}
+          {/* apply */}
           <div className="mt-4 flex items-center gap-3">
             <button
               onClick={() =>
                 setApplied({
                   range,
                   from: range === "custom" ? fromStr || null : null,
-                  to: range === "custom" ? toStr || null : null,
-                  item:
-                    itemInput && itemInput.toLowerCase() !== "all items"
-                      ? itemInput.trim()
-                      : "",
-                  itemIsExact: itemIsExact && itemInput.toLowerCase() !== "all items",
+                  to:   range === "custom" ? toStr   || null : null,
+                  item: normalizeItemFilter(itemInput),
                 })
               }
-              className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white"
-            >
+              className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white">
               Apply
             </button>
             <button
               onClick={() => {
-                setRange("all");
-                setFromStr("");
-                setToStr("");
-                setItemInput("All Items");
-                setItemIsExact(false);
-                setApplied({ range: "all", from: null, to: null, item: "", itemIsExact: false });
+                setRange("all"); setFromStr(""); setToStr("");
+                setItemInput("All Items"); setApplied({range:"all",from:null,to:null,item:""});
               }}
-              className="px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-            >
+              className="px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900">
               Reset
             </button>
           </div>
         </div>
 
-        {/* --------------------------- Charts panel --------------------------- */}
-        <div className={`${card} mt-6`}>
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <div className="text-lg font-semibold">{currentChart.title}</div>
-            <div className="flex gap-2">
-              {Object.entries({
-                purchases: "Purchases",
-                sales: "Sales",
-                cost: "Cost",
-                revenue: "Revenue",
-              }).map(([val, label]) => (
-                <button
-                  key={val}
-                  onClick={() => setChartKind(val)}
-                  className={`px-3 py-1.5 rounded-full border ${
-                    chartKind === val
-                      ? "bg-indigo-600 border-indigo-500 text-white"
-                      : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+        {/* --------------------- Charts (combined) --------------------- */}
+        <div className="mt-6 space-y-6 relative z-[0]">
+          {/* Units chart */}
+          <div className={`${card}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-lg font-semibold">Purchases & Sales by month</div>
+              <Legend>
+                <LegendDot className="bg-indigo-500" label="Purchases" />
+                <LegendDot className="bg-cyan-400" label="Sales" />
+              </Legend>
             </div>
+            <GroupedBars
+              labels={chartSeries.months}
+              aValues={chartSeries.purchasesCount}
+              bValues={chartSeries.salesCount}
+              aColor="bg-indigo-500"
+              bColor="bg-cyan-400"
+              valueFmt={(v) => v}
+            />
           </div>
 
-          <BarsVertical
-            labels={currentChart.labels}
-            values={currentChart.values}
-            money={currentChart.money}
-            accentClass={currentChart.accent}
-            emptyLabel="No data in this view."
-          />
+          {/* Money chart */}
+          <div className={`${card}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-lg font-semibold">Cost & Revenue by month</div>
+              <Legend>
+                <LegendDot className="bg-rose-400" label="Cost" />
+                <LegendDot className="bg-emerald-400" label="Revenue" />
+              </Legend>
+            </div>
+            <GroupedBars
+              labels={chartSeries.months}
+              aValues={chartSeries.costC}
+              bValues={chartSeries.revenueC}
+              aColor="bg-rose-400"
+              bColor="bg-emerald-400"
+              valueFmt={(v) => `$${centsToStr(v)}`}
+            />
+          </div>
         </div>
 
-        {/* --------------------- Expandable item cards (unchanged) --------------------- */}
+        {/* ------------------ Item breakdown as cards ------------------ */}
         <div className="mt-6 space-y-4">
-          {itemGroups.map((g) => {
+          {shownGroups.map((g) => {
             const open = openSet.has(g.item);
             return (
               <div key={g.item} className={rowCard}>
@@ -482,10 +386,12 @@ export default function Stats() {
                     title={open ? "Collapse" : "Expand"}
                   >
                     {open ? (
+                      // X icon
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     ) : (
+                      // chevron-down
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m6 9 6 6 6-6" />
                       </svg>
@@ -493,10 +399,10 @@ export default function Stats() {
                   </button>
                 </div>
 
-                {/* body */}
+                {/* body (unchanged layout you liked) */}
                 {open && (
                   <div className="mt-4 space-y-4">
-                    {/* your pills grid kept intact */}
+                    {/* pills in responsive 2→3→4→5 columns */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                       <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} sub="total purchases" />
                       <MiniPill title="Sold" value={`${g.sold}`} num={g.sold} sub="total sold" />
@@ -518,7 +424,7 @@ export default function Stats() {
               </div>
             );
           })}
-          {itemGroups.length === 0 && (
+          {shownGroups.length === 0 && (
             <div className={`${card} text-slate-400`}>No items in this view.</div>
           )}
         </div>
@@ -528,66 +434,24 @@ export default function Stats() {
 }
 
 /* --------------------------- small components --------------------------- */
-function BarsVertical({ labels = [], values = [], money = false, accentClass = "bg-indigo-500", emptyLabel = "No data." }) {
-  if (!values.length || values.every((v) => !v)) {
-    return <div className="text-slate-400">{emptyLabel}</div>;
-  }
 
-  // last 12 buckets max
-  const start = Math.max(0, values.length - 12);
-  const L = labels.slice(start);
-  const V = values.slice(start);
-  const max = Math.max(1, ...V.map((v) => Math.abs(v)));
-  const H = 200; // px
-
+function Legend({ children }) {
+  return <div className="flex items-center gap-3">{children}</div>;
+}
+function LegendDot({ className = "", label }) {
   return (
-    <div className="w-full">
-      <div className="relative w-full h-[240px] rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
-        {/* gridlines */}
-        <div className="absolute inset-0">
-          {[0.25, 0.5, 0.75].map((p) => (
-            <div key={p} className="absolute left-0 right-0" style={{ top: `${p * 100}%` }}>
-              <div className="h-px bg-slate-800/80" />
-            </div>
-          ))}
-        </div>
-
-        {/* bars */}
-        <div className="absolute inset-x-0 bottom-10 px-3 sm:px-4 flex items-end gap-4 sm:gap-6">
-          {V.map((v, i) => {
-            const hpx = Math.max(2, Math.round((Math.abs(v) / max) * H)); // min height 2 for visibility
-            return (
-              <div key={i} className="flex-1 min-w-[18px] flex flex-col items-center justify-end">
-                <div
-                  className={`w-4 sm:w-6 rounded-t ${accentClass}`}
-                  style={{ height: `${hpx}px`, transition: "height .25s ease" }}
-                  aria-hidden
-                />
-                <div className="mt-1 text-[10px] text-slate-200">
-                  {money ? `$${centsToStr(v)}` : v}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* baseline */}
-        <div className="absolute left-0 right-0 bottom-9 h-px bg-slate-800" />
-      </div>
-
-      {/* month labels */}
-      <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
-        {L.map((l, i) => (
-          <div key={i} className="truncate">{l}</div>
-        ))}
-      </div>
+    <div className="flex items-center gap-2">
+      <span className={`inline-block w-3 h-3 rounded ${className}`} />
+      <span className="text-sm text-slate-200">{label}</span>
     </div>
   );
 }
 
+/** Styled dropdown used elsewhere if needed */
 function Select({ value, onChange, options, placeholder = "Select…" }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
+
   useEffect(() => {
     function onDoc(e) {
       if (!rootRef.current?.contains(e.target)) setOpen(false);
@@ -595,7 +459,9 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
+
   const current = options.find((o) => o.value === value);
+
   return (
     <div ref={rootRef} className="relative w-full">
       <button
@@ -618,10 +484,7 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
               <li key={opt.value}>
                 <button
                   type="button"
-                  onClick={() => {
-                    onChange(opt.value);
-                    setOpen(false);
-                  }}
+                  onClick={() => { onChange(opt.value); setOpen(false); }}
                   className={`w-full text-left px-3 py-2 hover:bg-slate-800 ${
                     opt.value === value ? "text-white" : "text-slate-200"
                   }`}
@@ -637,18 +500,92 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
   );
 }
 
-function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
-  const n = Number.isFinite(num) ? num : 0;
-  const isZero = n === 0;
-  let color = "text-slate-100";
-  if (tone === "unrealized") color = isZero ? "text-slate-400" : "text-indigo-400";
-  if (tone === "realized") color = n > 0 ? "text-emerald-400" : isZero ? "text-slate-400" : "text-slate-100";
-  if (tone === "neutral") color = isZero ? "text-slate-400" : "text-slate-100";
+/* -------- Responsive grouped bar chart (two series) -------- */
+function GroupedBars({
+  labels = [],
+  aValues = [],
+  bValues = [],
+  aColor = "bg-indigo-500",
+  bColor = "bg-cyan-400",
+  valueFmt = (v) => v,
+}) {
+  const N = labels.length;
+  const hasData =
+    N > 0 && (aValues.some((v) => v) || bValues.some((v) => v));
+  if (!hasData) return <div className="text-slate-400">No data in this view.</div>;
+
+  const max = Math.max(
+    1,
+    ...aValues.map((v) => Math.abs(v)),
+    ...bValues.map((v) => Math.abs(v))
+  );
+  const H = 220; // drawing height
+  const topPad = 8;
+
+  // width: ensure bars are never cramped; allow horizontal scroll
+  const perGroup = 40; // px minimal width per month
+  const innerWidth = Math.max(labels.length * perGroup + 32, 520);
+
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3">
-      <div className="text-slate-400 text-xs">{title}</div>
-      <div className={`text-base font-semibold mt-0.5 ${color}`}>{value}</div>
-      {sub && <div className="text-[10px] leading-4 text-slate-400 mt-0.5">{sub}</div>}
+    <div className="w-full overflow-x-auto">
+      <div
+        className="relative rounded-xl border border-slate-800 bg-slate-900/40"
+        style={{ width: innerWidth }}
+      >
+        {/* grid */}
+        <div className="absolute inset-x-2 top-3 bottom-10">
+          <div className="h-full w-full grid grid-rows-4">
+            {[0,1,2,3].map((i) => (
+              <div key={i} className="border-b border-slate-800/80" />
+            ))}
+          </div>
+        </div>
+
+        {/* bars */}
+        <div className="relative px-4 pt-3 pb-10" style={{ height: H + topPad }}>
+          <div className="flex items-end gap-4">
+            {labels.map((_, i) => {
+              const a = aValues[i] || 0;
+              const b = bValues[i] || 0;
+              const hA = Math.round((Math.abs(a) / max) * (H - topPad));
+              const hB = Math.round((Math.abs(b) / max) * (H - topPad));
+              return (
+                <div key={i} className="flex-0 w-12 flex items-end justify-center gap-1">
+                  <div className={`w-5 rounded-t ${aColor}`} style={{ height: `${hA}px` }} />
+                  <div className={`w-5 rounded-t ${bColor}`} style={{ height: `${hB}px` }} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* value labels (under bars) */}
+          <div className="absolute left-0 right-0 bottom-6 px-2">
+            <div className="flex gap-4">
+              {labels.map((_, i) => {
+                const a = aValues[i] || 0;
+                const b = bValues[i] || 0;
+                return (
+                  <div key={i} className="w-12 text-center text-[10px] text-slate-300">
+                    <div>{valueFmt(a)}</div>
+                    <div>{valueFmt(b)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* month labels (no extra gap) */}
+        <div className="px-2 pb-3">
+          <div className="flex gap-4">
+            {labels.map((l, i) => (
+              <div key={i} className="w-12 text-center text-[11px] text-slate-400 truncate">
+                {l}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -702,7 +639,7 @@ function makeItemGroups(filtered, marketByName) {
       row.onHand += 1;
       const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
-      row.unitMarketC = mv;
+      row.unitMarketC = mv; // unit market value snapshot
     }
   }
 
@@ -714,6 +651,29 @@ function makeItemGroups(filtered, marketByName) {
     return { ...r, margin, roi, avgHoldDays, aspC };
   });
 
+  // order: revenue then on-hand market
   out.sort((a, b) => (b.revenueC - a.revenueC) || (b.onHandMarketC - a.onHandMarketC));
   return out.slice(0, 400);
+}
+
+/* -------------------------- tiny UI atoms -------------------------- */
+function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
+  const n = Number.isFinite(num) ? num : 0;
+  const isZero = n === 0;
+
+  // Default white for everything; only 2 colored cases:
+  // - Est. Value (tone="unrealized") -> blue when >0, else dim
+  // - Realized P/L (tone="realized") -> green when >0, else dim
+  let color = "text-slate-100";
+  if (tone === "unrealized") color = isZero ? "text-slate-400" : "text-indigo-400";
+  if (tone === "realized") color = isZero ? "text-slate-400" : "text-emerald-400";
+  if (tone === "neutral") color = isZero ? "text-slate-400" : "text-slate-100";
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3">
+      <div className="text-slate-400 text-xs">{title}</div>
+      <div className={`text-base font-semibold mt-0.5 ${color}`}>{value}</div>
+      {sub && <div className="text-[10px] leading-4 text-slate-400 mt-0.5">{sub}</div>}
+    </div>
+  );
 }
