@@ -4,29 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 
-/* ---------------- UI tokens ---------------- */
-const card =
+/* ---------- UI tokens ---------- */
+const pageCard =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
+const rowCard =
+  "rounded-xl border border-slate-800 bg-slate-900/60 p-3 overflow-hidden";
 const inputSm =
   "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
-const iconBtn =
-  "inline-flex items-center justify-center h-9 w-9 rounded-lg border focus:outline-none";
 
-/* Column widths (desktop) – tuned to keep everything inside the row card */
-const COL = {
-  orderDate: "w-[130px]", // 04/17
-  item: "min-w-[200px] flex-1",
-  profile: "w-[85px]",
-  retailer: "w-[130px]",
-  buy: "w-[95px]",
-  sale: "w-[95px]",
-  saleDate: "w-[130px]", // mm/dd/yyyy + picker icon
-  market: "w-[130px]",
-  ship: "w-[95px]",
-  actions: "w-[70px]",
-};
-
-/* ---------------- helpers ---------------- */
+/* ---------- helpers ---------- */
 const parseMoney = (v) => {
   const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
   return isNaN(n) ? 0 : n;
@@ -39,8 +25,18 @@ const parsePct = (v) => {
   if (isNaN(n)) return 0;
   return n > 1 ? n / 100 : n;
 };
+const fmtNiceDate = (yyyyMmDd) => {
+  if (!yyyyMmDd) return "Unknown date";
+  const [y, m, d] = yyyyMmDd.split("-").map((n) => Number(n));
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  return dt.toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+};
 
-/* --------------- queries --------------- */
+/* ---------- queries ---------- */
 async function getOrders(limit = 500) {
   const { data, error } = await supabase
     .from("orders")
@@ -93,6 +89,18 @@ export default function OrderBook() {
     queryFn: getMarkets,
   });
 
+  // Center/size date inputs consistently (desktop+mobile)
+  useEffect(() => {
+    const tag = document.createElement("style");
+    tag.innerHTML = `
+      .tw-date { -webkit-appearance:none; appearance:none; height:2.5rem; padding:0 .75rem; background:transparent; }
+      .tw-date::-webkit-datetime-edit, .tw-date::-webkit-datetime-edit-fields-wrapper { padding:0; line-height:1.25rem; }
+      .tw-date::-webkit-calendar-picker-indicator { opacity:.9; }
+    `;
+    document.head.appendChild(tag);
+    return () => document.head.removeChild(tag);
+  }, []);
+
   /* search */
   const [q, setQ] = useState("");
   const filtered = useMemo(() => {
@@ -107,39 +115,38 @@ export default function OrderBook() {
     );
   }, [orders, q]);
 
+  /* group by order_date */
+  const grouped = useMemo(() => {
+    const map = new Map();
+    for (const o of filtered) {
+      const key = o.order_date || "__unknown__";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(o);
+    }
+    // newest first
+    const keys = Array.from(map.keys()).sort((a, b) => {
+      if (a === "__unknown__") return 1;
+      if (b === "__unknown__") return -1;
+      return a < b ? 1 : a > b ? -1 : 0;
+    });
+    return keys.map((k) => ({ key: k, nice: k === "__unknown__" ? "Unknown date" : fmtNiceDate(k), rows: map.get(k) }));
+  }, [filtered]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Tiny CSS fixups for date inputs (centering & iOS/Safari) */}
-      <style>{`
-        /* Keep the date text vertically centered and prevent odd inner padding */
-        .tw-date {
-          -webkit-appearance: none;
-             -moz-appearance: none;
-                  appearance: none;
-          padding-top: 0.5rem;  /* matches py-2 from inputSm */
-          padding-bottom: 0.5rem;
-        }
-        .tw-date::-webkit-datetime-edit,
-        .tw-date::-webkit-datetime-edit-fields-wrapper {
-          padding: 0;
-          line-height: 1.25rem;
-        }
-        .tw-date::-webkit-calendar-picker-indicator { opacity: .85; }
-      `}</style>
-
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs />
 
         {/* Search + meta */}
-        <div className={`${card} mb-6`}>
+        <div className={`${pageCard} mb-6`}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
             <div className="sm:col-span-2">
               <label className="text-slate-300 mb-1 block text-sm">Search</label>
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="item / retailer / marketplace / profile..."
-                className={inputSm}
+                placeholder="item / retailer / marketplace / profile…"
+                className="h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
@@ -149,29 +156,18 @@ export default function OrderBook() {
           </div>
         </div>
 
-        {/* Header labels (desktop) */}
-        <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
-          <div className={COL.orderDate}>Order date</div>
-          <div className={COL.item}>Item</div>
-          <div className={COL.profile}>Profile</div>
-          <div className={COL.retailer}>Retailer</div>
-          <div className={COL.buy}>Buy $</div>
-          <div className={COL.sale}>Sale $</div>
-          <div className={COL.saleDate}>Sale date</div>
-          <div className={COL.market}>Marketplace</div>
-          <div className={COL.ship}>Ship $</div>
-          <div className={`${COL.actions} text-right`}>Actions</div>
-        </div>
-
-        {/* Orders */}
+        {/* Day cards */}
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
-        <div className="space-y-3">
-          {filtered.map((o) => (
-            <OrderRow
-              key={o.id}
-              order={o}
+        <div className="space-y-5">
+          {grouped.map((g, idx) => (
+            <DayCard
+              key={g.key}
+              title={g.nice}
+              count={g.rows.length}
+              defaultOpen={idx === 0} // most-recent date expanded initially
+              rows={g.rows}
               items={items}
               retailers={retailers}
               markets={markets}
@@ -179,14 +175,82 @@ export default function OrderBook() {
               onDeleted={refetch}
             />
           ))}
-          {filtered.length === 0 && <div className={`${card} text-slate-400`}>No orders found.</div>}
+          {!grouped.length && (
+            <div className={`${pageCard} text-slate-400`}>No orders found.</div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-/* ============== Row component ============== */
+/* ============== Day Card ============== */
+function DayCard({
+  title,
+  count,
+  rows,
+  items,
+  retailers,
+  markets,
+  onSaved,
+  onDeleted,
+  defaultOpen = false,
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/40">
+      {/* header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+        <div>
+          <h3 className="text-lg font-semibold">{title}</h3>
+          <p className="text-xs text-slate-400">{count} order{count !== 1 ? "s" : ""}</p>
+        </div>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+        >
+          {open ? "Collapse" : "Expand"}
+        </button>
+      </div>
+
+      {/* content */}
+      {open && (
+        <div className="p-4 pt-0 sm:p-5 sm:pt-0">
+          {/* Header labels per group (desktop) */}
+          <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
+            <div className="w-40">Order date</div>
+            <div className="min-w-[200px] flex-1">Item</div>
+            <div className="w-24">Profile</div>
+            <div className="w-30">Retailer</div>
+            <div className="w-22">Buy $</div>
+            <div className="w-22">Sale $</div>
+            <div className="w-40">Sale date</div>
+            <div className="w-32">Marketplace</div>
+            <div className="w-20">Ship $</div>
+            <div className="w-20 text-right">Actions</div>
+          </div>
+
+          <div className="space-y-3">
+            {rows.map((o) => (
+              <OrderRow
+                key={o.id}
+                order={o}
+                items={items}
+                retailers={retailers}
+                markets={markets}
+                onSaved={onSaved}
+                onDeleted={onDeleted}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============== Row component (unchanged editing UI) ============== */
 function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
   const [order_date, setOrderDate] = useState(order.order_date || "");
   const [item, setItem] = useState(order.item || "");
@@ -229,7 +293,10 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
         shipping_cents: moneyToCents(shipping),
         status: statusValue,
       };
-      const { error } = await supabase.from("orders").update(payload).eq("id", order.id);
+      const { error } = await supabase
+        .from("orders")
+        .update(payload)
+        .eq("id", order.id);
       if (error) throw error;
       setMsg("Saved ✓");
       onSaved && onSaved();
@@ -248,144 +315,99 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
     else onDeleted && onDeleted();
   }
 
-  /* Small helper for mobile-only ghost labels */
-  const Ghost = ({ show, text }) =>
-    show ? (
-      <span className="lg:hidden absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none">
-        {text}
-      </span>
-    ) : null;
-
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+    <div className={rowCard}>
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
+        {/* order date */}
+        <input
+          type="date"
+          value={order_date || ""}
+          onChange={(e) => setOrderDate(e.target.value)}
+          className={`tw-date ${inputSm} w-36`}
+        />
 
-        {/* Order date */}
-        <div className={`${COL.orderDate} min-w-0`}>
-          <div className="relative">
-            <input
-              type="date"
-              value={order_date || ""}
-              onChange={(e) => setOrderDate(e.target.value)}
-              className={`${inputSm} tw-date text-center lg:text-left w-full`}
-            />
-          </div>
-        </div>
+        {/* item */}
+        <select
+          value={item || ""}
+          onChange={(e) => setItem(e.target.value)}
+          className={`${inputSm} min-w-[240px] flex-1`}
+        >
+          <option value=""></option>
+          {items.map((it) => (
+            <option key={it.id} value={it.name}>
+              {it.name}
+            </option>
+          ))}
+        </select>
 
-        {/* Item */}
-        <div className={`${COL.item} min-w-0`}>
-          <select
-            value={item || ""}
-            onChange={(e) => setItem(e.target.value)}
-            className={`${inputSm} w-full`}
-          >
-            <option value=""></option>
-            {items.map((it) => (
-              <option key={it.id} value={it.name}>
-                {it.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* profile */}
+        <input
+          value={profile_name}
+          onChange={(e) => setProfile(e.target.value)}
+          placeholder="Profile"
+          className={`${inputSm} w-28`}
+        />
 
-        {/* Profile */}
-        <div className={`${COL.profile} min-w-0`}>
-          <div className="relative">
-            <Ghost show={!profile_name} text="Profile" />
-            <input
-              value={profile_name}
-              onChange={(e) => setProfile(e.target.value)}
-              className={`${inputSm} w-full`}
-            />
-          </div>
-        </div>
+        {/* retailer */}
+        <select
+          value={retailer || ""}
+          onChange={(e) => setRetailer(e.target.value)}
+          className={`${inputSm} w-28`}
+        >
+          <option value=""></option>
+          {retailers.map((r) => (
+            <option key={r.id} value={r.name}>
+              {r.name}
+            </option>
+          ))}
+        </select>
 
-        {/* Retailer */}
-        <div className={`${COL.retailer} min-w-0`}>
-          <select
-            value={retailer || ""}
-            onChange={(e) => setRetailer(e.target.value)}
-            className={`${inputSm} w-full`}
-          >
-            <option value=""></option>
-            {retailers.map((r) => (
-              <option key={r.id} value={r.name}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* buy / sale */}
+        <input
+          value={buyPrice}
+          onChange={(e) => setBuyPrice(e.target.value)}
+          placeholder="Buy"
+          className={`${inputSm} w-24`}
+        />
+        <input
+          value={salePrice}
+          onChange={(e) => setSalePrice(e.target.value)}
+          placeholder="Sale"
+          className={`${inputSm} w-24`}
+        />
 
-        {/* Buy $ */}
-        <div className={`${COL.buy} min-w-0`}>
-          <div className="relative">
-            <Ghost show={!buyPrice} text="Buy $" />
-            <input
-              value={buyPrice}
-              onChange={(e) => setBuyPrice(e.target.value)}
-              className={`${inputSm} w-full`}
-            />
-          </div>
-        </div>
+        {/* sale date */}
+        <input
+          type="date"
+          value={sale_date || ""}
+          onChange={(e) => setSaleDate(e.target.value)}
+          className={`tw-date ${inputSm} w-36`}
+        />
 
-        {/* Sale $ */}
-        <div className={`${COL.sale} min-w-0`}>
-          <div className="relative">
-            <Ghost show={!salePrice} text="Sale $" />
-            <input
-              value={salePrice}
-              onChange={(e) => setSalePrice(e.target.value)}
-              className={`${inputSm} w-full`}
-            />
-          </div>
-        </div>
+        {/* marketplace */}
+        <select
+          value={marketplace || ""}
+          onChange={(e) => handleMarketplaceChange(e.target.value)}
+          className={`${inputSm} w-32`}
+        >
+          <option value=""></option>
+          {markets.map((m) => (
+            <option key={m.id} value={m.name}>
+              {m.name}
+            </option>
+          ))}
+        </select>
 
-        {/* Sale date – ghost "mm/dd/yyyy" only on mobile (fixes desktop double text) */}
-        <div className={`${COL.saleDate} min-w-0`}>
-          <div className="relative">
-            <Ghost show={!sale_date} text="mm/dd/yyyy" />
-            <input
-              type="date"
-              value={sale_date || ""}
-              onChange={(e) => setSaleDate(e.target.value)}
-              className={`${inputSm} tw-date text-center lg:text-left w-full`}
-            />
-          </div>
-        </div>
+        {/* ship */}
+        <input
+          value={shipping}
+          onChange={(e) => setShipping(e.target.value)}
+          placeholder="Ship"
+          className={`${inputSm} w-24`}
+        />
 
-        {/* Marketplace */}
-        <div className={`${COL.market} min-w-0`}>
-          <div className="relative">
-            <Ghost show={!marketplace} text="Marketplace" />
-            <select
-              value={marketplace || ""}
-              onChange={(e) => handleMarketplaceChange(e.target.value)}
-              className={`${inputSm} w-full`}
-            >
-              <option value=""></option>
-              {markets.map((m) => (
-                <option key={m.id} value={m.name}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Ship $ */}
-        <div className={`${COL.ship} min-w-0`}>
-          <div className="relative">
-            <Ghost show={!shipping} text="Ship $" />
-            <input
-              value={shipping}
-              onChange={(e) => setShipping(e.target.value)}
-              className={`${inputSm} w-full`}
-            />
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className={`${COL.actions} shrink-0 flex items-center justify-end gap-2`}>
+        {/* actions */}
+        <div className="w-20 shrink-0 flex items-center justify-end gap-2">
           {/* Save */}
           <button
             type="button"
@@ -393,11 +415,9 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
             disabled={busy}
             aria-label={busy ? "Saving…" : "Save"}
             title={busy ? "Saving…" : "Save"}
-            className={`${iconBtn} ${
-              busy
-                ? "bg-slate-700 text-slate-300 cursor-not-allowed border-slate-700"
-                : "bg-slate-800 hover:bg-slate-700 text-slate-100 border-slate-800 focus:ring-2 focus:ring-indigo-500"
-            }`}
+            className={`inline-flex items-center justify-center h-9 w-9 rounded-lg
+                ${busy ? "bg-slate-700 text-slate-300 cursor-not-allowed" : "bg-slate-800 hover:bg-slate-700 text-slate-100"}
+                border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
           >
             <svg
               viewBox="0 0 24 24"
@@ -418,7 +438,9 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
             onClick={del}
             aria-label="Delete"
             title="Delete"
-            className={`${iconBtn} bg-rose-600 hover:bg-rose-500 text-white border border-rose-700 focus:ring-2 focus:ring-rose-500`}
+            className="inline-flex items-center justify-center h-9 w-9 rounded-lg
+               bg-rose-600 hover:bg-rose-500 text-white border border-rose-700
+               focus:outline-none focus:ring-2 focus:ring-rose-500"
           >
             <svg
               viewBox="0 0 24 24"
