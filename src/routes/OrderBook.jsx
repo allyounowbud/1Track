@@ -195,7 +195,7 @@ export default function OrderBook() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="item / retailer / marketplace / profile / date (e.g., April, Jun 17, 04/17/2025)…"
+                placeholder="item / retailer / marketplace / date"
                 className={inputSm}
               />
             </div>

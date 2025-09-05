@@ -4,18 +4,21 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import HeaderWithTabs from '../components/HeaderWithTabs.jsx'
 
-const tabBase =
-  "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
-const tabActive =
-  "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600"
+// ----- UI tokens (shared look with Order Book) -----
+const pillSecondary =
+  "inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+const pillPrimary =
+  "inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_6px_20px_rgba(79,70,229,.35)]"
+const iconBtnBase =
+  "inline-flex items-center justify-center h-9 w-9 rounded-lg border focus:outline-none"
+const iconBtnSave =
+  `${iconBtnBase} border-slate-800 bg-slate-800 hover:bg-slate-700 text-slate-100 focus:ring-2 focus:ring-indigo-500`
+const iconBtnDelete =
+  `${iconBtnBase} border-rose-700 bg-rose-600 hover:bg-rose-500 text-white focus:ring-2 focus:ring-rose-500`
 
-// small utility button (kept for “Add”)
-const actionBtn =
-  "w-full sm:w-[92px] h-10 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100"
-
-// match Order Book Expand button
-const expandBtn =
-  "h-11 px-5 inline-flex items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 transition"
+// inputs
+const inputBase =
+  "w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
 
 // money helpers
 const parseMoney = (v) => {
@@ -52,9 +55,9 @@ async function getMarkets() {
 }
 
 export default function Settings() {
-  const { data: items = [], refetch: refetchItems } = useQuery({ queryKey: ['items'], queryFn: getItems })
+  const { data: items = [], refetch: refetchItems } = useQuery({ queryKey: ['items'],     queryFn: getItems })
   const { data: retailers = [], refetch: refetchRetailers } = useQuery({ queryKey: ['retailers'], queryFn: getRetailers })
-  const { data: markets = [], refetch: refetchMarkets } = useQuery({ queryKey: ['markets'], queryFn: getMarkets })
+  const { data: markets = [], refetch: refetchMarkets } = useQuery({ queryKey: ['markets'],   queryFn: getMarkets })
 
   // current user (avatar/name)
   const [userInfo, setUserInfo] = useState({ avatar_url: '', username: '' })
@@ -174,11 +177,15 @@ export default function Settings() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:justify-end">
               {openItems && !addingItem && (
-                <button onClick={() => setAddingItem(true)} className={actionBtn}>Add</button>
+                <button onClick={() => setAddingItem(true)} className={pillPrimary}>
+                  {/* plus icon */}
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+                  Add
+                </button>
               )}
               <button
                 onClick={() => { const n = !openItems; setOpenItems(n); if (!n) setAddingItem(false) }}
-                className={expandBtn}
+                className={pillSecondary}
               >
                 {openItems ? 'Collapse' : 'Expand'}
               </button>
@@ -231,11 +238,14 @@ export default function Settings() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:justify-end">
               {openRetailers && !addingRetailer && (
-                <button onClick={() => setAddingRetailer(true)} className={actionBtn}>Add</button>
+                <button onClick={() => setAddingRetailer(true)} className={pillPrimary}>
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+                  Add
+                </button>
               )}
               <button
                 onClick={() => { const n = !openRetailers; setOpenRetailers(n); if (!n) setAddingRetailer(false) }}
-                className={expandBtn}
+                className={pillSecondary}
               >
                 {openRetailers ? 'Collapse' : 'Expand'}
               </button>
@@ -286,11 +296,14 @@ export default function Settings() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:justify-end">
               {openMarkets && !addingMarket && (
-                <button onClick={() => setAddingMarket(true)} className={actionBtn}>Add</button>
+                <button onClick={() => setAddingMarket(true)} className={pillPrimary}>
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+                  Add
+                </button>
               )}
               <button
                 onClick={() => { const n = !openMarkets; setOpenMarkets(n); if (!n) setAddingMarket(false) }}
-                className={expandBtn}
+                className={pillSecondary}
               >
                 {openMarkets ? 'Collapse' : 'Expand'}
               </button>
@@ -339,88 +352,33 @@ export default function Settings() {
 
 /* ---------- Row components ---------- */
 
-function IconSave({ className = 'h-5 w-5' }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
-  )
-}
-function IconTrash({ className = 'h-5 w-5' }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 6h18" />
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-      <path d="M10 11v6M14 11v6" />
-      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-    </svg>
-  )
-}
-
-function IconBtnSave({ onClick, disabled, title }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={title || (disabled ? 'Saving…' : 'Save')}
-      title={title || (disabled ? 'Saving…' : 'Save')}
-      className={`inline-flex items-center justify-center h-9 w-9 rounded-lg
-                  ${disabled ? 'bg-slate-700 text-slate-300 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700 text-slate-100'}
-                  border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-    >
-      <IconSave />
-    </button>
-  )
-}
-function IconBtnTrash({ onClick, title }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={title || 'Delete'}
-      title={title || 'Delete'}
-      className="inline-flex items-center justify-center h-9 w-9 rounded-lg
-                 bg-rose-600 hover:bg-rose-500 text-white border border-rose-700
-                 focus:outline-none focus:ring-2 focus:ring-rose-500"
-    >
-      <IconTrash />
-    </button>
-  )
-}
-
 function ItemRow({ it, isNew=false, onSave, onDelete }) {
   const [name, setName] = useState(it?.name ?? '')
   const [mv, setMv] = useState(centsToStr(it?.market_value_cents ?? 0))
   const [status, setStatus] = useState('')
-  const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    setSaving(true); setStatus('Saving…')
+    setStatus('Saving…')
     const ok = await onSave(name, mv)
     setStatus(ok ? 'Saved ✓' : 'Error')
-    setSaving(false)
     if (ok) setTimeout(() => setStatus(''), 1500)
   }
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 overflow-hidden">
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_auto] gap-2 items-center min-w-0">
-        <input
-          className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Item name…"
-        />
-        <input
-          className="w-full sm:w-[160px] bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
-          value={mv}
-          onChange={(e) => setMv(e.target.value)}
-          placeholder="e.g. 129.99"
-        />
-        <div className="flex items-center justify-end gap-2">
-          <IconBtnSave onClick={handleSave} disabled={saving} />
-          <IconBtnTrash onClick={onDelete} title={isNew ? 'Cancel' : 'Delete'} />
+        <input className={inputBase} value={name} onChange={(e)=>setName(e.target.value)} placeholder="Item name…" />
+        <input className={`${inputBase} sm:w-[160px]`} value={mv} onChange={(e)=>setMv(e.target.value)} placeholder="e.g. 129.99" />
+        <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+          <button onClick={handleSave} className={iconBtnSave} title="Save" aria-label="Save">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+          </button>
+          <button onClick={onDelete} className={iconBtnDelete} title={isNew ? "Cancel" : "Delete"} aria-label={isNew ? "Cancel" : "Delete"}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
         </div>
       </div>
       {status && (
@@ -435,28 +393,28 @@ function ItemRow({ it, isNew=false, onSave, onDelete }) {
 function RetailerRow({ r, isNew=false, onSave, onDelete }) {
   const [name, setName] = useState(r?.name ?? '')
   const [status, setStatus] = useState('')
-  const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    setSaving(true); setStatus('Saving…')
+    setStatus('Saving…')
     const ok = await onSave(name)
     setStatus(ok ? 'Saved ✓' : 'Error')
-    setSaving(false)
     if (ok) setTimeout(() => setStatus(''), 1500)
   }
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 overflow-hidden">
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center min-w-0">
-        <input
-          className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Retailer name…"
-        />
-        <div className="flex items-center justify-end gap-2">
-          <IconBtnSave onClick={handleSave} disabled={saving} />
-          <IconBtnTrash onClick={onDelete} title={isNew ? 'Cancel' : 'Delete'} />
+        <input className={inputBase} value={name} onChange={(e)=>setName(e.target.value)} placeholder="Retailer name…" />
+        <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+          <button onClick={handleSave} className={iconBtnSave} title="Save" aria-label="Save">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+          </button>
+          <button onClick={onDelete} className={iconBtnDelete} title={isNew ? "Cancel" : "Delete"} aria-label={isNew ? "Cancel" : "Delete"}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
         </div>
       </div>
       {status && (
@@ -472,34 +430,29 @@ function MarketRow({ m, isNew=false, onSave, onDelete }) {
   const [name, setName] = useState(m?.name ?? '')
   const [fee, setFee] = useState(((m?.default_fees_pct ?? 0) * 100).toString())
   const [status, setStatus] = useState('')
-  const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    setSaving(true); setStatus('Saving…')
+    setStatus('Saving…')
     const ok = await onSave(name, fee)
     setStatus(ok ? 'Saved ✓' : 'Error')
-    setSaving(false)
     if (ok) setTimeout(() => setStatus(''), 1500)
   }
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 overflow-hidden">
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_auto] gap-2 items-center min-w-0">
-        <input
-          className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Marketplace name…"
-        />
-        <input
-          className="w-full sm:w-[140px] bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100"
-          value={fee}
-          onChange={(e) => setFee(e.target.value)}
-          placeholder="Fee %"
-        />
-        <div className="flex items-center justify-end gap-2">
-          <IconBtnSave onClick={handleSave} disabled={saving} />
-          <IconBtnTrash onClick={onDelete} title={isNew ? 'Cancel' : 'Delete'} />
+        <input className={inputBase} value={name} onChange={(e)=>setName(e.target.value)} placeholder="Marketplace name…" />
+        <input className={`${inputBase} sm:w-[140px]`} value={fee} onChange={(e)=>setFee(e.target.value)} placeholder="Fee %" />
+        <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+          <button onClick={handleSave} className={iconBtnSave} title="Save" aria-label="Save">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+          </button>
+          <button onClick={onDelete} className={iconBtnDelete} title={isNew ? "Cancel" : "Delete"} aria-label={isNew ? "Cancel" : "Delete"}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
         </div>
       </div>
       {status && (
@@ -510,3 +463,4 @@ function MarketRow({ m, isNew=false, onSave, onDelete }) {
     </div>
   )
 }
+
