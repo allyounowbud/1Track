@@ -208,7 +208,7 @@ export default function Settings() {
         <section className={`${pageCard} mb-6`}>
           <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
             <div className="min-w-0">
-              <h2 className="text-lg font-semibold leading-[2.25rem]">Items</h2>
+              <h2 className="text-lg font-semibold leading-[2.25rem]">Products</h2>
               <p className="text-xs text-slate-400 -mt-1">Total: {items.length}</p>
             </div>
 

@@ -24,6 +24,13 @@ const within = (d, from, to) => {
 const normalizeItemFilter = (v) =>
   !v || v.trim().toLowerCase() === "all items" ? "" : v.trim();
 
+const median = (arr) => {
+  if (!arr.length) return 0;
+  const a = [...arr].sort((x, y) => x - y);
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+};
+
 /* -------------------------------- queries ------------------------------- */
 async function getOrders() {
   const { data, error } = await supabase
@@ -38,7 +45,7 @@ async function getOrders() {
 async function getItems() {
   const { data, error } = await supabase
     .from("items")
-    .select("id, name")
+    .select("id, name, market_value_cents")
     .order("name", { ascending: true });
   if (error) throw error;
   return data || [];
@@ -55,7 +62,7 @@ export default function Stats() {
     queryFn: getItems,
   });
 
-  /* user (avatar/name) — kept as-is though header renders user info */
+  /* user (avatar/name) — header uses this */
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -166,6 +173,18 @@ export default function Stats() {
     return { fromMs: null, toMs: null }; // all time
   }, [applied]);
 
+  // market map for MTM (match by item name, case-insensitive; prefer max if duplicates)
+  const marketByName = useMemo(() => {
+    const m = new Map();
+    for (const it of items) {
+      const k = (it.name || "").toLowerCase();
+      const v = cents(it.market_value_cents);
+      if (!m.has(k)) m.set(k, v);
+      else m.set(k, Math.max(m.get(k), v));
+    }
+    return m;
+  }, [items]);
+
   // filter by date window + item (contains match)
   const filtered = useMemo(() => {
     const item = (applied.item || "").toLowerCase();
@@ -191,24 +210,36 @@ export default function Stats() {
         cents(o.sale_price_cents) > 0 &&
         (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs))
     );
+    const unsold = filtered.filter((o) => cents(o.sale_price_cents) <= 0);
 
     const spentC = purchases.reduce((a, o) => a + cents(o.buy_price_cents), 0);
     const revenueC = sales.reduce((a, o) => a + cents(o.sale_price_cents), 0);
-    const feesC = sales.reduce(
-      (a, o) =>
-        a +
-        Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0)),
-      0
-    );
-    const shippingC = sales.reduce((a, o) => a + cents(o.shipping_cents), 0);
-    const cogsC = sales.reduce((a, o) => a + cents(o.buy_price_cents), 0);
-    const profitC = revenueC - feesC - shippingC - cogsC;
-    const netAfterFeeShipC = revenueC - feesC - shippingC;
+    const feesC = sales.reduce((a, o) => {
+      const rev = cents(o.sale_price_cents);
+      const fee = Math.round(rev * (Number(o.fees_pct) || 0));
+      return a + fee;
+    }, 0);
+    const shipOutC = sales.reduce((a, o) => a + cents(o.shipping_cents), 0);
+    const cogsC = sales.reduce((a, o) => a + cents(o.buy_price_cents), 0); // cost of items sold
+
+    const realizedPlC = revenueC - feesC - shipOutC - cogsC;
+    const netAfterFeeShipC = revenueC - feesC - shipOutC;
+
+    const onHandCount = unsold.length;
+    const onHandCostC = unsold.reduce((a, o) => a + cents(o.buy_price_cents), 0);
+    const onHandMarketC = unsold.reduce((a, o) => {
+      const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
+      return a + mv;
+    }, 0);
+    const unrealizedPlC = onHandMarketC - onHandCostC;
+
+    const cashFlowC = revenueC - feesC - shipOutC - spentC; // net cash in window
 
     const avgBuy = purchases.length ? spentC / purchases.length : 0;
     const avgSale = sales.length ? revenueC / sales.length : 0;
+    const asp = avgSale;
 
-    // hold time
+    // hold time (days) for sold only
     const holdDays = sales
       .map((o) => {
         const od = new Date(o.order_date).getTime();
@@ -220,36 +251,55 @@ export default function Stats() {
     const avgHold = holdDays.length
       ? holdDays.reduce((a, b) => a + b, 0) / holdDays.length
       : 0;
+    const medianHold = holdDays.length ? median(holdDays) : 0;
 
-    const roi = spentC > 0 ? profitC / spentC : NaN; // profit over cost
-    const margin = revenueC > 0 ? profitC / revenueC : NaN;
-    const sellThrough =
-      purchases.length > 0 ? sales.length / purchases.length : NaN;
-
-    const onHand = filtered.filter((o) => cents(o.sale_price_cents) <= 0)
-      .length;
+    const roiSold = cogsC > 0 ? realizedPlC / cogsC : NaN; // profit over cost (sold)
+    const margin = revenueC > 0 ? realizedPlC / revenueC : NaN;
+    const avgFeeRate = revenueC > 0 ? feesC / revenueC : NaN;
+    const purchasesCount = purchases.length;
+    const salesCount = sales.length;
+    const sellThrough = purchasesCount > 0 ? salesCount / purchasesCount : NaN;
+    const winRate =
+      salesCount > 0
+        ? sales.filter((o) => {
+            const rev = cents(o.sale_price_cents);
+            const fee = Math.round(rev * (Number(o.fees_pct) || 0));
+            const ship = cents(o.shipping_cents);
+            const pl = rev - fee - ship - cents(o.buy_price_cents);
+            return pl > 0;
+          }).length / salesCount
+        : NaN;
 
     return {
-      bought: purchases.length,
-      sold: sales.length,
-      onHand,
+      purchasesCount,
+      salesCount,
+      onHandCount,
       spentC,
       revenueC,
-      profitC,
       feesC,
-      shippingC,
-      avgBuy,
-      avgSale,
-      roi,
-      margin,
-      avgHold,
-      sellThrough,
+      shipOutC,
+      cogsC,
+      realizedPlC,
       netAfterFeeShipC,
+      onHandCostC,
+      onHandMarketC,
+      unrealizedPlC,
+      totalPlMtmC: realizedPlC + unrealizedPlC,
+      cashFlowC,
+      avgBuy,
+      asp,
+      roiSold,
+      margin,
+      avgFeeRate,
+      avgHold,
+      medianHold,
+      sellThrough,
+      winRate,
     };
-  }, [filtered, fromMs, toMs]);
+  }, [filtered, fromMs, toMs, marketByName]);
 
   /* -------------------------------- charts ------------------------------- */
-  const [chartType, setChartType] = useState("purchases_month");
+  const [chartType, setChartType] = useState("realized_pl_month");
   const monthKey = (d) => {
     const dt = new Date(d);
     if (isNaN(dt.getTime())) return null;
@@ -265,6 +315,7 @@ export default function Stats() {
         cents(o.sale_price_cents) > 0 &&
         (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs))
     );
+    const unsoldInWindow = filtered.filter((o) => cents(o.sale_price_cents) <= 0);
 
     if (chartType === "purchases_month") {
       const m = new Map();
@@ -277,6 +328,7 @@ export default function Stats() {
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([label, value]) => ({ label, value }));
     }
+
     if (chartType === "sales_month") {
       const m = new Map();
       for (const o of salesInWindow) {
@@ -288,7 +340,9 @@ export default function Stats() {
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([label, value]) => ({ label, value }));
     }
-    if (chartType === "pl_month") {
+
+    if (chartType === "realized_pl_month" || chartType === "pl_month") {
+      // realized P/L by sale month
       const m = new Map();
       for (const o of salesInWindow) {
         const k = monthKey(o.sale_date);
@@ -304,6 +358,31 @@ export default function Stats() {
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([label, value]) => ({ label, value }));
     }
+
+    if (chartType === "cash_flow_month") {
+      // cash flow = sales (rev - fee - ship) - purchases (cost) per calendar month
+      const cash = new Map();
+      // purchases (cash out) keyed by purchase month
+      for (const o of purchasesInWindow) {
+        const k = monthKey(o.order_date);
+        if (!k) continue;
+        cash.set(k, (cash.get(k) || 0) - cents(o.buy_price_cents));
+      }
+      // sales (cash in) keyed by sale month
+      for (const o of salesInWindow) {
+        const k = monthKey(o.sale_date);
+        if (!k) continue;
+        const rev = cents(o.sale_price_cents);
+        const fee = Math.round(rev * (Number(o.fees_pct) || 0));
+        const ship = cents(o.shipping_cents);
+        const netIn = rev - fee - ship;
+        cash.set(k, (cash.get(k) || 0) + netIn);
+      }
+      return [...cash.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([label, value]) => ({ label, value }));
+    }
+
     if (chartType === "purchases_retailer") {
       const m = new Map();
       for (const o of purchasesInWindow) {
@@ -315,16 +394,33 @@ export default function Stats() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 12);
     }
-    // sales_market
-    const m = new Map();
-    for (const o of salesInWindow) {
-      const k = o.marketplace || "—";
-      m.set(k, (m.get(k) || 0) + cents(o.sale_price_cents));
+
+    if (chartType === "sales_market") {
+      const m = new Map();
+      for (const o of salesInWindow) {
+        const k = o.marketplace || "—";
+        m.set(k, (m.get(k) || 0) + cents(o.sale_price_cents));
+      }
+      return [...m.entries()]
+        .map(([label, value]) => ({ label, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 12);
     }
-    return [...m.entries()]
-      .map(([label, value]) => ({ label, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 12);
+
+    if (chartType === "onhand_cost_month") {
+      // On-hand inventory cost bucketed by purchase month
+      const m = new Map();
+      for (const o of unsoldInWindow) {
+        const k = monthKey(o.order_date);
+        if (!k) continue;
+        m.set(k, (m.get(k) || 0) + cents(o.buy_price_cents));
+      }
+      return [...m.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([label, value]) => ({ label, value }));
+    }
+
+    return [];
   }, [chartType, filtered, fromMs, toMs]);
 
   const maxVal = Math.max(1, ...chartData.map((r) => Math.abs(r.value)));
@@ -340,7 +436,7 @@ export default function Stats() {
         <div className={`${card} relative z-[60]`}>
           <h2 className="text-lg font-semibold mb-4">Date Range</h2>
           <div className="grid grid-cols-1 gap-4 min-w-0">
-            {/* Date range dropdown (styled like item selector) */}
+            {/* Date range dropdown */}
             <div className="relative isolate">
               <Select
                 value={range}
@@ -437,45 +533,19 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* KPI grid (compact) */}
+        {/* KPI grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-          <Kpi
-            title="Bought"
-            value={`${kpis.bought} items`}
-            subtitle={`Spend $${centsToStr(kpis.spentC)}`}
-          />
-          <Kpi
-            title="Sold"
-            value={`${kpis.sold} items`}
-            subtitle={`Revenue $${centsToStr(kpis.revenueC)}`}
-          />
-          <Kpi
-            title="Profit / Loss"
-            value={`$${centsToStr(kpis.profitC)}`}
-            subtitle={`Net after fees/ship $${centsToStr(kpis.netAfterFeeShipC)}`}
-            tone={kpis.profitC >= 0 ? "pos" : "neg"}
-          />
-          <Kpi
-            title="Fees"
-            value={`$${centsToStr(kpis.feesC)}`}
-            subtitle={`Avg buy $${centsToStr(kpis.avgBuy)}`}
-          />
-          <Kpi
-            title="Shipping"
-            value={`$${centsToStr(kpis.shippingC)}`}
-            subtitle={`Avg sale $${centsToStr(kpis.avgSale)}`}
-          />
-          <Kpi title="On hand" value={`${kpis.onHand}`} subtitle="Unsold items" />
-          <Kpi
-            title="ROI"
-            value={pctStr(kpis.roi)}
-            subtitle={`Margin ${pctStr(kpis.margin)}`}
-          />
-          <Kpi
-            title="Avg hold"
-            value={`${kpis.avgHold.toFixed(1)} days`}
-            subtitle={`STR ${pctStr(kpis.sellThrough)}`}
-          />
+          <Kpi title="Bought" value={`${kpis.purchasesCount} items`} subtitle={`Spend $${centsToStr(kpis.spentC)}`} />
+          <Kpi title="Sold" value={`${kpis.salesCount} items`} subtitle={`Revenue $${centsToStr(kpis.revenueC)}`} />
+          <Kpi title="Realized P/L" value={`$${centsToStr(kpis.realizedPlC)}`} subtitle={`Net after fees/ship $${centsToStr(kpis.netAfterFeeShipC)}`} tone={kpis.realizedPlC >= 0 ? "pos" : "neg"} />
+          <Kpi title="Cash Flow" value={`$${centsToStr(kpis.cashFlowC)}`} subtitle="Net cash this window" tone={kpis.cashFlowC >= 0 ? "pos" : "neg"} />
+          <Kpi title="Inventory at Cost" value={`$${centsToStr(kpis.onHandCostC)}`} subtitle={`${kpis.onHandCount} unsold`} />
+          <Kpi title="Unrealized P/L" value={`$${centsToStr(kpis.unrealizedPlC)}`} subtitle={`On-hand mkt $${centsToStr(kpis.onHandMarketC)}`} tone={kpis.unrealizedPlC >= 0 ? "pos" : "neg"} />
+          <Kpi title="Total P/L (MTM)" value={`$${centsToStr(kpis.totalPlMtmC)}`} subtitle="Realized + Unrealized" tone={kpis.totalPlMtmC >= 0 ? "pos" : "neg"} />
+          <Kpi title="ASP" value={`$${centsToStr(kpis.asp)}`} subtitle={`Avg Fee ${pctStr(kpis.avgFeeRate)}`} />
+          <Kpi title="ROI (sold)" value={pctStr(kpis.roiSold)} subtitle={`Margin ${pctStr(kpis.margin)}`} />
+          <Kpi title="Hold Time" value={`${kpis.avgHold.toFixed(1)} days`} subtitle={`Median ${kpis.medianHold.toFixed(0)} d`} />
+          <Kpi title="Sell-Through" value={pctStr(kpis.sellThrough)} subtitle={`Win Rate ${pctStr(kpis.winRate)}`} />
         </div>
 
         {/* Chart */}
@@ -485,11 +555,13 @@ export default function Stats() {
             <select
               value={chartType}
               onChange={(e) => setChartType(e.target.value)}
-              className="w-[240px] bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100"
+              className="w-[260px] bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100"
             >
+              <option value="realized_pl_month">Realized P/L by month</option>
+              <option value="cash_flow_month">Cash flow by month</option>
               <option value="purchases_month">Purchases by month</option>
               <option value="sales_month">Sales by month</option>
-              <option value="pl_month">P/L by month</option>
+              <option value="onhand_cost_month">On-hand cost by purchase month</option>
               <option value="purchases_retailer">Purchases by retailer</option>
               <option value="sales_market">Sales by marketplace</option>
             </select>
@@ -501,7 +573,7 @@ export default function Stats() {
             )}
             {chartData.map((r, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="w-32 shrink-0 text-sm text-slate-300 truncate">
+                <div className="w-36 shrink-0 text-sm text-slate-300 truncate">
                   {r.label}
                 </div>
                 <div className="flex-1 h-3 rounded bg-slate-800 overflow-hidden">
@@ -522,43 +594,51 @@ export default function Stats() {
         <div className={`${card} mt-6`}>
           <h3 className="text-lg font-semibold mb-4">Breakdown by item</h3>
           <div className="overflow-x-auto">
-            <table className="min-w-[860px] w-full text-sm">
+            <table className="min-w-[1200px] w-full text-sm">
               <thead className="text-slate-300">
                 <tr className="text-left">
                   <th className="py-2 pr-3">Item Name</th>
                   <th className="py-2 pr-3">Bought</th>
                   <th className="py-2 pr-3">Sold</th>
                   <th className="py-2 pr-3">On Hand</th>
-                  <th className="py-2 pr-3">Total Cost</th>
+                  <th className="py-2 pr-3">COGS (sold)</th>
                   <th className="py-2 pr-3">Revenue</th>
                   <th className="py-2 pr-3">Fees</th>
                   <th className="py-2 pr-3">Shipping</th>
-                  <th className="py-2 pr-3">P/L</th>
+                  <th className="py-2 pr-3">Realized P/L</th>
+                  <th className="py-2 pr-3">On-hand Cost</th>
+                  <th className="py-2 pr-3">On-hand Mkt</th>
+                  <th className="py-2 pr-3">Unrealized P/L</th>
+                  <th className="py-2 pr-3">Total P/L (MTM)</th>
                 </tr>
               </thead>
               <tbody className="text-slate-200">
-                {makeItemBreakdown(filtered).map((r) => (
+                {makeItemBreakdown(filtered, marketByName).map((r) => (
                   <tr key={r.item} className="border-t border-slate-800">
                     <td className="py-2 pr-3">{r.item}</td>
                     <td className="py-2 pr-3">{r.bought}</td>
                     <td className="py-2 pr-3">{r.sold}</td>
                     <td className="py-2 pr-3">{r.onHand}</td>
-                    <td className="py-2 pr-3">${centsToStr(r.costC)}</td>
+                    <td className="py-2 pr-3">${centsToStr(r.cogsC)}</td>
                     <td className="py-2 pr-3">${centsToStr(r.revenueC)}</td>
                     <td className="py-2 pr-3">${centsToStr(r.feesC)}</td>
                     <td className="py-2 pr-3">${centsToStr(r.shipC)}</td>
-                    <td
-                      className={`py-2 pr-3 ${
-                        r.plC >= 0 ? "text-emerald-400" : "text-rose-400"
-                      }`}
-                    >
-                      ${centsToStr(r.plC)}
+                    <td className={`py-2 pr-3 ${r.realizedPlC >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      ${centsToStr(r.realizedPlC)}
+                    </td>
+                    <td className="py-2 pr-3">${centsToStr(r.onHandCostC)}</td>
+                    <td className="py-2 pr-3">${centsToStr(r.onHandMarketC)}</td>
+                    <td className={`py-2 pr-3 ${r.unrealizedPlC >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      ${centsToStr(r.unrealizedPlC)}
+                    </td>
+                    <td className={`py-2 pr-3 ${r.totalPlMtmC >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      ${centsToStr(r.totalPlMtmC)}
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td className="py-6 text-slate-400" colSpan={9}>
+                    <td className="py-6 text-slate-400" colSpan={13}>
                       No data in this range.
                     </td>
                   </tr>
@@ -646,7 +726,8 @@ function Kpi({ title, value, subtitle, tone }) {
   );
 }
 
-function makeItemBreakdown(filtered) {
+/** Item breakdown with realized & MTM metrics */
+function makeItemBreakdown(filtered, marketByName) {
   const m = new Map();
   for (const o of filtered) {
     const key = o.item || "—";
@@ -656,34 +737,50 @@ function makeItemBreakdown(filtered) {
         bought: 0,
         sold: 0,
         onHand: 0,
-        costC: 0,
+        cogsC: 0,
         revenueC: 0,
         feesC: 0,
         shipC: 0,
-        plC: 0,
+        realizedPlC: 0,
+        onHandCostC: 0,
+        onHandMarketC: 0,
+        unrealizedPlC: 0,
+        totalPlMtmC: 0,
       });
     }
     const row = m.get(key);
     row.bought += 1;
-    row.costC += cents(o.buy_price_cents);
+
     if (cents(o.sale_price_cents) > 0) {
+      // Sold
       row.sold += 1;
-      row.revenueC += cents(o.sale_price_cents);
-      const fee = Math.round(
-        cents(o.sale_price_cents) * (Number(o.fees_pct) || 0)
-      );
+      const rev = cents(o.sale_price_cents);
+      const fee = Math.round(rev * (Number(o.fees_pct) || 0));
+      const ship = cents(o.shipping_cents);
+      const cost = cents(o.buy_price_cents);
+      row.cogsC += cost;
+      row.revenueC += rev;
       row.feesC += fee;
-      row.shipC += cents(o.shipping_cents);
-      row.plC +=
-        cents(o.sale_price_cents) -
-        fee -
-        cents(o.shipping_cents) -
-        cents(o.buy_price_cents);
+      row.shipC += ship;
+      row.realizedPlC += rev - fee - ship - cost;
     } else {
+      // Unsold, sits in inventory
       row.onHand += 1;
+      const cost = cents(o.buy_price_cents);
+      row.onHandCostC += cost;
+      const mv =
+        marketByName.get((o.item || "").toLowerCase()) || 0;
+      row.onHandMarketC += mv;
     }
   }
+
+  // finalize unrealized & total
+  for (const row of m.values()) {
+    row.unrealizedPlC = row.onHandMarketC - row.onHandCostC;
+    row.totalPlMtmC = row.realizedPlC + row.unrealizedPlC;
+  }
+
   return [...m.values()]
     .sort((a, b) => b.revenueC - a.revenueC)
-    .slice(0, 200);
+    .slice(0, 400);
 }
