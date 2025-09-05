@@ -1,3 +1,4 @@
+// src/routes/Stats.jsx
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
@@ -198,7 +199,7 @@ export default function Stats() {
   const chartMap = {
     purchases: { title: "Purchases by month", labels: chartSeries.months, values: chartSeries.purchasesCount, money: false },
     sales:     { title: "Sales by month",     labels: chartSeries.months, values: chartSeries.salesCount,     money: false },
-    cost:      { title: "Cost (buy) by month",labels: chartSeries.months, values: chartSeries.costC,          money: true  },
+    cost:      { title: "Cost by month",      labels: chartSeries.months, values: chartSeries.costC,          money: true  },
     revenue:   { title: "Revenue by month",   labels: chartSeries.months, values: chartSeries.revenueC,       money: true  },
   };
   const currentChart = chartMap[chartKind];
@@ -359,27 +360,21 @@ export default function Stats() {
                   <div className="mt-4 space-y-4">
                     {/* pills in requested order; responsive 2→3→4→5 columns */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} />
-                      <MiniPill title="Sold" value={`${g.sold}`} num={g.sold} />
-                      <MiniPill title="On Hand" value={`${g.onHand}`} num={g.onHand} />
-                      <MiniPill title="Total Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} tone="cost" />
-                      <MiniPill title="Total Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} />
-                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} tone="cost" />
-                      <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} tone="cost" />
-                      <MiniPill
-                        title="Realized P/L"
-                        value={`$${centsToStr(g.realizedPlC)}`}
-                        num={g.realizedPlC}
-                        tone="realized"
-                      />
-                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} />
-                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} tone="unrealized" />
+                      <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} sub="total bought" />
+                      <MiniPill title="Sold" value={`${g.sold}`} num={g.sold} sub="total sold" />
+                      <MiniPill title="On Hand" value={`${g.onHand}`} num={g.onHand} sub="inventory" />
+                      <MiniPill title="Total Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="amount spent" />
+                      <MiniPill title="Total Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="amount made" />
+                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from sales" />
+                      <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} sub="from sales" />
+                      <MiniPill title="Realized P/L" value={`$${centsToStr(g.realizedPlC)}`} num={g.realizedPlC} sub="after fees + ship" tone="realized" />
+                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from TCGplayer" />
+                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on market" tone="unrealized" />
 
-                      {/* New pills */}
-                      <MiniPill title="ROI%" value={pctStr(g.roi)} num={g.roi} tone="ratio" />
-                      <MiniPill title="Margin%" value={pctStr(g.margin)} num={g.margin} tone="ratio" />
-                      <MiniPill title="Avg Hold" value={`${g.avgHoldDays.toFixed(0)}d`} num={g.avgHoldDays} />
-                      <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} />
+                      <MiniPill title="ROI%" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profit / cost" />
+                      <MiniPill title="Margin%" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="profit / revenue" />
+                      <MiniPill title="Avg Hold" value={`${g.avgHoldDays.toFixed(0)}d`} num={g.avgHoldDays} sub="time in days" />
+                      <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} sub="average sale price" />
                     </div>
                   </div>
                 )}
@@ -454,37 +449,53 @@ function ChartTab({ value, label, cur, setCur }) {
   return (
     <button
       onClick={() => setCur(value)}
-      className={`px-3 py-1.5 rounded-full border ${active ? "bg-indigo-600 border-indigo-500 text-white" : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"}`}
+      className={`px-3 py-1.5 rounded-full border ${
+        active
+          ? "bg-indigo-600 border-indigo-500 text-white"
+          : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+      }`}
     >
       {label}
     </button>
   );
 }
 
-/* Visible vertical bar chart (mobile-friendly) */
+/* -------- Visible, mobile-friendly vertical bar chart ---------- */
 function BarsVertical({ labels = [], values = [], money = false, emptyLabel = "No data." }) {
-  if (!values.length || values.every((v) => !v))
+  // show nothing if all zero
+  if (!values.length || values.every((v) => !v)) {
     return <div className="text-slate-400">{emptyLabel}</div>;
+  }
 
-  const start = Math.max(0, values.length - 12); // show last 12 buckets
+  // show the last up to 12 buckets
+  const start = Math.max(0, values.length - 12);
   const L = labels.slice(start);
   const V = values.slice(start);
   const max = Math.max(1, ...V.map((v) => Math.abs(v)));
+  const H = 180; // px chart height for bars
 
   return (
     <div className="w-full">
-      <div className="h-48 flex items-end gap-2">
-        {V.map((v, i) => {
-          const h = (Math.abs(v) / max) * 100;
-          return (
-            <div key={i} className="flex-1 min-w-[18px] flex flex-col items-center">
-              <div className="w-full rounded-t bg-indigo-500/90" style={{ height: `${h}%` }} />
-              <div className="mt-1 text-[10px] text-slate-200">
-                {money ? `$${centsToStr(v)}` : v}
+      <div className="relative w-full h-[200px] rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
+        <div className="absolute inset-x-0 bottom-9 px-2 flex items-end gap-6">
+          {V.map((v, i) => {
+            const hpx = Math.round((Math.abs(v) / max) * H);
+            return (
+              <div key={i} className="flex-1 min-w-[18px] flex flex-col items-center justify-end">
+                <div
+                  className="w-4 sm:w-6 rounded-t bg-indigo-500"
+                  style={{ height: `${hpx}px` }}
+                  aria-hidden
+                />
+                <div className="mt-1 text-[10px] text-slate-200">
+                  {money ? `$${centsToStr(v)}` : v}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        {/* subtle baseline */}
+        <div className="absolute left-0 right-0 bottom-8 h-px bg-slate-800" />
       </div>
       <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-slate-400">
         {L.map((l, i) => (
@@ -562,20 +573,23 @@ function makeItemGroups(filtered, marketByName) {
 }
 
 /* -------------------------- tiny UI atoms -------------------------- */
-function MiniPill({ title, value, tone = "neutral", num = null }) {
-  // Zero is always neutral (white)
-  const isZero = num === 0;
-  let cls = "text-slate-100";
-  if (!isZero) {
-    if (tone === "cost") cls = "text-rose-400";
-    if (tone === "unrealized") cls = "text-indigo-400";
-    if (tone === "realized") cls = num > 0 ? "text-emerald-400" : "text-rose-400";
-    if (tone === "ratio") cls = num > 0 ? "text-emerald-400" : num < 0 ? "text-rose-400" : "text-slate-100";
-  }
+function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
+  const n = Number.isFinite(num) ? num : 0;
+  const isZero = n === 0;
+
+  // Default white for everything; only 2 colored cases:
+  // - Est. Value (tone="unrealized") -> blue when >0, else dim
+  // - Realized P/L (tone="realized") -> green when >0, else white/dim
+  let color = "text-slate-100";
+  if (tone === "unrealized") color = isZero ? "text-slate-400" : "text-indigo-400";
+  if (tone === "realized") color = n > 0 ? "text-emerald-400" : isZero ? "text-slate-400" : "text-slate-100";
+  if (tone === "neutral") color = isZero ? "text-slate-400" : "text-slate-100";
+
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3">
       <div className="text-slate-400 text-xs">{title}</div>
-      <div className={`text-base font-semibold mt-0.5 ${cls}`}>{value}</div>
+      <div className={`text-base font-semibold mt-0.5 ${color}`}>{value}</div>
+      {sub && <div className="text-[10px] leading-4 text-slate-400 mt-0.5">{sub}</div>}
     </div>
   );
 }
