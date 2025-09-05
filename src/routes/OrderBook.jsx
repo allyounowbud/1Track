@@ -35,6 +35,11 @@ const fmtNiceDate = (yyyyMmDd) => {
     year: "numeric",
   });
 };
+const toMDY = (yyyyMmDd) => {
+  if (!yyyyMmDd) return "";
+  const [y, m, d] = yyyyMmDd.split("-");
+  return `${m}/${d}/${y}`;
+};
 
 /* ---------- queries ---------- */
 async function getOrders(limit = 500) {
@@ -89,7 +94,7 @@ export default function OrderBook() {
     queryFn: getMarkets,
   });
 
-  // Center/size date inputs consistently (desktop+mobile)
+  // Date input consistency (mobile/desktop)
   useEffect(() => {
     const tag = document.createElement("style");
     tag.innerHTML = `
@@ -101,19 +106,41 @@ export default function OrderBook() {
     return () => document.head.removeChild(tag);
   }, []);
 
-  /* search */
+  /* search + date filters */
   const [q, setQ] = useState("");
+  const [filterOrderDate, setFilterOrderDate] = useState(""); // YYYY-MM-DD
+  const [filterSaleDate, setFilterSaleDate] = useState(""); // YYYY-MM-DD
+
   const filtered = useMemo(() => {
     const t = (q || "").trim().toLowerCase();
-    if (!t) return orders;
-    return orders.filter(
-      (o) =>
-        (o.item || "").toLowerCase().includes(t) ||
-        (o.retailer || "").toLowerCase().includes(t) ||
-        (o.marketplace || "").toLowerCase().includes(t) ||
-        (o.profile_name || "").toLowerCase().includes(t)
-    );
-  }, [orders, q]);
+    let list = orders;
+
+    if (t) {
+      list = list.filter((o) => {
+        const mdyOrder = toMDY(o.order_date || "");
+        const mdySale = toMDY(o.sale_date || "");
+        return (
+          (o.item || "").toLowerCase().includes(t) ||
+          (o.retailer || "").toLowerCase().includes(t) ||
+          (o.marketplace || "").toLowerCase().includes(t) ||
+          (o.profile_name || "").toLowerCase().includes(t) ||
+          (o.order_date || "").includes(t) ||
+          (o.sale_date || "").includes(t) ||
+          mdyOrder.toLowerCase().includes(t) ||
+          mdySale.toLowerCase().includes(t)
+        );
+      });
+    }
+
+    if (filterOrderDate) {
+      list = list.filter((o) => (o.order_date || "") === filterOrderDate);
+    }
+    if (filterSaleDate) {
+      list = list.filter((o) => (o.sale_date || "") === filterSaleDate);
+    }
+
+    return list;
+  }, [orders, q, filterOrderDate, filterSaleDate]);
 
   /* group by order_date */
   const grouped = useMemo(() => {
@@ -123,13 +150,16 @@ export default function OrderBook() {
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(o);
     }
-    // newest first
     const keys = Array.from(map.keys()).sort((a, b) => {
       if (a === "__unknown__") return 1;
       if (b === "__unknown__") return -1;
       return a < b ? 1 : a > b ? -1 : 0;
     });
-    return keys.map((k) => ({ key: k, nice: k === "__unknown__" ? "Unknown date" : fmtNiceDate(k), rows: map.get(k) }));
+    return keys.map((k) => ({
+      key: k,
+      nice: k === "__unknown__" ? "Unknown date" : fmtNiceDate(k),
+      rows: map.get(k),
+    }));
   }, [filtered]);
 
   return (
@@ -139,19 +169,50 @@ export default function OrderBook() {
 
         {/* Search + meta */}
         <div className={`${pageCard} mb-6`}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-            <div className="sm:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 items-end">
+            <div className="lg:col-span-3">
               <label className="text-slate-300 mb-1 block text-sm">Search</label>
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="item / retailer / marketplace / profile…"
-                className="h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
+                placeholder="item / retailer / marketplace / profile / date…"
+                className={inputSm}
               />
             </div>
+
             <div>
+              <label className="text-slate-300 mb-1 block text-sm">Order date</label>
+              <input
+                type="date"
+                value={filterOrderDate}
+                onChange={(e) => setFilterOrderDate(e.target.value)}
+                className={`tw-date ${inputSm}`}
+              />
+            </div>
+
+            <div>
+              <label className="text-slate-300 mb-1 block text-sm">Sale date</label>
+              <input
+                type="date"
+                value={filterSaleDate}
+                onChange={(e) => setFilterSaleDate(e.target.value)}
+                className={`tw-date ${inputSm}`}
+              />
+            </div>
+
+            <div className="lg:col-span-5 flex items-center gap-4">
               <div className="text-slate-400 text-sm">Rows</div>
               <div className="text-xl font-semibold">{filtered.length}</div>
+              {(filterOrderDate || filterSaleDate || q) && (
+                <button
+                  onClick={() => {
+                    setQ(""); setFilterOrderDate(""); setFilterSaleDate("");
+                  }}
+                  className="ml-auto h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -165,8 +226,9 @@ export default function OrderBook() {
             <DayCard
               key={g.key}
               title={g.nice}
+              dateKey={g.key}
               count={g.rows.length}
-              defaultOpen={idx === 0} // most-recent date expanded initially
+              defaultOpen={idx === 0}
               rows={g.rows}
               items={items}
               retailers={retailers}
@@ -187,6 +249,7 @@ export default function OrderBook() {
 /* ============== Day Card ============== */
 function DayCard({
   title,
+  dateKey, // YYYY-MM-DD or "__unknown__"
   count,
   rows,
   items,
@@ -197,26 +260,72 @@ function DayCard({
   defaultOpen = false,
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [adding, setAdding] = useState(false);
+
+  async function addNewForDay() {
+    if (!dateKey || dateKey === "__unknown__") return;
+    setAdding(true);
+    try {
+      // Insert a minimal blank row for this day
+      const base = {
+        order_date: dateKey,
+        item: null,
+        profile_name: null,
+        retailer: null,
+        marketplace: null,
+        sale_date: null,
+        buy_price_cents: 0,
+        sale_price_cents: 0,
+        shipping_cents: 0,
+        fees_pct: 0,
+        status: "ordered",
+      };
+      const { error } = await supabase.from("orders").insert(base);
+      if (error) throw error;
+      onSaved && onSaved();
+      setOpen(true);
+    } catch (e) {
+      alert(e.message || String(e));
+    } finally {
+      setAdding(false);
+    }
+  }
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950/40">
+    <div className={pageCard}>
       {/* header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold">{title}</h3>
           <p className="text-xs text-slate-400">{count} order{count !== 1 ? "s" : ""}</p>
         </div>
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-        >
-          {open ? "Collapse" : "Expand"}
-        </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={addNewForDay}
+            disabled={!dateKey || dateKey === "__unknown__" || adding}
+            className={`h-9 px-4 rounded-xl border border-slate-800 ${
+              adding
+                ? "bg-slate-800 text-slate-300 cursor-not-allowed"
+                : "bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+            }`}
+            title={dateKey === "__unknown__" ? "Unknown date" : `Add new for ${title}`}
+          >
+            {adding ? "Adding…" : "+ New on this date"}
+          </button>
+
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+          >
+            {open ? "Collapse" : "Expand"}
+          </button>
+        </div>
       </div>
 
       {/* content */}
       {open && (
-        <div className="p-4 pt-0 sm:p-5 sm:pt-0">
+        <div className="pt-5">
           {/* Header labels per group (desktop) */}
           <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
             <div className="w-40">Order date</div>
@@ -225,7 +334,7 @@ function DayCard({
             <div className="w-30">Retailer</div>
             <div className="w-22">Buy $</div>
             <div className="w-22">Sale $</div>
-            <div className="w-40">Sale date</div>
+            <div className="w-36">Sale date</div>
             <div className="w-32">Marketplace</div>
             <div className="w-20">Ship $</div>
             <div className="w-20 text-right">Actions</div>
@@ -250,7 +359,7 @@ function DayCard({
   );
 }
 
-/* ============== Row component (unchanged editing UI) ============== */
+/* ============== Row component ============== */
 function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
   const [order_date, setOrderDate] = useState(order.order_date || "");
   const [item, setItem] = useState(order.item || "");
