@@ -1,5 +1,5 @@
 // src/routes/Settings.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
@@ -58,173 +58,6 @@ async function getMarkets() {
     .order("name", { ascending: true });
   if (error) throw error;
   return data;
-}
-
-/* --------- duplicate helpers for import --------- */
-function normalizeTokens(str) {
-  return new Set(
-    String(str)
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 1)
-  );
-}
-function isSubset(sub, sup) {
-  for (const t of sub) if (!sup.has(t)) return false;
-  return true;
-}
-
-/* --------- OCR → extract item titles + market prices (bbox-aware) --------- */
-function toTitleCaseSmart(s) {
-  const small = new Set([
-    "a", "an", "and", "as", "at", "but", "by",
-    "for", "in", "of", "on", "or", "the", "to", "with"
-  ]);
-  const words = String(s).toLowerCase().split(/\s+/);
-  return words
-    .map((w, i) => {
-      if (!w) return w;
-      if (/^(ii|iii|iv|vi|vii|viii|ix|x|tcg|sv|xl|xv|xvi|xx)$/i.test(w)) return w.toUpperCase();
-      if (i > 0 && small.has(w)) return w;
-      return w[0].toUpperCase() + w.slice(1);
-    })
-    .join(" ");
-}
-function overlapRatio(a, b) {
-  const left = Math.max(a.x0, b.x0);
-  const right = Math.min(a.x1, b.x1);
-  const inter = Math.max(0, right - left);
-  const minW = Math.max(1, Math.min(a.x1 - a.x0, b.x1 - b.x0));
-  return inter / minW;
-}
-function isBadTitleLine(txt) {
-  if (!txt) return true;
-  if (/market\s*price/i.test(txt)) return true;
-  if (/listings?\s+from/i.test(txt)) return true;
-  if (/^sv[:\s-]/i.test(txt)) return true;
-  if (/^\$?\d+(?:\.\d{2})?$/.test(txt)) return true;
-  const alpha = txt.replace(/[^a-z]/gi, "");
-  if (alpha.length < 3) return true;
-  return false;
-}
-function extractProductsFromText(ocrData) {
-  // If we only get a string, fallback to simple parsing
-  if (!ocrData || typeof ocrData !== "object" || !ocrData.lines) {
-    const txt = typeof ocrData === "string" ? ocrData : (ocrData?.text || "");
-    const lines = String(txt)
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    const found = [];
-    for (let i = 0; i < lines.length; i++) {
-      const m = lines[i].match(/market\s*price[:\s]*\$?\s*([0-9]+(?:\.[0-9]{2})?)/i);
-      if (!m) continue;
-      let title = "";
-      for (let j = i - 1; j >= 0; j--) {
-        const L = lines[j];
-        if (isBadTitleLine(L)) continue;
-        title = L;
-        break;
-      }
-      if (title) {
-        found.push({ name: toTitleCaseSmart(title.trim()), marketValue: parseMoney(m[1]) });
-      }
-    }
-    const seen = new Set();
-    return found.filter((f) => {
-      const k = f.name.toLowerCase();
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
-  }
-
-  // Preferred structured path (Tesseract lines with bboxes)
-  const lines = (ocrData.lines || [])
-    .map((ln) => ({
-      text: (ln.text || "").trim(),
-      conf: typeof ln.confidence === "number" ? ln.confidence : (ln.confidence ?? 0),
-      bbox: ln.bbox || { x0: ln.x0 ?? 0, y0: ln.y0 ?? 0, x1: ln.x1 ?? 0, y1: ln.y1 ?? 0 },
-    }))
-    .filter((ln) => ln.text);
-
-  function nearestSVAbove(mpBox) {
-    const candidates = lines.filter(
-      (ln) =>
-        /^sv[:\s-]/i.test(ln.text) &&
-        ln.bbox.y1 <= mpBox.y0 &&
-        overlapRatio(ln.bbox, mpBox) >= 0.45 &&
-        ln.conf >= 55
-    );
-    candidates.sort((a, b) => b.bbox.y1 - a.bbox.y1);
-    return candidates[0] || null;
-  }
-
-  const mpLines = lines
-    .map((ln, idx) => ({
-      ...ln,
-      idx,
-      match: ln.text.match(/market\s*price[:\s]*\$?\s*([0-9]+(?:\.[0-9]{2})?)/i),
-    }))
-    .filter((x) => x.match);
-
-  const results = [];
-
-  for (const mp of mpLines) {
-    const price = parseMoney(mp.match[1]);
-    let titleCandidate = null;
-
-    const sv = nearestSVAbove(mp.bbox);
-    if (sv) {
-      const aboveSV = lines
-        .filter(
-          (ln) =>
-            ln.bbox.y1 <= sv.bbox.y0 &&
-            overlapRatio(ln.bbox, mp.bbox) >= 0.45 &&
-            ln.conf >= 55 &&
-            !isBadTitleLine(ln.text)
-        )
-        .sort((a, b) => b.bbox.y1 - a.bbox.y1);
-      if (aboveSV.length) titleCandidate = aboveSV[0];
-    }
-
-    if (!titleCandidate) {
-      const nearAbove = lines
-        .filter(
-          (ln) =>
-            ln.bbox.y1 <= mp.bbox.y0 &&
-            (mp.bbox.y0 - ln.bbox.y1) <= 180 &&
-            overlapRatio(ln.bbox, mp.bbox) >= 0.45 &&
-            ln.conf >= 55 &&
-            !isBadTitleLine(ln.text)
-        )
-        .sort((a, b) => {
-          const dv = (mp.bbox.y0 - a.bbox.y1) - (mp.bbox.y0 - b.bbox.y1);
-          if (dv !== 0) return dv;
-          return b.text.length - a.text.length;
-        });
-      if (nearAbove.length) titleCandidate = nearAbove[0];
-    }
-
-    if (!titleCandidate) continue;
-
-    let title = titleCandidate.text.trim();
-    if (/^[A-Z0-9\s\-:&]+$/.test(title) && /[A-Z]/.test(title)) {
-      title = toTitleCaseSmart(title);
-    }
-
-    results.push({ name: title, marketValue: price });
-  }
-
-  const seen = new Set();
-  return results.filter((f) => {
-    const key = f.name.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }
 
 export default function Settings() {
@@ -287,80 +120,6 @@ export default function Settings() {
   const [addingItem, setAddingItem] = useState(false);
   const [addingRetailer, setAddingRetailer] = useState(false);
   const [addingMarket, setAddingMarket] = useState(false);
-
-  /* ---------- NEW: import-from-image state ---------- */
-  const [importedItems, setImportedItems] = useState([]); // [{name, market_value_cents}]
-  const [importWarnings, setImportWarnings] = useState([]);
-  const [importing, setImporting] = useState(false);
-  const fileInputRef = useRef(null);
-
-  function askImportImage() {
-    fileInputRef.current?.click();
-  }
-
-  async function handleImportImage(ev) {
-    const file = ev.target.files?.[0];
-    if (!file) return;
-    setImportWarnings([]);
-    setImporting(true);
-    try {
-      // lazy-load tesseract so it doesn't affect first paint
-      const Tesseract = await import("tesseract.js");
-      const { data } = await Tesseract.recognize(file, "eng");
-      // ⬇️ pass the full OCR data (bbox-aware), not just data.text
-      const found = extractProductsFromText(data);
-
-      // build token sets for duplicate detection
-      const existingTokens = items.map((i) => normalizeTokens(i.name));
-      const stagedTokens = importedItems.map((i) => normalizeTokens(i.name));
-
-      const next = [];
-      const warns = [];
-      for (const f of found) {
-        const name = f.name.trim();
-        const tokens = normalizeTokens(name);
-
-        // duplicate if all words already contained in any existing/staged name
-        let dup = false;
-        for (let t of existingTokens) {
-          if (isSubset(tokens, t)) {
-            dup = true;
-            break;
-          }
-        }
-        if (!dup) {
-          for (let t of stagedTokens) {
-            if (isSubset(tokens, t)) {
-              dup = true;
-              break;
-            }
-          }
-        }
-        if (dup) {
-          warns.push(`Skipped duplicate: "${name}"`);
-          continue;
-        }
-
-        next.push({
-          name,
-          market_value_cents: Math.round((f.marketValue || 0) * 100),
-        });
-      }
-
-      if (next.length) {
-        if (!openItems) setOpenItems(true);
-        setImportedItems((prev) => [...next, ...prev]);
-      }
-      if (warns.length) setImportWarnings(warns);
-    } catch (err) {
-      setImportWarnings([
-        `Import failed: ${err?.message || String(err)}`,
-      ]);
-    } finally {
-      setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
 
   /* ----- CRUD: Items ----- */
   async function createItem(name, mvStr) {
@@ -454,37 +213,6 @@ export default function Settings() {
             </div>
 
             <div className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0">
-              {/* hidden file input for image import */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImportImage}
-              />
-              {openItems && (
-                <button
-                  onClick={askImportImage}
-                  className={headerIconBtn}
-                  aria-label={importing ? "Importing…" : "Import from image"}
-                  title={importing ? "Importing…" : "Import from image"}
-                  disabled={importing}
-                >
-                  {/* image/import icon */}
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M4 7a2 2 0 0 1 2-2h2l1-2h6l1 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
-                    <circle cx="12" cy="13" r="3" />
-                  </svg>
-                </button>
-              )}
               {openItems && !addingItem && (
                 <button
                   onClick={() => setAddingItem(true)}
@@ -509,10 +237,7 @@ export default function Settings() {
                 onClick={() => {
                   const n = !openItems;
                   setOpenItems(n);
-                  if (!n) {
-                    setAddingItem(false);
-                    setImportWarnings([]);
-                  }
+                  if (!n) setAddingItem(false);
                 }}
                 className={headerGhostBtn}
               >
@@ -520,15 +245,6 @@ export default function Settings() {
               </button>
             </div>
           </div>
-
-          {/* import warnings */}
-          {!!importWarnings.length && openItems && (
-            <div className="mt-3 rounded-lg border border-amber-600/50 bg-amber-500/10 text-amber-300 text-sm px-3 py-2">
-              {importWarnings.map((w, i) => (
-                <div key={i}>{w}</div>
-              ))}
-            </div>
-          )}
 
           {openItems && (
             <div className="pt-5">
@@ -539,26 +255,6 @@ export default function Settings() {
               </div>
 
               <div className="space-y-3">
-                {/* NEW: staged imported rows (unsaved) */}
-                {importedItems.map((it, idx) => (
-                  <ItemRow
-                    key={`imp-${idx}-${it.name}`}
-                    it={it}
-                    isNew
-                    onSave={async (name, mv) => {
-                      const ok = await createItem(name, mv);
-                      if (ok)
-                        setImportedItems((prev) =>
-                          prev.filter((_, i) => i !== idx)
-                        );
-                      return ok;
-                    }}
-                    onDelete={() =>
-                      setImportedItems((prev) => prev.filter((_, i) => i !== idx))
-                    }
-                  />
-                ))}
-
                 {addingItem && (
                   <ItemRow
                     isNew
@@ -578,7 +274,7 @@ export default function Settings() {
                     onDelete={() => deleteItem(it.id)}
                   />
                 ))}
-                {!items.length && !addingItem && !importedItems.length && (
+                {!items.length && !addingItem && (
                   <div className="text-slate-400">No items yet.</div>
                 )}
               </div>
