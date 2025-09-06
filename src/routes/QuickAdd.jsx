@@ -555,17 +555,23 @@ export default function QuickAdd() {
           </div>
 
           {/* Save */}
-          <div className="pt-2 flex items-center justify-between">
-            <div className={`text-sm ${msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"}`}>
-              {msg}
-            </div>
+          <div className="pt-2">
             <button
               type="submit"
               disabled={saving}
-              className="px-6 h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium"
+              className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium"
             >
-              {saving ? "Saving…" : "Save"}
+              {saving ? "Saving…" : "Add Order"}
             </button>
+            {msg && (
+              <div
+                className={`mt-2 text-sm ${
+                  msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"
+                }`}
+              >
+                {msg}
+              </div>
+            )}
           </div>
         </form>
       </div>
