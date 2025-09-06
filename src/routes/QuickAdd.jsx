@@ -335,7 +335,7 @@ export default function QuickAdd() {
             {/* SALE SECTION TITLE + TOGGLE */}
             <div className="mt-8 mb-2 flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold">
-                Sale details <span className="text-slate-400 text-sm">(optional – if already sold)</span>
+                Sale details <span className="text-slate-400 text-sm">(optional – if sold)</span>
               </h3>
               <ToggleSwitch checked={sold} onChange={(v) => setSold(v)} label="Sold" />
             </div>
