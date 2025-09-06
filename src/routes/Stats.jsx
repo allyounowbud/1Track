@@ -1,5 +1,5 @@
 // src/routes/Stats.jsx
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
@@ -26,6 +26,7 @@ const within = (d, from, to) => {
 };
 const normalizeItemFilter = (v) =>
   !v || v.trim().toLowerCase() === "all items" ? "" : v.trim();
+
 const monthKey = (d) => {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return null;
@@ -114,9 +115,7 @@ export default function Stats() {
 
   // applied snapshot
   const [applied, setApplied] = useState({ range: "all", from: null, to: null, item: "" });
-
-  const isDefaultFilters =
-    applied.range === "all" && !applied.from && !applied.to && !applied.item;
+  const isDefaultApplied = applied.range === "all" && !applied.item && !applied.from && !applied.to;
 
   const { fromMs, toMs } = useMemo(() => {
     if (applied.range === "custom") {
@@ -170,93 +169,11 @@ export default function Stats() {
     });
   }, [orders, applied, fromMs, toMs]);
 
-  /* ------------------------------- KPI (same style as Inventory) ------------------------------- */
-  const kpi = useMemo(() => {
-    // on-hand snapshot in filtered set
-    const onHandRows = filtered.filter((o) => cents(o.sale_price_cents) <= 0);
-    const onHandUnits = onHandRows.length;
-    const onHandCostC = onHandRows.reduce((a, o) => a + cents(o.buy_price_cents), 0);
-
-    const onHandMarketC = onHandRows.reduce((a, o) => {
-      const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
-      return a + mv;
-    }, 0);
-
-    const unrealized = onHandMarketC - onHandCostC;
-
-    // sales stats
-    const soldRows = filtered.filter((o) => cents(o.sale_price_cents) > 0);
-    const revenueC = soldRows.reduce((a, o) => a + cents(o.sale_price_cents), 0);
-    const feesC = soldRows.reduce(
-      (a, o) => a + Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0)),
-      0
-    );
-    const shipC = soldRows.reduce((a, o) => a + cents(o.shipping_cents), 0);
-    const soldCostC = soldRows.reduce((a, o) => a + cents(o.buy_price_cents), 0);
-    const realized = revenueC - feesC - shipC - soldCostC;
-
-    // longest hold (unsold)
-    const now = Date.now();
-    const longestHold = onHandRows.reduce((max, o) => {
-      const od = new Date(o.order_date).getTime();
-      if (isNaN(od)) return max;
-      const d = Math.max(0, Math.round((now - od) / (24 * 3600 * 1000)));
-      return Math.max(max, d);
-    }, 0);
-
-    // best seller, margin, ROI (per item in filtered)
-    const perItem = new Map();
-    for (const o of filtered) {
-      const key = o.item || "—";
-      if (!perItem.has(key))
-        perItem.set(key, {
-          item: key,
-          sold: 0,
-          revenueC: 0,
-          plC: 0,
-          spentC: 0,
-        });
-      const r = perItem.get(key);
-      if (cents(o.sale_price_cents) > 0) {
-        const rev = cents(o.sale_price_cents);
-        const fee = Math.round(rev * (Number(o.fees_pct) || 0));
-        const ship = cents(o.shipping_cents);
-        const cost = cents(o.buy_price_cents);
-        r.sold += 1;
-        r.revenueC += rev;
-        r.plC += rev - fee - ship - cost;
-        r.spentC += cost;
-      }
-    }
-    let bestSeller = { item: "—", n: 0 };
-    let bestMargin = { item: "—", v: NaN };
-    let bestROI = { item: "—", v: NaN };
-    for (const r of perItem.values()) {
-      if (r.sold > bestSeller.n) bestSeller = { item: r.item, n: r.sold };
-      const margin = r.revenueC > 0 ? r.plC / r.revenueC : NaN;
-      const roi = r.spentC > 0 ? r.plC / r.spentC : NaN;
-      if ((Number.isFinite(margin) ? margin : -Infinity) > (Number.isFinite(bestMargin.v) ? bestMargin.v : -Infinity))
-        bestMargin = { item: r.item, v: margin };
-      if ((Number.isFinite(roi) ? roi : -Infinity) > (Number.isFinite(bestROI.v) ? bestROI.v : -Infinity))
-        bestROI = { item: r.item, v: roi };
-    }
-
-    return {
-      rows: filtered.length,
-      onHandUnits,
-      onHandCostC,
-      onHandMarketC,
-      unrealized,
-      longestHold,
-      bestSeller,
-      bestMargin,
-      bestROI,
-      revenueC,
-    };
-  }, [filtered, marketByName]);
+  /* ------------------------------- KPIs -------------------------------- */
+  const kpis = useMemo(() => makeKpis(filtered, marketByName), [filtered, marketByName]);
 
   /* ------------------------------- CHART DATA ------------------------------- */
-  const chartBuckets = useMemo(() => {
+  const series = useMemo(() => {
     const purchases = filtered.filter(o => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
     const sales = filtered.filter(o => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs)));
 
@@ -278,42 +195,34 @@ export default function Stats() {
       revenue.set(k, revenue.get(k)+cents(o.sale_price_cents));
     }
 
-    // Limit buckets for small screens to avoid crowding (actual bars still fill container)
-    const isSmall = typeof window !== "undefined" ? window.innerWidth < 640 : false;
-    const maxBuckets = isSmall ? 8 : 12;
-    const start = Math.max(0, months.length - maxBuckets);
-    const slice = months.slice(start);
-
     return {
-      labels: slice,
-      purchasesCount: slice.map(m => purCnt.get(m)||0),
-      salesCount: slice.map(m => salCnt.get(m)||0),
-      costC: slice.map(m => cost.get(m)||0),
-      revenueC: slice.map(m => revenue.get(m)||0),
+      months,
+      purchasesCount: months.map(m => purCnt.get(m)||0),
+      salesCount: months.map(m => salCnt.get(m)||0),
+      costC: months.map(m => cost.get(m)||0),
+      revenueC: months.map(m => revenue.get(m)||0),
     };
   }, [filtered, fromMs, toMs]);
 
-  /* ------------------------------- chart mode ------------------------------- */
-  const [pair, setPair] = useState("units"); // "units" -> Purchases/Sales, "money" -> Cost/Revenue
+  /* ------------------------------- Chart toggle ------------------------------- */
+  const [chartMode, setChartMode] = useState("PS"); // PS | CR
+  const usingPS = chartMode === "PS";
+  const chartTitle = usingPS ? "Purchases & Sales" : "Cost & Revenue";
+  const chartSubtitle = "by month";
 
-  const seriesForPair = useMemo(() => {
-    if (pair === "units") {
-      return {
-        title: "Purchases & Sales",
-        a: { label: "Purchases", values: chartBuckets.purchasesCount, color: "#6166f5" },
-        b: { label: "Sales", values: chartBuckets.salesCount, color: "#8b90ff" },
-        money: false,
-      };
-    }
-    return {
-      title: "Cost & Revenue",
-      a: { label: "Cost", values: chartBuckets.costC, color: "#29d391" },     // muted greens
-      b: { label: "Revenue", values: chartBuckets.revenueC, color: "#58e1ae" },
-      money: true,
-    };
-  }, [pair, chartBuckets]);
+  const psSeries = [
+    { name: "Purchases", values: series.purchasesCount, color: "#6c72ff" }, // deeper indigo
+    { name: "Sales", values: series.salesCount, color: "#8b90ff" },         // lighter indigo
+  ];
+  const crSeries = [
+    { name: "Cost", values: series.costC, color: "#10b981" },     // emerald 500
+    { name: "Revenue", values: series.revenueC, color: "#34d399" } // emerald 400
+  ];
 
-  /* ------------------------------- expandable item cards (UNCHANGED) ------------------------------- */
+  const money = !usingPS;
+  const chart = { labels: series.months, series: usingPS ? psSeries : crSeries, money };
+
+  /* -------------------- Expandable item cards (unchanged) -------------------- */
   const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
   const [openSet, setOpenSet] = useState(() => new Set());
   const toggleItem = (key) => {
@@ -325,24 +234,23 @@ export default function Stats() {
     });
   };
 
-  /* ------------------------------- render ------------------------------- */
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="stats" showTabs />
 
-        {/* Filters */}
-        <div className={`${card} relative`}>
-          <div className="flex items-center justify-between">
+        {/* -------------------- Filters -------------------- */}
+        <div className={`${card} relative z-[60]`}>
+          <div className="flex items-center justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold">Filters</h2>
-            <div className="text-slate-400 text-sm">{kpi.rows} rows</div>
+            <div className="text-slate-400 text-sm">{filtered.length} rows</div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {/* Date range dropdown */}
             <Select
               value={range}
-              onChange={(v) => setRange(v)}
+              onChange={setRange}
               options={[
                 { value: "all", label: "All time" },
                 { value: "month", label: "This month" },
@@ -355,19 +263,32 @@ export default function Stats() {
 
             {range === "custom" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input type="date" value={fromStr} onChange={(e)=>setFromStr(e.target.value)} className={inputBase} />
-                <input type="date" value={toStr} onChange={(e)=>setToStr(e.target.value)} className={inputBase} />
+                <input
+                  type="date"
+                  value={fromStr}
+                  onChange={(e) => setFromStr(e.target.value)}
+                  className={inputBase}
+                  placeholder="Start date"
+                />
+                <input
+                  type="date"
+                  value={toStr}
+                  onChange={(e) => setToStr(e.target.value)}
+                  className={inputBase}
+                  placeholder="End date"
+                />
               </div>
             )}
 
             {/* Item filter combobox */}
             <div ref={comboRef} className="relative isolate">
+              <label className="sr-only">Item filter</label>
               <input
                 value={itemInput}
                 onChange={(e) => { setItemInput(e.target.value); setItemOpen(true); }}
                 onFocus={() => setItemOpen(true)}
                 placeholder="All Items"
-                className={inputBase}
+                className={`${inputBase} pr-10`}
               />
               <button
                 type="button"
@@ -379,7 +300,7 @@ export default function Stats() {
               </button>
 
               {itemOpen && (
-                <div className="absolute z-[70] left-0 right-0 mt-2 max-h-60 overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                <div className="absolute z-[80] left-0 right-0 mt-2 max-h-60 overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
                   {filteredItemOptions.map((name) => (
                     <div
                       key={name}
@@ -397,18 +318,17 @@ export default function Stats() {
               )}
             </div>
 
-            {/* Apply / Clear */}
-            <div className="flex justify-end gap-3">
-              {!isDefaultFilters && (
+            {/* Buttons */}
+            <div className="flex items-center justify-end gap-3">
+              {!isDefaultApplied && (
                 <button
                   onClick={() => {
                     setRange("all");
-                    setFromStr("");
-                    setToStr("");
+                    setFromStr(""); setToStr("");
                     setItemInput("All Items");
                     setApplied({ range: "all", from: null, to: null, item: "" });
                   }}
-                  className="px-5 py-3 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+                  className="px-5 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                 >
                   Clear
                 </button>
@@ -430,48 +350,38 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* KPI pills (same style as Inventory) */}
+        {/* -------------------- KPI (Inventory-style) -------------------- */}
         <div className={`${card} mt-6`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <Kpi title="Inventory" value={`${kpi.onHandUnits}`} subtitle="units on hand" />
-            <Kpi title="Total Cost" value={`$${centsToStr(kpi.onHandCostC)}`} subtitle="on-hand cost" />
-            <Kpi title="Est. Value" value={`$${centsToStr(kpi.onHandMarketC)}`} subtitle="on-hand market" tone="blue" />
-            <Kpi title="Unrealized P/L" value={`$${centsToStr(kpi.unrealized)}`} subtitle="gain" tone="blue" />
-            <Kpi title="Longest Hold" value={`${kpi.longestHold}d`} subtitle="" />
-            <Kpi title="Best Seller" value={`${kpi.bestSeller.n}`} subtitle={kpi.bestSeller.item} />
-            <Kpi title="Highest Margins" value={pctStr(kpi.bestMargin.v)} subtitle={kpi.bestMargin.item} />
-            <Kpi title="Best ROI" value={pctStr(kpi.bestROI.v)} subtitle={kpi.bestROI.item} />
+            <Kpi title="Inventory" value={`${kpis.onHand}`} hint="units on hand" />
+            <Kpi title="Total Cost" value={`$${centsToStr(kpis.onHandCostC)}`} hint="on-hand cost" />
+            <Kpi title="Est. Value" value={`$${centsToStr(kpis.onHandMktC)}`} hint="on-hand market" tone="blue" />
+            <Kpi title="Unrealized P/L" value={`$${centsToStr(kpis.unrealizedC)}`} hint="gain" tone="blue" />
+            <Kpi title="Longest Hold" value={`${kpis.longestHoldDays}d`} hint={kpis.longestHoldName} />
+            <Kpi title="Best Seller" value={`${kpis.bestSellerCount}`} hint={kpis.bestSellerName} />
+            <Kpi title="Highest Margins" value={pctStr(kpis.bestMarginPct)} hint={kpis.bestMarginName} />
+            <Kpi title="Best ROI" value={pctStr(kpis.bestRoiPct)} hint={kpis.bestRoiName} />
           </div>
         </div>
 
-        {/* Chart (single card with toggle) */}
+        {/* -------------------- Chart -------------------- */}
         <div className={`${card} mt-6`}>
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-3 mb-2">
             <div>
-              <div className="text-lg font-semibold">{seriesForPair.title}</div>
-              <div className="text-xs text-slate-400 -mt-0.5">by month</div>
+              <div className="text-lg font-semibold">{chartTitle}</div>
+              <div className="text-slate-400 text-xs -mt-0.5">{chartSubtitle}</div>
             </div>
-            <div className="flex items-center gap-4">
-              <SwitchPair
-                left="Purchases / Sales"
-                right="Cost / Revenue"
-                value={pair === "units" ? "left" : "right"}
-                onChange={(v) => setPair(v === "left" ? "units" : "money")}
-              />
-            </div>
+            <TogglePSCR value={chartMode} onChange={setChartMode} />
           </div>
 
-          <div className="mt-4">
-            <BarsDual
-              labels={chartBuckets.labels}
-              seriesA={seriesForPair.a}
-              seriesB={seriesForPair.b}
-              money={seriesForPair.money}
-            />
-          </div>
+          <BarsGrouped
+            labels={chart.labels}
+            series={chart.series}
+            money={chart.money}
+          />
         </div>
 
-        {/* Item breakdown (UNCHANGED) */}
+        {/* -------------------- Expandable item cards (unchanged visuals) -------------------- */}
         <div className="mt-6 space-y-4">
           {itemGroups.map((g) => {
             const open = openSet.has(g.item);
@@ -585,144 +495,224 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
   );
 }
 
-/* little two-position toggle */
-function SwitchPair({ left, right, value, onChange }) {
-  const leftActive = value === "left";
+function TogglePSCR({ value, onChange }) {
+  const leftActive = value === "PS";
   return (
-    <div className="inline-flex items-center rounded-full border border-slate-800 bg-slate-900/60 p-1">
-      <button
-        onClick={() => onChange("left")}
-        className={`px-3 py-1 rounded-full ${
-          leftActive ? "bg-indigo-600 text-white" : "text-slate-200"
-        }`}
-      >
-        {left}
-      </button>
-      <button
-        onClick={() => onChange("right")}
-        className={`px-3 py-1 rounded-full ${
-          !leftActive ? "bg-indigo-600 text-white" : "text-slate-200"
-        }`}
-      >
-        {right}
-      </button>
-    </div>
-  );
-}
-
-/* ------- Nice rounding for axis max (1.5× max, rounded) -------- */
-function niceMax(v) {
-  const x = Math.max(1, v);
-  const raw = x * 1.5;
-  const pow10 = Math.pow(10, Math.floor(Math.log10(raw)));
-  const n = raw / pow10;
-  let step;
-  if (n <= 1) step = 1;
-  else if (n <= 2) step = 2;
-  else if (n <= 5) step = 5;
-  else step = 10;
-  return step * pow10;
-}
-
-/* ------- Dual-series vertical bars, responsive, no scroll -------- */
-function BarsDual({ labels = [], seriesA, seriesB, money = false }) {
-  const values = [...(seriesA?.values || []), ...(seriesB?.values || [])];
-  const maxData = Math.max(0, ...values);
-  const ymax = niceMax(maxData);
-
-  const ticks = 4; // 0 + 4 grid lines
-  const step = ymax / ticks;
-  const tickVals = Array.from({ length: ticks + 1 }, (_, i) => Math.round(i * step));
-
-  // throttle x labels to avoid crowding
-  const isSmall = typeof window !== "undefined" ? window.innerWidth < 640 : false;
-  const labelEvery = Math.max(1, Math.ceil(labels.length / (isSmall ? 5 : 9)));
-
-  // bar width scales but stays visible
-  const groupCount = labels.length || 1;
-
-  return (
-    <div className="w-full">
-      <div className="relative w-full h-[260px] sm:h-[320px] rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
-        {/* Y axis ticks + grid */}
-        <div className="absolute inset-0 px-10 sm:px-12">
-          <div className="absolute left-0 top-3 bottom-10 right-0">
-            {tickVals.map((tv, i) => {
-              const pct = i / ticks;
-              return (
-                <div
-                  key={i}
-                  className="absolute left-0 right-0 border-t border-slate-800"
-                  style={{ bottom: `${pct * 100}%` }}
-                />
-              );
-            })}
-            {/* values on the left, bottom-up */}
-            <div className="absolute left-0 top-0 bottom-0 -translate-x-2 flex flex-col justify-between text-[10px] text-slate-300">
-              {tickVals.map((tv, i) => (
-                <div key={i} className="translate-y-1">
-                  {money ? `$${centsToStr(tv * 100)}` : tv}
-                </div>
-              ))}
-            </div>
-
-            {/* bar groups */}
-            <div className="absolute left-10 sm:left-12 right-3 bottom-8 top-3">
-              <div className="flex items-end h-full gap-2">
-                {labels.map((_, i) => {
-                  const va = seriesA.values[i] || 0;
-                  const vb = seriesB.values[i] || 0;
-                  const ha = ymax ? (va / ymax) * 100 : 0;
-                  const hb = ymax ? (vb / ymax) * 100 : 0;
-
-                  return (
-                    <div key={i} className="flex-1 min-w-0 flex items-end justify-center gap-1">
-                      <div
-                        className="rounded-t-md"
-                        style={{ width: "9px", height: `${ha}%`, background: seriesA.color, opacity: 0.9 }}
-                        title={`${seriesA.label}: ${money ? `$${centsToStr(va * 100)}` : va}`}
-                      />
-                      <div
-                        className="rounded-t-md"
-                        style={{ width: "9px", height: `${hb}%`, background: seriesB.color, opacity: 0.8 }}
-                        title={`${seriesB.label}: ${money ? `$${centsToStr(vb * 100)}` : vb}`}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* X labels */}
-            <div className="absolute left-10 sm:left-12 right-3 bottom-0 h-8 flex items-center">
-              <div className="flex w-full gap-2">
-                {labels.map((l, i) => (
-                  <div key={i} className="flex-1 min-w-0 text-center text-[10px] text-slate-400">
-                    {(i % labelEvery === 0) ? l : ""}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* legend (stacked, dot on right) */}
-        <div className="absolute right-4 top-4 text-xs text-slate-200 space-y-2">
-          <div className="flex items-center gap-2">
-            <span>{seriesA.label}</span>
-            <span className="inline-block w-3 h-3 rounded-full" style={{ background: seriesA.color, opacity: 0.9 }} />
-          </div>
-          <div className="flex items-center gap-2">
-            <span>{seriesB.label}</span>
-            <span className="inline-block w-3 h-3 rounded-full" style={{ background: seriesB.color, opacity: 0.8 }} />
-          </div>
-        </div>
+    <div className="flex items-center gap-3">
+      <div className="text-slate-400 text-xs text-right leading-none">
+        {/* label under the switch */}
+        <div className="hidden sm:block h-4" />
       </div>
+      <div className="rounded-full bg-slate-900/60 border border-slate-800 p-1 inline-flex">
+        <button
+          onClick={() => onChange("PS")}
+          className={`px-3 py-1.5 rounded-full text-sm ${
+            leftActive ? "bg-indigo-600 text-white" : "text-slate-100 hover:bg-slate-800"
+          }`}
+        >
+          Purchases / Sales
+        </button>
+        <button
+          onClick={() => onChange("CR")}
+          className={`px-3 py-1.5 rounded-full text-sm ${
+            !leftActive ? "bg-indigo-600 text-white" : "text-slate-100 hover:bg-slate-800"
+          }`}
+        >
+          Cost / Revenue
+        </button>
+      </div>
+      <div className="text-slate-400 text-xs leading-none -mt-0.5">{leftActive ? "Purchases & Sales" : "Cost & Revenue"}</div>
     </div>
   );
 }
 
-/* -------- per-item aggregation for expandable cards (kept same) -------- */
+/* --------------------- Responsive grouped bar chart --------------------- */
+function useContainerSize() {
+  const ref = useRef(null);
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    if (!ref.current) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) setW(e.contentRect.width);
+    });
+    ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, w];
+}
+
+function BarsGrouped({ labels = [], series = [], money = false }) {
+  const [wrapRef, width] = useContainerSize();
+
+  // nothing to show
+  const allVals = series.flatMap((s) => s.values);
+  if (!allVals.length || allVals.every((v) => !v)) {
+    return <div ref={wrapRef} className="text-slate-400">No data in this view.</div>;
+  }
+
+  // responsive geometry
+  const H = width < 520 ? 220 : 260;
+  const M = { l: 56, r: 18, t: 12, b: 36 }; // generous left for y labels
+  const W = Math.max(260, width); // minimum width safety
+  const innerW = W - M.l - M.r;
+  const innerH = H - M.t - M.b;
+
+  const groups = labels.length;
+  const yMaxRaw = Math.max(1, ...allVals);
+  const yMax = roundNice(yMaxRaw * 1.5); // ~1.5× headroom
+  const yTicks = 4;
+  const tickEvery = Math.max(1, Math.ceil(labels.length / (width < 420 ? 4 : 8)));
+
+  // bar sizing
+  const groupW = innerW / Math.max(1, groups);
+  const barGap = Math.min(10, Math.max(4, groupW * 0.2));
+  const barW = Math.max(6, Math.min(22, (groupW - barGap) / 2));
+
+  const scaleY = (v) => innerH - (v / yMax) * innerH;
+
+  // legend stacked, dot on right
+  return (
+    <div ref={wrapRef} className="w-full">
+      <div className="flex justify-end gap-3 mb-2">
+        {series.map((s) => (
+          <div key={s.name} className="flex items-center gap-2 text-slate-300 text-xs">
+            <span>{s.name}</span>
+            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
+          </div>
+        ))}
+      </div>
+
+      <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} className="rounded-xl border border-slate-800 bg-slate-900/40">
+        {/* grid */}
+        {[...Array(yTicks + 1)].map((_, i) => {
+          const y = M.t + (innerH / yTicks) * i;
+          const val = yMax - (yMax / yTicks) * i;
+          return (
+            <g key={i}>
+              <line x1={M.l} x2={W - M.r} y1={y} y2={y} stroke="#1f2937" strokeWidth="1" />
+              <text x={M.l - 6} y={y + 4} textAnchor="end" fontSize="10" fill="#9ca3af">
+                {money ? `$${centsToStr(val * 100)}` : `${Math.round(val)}`}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* bars */}
+        {labels.map((lab, idx) => {
+          const x0 = M.l + groupW * idx + (groupW - (barW * 2 + barGap)) / 2;
+          const [s0, s1] = series;
+          const v0 = s0?.values[idx] ?? 0;
+          const v1 = s1?.values[idx] ?? 0;
+          const h0 = innerH - scaleY(v0);
+          const h1 = innerH - scaleY(v1);
+
+          return (
+            <g key={idx}>
+              {/* purchases/cost */}
+              <rect x={x0} y={M.t + scaleY(v0)} width={barW} height={h0} rx="4" fill={s0.color} opacity="0.9" />
+              {/* sales/revenue */}
+              <rect x={x0 + barW + barGap} y={M.t + scaleY(v1)} width={barW} height={h1} rx="4" fill={s1.color} opacity="0.9" />
+              {/* x labels (sparse) */}
+              {idx % tickEvery === 0 && (
+                <text x={M.l + groupW * idx + groupW / 2} y={H - 10} textAnchor="middle" fontSize="10" fill="#9ca3af">
+                  {lab}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function roundNice(n) {
+  // rounds up to a "nice" number for axis (1,2,5 * 10^k)
+  const p = Math.pow(10, Math.floor(Math.log10(n)));
+  const d = n / p;
+  const mult = d <= 1 ? 1 : d <= 2 ? 2 : d <= 5 ? 5 : 10;
+  return mult * p;
+}
+
+/* ----------------------------- KPIs (inventory style) ----------------------------- */
+function Kpi({ title, value, hint, tone }) {
+  const toneClass =
+    tone === "blue" ? "text-indigo-400" : "text-slate-100";
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      <div className="text-slate-400 text-sm">{title}</div>
+      <div className={`text-xl font-semibold mt-1 ${toneClass}`}>{value}</div>
+      {hint && <div className="text-slate-400 text-xs mt-1 truncate">{hint}</div>}
+    </div>
+  );
+}
+
+/* --------------------- Aggregate KPIs for the top card --------------------- */
+function makeKpis(filtered, marketByName) {
+  let onHand = 0, onHandCostC = 0, onHandMktC = 0, unrealizedC = 0;
+  let longestHoldDays = 0, longestHoldName = "—";
+  const byItem = new Map();
+
+  const today = Date.now();
+
+  for (const o of filtered) {
+    const name = o.item || "—";
+    if (!byItem.has(name)) byItem.set(name, {
+      sold: 0, soldRevC: 0, soldCostC: 0, profitC: 0,
+    });
+    const row = byItem.get(name);
+
+    const costC = cents(o.buy_price_cents);
+    const sold = cents(o.sale_price_cents) > 0;
+    if (sold) {
+      const revC = cents(o.sale_price_cents);
+      const feeC = Math.round(revC * (Number(o.fees_pct) || 0));
+      const shipC = cents(o.shipping_cents);
+      row.sold += 1;
+      row.soldRevC += revC;
+      row.soldCostC += costC;
+      row.profitC += revC - feeC - shipC - costC;
+    } else {
+      onHand += 1;
+      onHandCostC += costC;
+      const mv = marketByName.get(name.toLowerCase()) || 0;
+      onHandMktC += mv;
+      const od = new Date(o.order_date).getTime();
+      if (!isNaN(od)) {
+        const days = Math.max(0, Math.round((today - od) / (24*3600*1000)));
+        if (days > longestHoldDays) { longestHoldDays = days; longestHoldName = name; }
+      }
+    }
+  }
+  unrealizedC = onHandMktC - onHandCostC;
+
+  // bests
+  let bestSellerName = "—", bestSellerCount = 0;
+  let bestMarginName = "—", bestMarginPct = NaN;
+  let bestRoiName = "—", bestRoiPct = NaN;
+
+  for (const [name, v] of byItem.entries()) {
+    if (v.sold > bestSellerCount) { bestSellerCount = v.sold; bestSellerName = name; }
+    const margin = v.soldRevC > 0 ? v.profitC / v.soldRevC : NaN;
+    if ((Number.isFinite(margin) ? margin : -Infinity) > (Number.isFinite(bestMarginPct) ? bestMarginPct : -Infinity)) {
+      bestMarginPct = margin; bestMarginName = name;
+    }
+    const roi = v.soldCostC > 0 ? v.profitC / v.soldCostC : NaN;
+    if ((Number.isFinite(roi) ? roi : -Infinity) > (Number.isFinite(bestRoiPct) ? bestRoiPct : -Infinity)) {
+      bestRoiPct = roi; bestRoiName = name;
+    }
+  }
+
+  return {
+    onHand, onHandCostC, onHandMktC, unrealizedC,
+    longestHoldDays, longestHoldName,
+    bestSellerName, bestSellerCount,
+    bestMarginName, bestMarginPct,
+    bestRoiName, bestRoiPct,
+  };
+}
+
+/* -------------------------- per-item aggregation -------------------------- */
 function makeItemGroups(filtered, marketByName) {
   const m = new Map();
   for (const o of filtered) {
@@ -771,7 +761,7 @@ function makeItemGroups(filtered, marketByName) {
       row.onHand += 1;
       const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
-      row.unitMarketC = mv;
+      row.unitMarketC = mv; // unit market value snapshot
     }
   }
 
@@ -787,24 +777,11 @@ function makeItemGroups(filtered, marketByName) {
   return out.slice(0, 400);
 }
 
-/* -------------------------- tiny UI atoms -------------------------- */
-function Kpi({ title, value, subtitle, tone }) {
-  const toneClass =
-    tone === "blue"
-      ? "text-indigo-400"
-      : "text-slate-100";
-  return (
-    <div className={card}>
-      <div className="text-slate-400 text-sm">{title}</div>
-      <div className={`text-xl font-semibold mt-2 ${toneClass}`}>{value}</div>
-      {subtitle && <div className="text-slate-400 text-sm">{subtitle}</div>}
-    </div>
-  );
-}
-
+/* -------------------------- tiny UI atoms for pills -------------------------- */
 function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
   const n = Number.isFinite(num) ? num : 0;
   const isZero = n === 0;
+
   let color = "text-slate-100";
   if (tone === "unrealized") color = isZero ? "text-slate-400" : "text-indigo-400";
   if (tone === "realized") color = n > 0 ? "text-emerald-400" : isZero ? "text-slate-400" : "text-slate-100";
