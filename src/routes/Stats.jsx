@@ -58,7 +58,7 @@ export default function Stats() {
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
 
-  // header user (unchanged for tabs)
+  // header user (unchanged)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -170,7 +170,7 @@ export default function Stats() {
   }, [orders, applied, fromMs, toMs]);
 
   /* ------------------------------- KPIs -------------------------------- */
-  const kpis = useMemo(() => makeKpis(filtered, marketByName), [filtered, marketByName]);
+  const kpis = useMemo(() => makeTopKpis(filtered), [filtered]);
 
   /* ------------------------------- CHART DATA ------------------------------- */
   const series = useMemo(() => {
@@ -208,19 +208,15 @@ export default function Stats() {
   const [chartMode, setChartMode] = useState("PS"); // PS | CR
   const usingPS = chartMode === "PS";
   const chartTitle = usingPS ? "Purchases & Sales" : "Cost & Revenue";
-  const chartSubtitle = "by month";
-
   const psSeries = [
-    { name: "Purchases", values: series.purchasesCount, color: "#6c72ff" }, // deeper indigo
-    { name: "Sales", values: series.salesCount, color: "#8b90ff" },         // lighter indigo
+    { name: "Purchases", values: series.purchasesCount, color: "#6c72ff" },
+    { name: "Sales", values: series.salesCount, color: "#8b90ff" },
   ];
   const crSeries = [
-    { name: "Cost", values: series.costC, color: "#10b981" },     // emerald 500
-    { name: "Revenue", values: series.revenueC, color: "#34d399" } // emerald 400
+    { name: "Cost", values: series.costC, color: "#4ade80" },     // muted greens
+    { name: "Revenue", values: series.revenueC, color: "#86efac" }
   ];
-
-  const money = !usingPS;
-  const chart = { labels: series.months, series: usingPS ? psSeries : crSeries, money };
+  const chart = { labels: series.months, series: usingPS ? psSeries : crSeries, money: !usingPS };
 
   /* -------------------- Expandable item cards (unchanged) -------------------- */
   const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
@@ -350,13 +346,15 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* -------------------- KPI (Inventory-style) -------------------- */}
+        {/* -------------------- KPI (Inventory-style layout) -------------------- */}
         <div className={`${card} mt-6`}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <Kpi title="Inventory" value={`${kpis.onHand}`} hint="units on hand" />
-            <Kpi title="Total Cost" value={`$${centsToStr(kpis.onHandCostC)}`} hint="on-hand cost" />
-            <Kpi title="Est. Value" value={`$${centsToStr(kpis.onHandMktC)}`} hint="on-hand market" tone="blue" />
-            <Kpi title="Unrealized P/L" value={`$${centsToStr(kpis.unrealizedC)}`} hint="gain" tone="blue" />
+          {/* 2-wide on small screens */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <Kpi title="Total Revenue" value={`$${centsToStr(kpis.revenueC)}`} />
+            <Kpi title="Total Cost" value={`$${centsToStr(kpis.spentC)}`} />
+            <Kpi title="Total Sales" value={`${kpis.sold}`} />
+            <Kpi title="Realized P/L" value={`$${centsToStr(kpis.realizedPlC)}`} tone="green" />
+
             <Kpi title="Longest Hold" value={`${kpis.longestHoldDays}d`} hint={kpis.longestHoldName} />
             <Kpi title="Best Seller" value={`${kpis.bestSellerCount}`} hint={kpis.bestSellerName} />
             <Kpi title="Highest Margins" value={pctStr(kpis.bestMarginPct)} hint={kpis.bestMarginName} />
@@ -369,9 +367,9 @@ export default function Stats() {
           <div className="flex items-start justify-between gap-3 mb-2">
             <div>
               <div className="text-lg font-semibold">{chartTitle}</div>
-              <div className="text-slate-400 text-xs -mt-0.5">{chartSubtitle}</div>
+              <div className="text-slate-400 text-xs -mt-0.5">by month</div>
             </div>
-            <TogglePSCR value={chartMode} onChange={setChartMode} />
+            <IconTogglePSCR value={chartMode} onChange={setChartMode} />
           </div>
 
           <BarsGrouped
@@ -495,34 +493,53 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
   );
 }
 
-function TogglePSCR({ value, onChange }) {
-  const leftActive = value === "PS";
+/* icon-only toggle (🛒 vs 🧮) */
+function IconTogglePSCR({ value, onChange }) {
+  const isPS = value === "PS";
+  const btn = (active, icon, aria, click) => (
+    <button
+      onClick={click}
+      aria-label={aria}
+      className={`p-2.5 rounded-full border ${
+        active
+          ? "bg-indigo-600 border-indigo-500 text-white"
+          : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+      }`}
+    >
+      {icon}
+    </button>
+  );
+
   return (
-    <div className="flex items-center gap-3">
-      <div className="text-slate-400 text-xs text-right leading-none">
-        {/* label under the switch */}
-        <div className="hidden sm:block h-4" />
-      </div>
-      <div className="rounded-full bg-slate-900/60 border border-slate-800 p-1 inline-flex">
-        <button
-          onClick={() => onChange("PS")}
-          className={`px-3 py-1.5 rounded-full text-sm ${
-            leftActive ? "bg-indigo-600 text-white" : "text-slate-100 hover:bg-slate-800"
-          }`}
-        >
-          Purchases / Sales
-        </button>
-        <button
-          onClick={() => onChange("CR")}
-          className={`px-3 py-1.5 rounded-full text-sm ${
-            !leftActive ? "bg-indigo-600 text-white" : "text-slate-100 hover:bg-slate-800"
-          }`}
-        >
-          Cost / Revenue
-        </button>
-      </div>
-      <div className="text-slate-400 text-xs leading-none -mt-0.5">{leftActive ? "Purchases & Sales" : "Cost & Revenue"}</div>
+    <div className="inline-flex gap-2 rounded-full bg-slate-900/60 border border-slate-800 p-1">
+      {btn(isPS,
+        <CartIcon className="w-5 h-5" />,
+        "Purchases & Sales",
+        () => onChange("PS")
+      )}
+      {btn(!isPS,
+        <CalcIcon className="w-5 h-5" />,
+        "Cost & Revenue",
+        () => onChange("CR")
+      )}
     </div>
+  );
+}
+function CartIcon({ className="" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="9" cy="21" r="1.5" /><circle cx="18" cy="21" r="1.5" />
+      <path d="M3 3h2l2.4 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5l1.4-6.5H7.2" />
+    </svg>
+  );
+}
+function CalcIcon({ className="" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <rect x="7" y="6" width="10" height="3" />
+      <path d="M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2" />
+    </svg>
   );
 }
 
@@ -550,10 +567,10 @@ function BarsGrouped({ labels = [], series = [], money = false }) {
     return <div ref={wrapRef} className="text-slate-400">No data in this view.</div>;
   }
 
-  // responsive geometry
-  const H = width < 520 ? 220 : 260;
-  const M = { l: 56, r: 18, t: 12, b: 36 }; // generous left for y labels
-  const W = Math.max(260, width); // minimum width safety
+  // responsive geometry (taller on small to avoid tiny chart)
+  const H = width < 420 ? 300 : 280;
+  const M = { l: 56, r: 18, t: 14, b: 40 };
+  const W = Math.max(260, width || 0);
   const innerW = W - M.l - M.r;
   const innerH = H - M.t - M.b;
 
@@ -561,18 +578,21 @@ function BarsGrouped({ labels = [], series = [], money = false }) {
   const yMaxRaw = Math.max(1, ...allVals);
   const yMax = roundNice(yMaxRaw * 1.5); // ~1.5× headroom
   const yTicks = 4;
-  const tickEvery = Math.max(1, Math.ceil(labels.length / (width < 420 ? 4 : 8)));
+
+  // label density: fewer labels on tiny screens
+  const desired = width < 360 ? 3 : width < 520 ? 5 : 8;
+  const tickEvery = Math.max(1, Math.ceil(labels.length / desired));
 
   // bar sizing
   const groupW = innerW / Math.max(1, groups);
-  const barGap = Math.min(10, Math.max(4, groupW * 0.2));
+  const barGap = Math.min(10, Math.max(4, groupW * 0.22));
   const barW = Math.max(6, Math.min(22, (groupW - barGap) / 2));
 
   const scaleY = (v) => innerH - (v / yMax) * innerH;
 
-  // legend stacked, dot on right
   return (
     <div ref={wrapRef} className="w-full">
+      {/* legend right, stacked with dots on right */}
       <div className="flex justify-end gap-3 mb-2">
         {series.map((s) => (
           <div key={s.name} className="flex items-center gap-2 text-slate-300 text-xs">
@@ -583,7 +603,7 @@ function BarsGrouped({ labels = [], series = [], money = false }) {
       </div>
 
       <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} className="rounded-xl border border-slate-800 bg-slate-900/40">
-        {/* grid */}
+        {/* horizontal grid + y labels (0 at bottom) */}
         {[...Array(yTicks + 1)].map((_, i) => {
           const y = M.t + (innerH / yTicks) * i;
           const val = yMax - (yMax / yTicks) * i;
@@ -597,7 +617,7 @@ function BarsGrouped({ labels = [], series = [], money = false }) {
           );
         })}
 
-        {/* bars */}
+        {/* grouped bars */}
         {labels.map((lab, idx) => {
           const x0 = M.l + groupW * idx + (groupW - (barW * 2 + barGap)) / 2;
           const [s0, s1] = series;
@@ -608,13 +628,10 @@ function BarsGrouped({ labels = [], series = [], money = false }) {
 
           return (
             <g key={idx}>
-              {/* purchases/cost */}
               <rect x={x0} y={M.t + scaleY(v0)} width={barW} height={h0} rx="4" fill={s0.color} opacity="0.9" />
-              {/* sales/revenue */}
               <rect x={x0 + barW + barGap} y={M.t + scaleY(v1)} width={barW} height={h1} rx="4" fill={s1.color} opacity="0.9" />
-              {/* x labels (sparse) */}
               {idx % tickEvery === 0 && (
-                <text x={M.l + groupW * idx + groupW / 2} y={H - 10} textAnchor="middle" fontSize="10" fill="#9ca3af">
+                <text x={M.l + groupW * idx + groupW / 2} y={H - 12} textAnchor="middle" fontSize="10" fill="#9ca3af">
                   {lab}
                 </text>
               )}
@@ -637,7 +654,9 @@ function roundNice(n) {
 /* ----------------------------- KPIs (inventory style) ----------------------------- */
 function Kpi({ title, value, hint, tone }) {
   const toneClass =
-    tone === "blue" ? "text-indigo-400" : "text-slate-100";
+    tone === "green" ? "text-emerald-400"
+      : tone === "blue" ? "text-indigo-400"
+      : "text-slate-100";
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
       <div className="text-slate-400 text-sm">{title}</div>
@@ -648,63 +667,56 @@ function Kpi({ title, value, hint, tone }) {
 }
 
 /* --------------------- Aggregate KPIs for the top card --------------------- */
-function makeKpis(filtered, marketByName) {
-  let onHand = 0, onHandCostC = 0, onHandMktC = 0, unrealizedC = 0;
+function makeTopKpis(filtered) {
+  const purchases = filtered.filter(o => o.order_date && (!o.sale_date || true)); // all purchases counted via order_date presence
+  const sales = filtered.filter(o => cents(o.sale_price_cents) > 0);
+
+  const spentC = purchases.reduce((a, o) => a + cents(o.buy_price_cents), 0);
+  const revenueC = sales.reduce((a, o) => a + cents(o.sale_price_cents), 0);
+  const feesC = sales.reduce((a, o) => a + Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0)), 0);
+  const shipC = sales.reduce((a, o) => a + cents(o.shipping_cents), 0);
+  const soldCostC = sales.reduce((a, o) => a + cents(o.buy_price_cents), 0);
+  const realizedPlC = revenueC - feesC - shipC - soldCostC;
+  const sold = sales.length;
+
+  // longest hold among unsold
   let longestHoldDays = 0, longestHoldName = "—";
-  const byItem = new Map();
-
   const today = Date.now();
-
   for (const o of filtered) {
-    const name = o.item || "—";
-    if (!byItem.has(name)) byItem.set(name, {
-      sold: 0, soldRevC: 0, soldCostC: 0, profitC: 0,
-    });
-    const row = byItem.get(name);
-
-    const costC = cents(o.buy_price_cents);
-    const sold = cents(o.sale_price_cents) > 0;
-    if (sold) {
-      const revC = cents(o.sale_price_cents);
-      const feeC = Math.round(revC * (Number(o.fees_pct) || 0));
-      const shipC = cents(o.shipping_cents);
-      row.sold += 1;
-      row.soldRevC += revC;
-      row.soldCostC += costC;
-      row.profitC += revC - feeC - shipC - costC;
-    } else {
-      onHand += 1;
-      onHandCostC += costC;
-      const mv = marketByName.get(name.toLowerCase()) || 0;
-      onHandMktC += mv;
-      const od = new Date(o.order_date).getTime();
-      if (!isNaN(od)) {
-        const days = Math.max(0, Math.round((today - od) / (24*3600*1000)));
-        if (days > longestHoldDays) { longestHoldDays = days; longestHoldName = name; }
-      }
-    }
+    if (cents(o.sale_price_cents) > 0) continue;
+    const od = new Date(o.order_date).getTime();
+    if (isNaN(od)) continue;
+    const d = Math.max(0, Math.round((today - od) / (24*3600*1000)));
+    if (d > longestHoldDays) { longestHoldDays = d; longestHoldName = o.item || "—"; }
   }
-  unrealizedC = onHandMktC - onHandCostC;
 
-  // bests
-  let bestSellerName = "—", bestSellerCount = 0;
-  let bestMarginName = "—", bestMarginPct = NaN;
-  let bestRoiName = "—", bestRoiPct = NaN;
-
+  // per-item bests
+  const byItem = new Map();
+  for (const o of sales) {
+    const k = o.item || "—";
+    if (!byItem.has(k)) byItem.set(k, { sold:0, rev:0, cost:0, profit:0 });
+    const r = byItem.get(k);
+    const rev = cents(o.sale_price_cents);
+    const cost = cents(o.buy_price_cents);
+    const fee = Math.round(rev * (Number(o.fees_pct) || 0));
+    const ship = cents(o.shipping_cents);
+    r.sold += 1; r.rev += rev; r.cost += cost; r.profit += (rev - fee - ship - cost);
+  }
+  let bestSellerName="—", bestSellerCount=0, bestMarginName="—", bestMarginPct=NaN, bestRoiName="—", bestRoiPct=NaN;
   for (const [name, v] of byItem.entries()) {
-    if (v.sold > bestSellerCount) { bestSellerCount = v.sold; bestSellerName = name; }
-    const margin = v.soldRevC > 0 ? v.profitC / v.soldRevC : NaN;
-    if ((Number.isFinite(margin) ? margin : -Infinity) > (Number.isFinite(bestMarginPct) ? bestMarginPct : -Infinity)) {
-      bestMarginPct = margin; bestMarginName = name;
+    if (v.sold > bestSellerCount) { bestSellerCount=v.sold; bestSellerName=name; }
+    const margin = v.rev>0 ? v.profit/v.rev : NaN;
+    const roi = v.cost>0 ? v.profit/v.cost : NaN;
+    if ((Number.isFinite(margin)?margin:-Infinity) > (Number.isFinite(bestMarginPct)?bestMarginPct:-Infinity)) {
+      bestMarginPct = margin; bestMarginName=name;
     }
-    const roi = v.soldCostC > 0 ? v.profitC / v.soldCostC : NaN;
-    if ((Number.isFinite(roi) ? roi : -Infinity) > (Number.isFinite(bestRoiPct) ? bestRoiPct : -Infinity)) {
-      bestRoiPct = roi; bestRoiName = name;
+    if ((Number.isFinite(roi)?roi:-Infinity) > (Number.isFinite(bestRoiPct)?bestRoiPct:-Infinity)) {
+      bestRoiPct = roi; bestRoiName=name;
     }
   }
 
   return {
-    onHand, onHandCostC, onHandMktC, unrealizedC,
+    spentC, revenueC, realizedPlC, sold,
     longestHoldDays, longestHoldName,
     bestSellerName, bestSellerCount,
     bestMarginName, bestMarginPct,
@@ -712,7 +724,7 @@ function makeKpis(filtered, marketByName) {
   };
 }
 
-/* -------------------------- per-item aggregation -------------------------- */
+/* -------------------------- per-item aggregation (cards) -------------------------- */
 function makeItemGroups(filtered, marketByName) {
   const m = new Map();
   for (const o of filtered) {
@@ -761,7 +773,7 @@ function makeItemGroups(filtered, marketByName) {
       row.onHand += 1;
       const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
-      row.unitMarketC = mv; // unit market value snapshot
+      row.unitMarketC = mv;
     }
   }
 
