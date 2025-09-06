@@ -465,7 +465,7 @@ export default function QuickAdd() {
 
             <Combo
               label="Item"
-              placeholder="Type or pick an item…"
+              placeholder="Add or select an item…"
               value={itemName}
               setValue={setItemName}
               options={itemNames}
@@ -473,18 +473,18 @@ export default function QuickAdd() {
             />
 
             <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Profile name (optional)</label>
+              <label className="text-slate-300 mb-1 block text-sm">Profile (optional)</label>
               <input
                 value={profileName}
                 onChange={(e) => setProfile(e.target.value)}
-                placeholder="name / Testing 1"
+                placeholder="Eno 3244 / Target 6"
                 className={inputBase}
               />
             </div>
 
             <Combo
               label="Retailer"
-              placeholder="Type or pick a retailer…"
+              placeholder="Add or select a retailer…"
               value={retailerName}
               setValue={setRetailerName}
               options={retailerNames}
@@ -526,8 +526,7 @@ export default function QuickAdd() {
           <div className="mt-2 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">
-                Sale details <span className="text-slate-400 text-sm">(optional – if sold)</span>
-              </h2>
+                Sale details</h2>
               <p className="text-slate-400 text-sm -mt-1">If an order has already sold</p>
             </div>
             <Toggle value={sold} onChange={setSold} label="Sold" />
@@ -548,7 +547,7 @@ export default function QuickAdd() {
 
               <Combo
                 label="Marketplace"
-                placeholder="Type or pick a marketplace…"
+                placeholder="Add or select a marketplace…"
                 value={marketName}
                 setValue={setMarketName}
                 options={marketNames}
@@ -560,7 +559,7 @@ export default function QuickAdd() {
                 <input
                   value={salePrice}
                   onChange={(e) => setSalePrice(e.target.value)}
-                  placeholder="0 = unsold"
+                  placeholder="0"
                   className={inputBase}
                 />
                 <p className="text-xs text-slate-500 mt-1">
@@ -577,6 +576,9 @@ export default function QuickAdd() {
                   disabled={feesLocked}
                   className={`${inputBase} ${feesLocked ? disabledInput : ""}`}
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  Auto filled once a marketplace is selected..
+                </p>
                 {feesLocked && (
                   <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
                 )}
