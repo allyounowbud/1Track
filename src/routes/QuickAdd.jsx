@@ -299,7 +299,7 @@ export default function QuickAdd() {
   const [itemName, setItemName] = useState("");
   const [profileName, setProfile] = useState("");
   const [retailerName, setRetailerName] = useState("");
-  const [qty, setQty] = useState(1);
+  const [qtyStr, setQtyStr] = useState(""); // <-- string input for easy backspace/edit
   const [buyPrice, setBuyPrice] = useState("");
 
   // sale fields
@@ -383,14 +383,16 @@ export default function QuickAdd() {
     setSaving(true);
     setMsg("");
     try {
-      const n = Math.max(1, parseInt(qty || "1", 10));
+      // sanitize qty (allow empty -> default 1)
+      const qty = Math.max(1, parseInt((qtyStr || "1").replace(/[^\d]/g, ""), 10) || 1);
+
       const buyTotal = Math.abs(moneyToCents(buyPrice));
       const saleTotal = moneyToCents(salePrice);
       const shipTotal = moneyToCents(shipping);
 
-      const perBuy = Math.round(n ? buyTotal / n : 0);
-      const perSale = Math.round(n ? saleTotal / n : 0);
-      const perShip = Math.round(n ? shipTotal / n : 0);
+      const perBuy = Math.round(qty ? buyTotal / qty : 0);
+      const perSale = Math.round(qty ? saleTotal / qty : 0);
+      const perShip = Math.round(qty ? shipTotal / qty : 0);
 
       const status = sold && perSale > 0 ? "sold" : "ordered";
 
@@ -405,7 +407,7 @@ export default function QuickAdd() {
         status,
       };
 
-      const rows = Array.from({ length: n }, () => ({
+      const rows = Array.from({ length: qty }, () => ({
         ...base,
         buy_price_cents: perBuy,
         sale_price_cents: sold ? perSale : 0,
@@ -415,12 +417,12 @@ export default function QuickAdd() {
       const { error } = await supabase.from("orders").insert(rows);
       if (error) throw error;
 
-      setMsg(`Saved ✔ (${n} row${n > 1 ? "s" : ""})`);
+      setMsg(`Saved ✔ (${qty} row${qty > 1 ? "s" : ""})`);
 
       // reset
       setItemName("");
       setRetailerName("");
-      setQty(1);
+      setQtyStr(""); // back to empty placeholder
       setBuyPrice("");
       setSold(false);
       setSaleDate("");
@@ -492,10 +494,16 @@ export default function QuickAdd() {
             <div className="min-w-0">
               <label className="text-slate-300 mb-1 block text-sm">Quantity</label>
               <input
-                type="number"
-                min={1}
-                value={qty}
-                onChange={(e) => setQty(parseInt(e.target.value || "1", 10))}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={qtyStr}
+                onChange={(e) => {
+                  // allow empty while typing; keep only digits
+                  const v = e.target.value.replace(/[^\d]/g, "");
+                  setQtyStr(v);
+                }}
+                placeholder="e.g. 3"
                 className={inputBase}
               />
               <p className="text-xs text-slate-500 mt-1">
@@ -525,7 +533,7 @@ export default function QuickAdd() {
             <Toggle value={sold} onChange={setSold} label="Sold" />
           </div>
 
-          {/* Smoothly collapsing sale fields; still disabled when toggle is off */}
+          {/* Smoothly collapsing sale fields */}
           <Collapse open={sold}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
               <div className="min-w-0">
