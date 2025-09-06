@@ -1,6 +1,6 @@
 // src/routes/QuickAdd.jsx
-import { useEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 
@@ -28,7 +28,7 @@ async function getOrders() {
     .order("order_date", { ascending: false })
     .limit(25);
   if (error) throw error;
-  return data || [];
+  return data;
 }
 async function getRetailers() {
   const { data, error } = await supabase.from("retailers").select("id, name");
@@ -52,191 +52,32 @@ async function getMarketplaces() {
   return data || [];
 }
 
-/* ---------- shared UI tokens ---------- */
-const card =
-  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
-const inputBase =
-  "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
-
-/* ---------- Addable combobox (type to add) ---------- */
-function AddableCombo({
-  label,
-  options, // [{id, name}]
-  valueId,
-  setValueId,
-  valueName,
-  setValueName,
-  placeholder = "Start typing…",
-  addTable, // "items" | "retailers" | "marketplaces"
-  addExtra = {}, // extra fields on insert
-  onAfterSelect, // optional hook (e.g., lock fees)
-}) {
-  const [open, setOpen] = useState(false);
-  const [text, setText] = useState(valueName || "");
-  const rootRef = useRef(null);
-
-  useEffect(() => {
-    function onDoc(e) {
-      if (!rootRef.current?.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
-
-  // keep input text in sync if selection changed from outside
-  useEffect(() => {
-    if (valueName && !text) setText(valueName);
-  }, [valueName]); // eslint-disable-line
-
-  const lower = (s) => (s || "").trim().toLowerCase();
-  const filtered = options.filter((o) => lower(o.name).includes(lower(text)));
-  const exact = options.find((o) => lower(o.name) === lower(text));
-  const showAdd = text.trim().length > 1 && !exact;
-
-  async function addNew() {
-    const name = text.trim();
-    if (!name) return;
-    // insert with returning row
-    let payload = { name, ...addExtra };
-    const { data, error } = await supabase.from(addTable).insert(payload).select().single();
-    if (error) throw error;
-    setValueId(data.id);
-    setValueName(data.name);
-    setOpen(false);
-    onAfterSelect?.(data);
-  }
-
-  function choose(o) {
-    setValueId(o.id);
-    setValueName(o.name);
-    setText(o.name);
-    setOpen(false);
-    onAfterSelect?.(o);
-  }
-
-  return (
-    <div ref={rootRef} className="min-w-0">
-      <label className="text-slate-300 mb-1 block text-sm">{label}</label>
-      <div className="relative isolate">
-        <input
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            setOpen(true);
-            // clear selection while typing
-            setValueId("");
-            setValueName(e.target.value);
-          }}
-          onFocus={() => setOpen(true)}
-          placeholder={placeholder}
-          className={`${inputBase} pr-10`}
-        />
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-          aria-label="Toggle"
-        >
-          ▾
-        </button>
-
-        {open && (
-          <div className="absolute z-[80] left-0 right-0 mt-2 max-h-60 overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-            {filtered.map((o) => (
-              <div
-                key={o.id}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => choose(o)}
-                className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-slate-100"
-              >
-                {o.name}
-              </div>
-            ))}
-            {filtered.length === 0 && !showAdd && (
-              <div className="px-3 py-2 text-slate-400">No matches</div>
-            )}
-            {showAdd && (
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={addNew}
-                className="w-full text-left px-3 py-2 bg-slate-800/60 hover:bg-slate-800 text-indigo-300"
-              >
-                Add “{text.trim()}”
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ---------- tiny toggle ---------- */
-function Toggle({ checked, onChange, label }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${
-        checked
-          ? "bg-emerald-600/90 border-emerald-500 text-white"
-          : "bg-slate-900/60 border-slate-800 text-slate-200"
-      }`}
-      aria-pressed={checked}
-    >
-      <span
-        className={`inline-block w-8 h-4 rounded-full relative transition-colors ${
-          checked ? "bg-white/30" : "bg-white/10"
-        }`}
-      >
-        <span
-          className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white transition-transform ${
-            checked ? "translate-x-4" : "translate-x-0.5"
-          }`}
-        />
-      </span>
-      <span className="text-sm">{label}</span>
-    </button>
-  );
-}
-
 export default function QuickAdd() {
-  const queryClient = useQueryClient();
   const { data: orders, isLoading, error, refetch } = useQuery({
     queryKey: ["orders"],
     queryFn: getOrders,
   });
-  const { data: retailers = [] } = useQuery({
+  const { data: retailers = [], refetch: refetchRetailers } = useQuery({
     queryKey: ["retailers"],
     queryFn: getRetailers,
   });
-  const { data: items = [] } = useQuery({
+  const { data: items = [], refetch: refetchItems } = useQuery({
     queryKey: ["items"],
     queryFn: getItems,
   });
-  const { data: markets = [] } = useQuery({
+  const { data: markets = [], refetch: refetchMarkets } = useQuery({
     queryKey: ["markets"],
     queryFn: getMarketplaces,
   });
 
-  // ensure lists refresh after adding via combobox
-  async function refreshLists() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["items"] }),
-      queryClient.invalidateQueries({ queryKey: ["retailers"] }),
-      queryClient.invalidateQueries({ queryKey: ["markets"] }),
-    ]);
-  }
-
-  /* --- current user (for avatar/name) --- */
+  // current user (header shows it)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-    if (!user) return setUserInfo({ avatar_url: "", username: "" });
+      if (!user) return setUserInfo({ avatar_url: "", username: "" });
       const m = user.user_metadata || {};
       const username =
         m.user_name ||
@@ -266,33 +107,71 @@ export default function QuickAdd() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  /* ---- Quick Add form state ---- */
+  /* ---------- form state ---------- */
   const today = new Date().toISOString().slice(0, 10);
   const [orderDate, setOrderDate] = useState(today);
 
   const [itemId, setItemId] = useState("");
   const [itemName, setItemName] = useState("");
 
-  const [profileName, setProfile] = useState(""); // optional
-
+  const [profileName, setProfile] = useState("");
   const [retailerId, setRetailerId] = useState("");
   const [retailerName, setRetailerName] = useState("");
 
   const [qty, setQty] = useState(1);
   const [buyPrice, setBuyPrice] = useState("");
 
-  // sale section + toggle
   const [sold, setSold] = useState(false);
-  const [salePrice, setSalePrice] = useState("");
   const [saleDate, setSaleDate] = useState("");
   const [marketId, setMarketId] = useState("");
   const [marketName, setMarketName] = useState("");
+  const [salePrice, setSalePrice] = useState("");
   const [feesPct, setFeesPct] = useState("0");
   const [feesLocked, setFeesLocked] = useState(false);
   const [shipping, setShipping] = useState("0");
 
+  const saleDisabled = !sold;
+
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+
+  /* ---------- create-on-type helpers ---------- */
+  async function createItem(name) {
+    const nm = name.trim();
+    if (!nm) return null;
+    const { data, error } = await supabase
+      .from("items")
+      .insert({ name: nm })
+      .select()
+      .single();
+    if (error) throw error;
+    await refetchItems();
+    return data;
+  }
+  async function createRetailer(name) {
+    const nm = name.trim();
+    if (!nm) return null;
+    const { data, error } = await supabase
+      .from("retailers")
+      .insert({ name: nm })
+      .select()
+      .single();
+    if (error) throw error;
+    await refetchRetailers();
+    return data;
+  }
+  async function createMarketplace(name) {
+    const nm = name.trim();
+    if (!nm) return null;
+    const { data, error } = await supabase
+      .from("marketplaces")
+      .insert({ name: nm, default_fees_pct: 0 })
+      .select()
+      .single();
+    if (error) throw error;
+    await refetchMarkets();
+    return data;
+  }
 
   /* ---------- save rows (multi-qty split) ---------- */
   async function saveOrder(e) {
@@ -302,61 +181,57 @@ export default function QuickAdd() {
     try {
       const n = Math.max(1, parseInt(qty || "1", 10));
       const buyTotal = Math.abs(moneyToCents(buyPrice));
+      const saleTotal = sold ? moneyToCents(salePrice) : 0;
+      const shipTotal = sold ? moneyToCents(shipping) : 0;
+
+      const perBuy = Math.round(buyTotal / n);
+      const perSale = Math.round(saleTotal / n);
+      const perShip = Math.round(shipTotal / n);
+
+      const status = sold && perSale > 0 ? "sold" : "ordered";
+      const fee = sold ? parsePct(feesPct) : 0;
 
       const base = {
         order_date: orderDate,
         item: itemName || null,
         profile_name: profileName || null,
         retailer: retailerName || null,
-        status: sold ? "sold" : "ordered",
+        // sales bits filled only if sold
+        sale_date: sold ? (saleDate || null) : null,
+        marketplace: sold ? marketName || null : null,
+        fees_pct: fee,
+        status,
       };
-
-      let perSale = 0, perShip = 0, feePct = 0, saleDt = null, marketStr = null;
-      if (sold) {
-        const saleTotal = moneyToCents(salePrice);
-        const shipTotal = moneyToCents(shipping);
-        perSale = Math.round(saleTotal / n);
-        perShip = Math.round(shipTotal / n);
-        feePct = parsePct(feesPct);
-        saleDt = saleDate || null;
-        marketStr = marketName || null;
-      }
-
-      const perBuy = Math.round(buyTotal / n);
 
       const rows = Array.from({ length: n }, () => ({
         ...base,
         buy_price_cents: perBuy,
         sale_price_cents: perSale,
         shipping_cents: perShip,
-        sale_date: saleDt,
-        marketplace: marketStr,
-        fees_pct: feePct,
       }));
 
-      const { error } = await supabase.from("orders").insert(rows);
-      if (error) throw error;
+      const { error: insErr } = await supabase.from("orders").insert(rows);
+      if (insErr) throw insErr;
 
       setMsg(`Saved ✔ (${n} row${n > 1 ? "s" : ""})`);
-      // reset (keep today)
+
+      // reset (keep order date + qty)
       setItemId("");
       setItemName("");
       setProfile("");
       setRetailerId("");
       setRetailerName("");
-      setQty(1);
       setBuyPrice("");
       setSold(false);
-      setSalePrice("");
       setSaleDate("");
       setMarketId("");
       setMarketName("");
+      setSalePrice("");
       setFeesPct("0");
       setFeesLocked(false);
       setShipping("0");
 
       await refetch();
-      await refreshLists();
     } catch (err) {
       setMsg(String(err.message || err));
     } finally {
@@ -364,186 +239,216 @@ export default function QuickAdd() {
     }
   }
 
-  /* ---------- sign out (unused) ---------- */
-  async function signOut() {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
-  }
-
+  /* ---------- UI ---------- */
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="add" showTabs />
 
-        {/* QUICK ADD */}
         <form onSubmit={saveOrder} className="space-y-6">
-          {/* Combined Order + Sale card */}
-          <div className={`${card} overflow-hidden`}>
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="text-lg font-semibold">Order & Sale</h2>
-              <Toggle checked={sold} onChange={setSold} label="Sold" />
+          {/* Combined card: Order & Sale */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-visible relative isolate">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">Order &amp; Sale</h2>
+              <ToggleSwitch checked={sold} onChange={(v) => setSold(v)} label="Sold" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Order Date</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 min-w-0">
+              {/* Order Date */}
+              <Field label="Order Date">
                 <input
                   type="date"
                   value={orderDate}
                   onChange={(e) => setOrderDate(e.target.value)}
-                  className={inputBase}
+                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
                 />
-              </div>
+              </Field>
 
-              {/* ITEM (addable) */}
-              <AddableCombo
-                label="Item"
-                options={items}
-                valueId={itemId}
-                setValueId={setItemId}
-                valueName={itemName}
-                setValueName={setItemName}
-                placeholder="Type or pick an item…"
-                addTable="items"
-                onAfterSelect={() => refreshLists()}
-              />
+              {/* Item (combo + create) */}
+              <Field label="Item">
+                <ComboCreate
+                  placeholder="Type or pick an item..."
+                  valueId={itemId}
+                  valueName={itemName}
+                  options={items.map((i) => ({ id: i.id, name: i.name }))}
+                  onSelect={(opt) => {
+                    setItemId(opt?.id || "");
+                    setItemName(opt?.name || "");
+                  }}
+                  onCreate={async (q) => {
+                    const row = await createItem(q);
+                    setItemId(row?.id || "");
+                    setItemName(row?.name || q);
+                  }}
+                />
+              </Field>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Profile name (optional)</label>
+              {/* Profile name */}
+              <Field label="Profile name (optional)">
                 <input
                   value={profileName}
                   onChange={(e) => setProfile(e.target.value)}
                   placeholder="name / Testing 1"
-                  className={inputBase}
+                  className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
                 />
-              </div>
+              </Field>
 
-              {/* RETAILER (addable) */}
-              <AddableCombo
-                label="Retailer"
-                options={retailers}
-                valueId={retailerId}
-                setValueId={setRetailerId}
-                valueName={retailerName}
-                setValueName={setRetailerName}
-                placeholder="Type or pick a retailer…"
-                addTable="retailers"
-                onAfterSelect={() => refreshLists()}
-              />
+              {/* Retailer (combo + create) */}
+              <Field label="Retailer">
+                <ComboCreate
+                  placeholder="Type or pick a retailer..."
+                  valueId={retailerId}
+                  valueName={retailerName}
+                  options={retailers.map((r) => ({ id: r.id, name: r.name }))}
+                  onSelect={(opt) => {
+                    setRetailerId(opt?.id || "");
+                    setRetailerName(opt?.name || "");
+                  }}
+                  onCreate={async (q) => {
+                    const row = await createRetailer(q);
+                    setRetailerId(row?.id || "");
+                    setRetailerName(row?.name || q);
+                  }}
+                />
+              </Field>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Quantity</label>
+              {/* Quantity */}
+              <Field label="Quantity" hint="We’ll insert that many rows and split totals equally.">
                 <input
                   type="number"
                   min={1}
                   value={qty}
-                  onChange={(e) => setQty(parseInt(e.target.value || "1", 10))}
-                  className={inputBase}
+                  onChange={(e) => setQty(Math.max(1, parseInt(e.target.value || "1", 10)))}
+                  className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  We’ll insert that many rows and split totals equally.
-                </p>
-              </div>
+              </Field>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Buy Price (total)</label>
+              {/* Buy price */}
+              <Field label="Buy Price (total)">
                 <input
                   value={buyPrice}
                   onChange={(e) => setBuyPrice(e.target.value)}
                   placeholder="e.g. 67.70"
-                  className={`${inputBase} placeholder-slate-400`}
+                  className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
                 />
-              </div>
+              </Field>
 
-              {/* --- SALE SECTION --- */}
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
+              {/* Sale Date */}
+              <Field label="Sale Date" disabled={saleDisabled}>
                 <input
                   type="date"
                   value={saleDate}
                   onChange={(e) => setSaleDate(e.target.value)}
-                  disabled={!sold}
-                  className={`${inputBase} ${!sold ? "opacity-60 cursor-not-allowed" : ""}`}
+                  disabled={saleDisabled}
+                  className={`w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500 ${
+                    saleDisabled ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
                 />
-              </div>
+              </Field>
 
-              {/* MARKETPLACE (addable) */}
-              <AddableCombo
-                label="Marketplace"
-                options={markets}
-                valueId={marketId}
-                setValueId={setMarketId}
-                valueName={marketName}
-                setValueName={setMarketName}
-                placeholder="Type or pick a marketplace…"
-                addTable="marketplaces"
-                addExtra={{ default_fees_pct: 0 }}
-                onAfterSelect={(m) => {
-                  // if marketplace has default fees, lock field w/ value
-                  const pct = Number(m?.default_fees_pct || 0);
-                  if (pct > 0) {
-                    setFeesPct((pct * 100).toString());
-                    setFeesLocked(true);
-                  } else {
-                    setFeesLocked(false);
-                  }
-                  setMarketName(m?.name || "");
-                  setSold(true); // selecting a marketplace likely implies sold
-                }}
-              />
+              {/* Marketplace (combo + create) */}
+              <Field label="Marketplace" disabled={saleDisabled}>
+                <ComboCreate
+                  placeholder="Type or pick a marketplace..."
+                  valueId={marketId}
+                  valueName={marketName}
+                  options={markets.map((m) => ({ id: m.id, name: m.name, fees: m.default_fees_pct ?? 0 }))}
+                  onSelect={(opt) => {
+                    setMarketId(opt?.id || "");
+                    setMarketName(opt?.name || "");
+                    if (!saleDisabled && opt) {
+                      setFeesPct(((opt.fees ?? 0) * 100).toString());
+                      setFeesLocked(true);
+                    } else {
+                      setFeesLocked(false);
+                    }
+                  }}
+                  onCreate={async (q) => {
+                    const row = await createMarketplace(q);
+                    setMarketId(row?.id || "");
+                    setMarketName(row?.name || q);
+                    if (!saleDisabled && row) {
+                      setFeesPct(((row.default_fees_pct ?? 0) * 100).toString());
+                      setFeesLocked(true);
+                    }
+                  }}
+                  disabled={saleDisabled}
+                />
+                {/* quick chips */}
+                <div className={`flex gap-2 mt-2 ${saleDisabled ? "opacity-50 pointer-events-none" : ""}`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMarketId("");
+                      setMarketName("eBay");
+                      setFeesPct("13"); // example default
+                      setFeesLocked(false);
+                    }}
+                    className="px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-xs"
+                  >
+                    eBay
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMarketId("");
+                      setMarketName("Local (Cash)");
+                      setFeesPct("0");
+                      setFeesLocked(false);
+                    }}
+                    className="px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-xs"
+                  >
+                    Local (Cash)
+                  </button>
+                </div>
+              </Field>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Sell Price (total)</label>
+              {/* Sell price */}
+              <Field label="Sell Price (total)" hint="If qty > 1 we’ll split this total across rows." disabled={saleDisabled}>
                 <input
                   value={salePrice}
                   onChange={(e) => setSalePrice(e.target.value)}
                   placeholder="0 = unsold"
-                  disabled={!sold}
-                  className={`${inputBase} placeholder-slate-400 ${
-                    !sold ? "opacity-60 cursor-not-allowed" : ""
+                  disabled={saleDisabled}
+                  className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 ${
+                    saleDisabled ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  If qty &gt; 1 we’ll split this total across rows.
-                </p>
-              </div>
+              </Field>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Fees (%)</label>
+              {/* Fees (%) */}
+              <Field
+                label="Fees (%)"
+                hint={feesLocked ? "Locked from marketplace default." : "e.g. 9 or 9%"}
+                disabled={saleDisabled}
+              >
                 <input
                   value={feesPct}
-                  onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
-                  placeholder="e.g. 9 or 9%"
-                  disabled={!sold || feesLocked}
-                  className={`${inputBase} placeholder-slate-400 ${
-                    !sold || feesLocked ? "opacity-60 cursor-not-allowed" : ""
+                  onChange={(e) => !feesLocked && !saleDisabled && setFeesPct(e.target.value)}
+                  disabled={saleDisabled || feesLocked}
+                  className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 ${
+                    saleDisabled || feesLocked ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 />
-                {feesLocked && (
-                  <p className="text-xs text-slate-500 mt-1">
-                    Locked from marketplace default.
-                  </p>
-                )}
-              </div>
+              </Field>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Shipping (total)</label>
+              {/* Shipping */}
+              <Field label="Shipping (total)" hint="If qty > 1 we’ll split shipping across rows." disabled={saleDisabled}>
                 <input
                   value={shipping}
                   onChange={(e) => setShipping(e.target.value)}
-                  disabled={!sold}
-                  className={`${inputBase} ${!sold ? "opacity-60 cursor-not-allowed" : ""}`}
+                  disabled={saleDisabled}
+                  className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500 ${
+                    saleDisabled ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  If qty &gt; 1 we’ll split shipping across rows.
-                </p>
-              </div>
+              </Field>
             </div>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div
                 className={`text-sm ${
-                  msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"
+                  msg.startsWith("Saved") ? "text-emerald-400" : msg ? "text-rose-400" : "text-slate-400"
                 }`}
               >
                 {msg}
@@ -568,7 +473,7 @@ export default function QuickAdd() {
             {orders?.map((o) => (
               <div
                 key={o.id}
-                className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 overflow-hidden"
+                className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 overflow-visible"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-semibold truncate">
@@ -583,8 +488,8 @@ export default function QuickAdd() {
                   </div>
                 </div>
                 <div className="text-sm text-slate-300">
-                  Buy ${centsToStr(o.buy_price_cents)} • Sell ${centsToStr(o.sale_price_cents)} •
-                  Ship ${centsToStr(o.shipping_cents)}
+                  Buy ${centsToStr(o.buy_price_cents)} • Sell ${centsToStr(o.sale_price_cents)} • Ship $
+                  {centsToStr(o.shipping_cents)}
                   {o.fees_pct ? ` • Fees ${(Number(o.fees_pct) * 100).toFixed(2)}%` : ""} •{" "}
                   {o.marketplace || "—"} • {o.status}
                 </div>
@@ -594,6 +499,151 @@ export default function QuickAdd() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ------------------------ small pieces ------------------------ */
+
+function Field({ label, hint, children, disabled = false }) {
+  return (
+    <div className={`min-w-0 ${disabled ? "opacity-70" : ""}`}>
+      <label className="text-slate-300 mb-1 block text-sm">{label}</label>
+      {children}
+      {hint && <p className="text-xs text-slate-500 mt-1">{hint}</p>}
+    </div>
+  );
+}
+
+/** Accessible toggle switch with proper track/knob (no giant green pill) */
+function ToggleSwitch({ checked, onChange, label }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="inline-flex items-center gap-2"
+      aria-pressed={checked}
+    >
+      <span
+        className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${
+          checked ? "bg-emerald-600" : "bg-slate-700"
+        }`}
+        role="switch"
+        aria-checked={checked}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+            checked ? "translate-x-5" : "translate-x-0"
+          }`}
+        />
+      </span>
+      <span className="text-slate-200 text-sm select-none">{label}</span>
+    </button>
+  );
+}
+
+/** Searchable combobox with "Add ..." option.
+ * Always renders its menu ABOVE everything via z-[200] and parent has overflow-visible.
+ */
+function ComboCreate({
+  options = [],
+  valueId = "",
+  valueName = "",
+  onSelect,
+  onCreate,
+  placeholder = "Type or pick…",
+  disabled = false,
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState(valueName || "");
+  const rootRef = useRef(null);
+
+  // close on outside click
+  useEffect(() => {
+    function onDoc(e) {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  useEffect(() => {
+    // sync external value → input text
+    setQ(valueName || "");
+  }, [valueName]);
+
+  const filtered = useMemo(() => {
+    const qq = (q || "").toLowerCase().trim();
+    return qq
+      ? options.filter((o) => (o.name || "").toLowerCase().includes(qq))
+      : options;
+  }, [q, options]);
+
+  const canCreate =
+    q.trim().length > 0 &&
+    !options.some((o) => (o.name || "").toLowerCase() === q.trim().toLowerCase());
+
+  return (
+    <div
+      ref={rootRef}
+      className={`relative isolate ${disabled ? "opacity-60 pointer-events-none" : ""}`}
+    >
+      <input
+        value={q}
+        onChange={(e) => {
+          setQ(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder={placeholder}
+        className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500"
+      />
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+        aria-label="Toggle options"
+      >
+        ▾
+      </button>
+
+      {open && (
+        <div className="absolute z-[200] left-0 right-0 mt-2 max-h-64 overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+          {filtered.map((o) => (
+            <div
+              key={o.id}
+              className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-slate-100"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onSelect?.(o);
+                setQ(o.name || "");
+                setOpen(false);
+              }}
+            >
+              {o.name}
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="px-3 py-2 text-slate-400">No matches</div>
+          )}
+          {canCreate && (
+            <button
+              type="button"
+              className="w-full text-left px-3 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={async () => {
+                const nm = q.trim();
+                const row = (await onCreate?.(nm)) || { id: "", name: nm };
+                onSelect?.(row);
+                setQ(row.name || nm);
+                setOpen(false);
+              }}
+            >
+              Add “{q.trim()}”
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
