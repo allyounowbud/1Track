@@ -1,15 +1,24 @@
 // src/routes/QuickAdd.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 
-/* ---------- helpers ---------- */
+/* ----------------------------- UI tokens ----------------------------- */
+const card =
+  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden";
+const inputBase =
+  "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500";
+const dateFix = "w-full max-w-full min-w-0 box-border [field-sizing:content]"; // iOS/Safari sizing helper
+
+/* ----------------------------- helpers ----------------------------- */
 const parseMoney = (v) => {
   const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
   return isNaN(n) ? 0 : n;
 };
 const moneyToCents = (v) => Math.round(parseMoney(v) * 100);
+const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
 const parsePct = (v) => {
   if (v === "" || v == null) return 0;
   const n = Number(String(v).replace("%", ""));
@@ -17,14 +26,20 @@ const parsePct = (v) => {
   return n > 1 ? n / 100 : n;
 };
 
-/* ---------- queries ---------- */
-async function getRetailers() {
-  const { data, error } = await supabase.from("retailers").select("id, name").order("name");
+/* ------------------------------ queries ----------------------------- */
+async function getItems() {
+  const { data, error } = await supabase
+    .from("items")
+    .select("id, name")
+    .order("name", { ascending: true });
   if (error) throw error;
   return data || [];
 }
-async function getItems() {
-  const { data, error } = await supabase.from("items").select("id, name").order("name");
+async function getRetailers() {
+  const { data, error } = await supabase
+    .from("retailers")
+    .select("id, name")
+    .order("name", { ascending: true });
   if (error) throw error;
   return data || [];
 }
@@ -32,242 +47,315 @@ async function getMarketplaces() {
   const { data, error } = await supabase
     .from("marketplaces")
     .select("id, name, default_fees_pct")
-    .order("name");
+    .order("name", { ascending: true });
   if (error) throw error;
   return data || [];
 }
 
-/* ---------- Combobox (MarkSold-style, +Add support) ---------- */
+/* --------------------- anchored-menu positioning hook --------------------- */
+function useAnchoredRect(ref, open, offsetY = 8) {
+  const [rect, setRect] = useState({ top: 0, left: 0, width: 0 });
+  useEffect(() => {
+    if (!open) return;
+    const recalc = () => {
+      const r = ref.current?.getBoundingClientRect();
+      if (!r) return;
+      setRect({ top: r.bottom + offsetY, left: r.left, width: r.width });
+    };
+    recalc();
+    window.addEventListener("scroll", recalc, { passive: true });
+    window.addEventListener("resize", recalc);
+    return () => {
+      window.removeEventListener("scroll", recalc);
+      window.removeEventListener("resize", recalc);
+    };
+  }, [ref, open, offsetY]);
+  return rect;
+}
+
+/* ------------------------- Reusable Combo (single) ------------------------- */
+/**
+ * A single-input searchable dropdown with:
+ *  - filtered options
+ *  - "Add '…'" row when no exact match
+ *  - "Clear" row when value present
+ *  - anchored, fixed, top-layer menu (z-200)
+ */
 function Combo({
-  label,
-  placeholder = "Type to search…",
+  placeholder = "Type…",
   value,
-  onChange,
-  options = [], // [{id?, name}]
-  onCreate, // async (name) => newRow
+  setValue,
+  options = [], // array of strings
+  onCreate, // async (name) => {id?, name}
   disabled = false,
+  label,
 }) {
-  const boxRef = useRef(null);
   const [open, setOpen] = useState(false);
-  const [q, setQ] = useState("");
+  const [query, setQuery] = useState("");
+  const inputRef = useRef(null);
+  const boxRef = useRef(null);
+  const rect = useAnchoredRect(boxRef, open);
 
-  const names = useMemo(() => options.map((o) => o.name), [options]);
-  const filtered = useMemo(() => {
-    const needle = (q || "").trim().toLowerCase();
-    if (!needle) return names.slice(0, 100);
-    return names.filter((n) => n.toLowerCase().includes(needle)).slice(0, 100);
-  }, [names, q]);
-
-  const canCreate =
-    !!onCreate &&
-    (q || "").trim().length > 0 &&
-    !names.some((n) => n.toLowerCase() === (q || "").trim().toLowerCase());
-
+  // close on outside click
   useEffect(() => {
     const onClick = (e) => {
       if (!boxRef.current) return;
       if (!boxRef.current.contains(e.target)) setOpen(false);
     };
-    window.addEventListener("click", onClick, { passive: true });
-    return () => window.removeEventListener("click", onClick);
+    window.addEventListener("mousedown", onClick);
+    return () => window.removeEventListener("mousedown", onClick);
   }, []);
+
+  const text = value || query;
+  const normalized = text.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (!normalized) return options.slice(0, 200);
+    return options.filter((n) => n.toLowerCase().includes(normalized)).slice(0, 200);
+  }, [options, normalized]);
+
+  const existsExact = options.some((n) => n.toLowerCase() === normalized && normalized);
 
   return (
     <div className="min-w-0">
       {label && <label className="text-slate-300 mb-1 block text-sm">{label}</label>}
-      <div ref={boxRef} className="relative">
+      <div ref={boxRef} className="relative min-w-0">
         <input
-          value={open ? q : value}
-          onChange={(e) => {
-            if (disabled) return;
-            setQ(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => {
-            if (disabled) return;
-            setQ(value || "");
-            setOpen(true);
-          }}
+          ref={inputRef}
+          value={text}
           disabled={disabled}
+          onChange={(e) => {
+            setValue(""); // editing means we're searching; drop the selection
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
           placeholder={placeholder}
-          className={`w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 pr-12 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 ${
-            disabled ? "opacity-60 cursor-not-allowed" : ""
-          }`}
+          className={`${inputBase} ${disabled ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""}`}
         />
-
-        {/* right-side controls (clear + caret) */}
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          {!!value && !disabled && (
-            <button
-              type="button"
-              aria-label="Clear"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                onChange("");
-                setQ("");
-                setOpen(true);
-              }}
-              className="h-6 w-6 rounded-md border border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700"
-            >
-              ×
-            </button>
-          )}
+        {/* clear button inside input */}
+        {text && !disabled && (
           <button
             type="button"
-            aria-label="Toggle"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
-              if (disabled) return;
-              setQ(value || "");
-              setOpen((v) => !v);
+              setValue("");
+              setQuery("");
+              setOpen(true);
+              inputRef.current?.focus();
             }}
-            className={`h-6 w-6 rounded-md border border-slate-700 bg-slate-800/80 text-slate-200 ${
-              disabled ? "opacity-50 pointer-events-none" : "hover:bg-slate-700"
-            }`}
+            aria-label="Clear"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
           >
-            ▾
+            ×
           </button>
-        </div>
+        )}
 
-        {open && (
-          <div className="absolute left-0 right-0 z-40 mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
-            {filtered.length === 0 && !canCreate && (
-              <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
-            )}
-            {filtered.map((name) => (
-              <button
-                key={name}
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  onChange(name);
-                  setQ(name);
-                  setOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 hover:bg-slate-800/70 ${
-                  name === value ? "text-white" : "text-slate-200"
-                }`}
-              >
-                {name}
-              </button>
-            ))}
-
-            {canCreate && (
-              <>
-                <div className="px-3 pt-2 pb-1 text-xs uppercase tracking-wide text-slate-500">
-                  Actions
-                </div>
+        {/* floating menu via portal */}
+        {open &&
+          createPortal(
+            <div
+              className="fixed z-[200] max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl"
+              style={{ top: rect.top, left: rect.left, width: rect.width }}
+              onMouseDown={(e) => e.preventDefault()} // keep focus
+            >
+              {/* Clear row */}
+              {value && (
                 <button
                   type="button"
-                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setValue("");
+                    setQuery("");
+                    inputRef.current?.focus();
+                  }}
+                  className="w-full text-left px-3 py-2 text-slate-300 hover:bg-slate-800/70"
+                >
+                  Clear selection
+                </button>
+              )}
+
+              {/* Add row */}
+              {!existsExact && normalized && (
+                <button
+                  type="button"
                   onClick={async () => {
-                    const name = q.trim();
-                    const row = await onCreate?.(name);
-                    onChange(row?.name || name);
+                    if (!onCreate) return;
+                    const createdName = await onCreate(text.trim());
+                    if (createdName) {
+                      setValue(createdName);
+                      setQuery("");
+                      setOpen(false);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
+                >
+                  + Add “{text.trim()}”
+                </button>
+              )}
+
+              {/* Options */}
+              {filtered.length === 0 && (
+                <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
+              )}
+              {filtered.map((opt) => (
+                <button
+                  type="button"
+                  key={opt}
+                  onClick={() => {
+                    setValue(opt);
+                    setQuery("");
                     setOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 hover:bg-slate-800/70 text-indigo-300"
+                  className="w-full text-left px-3 py-2 hover:bg-slate-800/70"
                 >
-                  + Add “{q.trim()}”
+                  {opt}
                 </button>
-              </>
-            )}
-          </div>
-        )}
+              ))}
+            </div>,
+            document.body
+          )}
       </div>
     </div>
   );
 }
 
-/* ---------- page ---------- */
+/* --------------------------------- page --------------------------------- */
 export default function QuickAdd() {
-  const { data: retailers = [] } = useQuery({ queryKey: ["retailers"], queryFn: getRetailers });
-  const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
-  const { data: markets = [] } = useQuery({ queryKey: ["markets"], queryFn: getMarketplaces });
+  // data
+  const { data: items = [], refetch: refetchItems } = useQuery({
+    queryKey: ["items-combo"],
+    queryFn: getItems,
+  });
+  const { data: retailers = [], refetch: refetchRetailers } = useQuery({
+    queryKey: ["retailers-combo"],
+    queryFn: getRetailers,
+  });
+  const { data: markets = [], refetch: refetchMarkets } = useQuery({
+    queryKey: ["markets-combo"],
+    queryFn: getMarketplaces,
+  });
 
-  // Local copies so +Add feels instant
-  const [itemOpts, setItemOpts] = useState(items);
-  const [retailerOpts, setRetailerOpts] = useState(retailers);
-  const [marketOpts, setMarketOpts] = useState(markets);
-  useEffect(() => setItemOpts(items), [items]);
-  useEffect(() => setRetailerOpts(retailers), [retailers]);
-  useEffect(() => setMarketOpts(markets), [markets]);
+  // user (for header)
+  const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
+  useEffect(() => {
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return setUserInfo({ avatar_url: "", username: "" });
+      const m = user.user_metadata || {};
+      const username =
+        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
+      const avatar_url = m.avatar_url || m.picture || "";
+      setUserInfo({ avatar_url, username });
+    }
+    loadUser();
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      const user = session?.user;
+      if (!user) return setUserInfo({ avatar_url: "", username: "" });
+      const m = user.user_metadata || {};
+      const username =
+        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
+      const avatar_url = m.avatar_url || m.picture || "";
+      setUserInfo({ avatar_url, username });
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
-  // ---- form state ----
+  /* ------------------------------ form state ------------------------------ */
   const today = new Date().toISOString().slice(0, 10);
+
+  // order fields
   const [orderDate, setOrderDate] = useState(today);
   const [itemName, setItemName] = useState("");
-  const [profileName, setProfile] = useState("");
+  const [profileName, setProfile] = useState(""); // optional
   const [retailerName, setRetailerName] = useState("");
-
   const [qty, setQty] = useState(1);
   const [buyPrice, setBuyPrice] = useState("");
 
+  // sale fields
   const [sold, setSold] = useState(false);
-  const saleDisabled = !sold;
-
   const [saleDate, setSaleDate] = useState("");
   const [marketName, setMarketName] = useState("");
-  const [feesPct, setFeesPct] = useState("0");
-  const [feesLocked, setFeesLocked] = useState(false);
   const [salePrice, setSalePrice] = useState("");
+  const [feesPct, setFeesPct] = useState("0"); // shown as "9" or "9.5"
+  const [feesLocked, setFeesLocked] = useState(false);
   const [shipping, setShipping] = useState("0");
 
+  // ui
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  // Marketplace -> auto-lock fee
+  /* -------------------------- derived lists (names) ------------------------- */
+  const itemNames = useMemo(() => items.map((i) => i.name).filter(Boolean), [items]);
+  const retailerNames = useMemo(() => retailers.map((r) => r.name).filter(Boolean), [retailers]);
+  const marketNames = useMemo(() => markets.map((m) => m.name).filter(Boolean), [markets]);
+
+  /* ------------------------------- creators -------------------------------- */
+  async function createItem(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const { error } = await supabase.from("items").insert([{ name: trimmed }]);
+    if (error) {
+      setMsg(error.message);
+      return null;
+    }
+    await refetchItems();
+    return trimmed;
+  }
+  async function createRetailer(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const { error } = await supabase.from("retailers").insert([{ name: trimmed }]);
+    if (error) {
+      setMsg(error.message);
+      return null;
+    }
+    await refetchRetailers();
+    return trimmed;
+  }
+  async function createMarket(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const { error } = await supabase
+      .from("marketplaces")
+      .insert([{ name: trimmed, default_fees_pct: 0 }]);
+    if (error) {
+      setMsg(error.message);
+      return null;
+    }
+    await refetchMarkets();
+    return trimmed;
+  }
+
+  /* -------------------- marketplace -> autofill default fee ------------------- */
   useEffect(() => {
-    const m = marketOpts.find((x) => x.name === marketName);
-    if (m) {
-      setFeesPct(((m.default_fees_pct ?? 0) * 100).toString());
+    if (!marketName) {
+      setFeesLocked(false);
+      return;
+    }
+    const m = markets.find((x) => x.name === marketName);
+    if (m && typeof m.default_fees_pct === "number") {
+      setFeesPct(String((m.default_fees_pct || 0) * 100));
       setFeesLocked(true);
     } else {
       setFeesLocked(false);
     }
-  }, [marketName, marketOpts]);
+  }, [marketName, markets]);
 
-  /* ---------- Add-new handlers ---------- */
-  async function createItem(name) {
-    const { data, error } = await supabase.from("items").insert({ name }).select().single();
-    if (error) throw error;
-    setItemOpts((prev) => [...prev, data]);
-    return data;
-  }
-  async function createRetailer(name) {
-    const { data, error } = await supabase.from("retailers").insert({ name }).select().single();
-    if (error) throw error;
-    setRetailerOpts((prev) => [...prev, data]);
-    return data;
-  }
-  async function createMarket(name) {
-    const { data, error } = await supabase
-      .from("marketplaces")
-      .insert({ name, default_fees_pct: 0 })
-      .select()
-      .single();
-    if (error) throw error;
-    setMarketOpts((prev) => [...prev, data]);
-    return data;
-  }
-
-  /* ---------- Save (split across qty) ---------- */
-  async function saveOrder(e) {
+  /* --------------------------------- save --------------------------------- */
+  async function onSave(e) {
     e.preventDefault();
     setSaving(true);
     setMsg("");
     try {
       const n = Math.max(1, parseInt(qty || "1", 10));
       const buyTotal = Math.abs(moneyToCents(buyPrice));
-      const saleTotal = sold ? moneyToCents(salePrice) : 0;
-      const shipTotal = sold ? moneyToCents(shipping) : 0;
+      const saleTotal = moneyToCents(salePrice);
+      const shipTotal = moneyToCents(shipping);
 
-      const perBuy = Math.round(buyTotal / n);
-      const perSale = Math.round(saleTotal / n);
-      const perShip = Math.round(shipTotal / n);
+      const perBuy = Math.round(n ? buyTotal / n : 0);
+      const perSale = Math.round(n ? saleTotal / n : 0);
+      const perShip = Math.round(n ? shipTotal / n : 0);
 
-      const status = perSale > 0 ? "sold" : "ordered";
-      const fee = sold ? parsePct(feesPct) : 0;
+      const status = sold && perSale > 0 ? "sold" : "ordered";
 
       const base = {
         order_date: orderDate,
@@ -276,15 +364,15 @@ export default function QuickAdd() {
         retailer: retailerName || null,
         marketplace: sold ? marketName || null : null,
         sale_date: sold ? saleDate || null : null,
-        fees_pct: fee,
+        fees_pct: sold ? parsePct(feesPct) : 0,
         status,
       };
 
       const rows = Array.from({ length: n }, () => ({
         ...base,
         buy_price_cents: perBuy,
-        sale_price_cents: perSale,
-        shipping_cents: perShip,
+        sale_price_cents: sold ? perSale : 0,
+        shipping_cents: sold ? perShip : 0,
       }));
 
       const { error } = await supabase.from("orders").insert(rows);
@@ -292,53 +380,53 @@ export default function QuickAdd() {
 
       setMsg(`Saved ✔ (${n} row${n > 1 ? "s" : ""})`);
 
-      // reset (keep date)
+      // reset (keep some sticky if you prefer)
       setItemName("");
-      setProfile("");
       setRetailerName("");
       setQty(1);
       setBuyPrice("");
       setSold(false);
       setSaleDate("");
       setMarketName("");
+      setSalePrice("");
       setFeesPct("0");
       setFeesLocked(false);
-      setSalePrice("");
       setShipping("0");
     } catch (err) {
       setMsg(String(err.message || err));
     } finally {
       setSaving(false);
-      setTimeout(() => setMsg(""), 1800);
+      setTimeout(() => setMsg(""), 2000);
     }
   }
 
-  /* ---------- styles (MarkSold bones) ---------- */
-  const card =
-    "relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden space-y-5";
-  const input =
-    "w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500";
-
+  /* -------------------------------- render -------------------------------- */
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="add" showTabs />
 
-        {/* ===== Card ===== */}
-        <form onSubmit={saveOrder} className={card}>
-          {/* Order details */}
+        <form onSubmit={onSave} className={`${card} space-y-6`}>
+          {/* ORDER */}
+          <h2 className="text-lg font-semibold">Order details</h2>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
             <div className="min-w-0">
               <label className="text-slate-300 mb-1 block text-sm">Order Date</label>
-              <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} className={input} />
+              <input
+                type="date"
+                value={orderDate}
+                onChange={(e) => setOrderDate(e.target.value)}
+                className={`${inputBase} ${dateFix}`}
+              />
             </div>
 
             <Combo
               label="Item"
-              placeholder="Type or pick an item..."
+              placeholder="Type or pick an item…"
               value={itemName}
-              onChange={setItemName}
-              options={itemOpts}
+              setValue={setItemName}
+              options={itemNames}
               onCreate={createItem}
             />
 
@@ -348,16 +436,16 @@ export default function QuickAdd() {
                 value={profileName}
                 onChange={(e) => setProfile(e.target.value)}
                 placeholder="name / Testing 1"
-                className={input}
+                className={inputBase}
               />
             </div>
 
             <Combo
               label="Retailer"
-              placeholder="Type or pick a retailer..."
+              placeholder="Type or pick a retailer…"
               value={retailerName}
-              onChange={setRetailerName}
-              options={retailerOpts}
+              setValue={setRetailerName}
+              options={retailerNames}
               onCreate={createRetailer}
             />
 
@@ -368,7 +456,7 @@ export default function QuickAdd() {
                 min={1}
                 value={qty}
                 onChange={(e) => setQty(parseInt(e.target.value || "1", 10))}
-                className={input}
+                className={inputBase}
               />
               <p className="text-xs text-slate-500 mt-1">
                 We’ll insert that many rows and split totals equally.
@@ -381,37 +469,19 @@ export default function QuickAdd() {
                 value={buyPrice}
                 onChange={(e) => setBuyPrice(e.target.value)}
                 placeholder="e.g. 67.70"
-                className={input}
+                className={inputBase}
               />
             </div>
           </div>
 
-          {/* Sale header + toggle */}
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <h3 className="text-lg font-semibold">
+          {/* SALE */}
+          <div className="mt-2 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">
               Sale details <span className="text-slate-400 text-sm">(optional – if sold)</span>
-            </h3>
-
-            <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-              <span className="text-sm text-slate-300">Sold</span>
-              <span className={`relative h-6 w-11 rounded-full transition-colors ${sold ? "bg-emerald-500/80" : "bg-slate-700"}`}>
-                <input
-                  type="checkbox"
-                  checked={sold}
-                  onChange={(e) => setSold(e.target.checked)}
-                  className="sr-only"
-                  aria-label="Sold toggle"
-                />
-                <span
-                  className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-white shadow transition-all ${
-                    sold ? "left-[22px]" : "left-[2px]"
-                  }`}
-                />
-              </span>
-            </label>
+            </h2>
+            <Toggle value={sold} onChange={setSold} label="Sold" />
           </div>
 
-          {/* Sale details grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
             <div className="min-w-0">
               <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
@@ -419,19 +489,21 @@ export default function QuickAdd() {
                 type="date"
                 value={saleDate}
                 onChange={(e) => setSaleDate(e.target.value)}
-                disabled={saleDisabled}
-                className={`${input} ${saleDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                disabled={!sold}
+                className={`${inputBase} ${dateFix} ${
+                  !sold ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""
+                }`}
               />
             </div>
 
             <Combo
               label="Marketplace"
-              placeholder="Type or pick a marketplace..."
+              placeholder="Type or pick a marketplace…"
               value={marketName}
-              onChange={setMarketName}
-              options={marketOpts}
+              setValue={setMarketName}
+              options={marketNames}
               onCreate={createMarket}
-              disabled={saleDisabled}
+              disabled={!sold}
             />
 
             <div className="min-w-0">
@@ -440,10 +512,14 @@ export default function QuickAdd() {
                 value={salePrice}
                 onChange={(e) => setSalePrice(e.target.value)}
                 placeholder="0 = unsold"
-                disabled={saleDisabled}
-                className={`${input} ${saleDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                disabled={!sold}
+                className={`${inputBase} ${
+                  !sold ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""
+                }`}
               />
-              <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split this total across rows.</p>
+              <p className="text-xs text-slate-500 mt-1">
+                If qty &gt; 1 we’ll split this total across rows.
+              </p>
             </div>
 
             <div className="min-w-0">
@@ -452,10 +528,14 @@ export default function QuickAdd() {
                 value={feesPct}
                 onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
                 placeholder="e.g. 9 or 9%"
-                disabled={saleDisabled || feesLocked}
-                className={`${input} ${saleDisabled || feesLocked ? "opacity-60 cursor-not-allowed" : ""}`}
+                disabled={!sold || feesLocked}
+                className={`${inputBase} ${
+                  !sold || feesLocked ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""
+                }`}
               />
-              {feesLocked && <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>}
+              {sold && feesLocked && (
+                <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
+              )}
             </div>
 
             <div className="min-w-0 md:col-span-2">
@@ -463,31 +543,58 @@ export default function QuickAdd() {
               <input
                 value={shipping}
                 onChange={(e) => setShipping(e.target.value)}
-                disabled={saleDisabled}
-                className={`${input} ${saleDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                disabled={!sold}
+                className={`${inputBase} ${
+                  !sold ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""
+                }`}
                 placeholder="0"
               />
-              <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split shipping across rows.</p>
+              <p className="text-xs text-slate-500 mt-1">
+                If qty &gt; 1 we’ll split shipping across rows.
+              </p>
             </div>
           </div>
 
-          {/* Submit */}
-          <div className="pt-2">
+          {/* Save */}
+          <div className="pt-2 flex items-center justify-between">
+            <div className={`text-sm ${msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"}`}>
+              {msg}
+            </div>
             <button
               type="submit"
               disabled={saving}
-              className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium"
+              className="px-6 h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium"
             >
               {saving ? "Saving…" : "Save"}
             </button>
-            {msg && (
-              <div className={`mt-2 text-sm ${msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"}`}>
-                {msg}
-              </div>
-            )}
           </div>
         </form>
       </div>
     </div>
+  );
+}
+
+/* ------------------------------- small UI ------------------------------- */
+function Toggle({ value, onChange, label }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={`inline-flex items-center gap-2 select-none`}
+      aria-pressed={value}
+    >
+      <span
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+          value ? "bg-emerald-600" : "bg-slate-700"
+        }`}
+      >
+        <span
+          className={`h-5 w-5 rounded-full bg-white shadow transform transition-transform ${
+            value ? "translate-x-[22px]" : "translate-x-[3px]"
+          }`}
+        />
+      </span>
+      <span className="text-slate-200 text-sm">{label}</span>
+    </button>
   );
 }

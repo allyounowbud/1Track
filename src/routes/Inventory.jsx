@@ -299,32 +299,6 @@ export default function Inventory() {
               sub={kpis.unrealized >= 0 ? "gain" : "loss"}
               tone={kpis.unrealized >= 0 ? "good" : "bad"}
             />
-            <Kpi
-              label="Longest Hold"
-              value={kpis.longestHold ? `${kpis.longestHold.maxHold}d` : "—"}
-              sub={kpis.longestHold ? kpis.longestHold.name : "—"}
-            />
-            <Kpi
-              label="Best Seller"
-              value={kpis.bestSeller ? kpis.bestSeller.soldQty : 0}
-              sub={kpis.bestSeller ? kpis.bestSeller.name : "—"}
-            />
-            <Kpi
-              label="Highest Margins"
-              value={
-                kpis.bestMargin
-                  ? `${Math.round(kpis.bestMargin.margin * 100)}%`
-                  : "—"
-              }
-              sub={kpis.bestMargin ? kpis.bestMargin.name : "—"}
-            />
-            <Kpi
-              label="Best ROI"
-              value={
-                kpis.bestRoi ? `${Math.round(kpis.bestRoi.roi * 100)}%` : "—"
-              }
-              sub={kpis.bestRoi ? kpis.bestRoi.name : "—"}
-            />
           </div>
         </div>
 
