@@ -10,7 +10,6 @@ const parseMoney = (v) => {
   return isNaN(n) ? 0 : n;
 };
 const moneyToCents = (v) => Math.round(parseMoney(v) * 100);
-const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
 const parsePct = (v) => {
   if (v === "" || v == null) return 0;
   const n = Number(String(v).replace("%", ""));
@@ -19,17 +18,6 @@ const parsePct = (v) => {
 };
 
 /* ---------- queries ---------- */
-async function getOrders() {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(
-      "id, order_date, item, profile_name, retailer, marketplace, buy_price_cents, sale_price_cents, sale_date, fees_pct, shipping_cents, pl_cents, status"
-    )
-    .order("order_date", { ascending: false })
-    .limit(25);
-  if (error) throw error;
-  return data || [];
-}
 async function getRetailers() {
   const { data, error } = await supabase.from("retailers").select("id, name").order("name");
   if (error) throw error;
@@ -193,7 +181,6 @@ function Combo({
 
 /* ---------- page ---------- */
 export default function QuickAdd() {
-  const { data: orders = [], refetch } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: retailers = [] } = useQuery({ queryKey: ["retailers"], queryFn: getRetailers });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
   const { data: markets = [] } = useQuery({ queryKey: ["markets"], queryFn: getMarketplaces });
@@ -206,7 +193,7 @@ export default function QuickAdd() {
   useEffect(() => setRetailerOpts(retailers), [retailers]);
   useEffect(() => setMarketOpts(markets), [markets]);
 
-  // ---- form state (MarkSold layout) ----
+  // ---- form state ----
   const today = new Date().toISOString().slice(0, 10);
   const [orderDate, setOrderDate] = useState(today);
   const [itemName, setItemName] = useState("");
@@ -318,17 +305,15 @@ export default function QuickAdd() {
       setFeesLocked(false);
       setSalePrice("");
       setShipping("0");
-
-      await refetch();
-      setTimeout(() => setMsg(""), 1800);
     } catch (err) {
       setMsg(String(err.message || err));
     } finally {
       setSaving(false);
+      setTimeout(() => setMsg(""), 1800);
     }
   }
 
-  /* ---------- styles (copied from MarkSold) ---------- */
+  /* ---------- styles (MarkSold bones) ---------- */
   const card =
     "relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden space-y-5";
   const input =
@@ -337,10 +322,9 @@ export default function QuickAdd() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* Shared header/tabs */}
         <HeaderWithTabs active="add" showTabs />
 
-        {/* ===== Card (same bones as MarkSold) ===== */}
+        {/* ===== Card ===== */}
         <form onSubmit={saveOrder} className={card}>
           {/* Order details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
@@ -487,7 +471,7 @@ export default function QuickAdd() {
             </div>
           </div>
 
-          {/* Submit (same look/feel as MarkSold) */}
+          {/* Submit */}
           <div className="pt-2">
             <button
               type="submit"
@@ -503,38 +487,7 @@ export default function QuickAdd() {
             )}
           </div>
         </form>
-
-        {/* Recent orders (kept the compact list) */}
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold mb-4">Your recent orders</h2>
-          <div className="grid gap-3">
-            {orders.map((o) => (
-              <div key={o.id} className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="font-semibold truncate">
-                    {o.order_date} • {o.item ?? "—"} {o.retailer ? `@ ${o.retailer}` : ""}
-                  </div>
-                  <div
-                    className={`text-sm font-semibold shrink-0 ${
-                      Number(o.pl_cents) >= 0 ? "text-emerald-400" : "text-rose-400"
-                    }`}
-                  >
-                    P/L ${centsToStr(o.pl_cents)}
-                  </div>
-                </div>
-                <div className="text-sm text-slate-300">
-                  Buy ${centsToStr(o.buy_price_cents)} • Sell ${centsToStr(o.sale_price_cents)} • Ship $
-                  {centsToStr(o.shipping_cents)}
-                  {o.fees_pct ? ` • Fees ${(Number(o.fees_pct) * 100).toFixed(2)}%` : ""} •{" "}
-                  {o.marketplace || "—"} • {o.status}
-                </div>
-              </div>
-            ))}
-            {orders.length === 0 && <div className="text-slate-400">No orders yet.</div>}
-          </div>
-        </div>
       </div>
     </div>
   );
 }
-
