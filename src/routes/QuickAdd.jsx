@@ -74,19 +74,12 @@ function useAnchoredRect(ref, open, offsetY = 8) {
 }
 
 /* ------------------------- Reusable Combo (single) ------------------------- */
-/**
- * A single-input searchable dropdown with:
- *  - filtered options
- *  - "Add '…'" row when no exact match
- *  - "Clear" row when value present
- *  - anchored, fixed, top-layer menu (z-200)
- */
 function Combo({
   placeholder = "Type…",
   value,
   setValue,
   options = [], // array of strings
-  onCreate, // async (name) => {id?, name}
+  onCreate,     // async (name) => createdName | null
   disabled = false,
   label,
 }) {
@@ -94,17 +87,21 @@ function Combo({
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
   const boxRef = useRef(null);
+  const menuRef = useRef(null);
   const rect = useAnchoredRect(boxRef, open);
 
-  // close on outside click
+  // close on outside click (but ignore clicks inside the PORTALED menu)
   useEffect(() => {
-    const onClick = (e) => {
-      if (!boxRef.current) return;
-      if (!boxRef.current.contains(e.target)) setOpen(false);
+    const onDocClick = (e) => {
+      if (!open) return;
+      const t = e.target;
+      if (boxRef.current?.contains(t)) return;
+      if (menuRef.current?.contains(t)) return;
+      setOpen(false);
     };
-    window.addEventListener("mousedown", onClick);
-    return () => window.removeEventListener("mousedown", onClick);
-  }, []);
+    window.addEventListener("click", onDocClick); // use 'click' so option onClick fires first
+    return () => window.removeEventListener("click", onDocClick);
+  }, [open]);
 
   const text = value || query;
   const normalized = text.trim().toLowerCase();
@@ -113,7 +110,8 @@ function Combo({
     return options.filter((n) => n.toLowerCase().includes(normalized)).slice(0, 200);
   }, [options, normalized]);
 
-  const existsExact = options.some((n) => n.toLowerCase() === normalized && normalized);
+  const existsExact =
+    normalized && options.some((n) => n.toLowerCase() === normalized);
 
   return (
     <div className="min-w-0">
@@ -124,11 +122,11 @@ function Combo({
           value={text}
           disabled={disabled}
           onChange={(e) => {
-            setValue(""); // editing means we're searching; drop the selection
+            setValue("");     // typing switches to search mode
             setQuery(e.target.value);
-            setOpen(true);
+            if (!disabled) setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => !disabled && setOpen(true)}
           placeholder={placeholder}
           className={`${inputBase} ${disabled ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""}`}
         />
@@ -136,7 +134,7 @@ function Combo({
         {text && !disabled && (
           <button
             type="button"
-            onMouseDown={(e) => e.preventDefault()}
+            onMouseDown={(e) => e.preventDefault()} // keep focus
             onClick={() => {
               setValue("");
               setQuery("");
@@ -154,9 +152,9 @@ function Combo({
         {open &&
           createPortal(
             <div
+              ref={menuRef}
               className="fixed z-[200] max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl"
               style={{ top: rect.top, left: rect.left, width: rect.width }}
-              onMouseDown={(e) => e.preventDefault()} // keep focus
             >
               {/* Clear row */}
               {value && (
@@ -220,7 +218,6 @@ function Combo({
 
 /* --------------------------------- page --------------------------------- */
 export default function QuickAdd() {
-  // data
   const { data: items = [], refetch: refetchItems } = useQuery({
     queryKey: ["items-combo"],
     queryFn: getItems,
@@ -234,7 +231,7 @@ export default function QuickAdd() {
     queryFn: getMarketplaces,
   });
 
-  // user (for header)
+  // header user (unchanged)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -265,7 +262,7 @@ export default function QuickAdd() {
   // order fields
   const [orderDate, setOrderDate] = useState(today);
   const [itemName, setItemName] = useState("");
-  const [profileName, setProfile] = useState(""); // optional
+  const [profileName, setProfile] = useState("");
   const [retailerName, setRetailerName] = useState("");
   const [qty, setQty] = useState(1);
   const [buyPrice, setBuyPrice] = useState("");
@@ -275,7 +272,7 @@ export default function QuickAdd() {
   const [saleDate, setSaleDate] = useState("");
   const [marketName, setMarketName] = useState("");
   const [salePrice, setSalePrice] = useState("");
-  const [feesPct, setFeesPct] = useState("0"); // shown as "9" or "9.5"
+  const [feesPct, setFeesPct] = useState("0");
   const [feesLocked, setFeesLocked] = useState(false);
   const [shipping, setShipping] = useState("0");
 
@@ -380,7 +377,7 @@ export default function QuickAdd() {
 
       setMsg(`Saved ✔ (${n} row${n > 1 ? "s" : ""})`);
 
-      // reset (keep some sticky if you prefer)
+      // reset
       setItemName("");
       setRetailerName("");
       setQty(1);
@@ -530,7 +527,9 @@ export default function QuickAdd() {
                 placeholder="e.g. 9 or 9%"
                 disabled={!sold || feesLocked}
                 className={`${inputBase} ${
-                  !sold || feesLocked ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""
+                  (!sold || feesLocked)
+                    ? "opacity-60 cursor-not-allowed disabled:pointer-events-none"
+                    : ""
                 }`}
               />
               {sold && feesLocked && (
@@ -580,7 +579,7 @@ function Toggle({ value, onChange, label }) {
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className={`inline-flex items-center gap-2 select-none`}
+      className="inline-flex items-center gap-2 select-none"
       aria-pressed={value}
     >
       <span
