@@ -1,5 +1,5 @@
 // src/routes/Stats.jsx
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
@@ -58,7 +58,7 @@ export default function Stats() {
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
 
-  // header user (unchanged)
+  // user (header)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -200,11 +200,11 @@ export default function Stats() {
     };
   }, [filtered, fromMs, toMs]);
 
-  /* ---------------------------- chart tab state ---------------------------- */
-  const [chartTab, setChartTab] = useState("ps"); // "ps" | "cr"
+  /* ------------------------------ CHART MODE ------------------------------ */
+  const [chartMode, setChartMode] = useState("ps"); // ps = Purchases/Sales, cr = Cost/Revenue
 
+  /* ------------------------- EXPANDABLE ITEM CARDS ------------------------ */
   const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
-
   const [openSet, setOpenSet] = useState(() => new Set());
   const toggleItem = (key) => {
     setOpenSet((prev) => {
@@ -221,128 +221,122 @@ export default function Stats() {
         <HeaderWithTabs active="stats" showTabs />
 
         {/* Filters */}
-        <div className={`${card} relative z-50 overflow-visible`}>
-          <div className="flex items-center justify-between gap-2">
+        <div className={`${card} relative z-[70]`}>
+          <div className="flex items-center justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold">Filters</h2>
             <div className="text-slate-400 text-sm">{filtered.length} rows</div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <QuickBtn active={range==="all"} onClick={()=>setRange("all")} label="All time" />
-            <QuickBtn active={range==="month"} onClick={()=>setRange("month")} label="This month" />
-            <QuickBtn active={range==="30"} onClick={()=>setRange("30")} label="Last 30 days" />
-            <QuickBtn active={range==="year"} onClick={()=>setRange("year")} label="This year" />
-            <QuickBtn active={range==="custom"} onClick={()=>setRange("custom")} label="Custom…" />
-          </div>
-
-          {range === "custom" && (
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                type="date"
-                value={fromStr}
-                onChange={(e)=>setFromStr(e.target.value)}
-                className={inputBase}
-                placeholder="Start date"
-              />
-              <input
-                type="date"
-                value={toStr}
-                onChange={(e)=>setToStr(e.target.value)}
-                className={inputBase}
-                placeholder="End date"
-              />
-            </div>
-          )}
-
-          {/* Item combobox */}
-          <div ref={comboRef} className="relative isolate mt-3">
-            <input
-              value={itemInput}
-              onChange={(e) => { setItemInput(e.target.value); setItemOpen(true); }}
-              onFocus={() => setItemOpen(true)}
-              placeholder="All Items"
-              className={inputBase}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Date range as dropdown */}
+            <Select
+              value={range}
+              onChange={setRange}
+              options={[
+                { value: "all", label: "All time" },
+                { value: "month", label: "This month" },
+                { value: "30", label: "Last 30 days" },
+                { value: "year", label: "This year" },
+                { value: "custom", label: "Custom…" },
+              ]}
+              placeholder="Select range…"
             />
-            <button
-              type="button"
-              onClick={() => setItemOpen((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-              aria-label="Toggle items"
-            >
-              ▾
-            </button>
 
-            {itemOpen && (
-              <div className="absolute z-[200] left-0 right-0 mt-2 max-h-64 overflow-auto rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl">
-                {filteredItemOptions.map((name) => (
-                  <div
-                    key={name}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { setItemInput(name); setItemOpen(false); }}
-                    className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-slate-100"
-                  >
-                    {name}
-                  </div>
-                ))}
-                {filteredItemOptions.length === 0 && (
-                  <div className="px-3 py-2 text-slate-400">No matches</div>
-                )}
+            {range === "custom" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input type="date" value={fromStr} onChange={(e)=>setFromStr(e.target.value)} className={inputBase} placeholder="Start date" />
+                <input type="date" value={toStr} onChange={(e)=>setToStr(e.target.value)} className={inputBase} placeholder="End date" />
               </div>
             )}
-          </div>
 
-          <div className="mt-3">
-            <button
-              onClick={() =>
-                setApplied({
-                  range,
-                  from: range === "custom" ? fromStr || null : null,
-                  to:   range === "custom" ? toStr   || null : null,
-                  item: normalizeItemFilter(itemInput),
-                })
-              }
-              className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white"
-            >
-              Apply
-            </button>
+            {/* Item filter combobox */}
+            <div ref={comboRef} className="relative isolate">
+              <label className="sr-only">Item filter</label>
+              <input
+                value={itemInput}
+                onChange={(e) => { setItemInput(e.target.value); setItemOpen(true); }}
+                onFocus={() => setItemOpen(true)}
+                placeholder="All Items"
+                className={inputBase}
+              />
+              <button
+                type="button"
+                onClick={() => setItemOpen((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                aria-label="Toggle items"
+              >
+                ▾
+              </button>
+
+              {itemOpen && (
+                <div className="absolute z-[80] left-0 right-0 mt-2 max-h-60 overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                  {filteredItemOptions.map((name) => (
+                    <div
+                      key={name}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { setItemInput(name); setItemOpen(false); }}
+                      className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-slate-100"
+                    >
+                      {name}
+                    </div>
+                  ))}
+                  {filteredItemOptions.length === 0 && (
+                    <div className="px-3 py-2 text-slate-400">No matches</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() =>
+                  setApplied({
+                    range,
+                    from: range === "custom" ? fromStr || null : null,
+                    to:   range === "custom" ? toStr   || null : null,
+                    item: normalizeItemFilter(itemInput),
+                  })
+                }
+                className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white"
+              >
+                Apply
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Chart (single card, tabbed) */}
+        {/* Chart */}
         <div className={`${card} mt-6`}>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-3 mb-3">
             <div>
               <div className="text-lg font-semibold">
-                {chartTab === "ps" ? "Purchases & Sales" : "Cost & Revenue"}
+                {chartMode === "ps" ? "Purchases & Sales" : "Cost & Revenue"}
               </div>
-              <div className="text-xs text-slate-400 -mt-0.5">by month</div>
+              <div className="text-slate-400 text-xs -mt-0.5">by month</div>
             </div>
+
+            {/* segment control */}
             <div className="flex gap-2">
-              <ChartTab value="ps" label="Purchases / Sales" cur={chartTab} setCur={setChartTab} />
-              <ChartTab value="cr" label="Cost / Revenue" cur={chartTab} setCur={setChartTab} />
+              <SegmentTab active={chartMode === "ps"} onClick={() => setChartMode("ps")} label={["Purchases","/","Sales"]} />
+              <SegmentTab active={chartMode === "cr"} onClick={() => setChartMode("cr")} label={["Cost","/","Revenue"]} />
             </div>
           </div>
 
-          <div className="mt-4">
-            {chartTab === "ps" ? (
-              <DualBars
-                labels={chartSeries.months}
-                a={{ name: "Purchases", values: chartSeries.purchasesCount, color: "#6475ff" }}
-                b={{ name: "Sales",     values: chartSeries.salesCount,     color: "#9aa5ff" }}
-                money={false}
-              />
-            ) : (
-              <DualBars
-                labels={chartSeries.months}
-                a={{ name: "Cost",    values: chartSeries.costC,    color: "#22c9c7" }}
-                b={{ name: "Revenue", values: chartSeries.revenueC, color: "#76e0df" }}
-                money={true}
-              />
-            )}
-          </div>
+          <ResponsiveBarsDual
+            labels={chartSeries.months}
+            aName={chartMode === "ps" ? "Purchases" : "Cost"}
+            bName={chartMode === "ps" ? "Sales" : "Revenue"}
+            aValues={chartMode === "ps" ? chartSeries.purchasesCount : chartSeries.costC}
+            bValues={chartMode === "ps" ? chartSeries.salesCount : chartSeries.revenueC}
+            money={chartMode === "cr"}
+            palette={chartMode === "ps"
+              ? { base: "#6366f1", light: "#94a3ff" }   // muted indigo
+              : { base: "#14b8a6", light: "#5eead4" }   // muted teal
+            }
+          />
         </div>
 
-        {/* Item breakdown (unchanged) */}
+        {/* Item breakdown (LEAVE AS IS) */}
         <div className="mt-6 space-y-4">
           {itemGroups.map((g) => {
             const open = openSet.has(g.item);
@@ -360,12 +354,10 @@ export default function Stats() {
                     title={open ? "Collapse" : "Expand"}
                   >
                     {open ? (
-                      // X icon
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     ) : (
-                      // chevron-down
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m6 9 6 6 6-6" />
                       </svg>
@@ -373,25 +365,23 @@ export default function Stats() {
                   </button>
                 </div>
 
-                {/* body */}
                 {open && (
                   <div className="mt-4 space-y-4">
-                    {/* pills in your chosen order; responsive 2→3→4→5 columns */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                       <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} sub="total purchases" />
                       <MiniPill title="Sold" value={`${g.sold}`} num={g.sold} sub="total sold" />
                       <MiniPill title="On Hand" value={`${g.onHand}`} num={g.onHand} sub="total inventory" />
-                      <MiniPill title="Total Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="amount spent" />
-                      <MiniPill title="Total Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="amount made" />
-                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from sales" />
+                      <MiniPill title="Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="total amt spent" />
+                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from marketplace" />
                       <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} sub="from sales" />
+                      <MiniPill title="Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="total from sales" />
                       <MiniPill title="Realized P/L" value={`$${centsToStr(g.realizedPlC)}`} num={g.realizedPlC} sub="after fees + ship" tone="realized" />
-                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from tcgplayer" />
-                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on market" tone="unrealized" />
-                      <MiniPill title="ROI%" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profitability" />
-                      <MiniPill title="Margin%" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="worth it or not" />
+                      <MiniPill title="ROI" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profit / cost" />
+                      <MiniPill title="Margin" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="profit / revenue" />
                       <MiniPill title="Avg Hold" value={`${g.avgHoldDays.toFixed(0)}d`} num={g.avgHoldDays} sub="time in days" />
                       <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} sub="average sale price" />
+                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from database" />
+                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on mkt price" tone="unrealized" />
                     </div>
                   </div>
                 )}
@@ -408,20 +398,6 @@ export default function Stats() {
 }
 
 /* --------------------------- small components --------------------------- */
-function QuickBtn({ active, onClick, label }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`h-10 px-4 rounded-full border ${
-        active
-          ? "bg-indigo-600 border-indigo-500 text-white"
-          : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
 
 function Select({ value, onChange, options, placeholder = "Select…" }) {
   const [open, setOpen] = useState(false);
@@ -453,7 +429,7 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl">
+        <div className="absolute left-0 right-0 mt-2 z-[90] rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl">
           <ul className="max-h-64 overflow-auto py-1">
             {options.map((opt) => (
               <li key={opt.value}>
@@ -475,157 +451,150 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
   );
 }
 
-function ChartTab({ value, label, cur, setCur }) {
-  const active = cur === value;
+function SegmentTab({ active, onClick, label }) {
   return (
     <button
-      onClick={() => setCur(value)}
-      className={`px-3 py-1.5 rounded-full border ${
+      onClick={onClick}
+      className={`px-4 py-2 rounded-full border transition ${
         active
           ? "bg-indigo-600 border-indigo-500 text-white"
           : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
       }`}
     >
-      {label}
+      {Array.isArray(label) ? label.join(" ") : label}
     </button>
   );
 }
 
-/* ---------------------- Responsive dual-series bars ---------------------- */
-/* Pure SVG that fills the card width. */
-function DualBars({ labels = [], a, b, money = false }) {
-  const hasAny = (arr) => arr && arr.some((v) => Number(v) > 0);
-  if (!labels.length || (!hasAny(a.values) && !hasAny(b.values))) {
-    return <div className="text-slate-400">No data in this view.</div>;
-  }
+/* ------------------ Responsive dual-series bars (SVG) ------------------ */
+function ResponsiveBarsDual({
+  labels = [],
+  aName = "A",
+  bName = "B",
+  aValues = [],
+  bValues = [],
+  money = false,
+  palette = { base: "#6366f1", light: "#94a3ff" },
+}) {
+  const wrapRef = useRef(null);
+  const [size, setSize] = useState({ w: 0 });
 
-  // Last up to 12 buckets for readability
-  const clip = Math.max(0, labels.length - 12);
-  const L = labels.slice(clip);
-  const A = a.values.slice(clip);
-  const B = b.values.slice(clip);
+  useEffect(() => {
+    if (!wrapRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      const cr = entries[0].contentRect;
+      setSize({ w: Math.max(0, Math.round(cr.width)) });
+    });
+    ro.observe(wrapRef.current);
+    return () => ro.disconnect();
+  }, []);
 
-  // Y axis: 1.5x headroom, then rounded to a nice step
-  const rawMax = Math.max(1, ...A, ...B);
-  const maxVal = niceMax(rawMax * 1.5);
+  const w = Math.max(300, size.w);                      // ensure usable width
+  const h = Math.max(220, Math.min(420, Math.round(w * 0.45))); // responsive height
 
-  const H = 280;                     // inner chart height
-  const M = { top: 8, right: 12, bottom: 32, left: 64 };
-  const W = 1200;                    // viewBox width; scales to container
-  const innerW = W - M.left - M.right;
+  // inner plot padding
+  const padL = 56, padR = 16, padT = 16, padB = 32;
+  const pw = w - padL - padR;
+  const ph = h - padT - padB;
 
-  const barBand = innerW / L.length;
-  const gap = Math.min(12, barBand * 0.25);
-  const groupWidth = Math.max(10, barBand - gap);
-  const single = Math.max(8, groupWidth / 2 - 4);
+  // limit to last 12 buckets; on tiny width skip every other label
+  const MAX_BUCKETS = 12;
+  const start = Math.max(0, labels.length - MAX_BUCKETS);
+  const L = labels.slice(start);
+  const A = aValues.slice(start);
+  const B = bValues.slice(start);
 
-  // y scale (0 at bottom)
-  const y = (v) => {
-    const t = Math.min(maxVal, Math.max(0, Number(v)));
-    const ratio = t / maxVal;
-    return M.top + (H - ratio * H);
-  };
+  const maxV = Math.max(1, ...A, ...B);
+  const yMaxTarget = maxV * 1.5; // requested 1.5x headroom
+  const yMax = niceCeil(yMaxTarget);
+  const ticks = 4; // 4 horizontal grid lines
+  const step = yMax / ticks;
 
-  const fmtY = (v) => (money ? `$${centsToStr(v)}` : `${v}`);
+  // bar sizing
+  const groups = L.length || 1;
+  const groupW = pw / groups;
+  const barW = Math.max(8, Math.min(26, Math.floor(groupW * 0.35)));
+  const gap = (groupW - barW * 2) / 2;
+
+  // label skip on very tight layouts
+  const skipEvery = w < 420 ? 2 : 1;
+
+  const yScale = (v) => ph - (v / yMax) * ph;
 
   return (
-    <div className="w-full">
-      {/* Legend (stacked; dots on the RIGHT) */}
-      <div className="flex flex-col items-end text-xs text-slate-300 gap-1">
-        <LegendDot color={a.color} label={a.name} rightDot />
-        <LegendDot color={b.color} label={b.name} rightDot />
-      </div>
+    <div ref={wrapRef} className="w-full">
+      {(!A.length && !B.length) ? (
+        <div className="text-slate-400">No data in this view.</div>
+      ) : (
+        <div className="relative w-full rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
+          <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+            {/* grid lines + y labels */}
+            {[...Array(ticks + 1)].map((_, i) => {
+              const y = padT + (ph / ticks) * i;
+              const val = yMax - step * i;
+              return (
+                <g key={i}>
+                  <line x1={padL} y1={y} x2={w - padR} y2={y} stroke="#0f172a" strokeWidth="1" />
+                  <text x={padL - 8} y={y + 3} textAnchor="end" fontSize="10" fill="#94a3b8">
+                    {money ? `$${centsToStr(val)}` : `${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}`}
+                  </text>
+                </g>
+              );
+            })}
 
-      <div className="mt-2 w-full">
-        <svg
-          viewBox={`0 0 ${W} ${H + M.bottom}`}
-          className="w-full h-[320px] block"
-        >
-          {/* grid + y labels */}
-          {[0,1,2,3,4].map((i) => {
-            const val = (maxVal / 4) * i;
-            const yy = y(val);
-            return (
-              <g key={i}>
-                <line x1={M.left} y1={yy} x2={W - M.right} y2={yy} stroke="#0f172a" opacity="0.7" />
-                <text x={M.left - 8} y={yy + 4} textAnchor="end" className="fill-slate-300 text-[10px]">
-                  {fmtY(val)}
+            {/* bars */}
+            {L.map((_, i) => {
+              const gx = padL + groupW * i + gap;
+              const aH = ph - yScale(A[i] || 0);
+              const bH = ph - yScale(B[i] || 0);
+              return (
+                <g key={i}>
+                  <rect x={gx} y={padT + yScale(A[i] || 0)} width={barW} height={aH} fill={palette.base} rx="4" />
+                  <rect x={gx + barW + Math.max(2, gap/2)} y={padT + yScale(B[i] || 0)} width={barW} height={bH} fill={palette.light} rx="4" />
+                </g>
+              );
+            })}
+
+            {/* x labels */}
+            {L.map((lab, i) => {
+              if (skipEvery > 1 && i % skipEvery !== 0) return null;
+              const x = padL + groupW * i + groupW / 2;
+              return (
+                <text key={lab + i} x={x} y={h - 10} textAnchor="middle" fontSize="10" fill="#94a3b8">
+                  {lab}
                 </text>
-              </g>
-            );
-          })}
+              );
+            })}
+          </svg>
 
-          {/* bars */}
-          {L.map((label, i) => {
-            const xLeft = M.left + i * barBand + (barBand - (single * 2 + 6)) / 2;
-
-            const aH = H - (y(A[i]) - M.top);
-            const bH = H - (y(B[i]) - M.top);
-
-            return (
-              <g key={label}>
-                {/* A */}
-                <rect
-                  x={xLeft}
-                  y={y(A[i])}
-                  width={single}
-                  height={aH}
-                  rx="4"
-                  fill={a.color}
-                  opacity="0.85"
-                />
-                {/* B */}
-                <rect
-                  x={xLeft + single + 6}
-                  y={y(B[i])}
-                  width={single}
-                  height={bH}
-                  rx="4"
-                  fill={b.color}
-                  opacity="0.85"
-                />
-                {/* x labels */}
-                <text
-                  x={M.left + i * barBand + barBand / 2}
-                  y={H + 22}
-                  textAnchor="middle"
-                  className="fill-slate-400 text-[10px]"
-                >
-                  {label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
+          {/* legend (stacked, dot on the RIGHT of label) */}
+          <div className="absolute right-3 top-3 text-xs text-slate-200">
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-2">
+                <span>{aName}</span>
+                <span className="inline-block w-3 h-3 rounded-full" style={{ background: palette.base }} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span>{bName}</span>
+                <span className="inline-block w-3 h-3 rounded-full" style={{ background: palette.light }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function LegendDot({ color, label, rightDot = false }) {
-  return (
-    <div className="flex items-center gap-2">
-      {!rightDot && <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: color, opacity: 0.9 }} />}
-      <span>{label}</span>
-      {rightDot && <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: color, opacity: 0.9 }} />}
-    </div>
-  );
-}
-
-// Round to “nice” 1/2/5 steps (no extra 2x jump)
-function niceMax(v) {
+// nice ceiling to a "round" number for axis
+function niceCeil(v) {
   if (v <= 0) return 1;
   const pow = Math.pow(10, Math.floor(Math.log10(v)));
-  const n = v / pow;
-  let step;
-  if (n <= 1) step = 1;
-  else if (n <= 2) step = 2;
-  else if (n <= 5) step = 5;
-  else step = 10;
-  return step * pow;
+  const unit = pow / 2; // finer rounding than pure pow
+  return Math.ceil(v / unit) * unit;
 }
 
-/* -------- per-item aggregation for expandable cards -------- */
+/* -------- per-item aggregation for expandable cards (unchanged) -------- */
 function makeItemGroups(filtered, marketByName) {
   const m = new Map();
   for (const o of filtered) {
@@ -674,7 +643,7 @@ function makeItemGroups(filtered, marketByName) {
       row.onHand += 1;
       const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
-      row.unitMarketC = mv; // unit market value snapshot
+      row.unitMarketC = mv;
     }
   }
 
@@ -686,7 +655,6 @@ function makeItemGroups(filtered, marketByName) {
     return { ...r, margin, roi, avgHoldDays, aspC };
   });
 
-  // order: revenue then on-hand market
   out.sort((a, b) => (b.revenueC - a.revenueC) || (b.onHandMarketC - a.onHandMarketC));
   return out.slice(0, 400);
 }
@@ -696,7 +664,6 @@ function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
   const n = Number.isFinite(num) ? num : 0;
   const isZero = n === 0;
 
-  // Default white; only special cases: unrealized (blue), realized>0 (green). Zero dims.
   let color = "text-slate-100";
   if (tone === "unrealized") color = isZero ? "text-slate-400" : "text-indigo-400";
   if (tone === "realized") color = n > 0 ? "text-emerald-400" : isZero ? "text-slate-400" : "text-slate-100";
