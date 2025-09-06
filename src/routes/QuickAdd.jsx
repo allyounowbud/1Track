@@ -1,11 +1,11 @@
 // src/routes/QuickAdd.jsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useId } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 
-/* ---------- helpers ---------- */
+/* ---------------- helpers ---------------- */
 const parseMoney = (v) => {
   const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
   return isNaN(n) ? 0 : n;
@@ -19,7 +19,7 @@ const parsePct = (v) => {
   return n > 1 ? n / 100 : n;
 };
 
-/* ---------- queries ---------- */
+/* ---------------- queries ---------------- */
 async function getOrders() {
   const { data, error } = await supabase
     .from("orders")
@@ -53,9 +53,8 @@ async function getMarketplaces() {
   return data || [];
 }
 
-/* ===================== COMBOBOX (with create + portal panel) ===================== */
+/* -------- viewport lock (no pinch-zoom on this page) -------- */
 function useViewportLock() {
-  // Prevent pinch-zoom while this route is mounted; restore afterwards
   useEffect(() => {
     const meta = document.querySelector('meta[name="viewport"]');
     if (!meta) return;
@@ -69,51 +68,73 @@ function useViewportLock() {
   }, []);
 }
 
-function useFixedPanelPos(anchorRef, open, gap = 8) {
+/* -------- position util for floating panel -------- */
+function useFloating(anchorRef, open, gap = 8) {
   const [rect, setRect] = useState(null);
+
   useEffect(() => {
     if (!open) return;
-    function measure() {
-      const el = anchorRef.current;
-      if (!el) return;
+    const el = anchorRef.current;
+    if (!el) return;
+
+    const measure = () => {
       const r = el.getBoundingClientRect();
       setRect({
         left: r.left + window.scrollX,
         top: r.bottom + window.scrollY + gap,
         width: r.width,
       });
-    }
+    };
+
     measure();
     const onScroll = () => measure();
     const onResize = () => measure();
     window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onResize);
+
+    // Keep in sync with layout changes of the anchor
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+
+    // Small RAF loop (only while open) to catch quick layout shifts
+    let raf = 0;
+    const loop = () => {
+      measure();
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+
     return () => {
       window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onResize);
+      ro.disconnect();
+      cancelAnimationFrame(raf);
     };
   }, [anchorRef, open, gap]);
+
   return rect;
 }
 
+/* ---------------- Combobox with “add new” + portal panel ---------------- */
 function Combo({
   label,
   placeholder = "Type or pick…",
-  value, // string (selected name)
-  onChange, // set selected string (or '')
-  options, // [{id?, name}]
-  onCreate, // async (name) => createdRow | throws
+  value,
+  onChange,
+  options, // [{ id?, name }]
+  onCreate, // async (name) => row
   disabled = false,
 }) {
   const rootRef = useRef(null);
   const inputRef = useRef(null);
   const anchorRef = useRef(null);
+  const panelRef = useRef(null);
+  const comboId = useId();
 
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const rect = useFixedPanelPos(anchorRef, open, 6);
+  const rect = useFloating(anchorRef, open, 6);
 
-  // Build filtered list
   const names = useMemo(() => options.map((o) => o.name), [options]);
   const filtered = useMemo(() => {
     const needle = (q || "").trim().toLowerCase();
@@ -121,17 +142,23 @@ function Combo({
     return names.filter((n) => n.toLowerCase().includes(needle)).slice(0, 100);
   }, [names, q]);
 
-  // close on outside click
-  useEffect(() => {
-    function onDoc(e) {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc, true);
-    return () => document.removeEventListener("mousedown", onDoc, true);
-  }, []);
+  const showCreate =
+    q.trim().length > 0 &&
+    !names.some((n) => n.toLowerCase() === q.trim().toLowerCase()) &&
+    !!onCreate;
 
-  const showCreate = q.trim().length > 0 && !names.some((n) => n.toLowerCase() === q.trim().toLowerCase());
+  // Close only when the click is *not* inside the input OR the floating panel
+  useEffect(() => {
+    function onDocDown(e) {
+      const root = rootRef.current;
+      const panel = panelRef.current;
+      if (root?.contains(e.target)) return;
+      if (panel?.contains(e.target)) return;
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocDown, true);
+    return () => document.removeEventListener("mousedown", onDocDown, true);
+  }, []);
 
   return (
     <div ref={rootRef} className="min-w-0">
@@ -156,7 +183,7 @@ function Combo({
           }`}
         />
 
-        {/* Clear & caret buttons */}
+        {/* right side buttons (clear + caret) */}
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {!!(value && !disabled) && (
             <button
@@ -190,20 +217,27 @@ function Combo({
         </div>
       </div>
 
-      {/* Floating panel rendered to body — always above everything */}
       {open &&
         rect &&
         createPortal(
           <div
-            className="z-[9999] fixed rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-2xl overflow-auto"
-            style={{ left: rect.left, top: rect.top, width: rect.width, maxHeight: 280 }}
+            ref={panelRef}
+            data-combo-panel={comboId}
+            className="fixed z-[9999] rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-2xl overflow-auto"
+            style={{ left: rect.left, top: rect.top, width: rect.width, maxHeight: 300 }}
+            role="listbox"
           >
+            {/* options */}
             <div className="py-1">
               {filtered.map((n) => (
                 <button
                   key={n}
                   type="button"
-                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseDown={(e) => {
+                    // keep focus + stop the outside-close handler
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   onClick={() => {
                     onChange(n);
                     setQ(n);
@@ -226,12 +260,18 @@ function Combo({
                   <div className="px-3 pt-2 pb-1 text-xs uppercase tracking-wide text-slate-500">Actions</div>
                   <button
                     type="button"
-                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
                     onClick={async () => {
-                      if (!onCreate) return;
-                      const created = await onCreate(q.trim());
-                      onChange(created?.name || q.trim());
-                      setOpen(false);
+                      const name = q.trim();
+                      try {
+                        const created = await onCreate(name);
+                        onChange(created?.name || name);
+                      } finally {
+                        setOpen(false);
+                      }
                     }}
                     className="w-full text-left px-3 py-2 hover:bg-slate-800 text-indigo-300"
                   >
@@ -247,7 +287,7 @@ function Combo({
   );
 }
 
-/* ================================ PAGE ================================= */
+/* ----------------------------- PAGE ----------------------------- */
 export default function QuickAdd() {
   useViewportLock();
 
@@ -259,7 +299,7 @@ export default function QuickAdd() {
   const { data: itemsQ = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
   const { data: marketsQ = [] } = useQuery({ queryKey: ["markets"], queryFn: getMarketplaces });
 
-  // Local option lists so new rows appear instantly
+  // keep local copies so “Add …” shows up instantly
   const [itemOpts, setItemOpts] = useState(itemsQ);
   const [retailerOpts, setRetailerOpts] = useState(retailersQ);
   const [marketOpts, setMarketOpts] = useState(marketsQ);
@@ -267,7 +307,7 @@ export default function QuickAdd() {
   useEffect(() => setRetailerOpts(retailersQ), [retailersQ]);
   useEffect(() => setMarketOpts(marketsQ), [marketsQ]);
 
-  // user (header uses this)
+  // user (header shows)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -317,7 +357,7 @@ export default function QuickAdd() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  /* ---------- create handlers for combos ---------- */
+  /* ---- add-new handlers for combos ---- */
   async function createItemByName(name) {
     const { data, error } = await supabase.from("items").insert({ name }).select().single();
     if (error) throw error;
@@ -341,7 +381,7 @@ export default function QuickAdd() {
     return data;
   }
 
-  // auto-lock fees when a known marketplace is selected
+  // lock fees when marketplace has default
   useEffect(() => {
     const m = marketOpts.find((x) => x.name === marketName);
     if (m) {
@@ -352,7 +392,7 @@ export default function QuickAdd() {
     }
   }, [marketName, marketOpts]);
 
-  /* ---------- save ---------- */
+  /* ---- save ---- */
   async function saveOrder(e) {
     e.preventDefault();
     setSaving(true);
@@ -415,7 +455,6 @@ export default function QuickAdd() {
     }
   }
 
-  /* ---------- UI tokens ---------- */
   const card =
     "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
   const input =
@@ -427,7 +466,6 @@ export default function QuickAdd() {
         <HeaderWithTabs active="add" showTabs />
 
         <form onSubmit={saveOrder} className="space-y-6">
-          {/* ORDER + SALE (single card, no overflow clipping so panels can float) */}
           <div className={`${card} overflow-visible`}>
             <h2 className="text-lg font-semibold mb-4">Order details</h2>
 
@@ -488,20 +526,15 @@ export default function QuickAdd() {
               </div>
             </div>
 
-            {/* SALE SECTION HEADER + TOGGLE */}
+            {/* Sale header with toggle */}
             <div className="mt-6 mb-2 flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold">
                 Sale details <span className="text-slate-400 text-sm">(optional – if sold)</span>
               </h3>
 
-              {/* Pretty switch */}
               <label className="inline-flex items-center gap-2 cursor-pointer select-none">
                 <span className="text-sm text-slate-300">Sold</span>
-                <span
-                  className={`relative h-6 w-11 rounded-full transition-colors ${
-                    sold ? "bg-emerald-500/80" : "bg-slate-700"
-                  }`}
-                >
+                <span className={`relative h-6 w-11 rounded-full transition-colors ${sold ? "bg-emerald-500/80" : "bg-slate-700"}`}>
                   <input
                     type="checkbox"
                     checked={sold}
@@ -518,16 +551,15 @@ export default function QuickAdd() {
               </label>
             </div>
 
-            {/* SALE FIELDS */}
-            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
               <div className="min-w-0">
                 <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
                 <input
                   type="date"
                   value={saleDate}
                   onChange={(e) => setSaleDate(e.target.value)}
-                  disabled={saleDisabled}
-                  className={`${input} ${saleDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                  disabled={!sold}
+                  className={`${input} ${!sold ? "opacity-60 cursor-not-allowed" : ""}`}
                 />
               </div>
 
@@ -538,7 +570,7 @@ export default function QuickAdd() {
                 onChange={setMarketName}
                 options={marketOpts}
                 onCreate={createMarketByName}
-                disabled={saleDisabled}
+                disabled={!sold}
               />
 
               <div className="min-w-0">
@@ -547,8 +579,8 @@ export default function QuickAdd() {
                   value={salePrice}
                   onChange={(e) => setSalePrice(e.target.value)}
                   placeholder="0 = unsold"
-                  disabled={saleDisabled}
-                  className={`${input} ${saleDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                  disabled={!sold}
+                  className={`${input} ${!sold ? "opacity-60 cursor-not-allowed" : ""}`}
                 />
                 <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split this total across rows.</p>
               </div>
@@ -559,10 +591,8 @@ export default function QuickAdd() {
                   value={feesPct}
                   onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
                   placeholder="e.g. 9 or 9%"
-                  disabled={saleDisabled || feesLocked}
-                  className={`${input} ${
-                    saleDisabled || feesLocked ? "opacity-60 cursor-not-allowed" : ""
-                  }`}
+                  disabled={!sold || feesLocked}
+                  className={`${input} ${!sold || feesLocked ? "opacity-60 cursor-not-allowed" : ""}`}
                 />
                 {feesLocked && <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>}
               </div>
@@ -572,8 +602,8 @@ export default function QuickAdd() {
                 <input
                   value={shipping}
                   onChange={(e) => setShipping(e.target.value)}
-                  disabled={saleDisabled}
-                  className={`${input} ${saleDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                  disabled={!sold}
+                  className={`${input} ${!sold ? "opacity-60 cursor-not-allowed" : ""}`}
                 />
                 <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split shipping across rows.</p>
               </div>
