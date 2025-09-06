@@ -1,11 +1,10 @@
 // src/routes/QuickAdd.jsx
-import { useEffect, useMemo, useRef, useState, useId } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 
-/* ---------------- helpers ---------------- */
+/* ---------- helpers ---------- */
 const parseMoney = (v) => {
   const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
   return isNaN(n) ? 0 : n;
@@ -19,7 +18,7 @@ const parsePct = (v) => {
   return n > 1 ? n / 100 : n;
 };
 
-/* ---------------- queries ---------------- */
+/* ---------- queries ---------- */
 async function getOrders() {
   const { data, error } = await supabase
     .from("orders")
@@ -32,15 +31,12 @@ async function getOrders() {
   return data || [];
 }
 async function getRetailers() {
-  const { data, error } = await supabase.from("retailers").select("id, name");
+  const { data, error } = await supabase.from("retailers").select("id, name").order("name");
   if (error) throw error;
   return data || [];
 }
 async function getItems() {
-  const { data, error } = await supabase
-    .from("items")
-    .select("id, name")
-    .order("name", { ascending: true });
+  const { data, error } = await supabase.from("items").select("id, name").order("name");
   if (error) throw error;
   return data || [];
 }
@@ -48,115 +44,24 @@ async function getMarketplaces() {
   const { data, error } = await supabase
     .from("marketplaces")
     .select("id, name, default_fees_pct")
-    .order("name", { ascending: true });
+    .order("name");
   if (error) throw error;
   return data || [];
 }
 
-/* -------- viewport + horizontal scroll lock -------- */
-function useViewportLock() {
-  useEffect(() => {
-    const meta = document.querySelector('meta[name="viewport"]');
-    if (!meta) return;
-    const prev = meta.getAttribute("content") || "width=device-width, initial-scale=1";
-    const cleaned = prev
-      .replace(/user-scalable\s*=\s*[^,]+,?\s*/gi, "")
-      .replace(/maximum-scale\s*=\s*[^,]+,?\s*/gi, "")
-      .trim();
-    meta.setAttribute("content", `${cleaned}, maximum-scale=1, user-scalable=no`);
-    // also prevent accidental horizontal pan on iOS
-    const prevBody = document.body.style.overflowX;
-    const prevHtml = document.documentElement.style.overflowX;
-    document.body.style.overflowX = "hidden";
-    document.documentElement.style.overflowX = "hidden";
-    return () => {
-      meta.setAttribute("content", prev);
-      document.body.style.overflowX = prevBody;
-      document.documentElement.style.overflowX = prevHtml;
-    };
-  }, []);
-}
-
-/* -------- floating panel that CLAMPS to viewport -------- */
-function useFloating(anchorRef, open, gap = 8) {
-  const [rect, setRect] = useState(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const el = anchorRef.current;
-    if (!el) return;
-
-    const measure = () => {
-      const r = el.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const sx = window.scrollX;
-      const sy = window.scrollY;
-
-      // desired width = anchor width, but never exceed viewport minus margins
-      const maxW = Math.max(160, vw - 16);
-      const width = Math.min(r.width, maxW);
-
-      // desired left
-      let left = r.left + sx;
-      // clamp within viewport with 8px gutters
-      const minLeft = sx + 8;
-      const maxLeft = sx + vw - width - 8;
-      if (left < minLeft) left = minLeft;
-      if (left > maxLeft) left = maxLeft;
-
-      setRect({
-        left,
-        top: r.bottom + sy + gap,
-        width,
-      });
-    };
-
-    measure();
-    const onScroll = () => measure();
-    const onResize = () => measure();
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onResize);
-
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-
-    let raf = 0;
-    const loop = () => {
-      measure();
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-
-    return () => {
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onResize);
-      ro.disconnect();
-      cancelAnimationFrame(raf);
-    };
-  }, [anchorRef, open, gap]);
-
-  return rect;
-}
-
-/* ---------------- Combobox with “add new” + portal panel ---------------- */
+/* ---------- Combobox (MarkSold-style, +Add support) ---------- */
 function Combo({
   label,
-  placeholder = "Type or pick…",
+  placeholder = "Type to search…",
   value,
   onChange,
-  options, // [{ id?, name }]
-  onCreate, // async (name) => row
+  options = [], // [{id?, name}]
+  onCreate, // async (name) => newRow
   disabled = false,
 }) {
-  const rootRef = useRef(null);
-  const inputRef = useRef(null);
-  const anchorRef = useRef(null);
-  const panelRef = useRef(null);
-  const comboId = useId();
-
+  const boxRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const rect = useFloating(anchorRef, open, 6);
 
   const names = useMemo(() => options.map((o) => o.name), [options]);
   const filtered = useMemo(() => {
@@ -165,36 +70,25 @@ function Combo({
     return names.filter((n) => n.toLowerCase().includes(needle)).slice(0, 100);
   }, [names, q]);
 
-  const showCreate =
-    q.trim().length > 0 &&
-    !names.some((n) => n.toLowerCase() === q.trim().toLowerCase()) &&
-    !!onCreate;
+  const canCreate =
+    !!onCreate &&
+    (q || "").trim().length > 0 &&
+    !names.some((n) => n.toLowerCase() === (q || "").trim().toLowerCase());
 
-  // Close only when the click is *not* inside the input OR inside the floating panel
   useEffect(() => {
-    function onDocDown(e) {
-      const root = rootRef.current;
-      const panel = panelRef.current;
-      if (root?.contains(e.target)) return;
-      if (panel?.contains(e.target)) return;
-      setOpen(false);
-    }
-    document.addEventListener("mousedown", onDocDown, true);
-    return () => document.removeEventListener("mousedown", onDocDown, true);
+    const onClick = (e) => {
+      if (!boxRef.current) return;
+      if (!boxRef.current.contains(e.target)) setOpen(false);
+    };
+    window.addEventListener("click", onClick, { passive: true });
+    return () => window.removeEventListener("click", onClick);
   }, []);
 
-  // If disabled while open, force-close and prevent toggling
-  useEffect(() => {
-    if (disabled && open) setOpen(false);
-  }, [disabled, open]);
-
   return (
-    <div ref={rootRef} className="min-w-0">
+    <div className="min-w-0">
       {label && <label className="text-slate-300 mb-1 block text-sm">{label}</label>}
-
-      <div ref={anchorRef} className="relative">
+      <div ref={boxRef} className="relative">
         <input
-          ref={inputRef}
           value={open ? q : value}
           onChange={(e) => {
             if (disabled) return;
@@ -206,16 +100,16 @@ function Combo({
             setQ(value || "");
             setOpen(true);
           }}
-          placeholder={placeholder}
           disabled={disabled}
-          className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 pr-12 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 ${
+          placeholder={placeholder}
+          className={`w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 pr-12 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 ${
             disabled ? "opacity-60 cursor-not-allowed" : ""
           }`}
         />
 
-        {/* right side buttons (clear + caret) */}
+        {/* right-side controls (clear + caret) */}
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          {!!(value && !disabled) && (
+          {!!value && !disabled && (
             <button
               type="button"
               aria-label="Clear"
@@ -224,7 +118,6 @@ function Combo({
                 onChange("");
                 setQ("");
                 setOpen(true);
-                inputRef.current?.focus();
               }}
               className="h-6 w-6 rounded-md border border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700"
             >
@@ -233,140 +126,87 @@ function Combo({
           )}
           <button
             type="button"
-            disabled={disabled}
+            aria-label="Toggle"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
               if (disabled) return;
               setQ(value || "");
               setOpen((v) => !v);
-              inputRef.current?.focus();
             }}
             className={`h-6 w-6 rounded-md border border-slate-700 bg-slate-800/80 text-slate-200 ${
               disabled ? "opacity-50 pointer-events-none" : "hover:bg-slate-700"
             }`}
-            aria-label="Toggle options"
           >
             ▾
           </button>
         </div>
-      </div>
 
-      {open &&
-        rect &&
-        createPortal(
-          <div
-            ref={panelRef}
-            data-combo-panel={comboId}
-            className="fixed z-[9999] rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-2xl overflow-auto"
-            style={{ left: rect.left, top: rect.top, width: rect.width, maxHeight: 300 }}
-            role="listbox"
-          >
-            <div className="py-1">
-              {filtered.map((n) => (
+        {open && (
+          <div className="absolute left-0 right-0 z-40 mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
+            {filtered.length === 0 && !canCreate && (
+              <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
+            )}
+            {filtered.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(name);
+                  setQ(name);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 hover:bg-slate-800/70 ${
+                  name === value ? "text-white" : "text-slate-200"
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+
+            {canCreate && (
+              <>
+                <div className="px-3 pt-2 pb-1 text-xs uppercase tracking-wide text-slate-500">
+                  Actions
+                </div>
                 <button
-                  key={n}
                   type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onClick={() => {
-                    onChange(n);
-                    setQ(n);
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={async () => {
+                    const name = q.trim();
+                    const row = await onCreate?.(name);
+                    onChange(row?.name || name);
                     setOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 hover:bg-slate-800 ${
-                    n === value ? "text-white" : "text-slate-200"
-                  }`}
+                  className="w-full text-left px-3 py-2 hover:bg-slate-800/70 text-indigo-300"
                 >
-                  {n}
+                  + Add “{q.trim()}”
                 </button>
-              ))}
-
-              {filtered.length === 0 && !showCreate && (
-                <div className="px-3 py-3 text-slate-400">No matches</div>
-              )}
-
-              {showCreate && (
-                <>
-                  <div className="px-3 pt-2 pb-1 text-xs uppercase tracking-wide text-slate-500">Actions</div>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onClick={async () => {
-                      const name = q.trim();
-                      try {
-                        const created = await onCreate(name);
-                        onChange(created?.name || name);
-                      } finally {
-                        setOpen(false);
-                      }
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-slate-800 text-indigo-300"
-                  >
-                    + Add “{q.trim()}”
-                  </button>
-                </>
-              )}
-            </div>
-          </div>,
-          document.body
+              </>
+            )}
+          </div>
         )}
+      </div>
     </div>
   );
 }
 
-/* ----------------------------- PAGE ----------------------------- */
+/* ---------- page ---------- */
 export default function QuickAdd() {
-  useViewportLock();
+  const { data: orders = [], refetch } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
+  const { data: retailers = [] } = useQuery({ queryKey: ["retailers"], queryFn: getRetailers });
+  const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
+  const { data: markets = [] } = useQuery({ queryKey: ["markets"], queryFn: getMarketplaces });
 
-  const { data: orders = [], isLoading, error, refetch } = useQuery({
-    queryKey: ["orders"],
-    queryFn: getOrders,
-  });
-  const { data: retailersQ = [] } = useQuery({ queryKey: ["retailers"], queryFn: getRetailers });
-  const { data: itemsQ = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
-  const { data: marketsQ = [] } = useQuery({ queryKey: ["markets"], queryFn: getMarketplaces });
+  // Local copies so +Add feels instant
+  const [itemOpts, setItemOpts] = useState(items);
+  const [retailerOpts, setRetailerOpts] = useState(retailers);
+  const [marketOpts, setMarketOpts] = useState(markets);
+  useEffect(() => setItemOpts(items), [items]);
+  useEffect(() => setRetailerOpts(retailers), [retailers]);
+  useEffect(() => setMarketOpts(markets), [markets]);
 
-  // local copies so "Add…" appears immediately
-  const [itemOpts, setItemOpts] = useState(itemsQ);
-  const [retailerOpts, setRetailerOpts] = useState(retailersQ);
-  const [marketOpts, setMarketOpts] = useState(marketsQ);
-  useEffect(() => setItemOpts(itemsQ), [itemsQ]);
-  useEffect(() => setRetailerOpts(retailersQ), [retailersQ]);
-  useEffect(() => setMarketOpts(marketsQ), [marketsQ]);
-
-  // user (header shows)
-  const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
-  useEffect(() => {
-    async function loadUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    }
-    loadUser();
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      const user = session?.user;
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
-  /* ---- form state ---- */
+  // ---- form state (MarkSold layout) ----
   const today = new Date().toISOString().slice(0, 10);
   const [orderDate, setOrderDate] = useState(today);
   const [itemName, setItemName] = useState("");
@@ -389,31 +229,7 @@ export default function QuickAdd() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  /* ---- add-new handlers ---- */
-  async function createItemByName(name) {
-    const { data, error } = await supabase.from("items").insert({ name }).select().single();
-    if (error) throw error;
-    setItemOpts((prev) => [...prev, data]);
-    return data;
-  }
-  async function createRetailerByName(name) {
-    const { data, error } = await supabase.from("retailers").insert({ name }).select().single();
-    if (error) throw error;
-    setRetailerOpts((prev) => [...prev, data]);
-    return data;
-  }
-  async function createMarketByName(name) {
-    const { data, error } = await supabase
-      .from("marketplaces")
-      .insert({ name, default_fees_pct: 0 })
-      .select()
-      .single();
-    if (error) throw error;
-    setMarketOpts((prev) => [...prev, data]);
-    return data;
-  }
-
-  // lock fees when marketplace has default
+  // Marketplace -> auto-lock fee
   useEffect(() => {
     const m = marketOpts.find((x) => x.name === marketName);
     if (m) {
@@ -424,7 +240,31 @@ export default function QuickAdd() {
     }
   }, [marketName, marketOpts]);
 
-  /* ---- save ---- */
+  /* ---------- Add-new handlers ---------- */
+  async function createItem(name) {
+    const { data, error } = await supabase.from("items").insert({ name }).select().single();
+    if (error) throw error;
+    setItemOpts((prev) => [...prev, data]);
+    return data;
+  }
+  async function createRetailer(name) {
+    const { data, error } = await supabase.from("retailers").insert({ name }).select().single();
+    if (error) throw error;
+    setRetailerOpts((prev) => [...prev, data]);
+    return data;
+  }
+  async function createMarket(name) {
+    const { data, error } = await supabase
+      .from("marketplaces")
+      .insert({ name, default_fees_pct: 0 })
+      .select()
+      .single();
+    if (error) throw error;
+    setMarketOpts((prev) => [...prev, data]);
+    return data;
+  }
+
+  /* ---------- Save (split across qty) ---------- */
   async function saveOrder(e) {
     e.preventDefault();
     setSaving(true);
@@ -465,7 +305,7 @@ export default function QuickAdd() {
 
       setMsg(`Saved ✔ (${n} row${n > 1 ? "s" : ""})`);
 
-      // reset (keep order date)
+      // reset (keep date)
       setItemName("");
       setProfile("");
       setRetailerName("");
@@ -480,6 +320,7 @@ export default function QuickAdd() {
       setShipping("0");
 
       await refetch();
+      setTimeout(() => setMsg(""), 1800);
     } catch (err) {
       setMsg(String(err.message || err));
     } finally {
@@ -487,175 +328,185 @@ export default function QuickAdd() {
     }
   }
 
+  /* ---------- styles (copied from MarkSold) ---------- */
   const card =
-    "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
+    "relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden space-y-5";
   const input =
-    "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
+    "w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
+        {/* Shared header/tabs */}
         <HeaderWithTabs active="add" showTabs />
 
-        <form onSubmit={saveOrder} className="space-y-6">
-          <div className={`${card} overflow-visible`}>
-            <h2 className="text-lg font-semibold mb-4">Order details</h2>
+        {/* ===== Card (same bones as MarkSold) ===== */}
+        <form onSubmit={saveOrder} className={card}>
+          {/* Order details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Order Date</label>
+              <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} className={input} />
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Order Date</label>
-                <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} className={input} />
-              </div>
+            <Combo
+              label="Item"
+              placeholder="Type or pick an item..."
+              value={itemName}
+              onChange={setItemName}
+              options={itemOpts}
+              onCreate={createItem}
+            />
 
-              <Combo
-                label="Item"
-                placeholder="Type or pick an item..."
-                value={itemName}
-                onChange={setItemName}
-                options={itemOpts}
-                onCreate={createItemByName}
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Profile name (optional)</label>
+              <input
+                value={profileName}
+                onChange={(e) => setProfile(e.target.value)}
+                placeholder="name / Testing 1"
+                className={input}
               />
+            </div>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Profile name (optional)</label>
-                <input
-                  value={profileName}
-                  onChange={(e) => setProfile(e.target.value)}
-                  placeholder="name / Testing 1"
-                  className={input}
-                />
-              </div>
+            <Combo
+              label="Retailer"
+              placeholder="Type or pick a retailer..."
+              value={retailerName}
+              onChange={setRetailerName}
+              options={retailerOpts}
+              onCreate={createRetailer}
+            />
 
-              <Combo
-                label="Retailer"
-                placeholder="Type or pick a retailer..."
-                value={retailerName}
-                onChange={setRetailerName}
-                options={retailerOpts}
-                onCreate={createRetailerByName}
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Quantity</label>
+              <input
+                type="number"
+                min={1}
+                value={qty}
+                onChange={(e) => setQty(parseInt(e.target.value || "1", 10))}
+                className={input}
               />
-
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Quantity</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={qty}
-                  onChange={(e) => setQty(parseInt(e.target.value || "1", 10))}
-                  className={input}
-                />
-                <p className="text-xs text-slate-500 mt-1">We’ll insert that many rows and split totals equally.</p>
-              </div>
-
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Buy Price (total)</label>
-                <input
-                  value={buyPrice}
-                  onChange={(e) => setBuyPrice(e.target.value)}
-                  placeholder="e.g. 67.70"
-                  className={input}
-                />
-              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                We’ll insert that many rows and split totals equally.
+              </p>
             </div>
 
-            {/* Sale header with toggle */}
-            <div className="mt-6 mb-2 flex items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold">
-                Sale details <span className="text-slate-400 text-sm">(optional – if sold)</span>
-              </h3>
-
-              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                <span className="text-sm text-slate-300">Sold</span>
-                <span className={`relative h-6 w-11 rounded-full transition-colors ${sold ? "bg-emerald-500/80" : "bg-slate-700"}`}>
-                  <input
-                    type="checkbox"
-                    checked={sold}
-                    onChange={(e) => setSold(e.target.checked)}
-                    className="sr-only"
-                    aria-label="Sold toggle"
-                  />
-                  <span
-                    className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-white shadow transition-all ${
-                      sold ? "left-[22px]" : "left-[2px]"
-                    }`}
-                  />
-                </span>
-              </label>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
-                <input
-                  type="date"
-                  value={saleDate}
-                  onChange={(e) => setSaleDate(e.target.value)}
-                  disabled={!sold}
-                  className={`${input} ${!sold ? "opacity-60 cursor-not-allowed" : ""}`}
-                />
-              </div>
-
-              <Combo
-                label="Marketplace"
-                placeholder="Type or pick a marketplace..."
-                value={marketName}
-                onChange={setMarketName}
-                options={marketOpts}
-                onCreate={createMarketByName}
-                disabled={!sold}
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Buy Price (total)</label>
+              <input
+                value={buyPrice}
+                onChange={(e) => setBuyPrice(e.target.value)}
+                placeholder="e.g. 67.70"
+                className={input}
               />
+            </div>
+          </div>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Sell Price (total)</label>
-                <input
-                  value={salePrice}
-                  onChange={(e) => setSalePrice(e.target.value)}
-                  placeholder="0 = unsold"
-                  disabled={!sold}
-                  className={`${input} ${!sold ? "opacity-60 cursor-not-allowed" : ""}`}
-                />
-                <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split this total across rows.</p>
-              </div>
+          {/* Sale header + toggle */}
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <h3 className="text-lg font-semibold">
+              Sale details <span className="text-slate-400 text-sm">(optional – if sold)</span>
+            </h3>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Fees (%)</label>
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+              <span className="text-sm text-slate-300">Sold</span>
+              <span className={`relative h-6 w-11 rounded-full transition-colors ${sold ? "bg-emerald-500/80" : "bg-slate-700"}`}>
                 <input
-                  value={feesPct}
-                  onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
-                  placeholder="e.g. 9 or 9%"
-                  disabled={!sold || feesLocked}
-                  className={`${input} ${!sold || feesLocked ? "opacity-60 cursor-not-allowed" : ""}`}
+                  type="checkbox"
+                  checked={sold}
+                  onChange={(e) => setSold(e.target.checked)}
+                  className="sr-only"
+                  aria-label="Sold toggle"
                 />
-                {feesLocked && <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>}
-              </div>
+                <span
+                  className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                    sold ? "left-[22px]" : "left-[2px]"
+                  }`}
+                />
+              </span>
+            </label>
+          </div>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Shipping (total)</label>
-                <input
-                  value={shipping}
-                  onChange={(e) => setShipping(e.target.value)}
-                  disabled={!sold}
-                  className={`${input} ${!sold ? "opacity-60 cursor-not-allowed" : ""}`}
-                />
-                <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split shipping across rows.</p>
-              </div>
+          {/* Sale details grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
+              <input
+                type="date"
+                value={saleDate}
+                onChange={(e) => setSaleDate(e.target.value)}
+                disabled={saleDisabled}
+                className={`${input} ${saleDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+              />
             </div>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className={`text-sm ${msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"}`}>{msg}</div>
-              <button className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white" disabled={saving}>
-                {saving ? "Saving…" : "Save"}
-              </button>
+            <Combo
+              label="Marketplace"
+              placeholder="Type or pick a marketplace..."
+              value={marketName}
+              onChange={setMarketName}
+              options={marketOpts}
+              onCreate={createMarket}
+              disabled={saleDisabled}
+            />
+
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Sell Price (total)</label>
+              <input
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+                placeholder="0 = unsold"
+                disabled={saleDisabled}
+                className={`${input} ${saleDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+              />
+              <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split this total across rows.</p>
             </div>
+
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Fees (%)</label>
+              <input
+                value={feesPct}
+                onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
+                placeholder="e.g. 9 or 9%"
+                disabled={saleDisabled || feesLocked}
+                className={`${input} ${saleDisabled || feesLocked ? "opacity-60 cursor-not-allowed" : ""}`}
+              />
+              {feesLocked && <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>}
+            </div>
+
+            <div className="min-w-0 md:col-span-2">
+              <label className="text-slate-300 mb-1 block text-sm">Shipping (total)</label>
+              <input
+                value={shipping}
+                onChange={(e) => setShipping(e.target.value)}
+                disabled={saleDisabled}
+                className={`${input} ${saleDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                placeholder="0"
+              />
+              <p className="text-xs text-slate-500 mt-1">If qty &gt; 1 we’ll split shipping across rows.</p>
+            </div>
+          </div>
+
+          {/* Submit (same look/feel as MarkSold) */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            {msg && (
+              <div className={`mt-2 text-sm ${msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"}`}>
+                {msg}
+              </div>
+            )}
           </div>
         </form>
 
-        {/* Recent orders */}
+        {/* Recent orders (kept the compact list) */}
         <div className="mt-10">
           <h2 className="text-xl font-semibold mb-4">Your recent orders</h2>
-          {isLoading && <div className="text-slate-400">Loading…</div>}
-          {error && <div className="text-rose-400">{String(error)}</div>}
-
           <div className="grid gap-3">
             {orders.map((o) => (
               <div key={o.id} className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
@@ -674,8 +525,8 @@ export default function QuickAdd() {
                 <div className="text-sm text-slate-300">
                   Buy ${centsToStr(o.buy_price_cents)} • Sell ${centsToStr(o.sale_price_cents)} • Ship $
                   {centsToStr(o.shipping_cents)}
-                  {o.fees_pct ? ` • Fees ${(Number(o.fees_pct) * 100).toFixed(2)}%` : ""} • {o.marketplace || "—"} •{" "}
-                  {o.status}
+                  {o.fees_pct ? ` • Fees ${(Number(o.fees_pct) * 100).toFixed(2)}%` : ""} •{" "}
+                  {o.marketplace || "—"} • {o.status}
                 </div>
               </div>
             ))}
@@ -686,3 +537,4 @@ export default function QuickAdd() {
     </div>
   );
 }
+
