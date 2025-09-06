@@ -11,6 +11,8 @@ const card =
 const inputBase =
   "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500";
 const dateFix = "w-full max-w-full min-w-0 box-border [field-sizing:content]"; // iOS/Safari sizing helper
+const disabledInput =
+  "opacity-40 cursor-not-allowed disabled:pointer-events-none bg-slate-900/30 border-slate-800/50 text-slate-400 placeholder-slate-500";
 
 /* ----------------------------- helpers ----------------------------- */
 const parseMoney = (v) => {
@@ -128,7 +130,7 @@ function Combo({
           }}
           onFocus={() => !disabled && setOpen(true)}
           placeholder={placeholder}
-          className={`${inputBase} ${disabled ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""}`}
+          className={`${inputBase} ${disabled ? disabledInput : ""}`}
         />
         {/* clear button inside input */}
         {text && !disabled && (
@@ -212,6 +214,39 @@ function Combo({
             document.body
           )}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------- Smooth Collapse container ------------------------ */
+function Collapse({ open, children, duration = 280 }) {
+  const innerRef = useRef(null);
+  const [height, setHeight] = useState(0);
+
+  // measure content height
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const measure = () => setHeight(el.scrollHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [children]);
+
+  return (
+    <div
+      className="overflow-hidden will-change-[height,opacity,transform]"
+      style={{
+        height: open ? height : 0,
+        opacity: open ? 1 : 0,
+        transform: open ? "translateY(0px)" : "translateY(-4px)",
+        transition: `height ${duration}ms ease, opacity ${duration}ms ease, transform ${duration}ms ease`,
+        pointerEvents: open ? "auto" : "none",
+      }}
+      aria-hidden={!open}
+    >
+      <div ref={innerRef}>{children}</div>
     </div>
   );
 }
@@ -337,6 +372,11 @@ export default function QuickAdd() {
     }
   }, [marketName, markets]);
 
+  // If user toggles off "sold", ensure fee field becomes unlocked/neutral
+  useEffect(() => {
+    if (!sold) setFeesLocked(false);
+  }, [sold]);
+
   /* --------------------------------- save --------------------------------- */
   async function onSave(e) {
     e.preventDefault();
@@ -405,7 +445,10 @@ export default function QuickAdd() {
 
         <form onSubmit={onSave} className={`${card} space-y-6`}>
           {/* ORDER */}
-          <h2 className="text-lg font-semibold">Order details</h2>
+          <div>
+            <h2 className="text-lg font-semibold">Order details</h2>
+            <p className="text-slate-400 text-sm -mt-1">Add a new or existing order</p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
             <div className="min-w-0">
@@ -471,88 +514,80 @@ export default function QuickAdd() {
             </div>
           </div>
 
-          {/* SALE */}
+          {/* SALE (header + toggle) */}
           <div className="mt-2 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              Sale details <span className="text-slate-400 text-sm">(optional – if sold)</span>
-            </h2>
+            <div>
+              <h2 className="text-lg font-semibold">
+                Sale details <span className="text-slate-400 text-sm">(optional – if sold)</span>
+              </h2>
+              <p className="text-slate-400 text-sm -mt-1">If an order has already sold</p>
+            </div>
             <Toggle value={sold} onChange={setSold} label="Sold" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
-            <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
-              <input
-                type="date"
-                value={saleDate}
-                onChange={(e) => setSaleDate(e.target.value)}
-                disabled={!sold}
-                className={`${inputBase} ${dateFix} ${
-                  !sold ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""
-                }`}
-              />
-            </div>
+          {/* Smoothly collapsing sale fields; still disabled when toggle is off */}
+          <Collapse open={sold}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
+                <input
+                  type="date"
+                  value={saleDate}
+                  onChange={(e) => setSaleDate(e.target.value)}
+                  className={`${inputBase} ${dateFix}`}
+                />
+              </div>
 
-            <Combo
-              label="Marketplace"
-              placeholder="Type or pick a marketplace…"
-              value={marketName}
-              setValue={setMarketName}
-              options={marketNames}
-              onCreate={createMarket}
-              disabled={!sold}
-            />
-
-            <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Sell Price (total)</label>
-              <input
-                value={salePrice}
-                onChange={(e) => setSalePrice(e.target.value)}
-                placeholder="0 = unsold"
-                disabled={!sold}
-                className={`${inputBase} ${
-                  !sold ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""
-                }`}
+              <Combo
+                label="Marketplace"
+                placeholder="Type or pick a marketplace…"
+                value={marketName}
+                setValue={setMarketName}
+                options={marketNames}
+                onCreate={createMarket}
               />
-              <p className="text-xs text-slate-500 mt-1">
-                If qty &gt; 1 we’ll split this total across rows.
-              </p>
-            </div>
 
-            <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Fees (%)</label>
-              <input
-                value={feesPct}
-                onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
-                placeholder="e.g. 9 or 9%"
-                disabled={!sold || feesLocked}
-                className={`${inputBase} ${
-                  (!sold || feesLocked)
-                    ? "opacity-60 cursor-not-allowed disabled:pointer-events-none"
-                    : ""
-                }`}
-              />
-              {sold && feesLocked && (
-                <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
-              )}
-            </div>
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-1 block text-sm">Sell Price (total)</label>
+                <input
+                  value={salePrice}
+                  onChange={(e) => setSalePrice(e.target.value)}
+                  placeholder="0 = unsold"
+                  className={inputBase}
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  If qty &gt; 1 we’ll split this total across rows.
+                </p>
+              </div>
 
-            <div className="min-w-0 md:col-span-2">
-              <label className="text-slate-300 mb-1 block text-sm">Shipping (total)</label>
-              <input
-                value={shipping}
-                onChange={(e) => setShipping(e.target.value)}
-                disabled={!sold}
-                className={`${inputBase} ${
-                  !sold ? "opacity-60 cursor-not-allowed disabled:pointer-events-none" : ""
-                }`}
-                placeholder="0"
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                If qty &gt; 1 we’ll split shipping across rows.
-              </p>
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-1 block text-sm">Fees (%)</label>
+                <input
+                  value={feesPct}
+                  onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
+                  placeholder="e.g. 9 or 9%"
+                  disabled={feesLocked}
+                  className={`${inputBase} ${feesLocked ? disabledInput : ""}`}
+                />
+                {feesLocked && (
+                  <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
+                )}
+              </div>
+
+              <div className="min-w-0 md:col-span-2">
+                <label className="text-slate-300 mb-1 block text-sm">Shipping (total)</label>
+                <input
+                  value={shipping}
+                  onChange={(e) => setShipping(e.target.value)}
+                  className={inputBase}
+                  placeholder="0"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  If qty &gt; 1 we’ll split shipping across rows.
+                </p>
+              </div>
             </div>
-          </div>
+          </Collapse>
 
           {/* Save */}
           <div className="pt-2">
