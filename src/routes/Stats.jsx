@@ -58,7 +58,7 @@ export default function Stats() {
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
 
-  // user (header)
+  // header user (unchanged for tabs)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -115,6 +115,7 @@ export default function Stats() {
 
   // applied snapshot
   const [applied, setApplied] = useState({ range: "all", from: null, to: null, item: "" });
+  const isDefaultApplied = applied.range === "all" && !applied.item && !applied.from && !applied.to;
 
   const { fromMs, toMs } = useMemo(() => {
     if (applied.range === "custom") {
@@ -168,8 +169,11 @@ export default function Stats() {
     });
   }, [orders, applied, fromMs, toMs]);
 
+  /* ------------------------------- KPIs -------------------------------- */
+  const kpis = useMemo(() => makeKpis(filtered, marketByName), [filtered, marketByName]);
+
   /* ------------------------------- CHART DATA ------------------------------- */
-  const chartSeries = useMemo(() => {
+  const series = useMemo(() => {
     const purchases = filtered.filter(o => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs));
     const sales = filtered.filter(o => cents(o.sale_price_cents) > 0 && (within(o.sale_date, fromMs, toMs) || (!fromMs && !toMs)));
 
@@ -200,10 +204,25 @@ export default function Stats() {
     };
   }, [filtered, fromMs, toMs]);
 
-  /* ------------------------------ CHART MODE ------------------------------ */
-  const [chartMode, setChartMode] = useState("ps"); // ps = Purchases/Sales, cr = Cost/Revenue
+  /* ------------------------------- Chart toggle ------------------------------- */
+  const [chartMode, setChartMode] = useState("PS"); // PS | CR
+  const usingPS = chartMode === "PS";
+  const chartTitle = usingPS ? "Purchases & Sales" : "Cost & Revenue";
+  const chartSubtitle = "by month";
 
-  /* ------------------------- EXPANDABLE ITEM CARDS ------------------------ */
+  const psSeries = [
+    { name: "Purchases", values: series.purchasesCount, color: "#6c72ff" }, // deeper indigo
+    { name: "Sales", values: series.salesCount, color: "#8b90ff" },         // lighter indigo
+  ];
+  const crSeries = [
+    { name: "Cost", values: series.costC, color: "#10b981" },     // emerald 500
+    { name: "Revenue", values: series.revenueC, color: "#34d399" } // emerald 400
+  ];
+
+  const money = !usingPS;
+  const chart = { labels: series.months, series: usingPS ? psSeries : crSeries, money };
+
+  /* -------------------- Expandable item cards (unchanged) -------------------- */
   const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
   const [openSet, setOpenSet] = useState(() => new Set());
   const toggleItem = (key) => {
@@ -220,15 +239,15 @@ export default function Stats() {
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="stats" showTabs />
 
-        {/* Filters */}
-        <div className={`${card} relative z-[70]`}>
+        {/* -------------------- Filters -------------------- */}
+        <div className={`${card} relative z-[60]`}>
           <div className="flex items-center justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold">Filters</h2>
             <div className="text-slate-400 text-sm">{filtered.length} rows</div>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {/* Date range as dropdown */}
+            {/* Date range dropdown */}
             <Select
               value={range}
               onChange={setRange}
@@ -239,13 +258,25 @@ export default function Stats() {
                 { value: "year", label: "This year" },
                 { value: "custom", label: "Custom…" },
               ]}
-              placeholder="Select range…"
+              placeholder="All time"
             />
 
             {range === "custom" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input type="date" value={fromStr} onChange={(e)=>setFromStr(e.target.value)} className={inputBase} placeholder="Start date" />
-                <input type="date" value={toStr} onChange={(e)=>setToStr(e.target.value)} className={inputBase} placeholder="End date" />
+                <input
+                  type="date"
+                  value={fromStr}
+                  onChange={(e) => setFromStr(e.target.value)}
+                  className={inputBase}
+                  placeholder="Start date"
+                />
+                <input
+                  type="date"
+                  value={toStr}
+                  onChange={(e) => setToStr(e.target.value)}
+                  className={inputBase}
+                  placeholder="End date"
+                />
               </div>
             )}
 
@@ -257,7 +288,7 @@ export default function Stats() {
                 onChange={(e) => { setItemInput(e.target.value); setItemOpen(true); }}
                 onFocus={() => setItemOpen(true)}
                 placeholder="All Items"
-                className={inputBase}
+                className={`${inputBase} pr-10`}
               />
               <button
                 type="button"
@@ -287,7 +318,21 @@ export default function Stats() {
               )}
             </div>
 
-            <div className="flex items-center gap-4">
+            {/* Buttons */}
+            <div className="flex items-center justify-end gap-3">
+              {!isDefaultApplied && (
+                <button
+                  onClick={() => {
+                    setRange("all");
+                    setFromStr(""); setToStr("");
+                    setItemInput("All Items");
+                    setApplied({ range: "all", from: null, to: null, item: "" });
+                  }}
+                  className="px-5 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+                >
+                  Clear
+                </button>
+              )}
               <button
                 onClick={() =>
                   setApplied({
@@ -305,44 +350,43 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* Chart */}
+        {/* -------------------- KPI (Inventory-style) -------------------- */}
         <div className={`${card} mt-6`}>
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div>
-              <div className="text-lg font-semibold">
-                {chartMode === "ps" ? "Purchases & Sales" : "Cost & Revenue"}
-              </div>
-              <div className="text-slate-400 text-xs -mt-0.5">by month</div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <Kpi title="Inventory" value={`${kpis.onHand}`} hint="units on hand" />
+            <Kpi title="Total Cost" value={`$${centsToStr(kpis.onHandCostC)}`} hint="on-hand cost" />
+            <Kpi title="Est. Value" value={`$${centsToStr(kpis.onHandMktC)}`} hint="on-hand market" tone="blue" />
+            <Kpi title="Unrealized P/L" value={`$${centsToStr(kpis.unrealizedC)}`} hint="gain" tone="blue" />
+            <Kpi title="Longest Hold" value={`${kpis.longestHoldDays}d`} hint={kpis.longestHoldName} />
+            <Kpi title="Best Seller" value={`${kpis.bestSellerCount}`} hint={kpis.bestSellerName} />
+            <Kpi title="Highest Margins" value={pctStr(kpis.bestMarginPct)} hint={kpis.bestMarginName} />
+            <Kpi title="Best ROI" value={pctStr(kpis.bestRoiPct)} hint={kpis.bestRoiName} />
+          </div>
+        </div>
 
-            {/* segment control */}
-            <div className="flex gap-2">
-              <SegmentTab active={chartMode === "ps"} onClick={() => setChartMode("ps")} label={["Purchases","/","Sales"]} />
-              <SegmentTab active={chartMode === "cr"} onClick={() => setChartMode("cr")} label={["Cost","/","Revenue"]} />
+        {/* -------------------- Chart -------------------- */}
+        <div className={`${card} mt-6`}>
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div>
+              <div className="text-lg font-semibold">{chartTitle}</div>
+              <div className="text-slate-400 text-xs -mt-0.5">{chartSubtitle}</div>
             </div>
+            <TogglePSCR value={chartMode} onChange={setChartMode} />
           </div>
 
-          <ResponsiveBarsDual
-            labels={chartSeries.months}
-            aName={chartMode === "ps" ? "Purchases" : "Cost"}
-            bName={chartMode === "ps" ? "Sales" : "Revenue"}
-            aValues={chartMode === "ps" ? chartSeries.purchasesCount : chartSeries.costC}
-            bValues={chartMode === "ps" ? chartSeries.salesCount : chartSeries.revenueC}
-            money={chartMode === "cr"}
-            palette={chartMode === "ps"
-              ? { base: "#6366f1", light: "#94a3ff" }   // muted indigo
-              : { base: "#14b8a6", light: "#5eead4" }   // muted teal
-            }
+          <BarsGrouped
+            labels={chart.labels}
+            series={chart.series}
+            money={chart.money}
           />
         </div>
 
-        {/* Item breakdown (LEAVE AS IS) */}
+        {/* -------------------- Expandable item cards (unchanged visuals) -------------------- */}
         <div className="mt-6 space-y-4">
           {itemGroups.map((g) => {
             const open = openSet.has(g.item);
             return (
               <div key={g.item} className={rowCard}>
-                {/* header */}
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-lg font-semibold truncate">{g.item}</div>
@@ -429,7 +473,7 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 mt-2 z-[90] rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl">
+        <div className="absolute left-0 right-0 mt-2 z-[80] rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl">
           <ul className="max-h-64 overflow-auto py-1">
             {options.map((opt) => (
               <li key={opt.value}>
@@ -451,150 +495,224 @@ function Select({ value, onChange, options, placeholder = "Select…" }) {
   );
 }
 
-function SegmentTab({ active, onClick, label }) {
+function TogglePSCR({ value, onChange }) {
+  const leftActive = value === "PS";
   return (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2 rounded-full border transition ${
-        active
-          ? "bg-indigo-600 border-indigo-500 text-white"
-          : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-      }`}
-    >
-      {Array.isArray(label) ? label.join(" ") : label}
-    </button>
-  );
-}
-
-/* ------------------ Responsive dual-series bars (SVG) ------------------ */
-function ResponsiveBarsDual({
-  labels = [],
-  aName = "A",
-  bName = "B",
-  aValues = [],
-  bValues = [],
-  money = false,
-  palette = { base: "#6366f1", light: "#94a3ff" },
-}) {
-  const wrapRef = useRef(null);
-  const [size, setSize] = useState({ w: 0 });
-
-  useEffect(() => {
-    if (!wrapRef.current) return;
-    const ro = new ResizeObserver((entries) => {
-      const cr = entries[0].contentRect;
-      setSize({ w: Math.max(0, Math.round(cr.width)) });
-    });
-    ro.observe(wrapRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  const w = Math.max(300, size.w);                      // ensure usable width
-  const h = Math.max(220, Math.min(420, Math.round(w * 0.45))); // responsive height
-
-  // inner plot padding
-  const padL = 56, padR = 16, padT = 16, padB = 32;
-  const pw = w - padL - padR;
-  const ph = h - padT - padB;
-
-  // limit to last 12 buckets; on tiny width skip every other label
-  const MAX_BUCKETS = 12;
-  const start = Math.max(0, labels.length - MAX_BUCKETS);
-  const L = labels.slice(start);
-  const A = aValues.slice(start);
-  const B = bValues.slice(start);
-
-  const maxV = Math.max(1, ...A, ...B);
-  const yMaxTarget = maxV * 1.5; // requested 1.5x headroom
-  const yMax = niceCeil(yMaxTarget);
-  const ticks = 4; // 4 horizontal grid lines
-  const step = yMax / ticks;
-
-  // bar sizing
-  const groups = L.length || 1;
-  const groupW = pw / groups;
-  const barW = Math.max(8, Math.min(26, Math.floor(groupW * 0.35)));
-  const gap = (groupW - barW * 2) / 2;
-
-  // label skip on very tight layouts
-  const skipEvery = w < 420 ? 2 : 1;
-
-  const yScale = (v) => ph - (v / yMax) * ph;
-
-  return (
-    <div ref={wrapRef} className="w-full">
-      {(!A.length && !B.length) ? (
-        <div className="text-slate-400">No data in this view.</div>
-      ) : (
-        <div className="relative w-full rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
-          <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-            {/* grid lines + y labels */}
-            {[...Array(ticks + 1)].map((_, i) => {
-              const y = padT + (ph / ticks) * i;
-              const val = yMax - step * i;
-              return (
-                <g key={i}>
-                  <line x1={padL} y1={y} x2={w - padR} y2={y} stroke="#0f172a" strokeWidth="1" />
-                  <text x={padL - 8} y={y + 3} textAnchor="end" fontSize="10" fill="#94a3b8">
-                    {money ? `$${centsToStr(val)}` : `${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}`}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* bars */}
-            {L.map((_, i) => {
-              const gx = padL + groupW * i + gap;
-              const aH = ph - yScale(A[i] || 0);
-              const bH = ph - yScale(B[i] || 0);
-              return (
-                <g key={i}>
-                  <rect x={gx} y={padT + yScale(A[i] || 0)} width={barW} height={aH} fill={palette.base} rx="4" />
-                  <rect x={gx + barW + Math.max(2, gap/2)} y={padT + yScale(B[i] || 0)} width={barW} height={bH} fill={palette.light} rx="4" />
-                </g>
-              );
-            })}
-
-            {/* x labels */}
-            {L.map((lab, i) => {
-              if (skipEvery > 1 && i % skipEvery !== 0) return null;
-              const x = padL + groupW * i + groupW / 2;
-              return (
-                <text key={lab + i} x={x} y={h - 10} textAnchor="middle" fontSize="10" fill="#94a3b8">
-                  {lab}
-                </text>
-              );
-            })}
-          </svg>
-
-          {/* legend (stacked, dot on the RIGHT of label) */}
-          <div className="absolute right-3 top-3 text-xs text-slate-200">
-            <div className="flex flex-col items-end gap-1">
-              <div className="flex items-center gap-2">
-                <span>{aName}</span>
-                <span className="inline-block w-3 h-3 rounded-full" style={{ background: palette.base }} />
-              </div>
-              <div className="flex items-center gap-2">
-                <span>{bName}</span>
-                <span className="inline-block w-3 h-3 rounded-full" style={{ background: palette.light }} />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="flex items-center gap-3">
+      <div className="text-slate-400 text-xs text-right leading-none">
+        {/* label under the switch */}
+        <div className="hidden sm:block h-4" />
+      </div>
+      <div className="rounded-full bg-slate-900/60 border border-slate-800 p-1 inline-flex">
+        <button
+          onClick={() => onChange("PS")}
+          className={`px-3 py-1.5 rounded-full text-sm ${
+            leftActive ? "bg-indigo-600 text-white" : "text-slate-100 hover:bg-slate-800"
+          }`}
+        >
+          Purchases / Sales
+        </button>
+        <button
+          onClick={() => onChange("CR")}
+          className={`px-3 py-1.5 rounded-full text-sm ${
+            !leftActive ? "bg-indigo-600 text-white" : "text-slate-100 hover:bg-slate-800"
+          }`}
+        >
+          Cost / Revenue
+        </button>
+      </div>
+      <div className="text-slate-400 text-xs leading-none -mt-0.5">{leftActive ? "Purchases & Sales" : "Cost & Revenue"}</div>
     </div>
   );
 }
 
-// nice ceiling to a "round" number for axis
-function niceCeil(v) {
-  if (v <= 0) return 1;
-  const pow = Math.pow(10, Math.floor(Math.log10(v)));
-  const unit = pow / 2; // finer rounding than pure pow
-  return Math.ceil(v / unit) * unit;
+/* --------------------- Responsive grouped bar chart --------------------- */
+function useContainerSize() {
+  const ref = useRef(null);
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    if (!ref.current) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) setW(e.contentRect.width);
+    });
+    ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, w];
 }
 
-/* -------- per-item aggregation for expandable cards (unchanged) -------- */
+function BarsGrouped({ labels = [], series = [], money = false }) {
+  const [wrapRef, width] = useContainerSize();
+
+  // nothing to show
+  const allVals = series.flatMap((s) => s.values);
+  if (!allVals.length || allVals.every((v) => !v)) {
+    return <div ref={wrapRef} className="text-slate-400">No data in this view.</div>;
+  }
+
+  // responsive geometry
+  const H = width < 520 ? 220 : 260;
+  const M = { l: 56, r: 18, t: 12, b: 36 }; // generous left for y labels
+  const W = Math.max(260, width); // minimum width safety
+  const innerW = W - M.l - M.r;
+  const innerH = H - M.t - M.b;
+
+  const groups = labels.length;
+  const yMaxRaw = Math.max(1, ...allVals);
+  const yMax = roundNice(yMaxRaw * 1.5); // ~1.5× headroom
+  const yTicks = 4;
+  const tickEvery = Math.max(1, Math.ceil(labels.length / (width < 420 ? 4 : 8)));
+
+  // bar sizing
+  const groupW = innerW / Math.max(1, groups);
+  const barGap = Math.min(10, Math.max(4, groupW * 0.2));
+  const barW = Math.max(6, Math.min(22, (groupW - barGap) / 2));
+
+  const scaleY = (v) => innerH - (v / yMax) * innerH;
+
+  // legend stacked, dot on right
+  return (
+    <div ref={wrapRef} className="w-full">
+      <div className="flex justify-end gap-3 mb-2">
+        {series.map((s) => (
+          <div key={s.name} className="flex items-center gap-2 text-slate-300 text-xs">
+            <span>{s.name}</span>
+            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
+          </div>
+        ))}
+      </div>
+
+      <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} className="rounded-xl border border-slate-800 bg-slate-900/40">
+        {/* grid */}
+        {[...Array(yTicks + 1)].map((_, i) => {
+          const y = M.t + (innerH / yTicks) * i;
+          const val = yMax - (yMax / yTicks) * i;
+          return (
+            <g key={i}>
+              <line x1={M.l} x2={W - M.r} y1={y} y2={y} stroke="#1f2937" strokeWidth="1" />
+              <text x={M.l - 6} y={y + 4} textAnchor="end" fontSize="10" fill="#9ca3af">
+                {money ? `$${centsToStr(val * 100)}` : `${Math.round(val)}`}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* bars */}
+        {labels.map((lab, idx) => {
+          const x0 = M.l + groupW * idx + (groupW - (barW * 2 + barGap)) / 2;
+          const [s0, s1] = series;
+          const v0 = s0?.values[idx] ?? 0;
+          const v1 = s1?.values[idx] ?? 0;
+          const h0 = innerH - scaleY(v0);
+          const h1 = innerH - scaleY(v1);
+
+          return (
+            <g key={idx}>
+              {/* purchases/cost */}
+              <rect x={x0} y={M.t + scaleY(v0)} width={barW} height={h0} rx="4" fill={s0.color} opacity="0.9" />
+              {/* sales/revenue */}
+              <rect x={x0 + barW + barGap} y={M.t + scaleY(v1)} width={barW} height={h1} rx="4" fill={s1.color} opacity="0.9" />
+              {/* x labels (sparse) */}
+              {idx % tickEvery === 0 && (
+                <text x={M.l + groupW * idx + groupW / 2} y={H - 10} textAnchor="middle" fontSize="10" fill="#9ca3af">
+                  {lab}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function roundNice(n) {
+  // rounds up to a "nice" number for axis (1,2,5 * 10^k)
+  const p = Math.pow(10, Math.floor(Math.log10(n)));
+  const d = n / p;
+  const mult = d <= 1 ? 1 : d <= 2 ? 2 : d <= 5 ? 5 : 10;
+  return mult * p;
+}
+
+/* ----------------------------- KPIs (inventory style) ----------------------------- */
+function Kpi({ title, value, hint, tone }) {
+  const toneClass =
+    tone === "blue" ? "text-indigo-400" : "text-slate-100";
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      <div className="text-slate-400 text-sm">{title}</div>
+      <div className={`text-xl font-semibold mt-1 ${toneClass}`}>{value}</div>
+      {hint && <div className="text-slate-400 text-xs mt-1 truncate">{hint}</div>}
+    </div>
+  );
+}
+
+/* --------------------- Aggregate KPIs for the top card --------------------- */
+function makeKpis(filtered, marketByName) {
+  let onHand = 0, onHandCostC = 0, onHandMktC = 0, unrealizedC = 0;
+  let longestHoldDays = 0, longestHoldName = "—";
+  const byItem = new Map();
+
+  const today = Date.now();
+
+  for (const o of filtered) {
+    const name = o.item || "—";
+    if (!byItem.has(name)) byItem.set(name, {
+      sold: 0, soldRevC: 0, soldCostC: 0, profitC: 0,
+    });
+    const row = byItem.get(name);
+
+    const costC = cents(o.buy_price_cents);
+    const sold = cents(o.sale_price_cents) > 0;
+    if (sold) {
+      const revC = cents(o.sale_price_cents);
+      const feeC = Math.round(revC * (Number(o.fees_pct) || 0));
+      const shipC = cents(o.shipping_cents);
+      row.sold += 1;
+      row.soldRevC += revC;
+      row.soldCostC += costC;
+      row.profitC += revC - feeC - shipC - costC;
+    } else {
+      onHand += 1;
+      onHandCostC += costC;
+      const mv = marketByName.get(name.toLowerCase()) || 0;
+      onHandMktC += mv;
+      const od = new Date(o.order_date).getTime();
+      if (!isNaN(od)) {
+        const days = Math.max(0, Math.round((today - od) / (24*3600*1000)));
+        if (days > longestHoldDays) { longestHoldDays = days; longestHoldName = name; }
+      }
+    }
+  }
+  unrealizedC = onHandMktC - onHandCostC;
+
+  // bests
+  let bestSellerName = "—", bestSellerCount = 0;
+  let bestMarginName = "—", bestMarginPct = NaN;
+  let bestRoiName = "—", bestRoiPct = NaN;
+
+  for (const [name, v] of byItem.entries()) {
+    if (v.sold > bestSellerCount) { bestSellerCount = v.sold; bestSellerName = name; }
+    const margin = v.soldRevC > 0 ? v.profitC / v.soldRevC : NaN;
+    if ((Number.isFinite(margin) ? margin : -Infinity) > (Number.isFinite(bestMarginPct) ? bestMarginPct : -Infinity)) {
+      bestMarginPct = margin; bestMarginName = name;
+    }
+    const roi = v.soldCostC > 0 ? v.profitC / v.soldCostC : NaN;
+    if ((Number.isFinite(roi) ? roi : -Infinity) > (Number.isFinite(bestRoiPct) ? bestRoiPct : -Infinity)) {
+      bestRoiPct = roi; bestRoiName = name;
+    }
+  }
+
+  return {
+    onHand, onHandCostC, onHandMktC, unrealizedC,
+    longestHoldDays, longestHoldName,
+    bestSellerName, bestSellerCount,
+    bestMarginName, bestMarginPct,
+    bestRoiName, bestRoiPct,
+  };
+}
+
+/* -------------------------- per-item aggregation -------------------------- */
 function makeItemGroups(filtered, marketByName) {
   const m = new Map();
   for (const o of filtered) {
@@ -643,7 +761,7 @@ function makeItemGroups(filtered, marketByName) {
       row.onHand += 1;
       const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
       row.onHandMarketC += mv;
-      row.unitMarketC = mv;
+      row.unitMarketC = mv; // unit market value snapshot
     }
   }
 
@@ -659,7 +777,7 @@ function makeItemGroups(filtered, marketByName) {
   return out.slice(0, 400);
 }
 
-/* -------------------------- tiny UI atoms -------------------------- */
+/* -------------------------- tiny UI atoms for pills -------------------------- */
 function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
   const n = Number.isFinite(num) ? num : 0;
   const isZero = n === 0;
