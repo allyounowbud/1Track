@@ -477,7 +477,7 @@ export default function QuickAdd() {
               <input
                 value={profileName}
                 onChange={(e) => setProfile(e.target.value)}
-                placeholder="Eno 3244 / Target 6"
+                placeholder="e.g. Target 3244"
                 className={inputBase}
               />
             </div>
