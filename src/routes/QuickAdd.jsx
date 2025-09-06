@@ -70,7 +70,7 @@ export default function QuickAdd() {
     queryFn: getMarketplaces,
   });
 
-  // current user (header shows it)
+  // user info (header shows it)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -196,7 +196,6 @@ export default function QuickAdd() {
         item: itemName || null,
         profile_name: profileName || null,
         retailer: retailerName || null,
-        // sales bits filled only if sold
         sale_date: sold ? (saleDate || null) : null,
         marketplace: sold ? marketName || null : null,
         fees_pct: fee,
@@ -246,13 +245,12 @@ export default function QuickAdd() {
         <HeaderWithTabs active="add" showTabs />
 
         <form onSubmit={saveOrder} className="space-y-6">
-          {/* Combined card: Order & Sale */}
+          {/* Combined card */}
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-visible relative isolate">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">Order &amp; Sale</h2>
-              <ToggleSwitch checked={sold} onChange={(v) => setSold(v)} label="Sold" />
-            </div>
+            {/* Order section title */}
+            <h2 className="text-lg font-semibold">Order details</h2>
 
+            {/* ORDER FIELDS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 min-w-0">
               {/* Order Date */}
               <Field label="Order Date">
@@ -332,31 +330,46 @@ export default function QuickAdd() {
                   className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500"
                 />
               </Field>
+            </div>
 
+            {/* SALE SECTION TITLE + TOGGLE */}
+            <div className="mt-8 mb-2 flex items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold">
+                Sale details <span className="text-slate-400 text-sm">(optional – if already sold)</span>
+              </h3>
+              <ToggleSwitch checked={sold} onChange={(v) => setSold(v)} label="Sold" />
+            </div>
+
+            {/* SALE FIELDS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 min-w-0">
               {/* Sale Date */}
-              <Field label="Sale Date" disabled={saleDisabled}>
+              <Field label="Sale Date" disabled={!sold}>
                 <input
                   type="date"
                   value={saleDate}
                   onChange={(e) => setSaleDate(e.target.value)}
-                  disabled={saleDisabled}
+                  disabled={!sold}
                   className={`w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500 ${
-                    saleDisabled ? "opacity-60 cursor-not-allowed" : ""
+                    !sold ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 />
               </Field>
 
               {/* Marketplace (combo + create) */}
-              <Field label="Marketplace" disabled={saleDisabled}>
+              <Field label="Marketplace" disabled={!sold}>
                 <ComboCreate
                   placeholder="Type or pick a marketplace..."
                   valueId={marketId}
                   valueName={marketName}
-                  options={markets.map((m) => ({ id: m.id, name: m.name, fees: m.default_fees_pct ?? 0 }))}
+                  options={markets.map((m) => ({
+                    id: m.id,
+                    name: m.name,
+                    fees: m.default_fees_pct ?? 0,
+                  }))}
                   onSelect={(opt) => {
                     setMarketId(opt?.id || "");
                     setMarketName(opt?.name || "");
-                    if (!saleDisabled && opt) {
+                    if (sold && opt) {
                       setFeesPct(((opt.fees ?? 0) * 100).toString());
                       setFeesLocked(true);
                     } else {
@@ -367,51 +380,24 @@ export default function QuickAdd() {
                     const row = await createMarketplace(q);
                     setMarketId(row?.id || "");
                     setMarketName(row?.name || q);
-                    if (!saleDisabled && row) {
+                    if (sold && row) {
                       setFeesPct(((row.default_fees_pct ?? 0) * 100).toString());
                       setFeesLocked(true);
                     }
                   }}
-                  disabled={saleDisabled}
+                  disabled={!sold}
                 />
-                {/* quick chips */}
-                <div className={`flex gap-2 mt-2 ${saleDisabled ? "opacity-50 pointer-events-none" : ""}`}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMarketId("");
-                      setMarketName("eBay");
-                      setFeesPct("13"); // example default
-                      setFeesLocked(false);
-                    }}
-                    className="px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-xs"
-                  >
-                    eBay
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMarketId("");
-                      setMarketName("Local (Cash)");
-                      setFeesPct("0");
-                      setFeesLocked(false);
-                    }}
-                    className="px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-xs"
-                  >
-                    Local (Cash)
-                  </button>
-                </div>
               </Field>
 
               {/* Sell price */}
-              <Field label="Sell Price (total)" hint="If qty > 1 we’ll split this total across rows." disabled={saleDisabled}>
+              <Field label="Sell Price (total)" hint="If qty > 1 we’ll split this total across rows." disabled={!sold}>
                 <input
                   value={salePrice}
                   onChange={(e) => setSalePrice(e.target.value)}
                   placeholder="0 = unsold"
-                  disabled={saleDisabled}
+                  disabled={!sold}
                   className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 ${
-                    saleDisabled ? "opacity-60 cursor-not-allowed" : ""
+                    !sold ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 />
               </Field>
@@ -420,26 +406,26 @@ export default function QuickAdd() {
               <Field
                 label="Fees (%)"
                 hint={feesLocked ? "Locked from marketplace default." : "e.g. 9 or 9%"}
-                disabled={saleDisabled}
+                disabled={!sold}
               >
                 <input
                   value={feesPct}
-                  onChange={(e) => !feesLocked && !saleDisabled && setFeesPct(e.target.value)}
-                  disabled={saleDisabled || feesLocked}
+                  onChange={(e) => !feesLocked && sold && setFeesPct(e.target.value)}
+                  disabled={!sold || feesLocked}
                   className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 ${
-                    saleDisabled || feesLocked ? "opacity-60 cursor-not-allowed" : ""
+                    !sold || feesLocked ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 />
               </Field>
 
               {/* Shipping */}
-              <Field label="Shipping (total)" hint="If qty > 1 we’ll split shipping across rows." disabled={saleDisabled}>
+              <Field label="Shipping (total)" hint="If qty > 1 we’ll split shipping across rows." disabled={!sold}>
                 <input
                   value={shipping}
                   onChange={(e) => setShipping(e.target.value)}
-                  disabled={saleDisabled}
+                  disabled={!sold}
                   className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:ring-2 focus:ring-indigo-500 ${
-                    saleDisabled ? "opacity-60 cursor-not-allowed" : ""
+                    !sold ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 />
               </Field>
@@ -515,7 +501,7 @@ function Field({ label, hint, children, disabled = false }) {
   );
 }
 
-/** Accessible toggle switch with proper track/knob (no giant green pill) */
+/** Accessible toggle switch with proper track/knob */
 function ToggleSwitch({ checked, onChange, label }) {
   return (
     <button
@@ -542,9 +528,7 @@ function ToggleSwitch({ checked, onChange, label }) {
   );
 }
 
-/** Searchable combobox with "Add ..." option.
- * Always renders its menu ABOVE everything via z-[200] and parent has overflow-visible.
- */
+/** Searchable combobox with "Add …" option; menu is always on top */
 function ComboCreate({
   options = [],
   valueId = "",
@@ -568,7 +552,6 @@ function ComboCreate({
   }, []);
 
   useEffect(() => {
-    // sync external value → input text
     setQ(valueName || "");
   }, [valueName]);
 
