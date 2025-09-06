@@ -61,17 +61,31 @@ export default function Automation() {
           <NavLink to="/add"     className={({isActive}) => `${tabBase} ${isActive ? tabActive : ''}`}>Order Book</NavLink>
           <span className={`${tabBase} ${tabActive}`}>Automations</span>
         </div>
-
-        <div className={card}>
-          <h2 className="text-lg font-semibold mb-2">Automations</h2>
-          <p className="text-slate-300">
-            Nothing here yet. This area will host email management, profile creation, jigging and more.
-          </p>
-          <p className="text-slate-400 mt-3">
-            Tip: head to the <Link className="underline" to="/orders">Order Book</Link> to keep tracking purchases and sales.
-          </p>
-        </div>
       </div>
+
+      {/* Emails automation card */}
+<div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] flex flex-col">
+  <div className="flex items-center gap-3">
+    <svg viewBox="0 0 24 24" className="h-5 w-5 text-slate-200" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 6h16v12H4z" />
+      <path d="m22 7-10 6L2 7" />
+    </svg>
+    <div className="text-lg font-semibold">Emails</div>
+  </div>
+  <p className="text-slate-400 text-sm mt-2">
+    Connect your mailbox to auto-import order confirmations and shipping updates. We’ll normalize them into
+    Orders & Shipments for tracking.
+  </p>
+  <div className="mt-4">
+    <Link
+      to="/emails"
+      className="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white"
+    >
+      Open
+    </Link>
+  </div>
+</div>
+
     </div>
   );
 }
