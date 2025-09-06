@@ -53,7 +53,7 @@ async function getMarketplaces() {
   return data || [];
 }
 
-/* -------- viewport lock (no pinch-zoom on this page) -------- */
+/* -------- viewport + horizontal scroll lock -------- */
 function useViewportLock() {
   useEffect(() => {
     const meta = document.querySelector('meta[name="viewport"]');
@@ -64,11 +64,20 @@ function useViewportLock() {
       .replace(/maximum-scale\s*=\s*[^,]+,?\s*/gi, "")
       .trim();
     meta.setAttribute("content", `${cleaned}, maximum-scale=1, user-scalable=no`);
-    return () => meta.setAttribute("content", prev);
+    // also prevent accidental horizontal pan on iOS
+    const prevBody = document.body.style.overflowX;
+    const prevHtml = document.documentElement.style.overflowX;
+    document.body.style.overflowX = "hidden";
+    document.documentElement.style.overflowX = "hidden";
+    return () => {
+      meta.setAttribute("content", prev);
+      document.body.style.overflowX = prevBody;
+      document.documentElement.style.overflowX = prevHtml;
+    };
   }, []);
 }
 
-/* -------- position util for floating panel -------- */
+/* -------- floating panel that CLAMPS to viewport -------- */
 function useFloating(anchorRef, open, gap = 8) {
   const [rect, setRect] = useState(null);
 
@@ -79,10 +88,26 @@ function useFloating(anchorRef, open, gap = 8) {
 
     const measure = () => {
       const r = el.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const sx = window.scrollX;
+      const sy = window.scrollY;
+
+      // desired width = anchor width, but never exceed viewport minus margins
+      const maxW = Math.max(160, vw - 16);
+      const width = Math.min(r.width, maxW);
+
+      // desired left
+      let left = r.left + sx;
+      // clamp within viewport with 8px gutters
+      const minLeft = sx + 8;
+      const maxLeft = sx + vw - width - 8;
+      if (left < minLeft) left = minLeft;
+      if (left > maxLeft) left = maxLeft;
+
       setRect({
-        left: r.left + window.scrollX,
-        top: r.bottom + window.scrollY + gap,
-        width: r.width,
+        left,
+        top: r.bottom + sy + gap,
+        width,
       });
     };
 
@@ -92,11 +117,9 @@ function useFloating(anchorRef, open, gap = 8) {
     window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onResize);
 
-    // Keep in sync with layout changes of the anchor
     const ro = new ResizeObserver(measure);
     ro.observe(el);
 
-    // Small RAF loop (only while open) to catch quick layout shifts
     let raf = 0;
     const loop = () => {
       measure();
@@ -147,7 +170,7 @@ function Combo({
     !names.some((n) => n.toLowerCase() === q.trim().toLowerCase()) &&
     !!onCreate;
 
-  // Close only when the click is *not* inside the input OR the floating panel
+  // Close only when the click is *not* inside the input OR inside the floating panel
   useEffect(() => {
     function onDocDown(e) {
       const root = rootRef.current;
@@ -160,6 +183,11 @@ function Combo({
     return () => document.removeEventListener("mousedown", onDocDown, true);
   }, []);
 
+  // If disabled while open, force-close and prevent toggling
+  useEffect(() => {
+    if (disabled && open) setOpen(false);
+  }, [disabled, open]);
+
   return (
     <div ref={rootRef} className="min-w-0">
       {label && <label className="text-slate-300 mb-1 block text-sm">{label}</label>}
@@ -169,10 +197,12 @@ function Combo({
           ref={inputRef}
           value={open ? q : value}
           onChange={(e) => {
+            if (disabled) return;
             setQ(e.target.value);
             setOpen(true);
           }}
           onFocus={() => {
+            if (disabled) return;
             setQ(value || "");
             setOpen(true);
           }}
@@ -203,13 +233,17 @@ function Combo({
           )}
           <button
             type="button"
+            disabled={disabled}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
+              if (disabled) return;
               setQ(value || "");
               setOpen((v) => !v);
               inputRef.current?.focus();
             }}
-            className="h-6 w-6 rounded-md border border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700"
+            className={`h-6 w-6 rounded-md border border-slate-700 bg-slate-800/80 text-slate-200 ${
+              disabled ? "opacity-50 pointer-events-none" : "hover:bg-slate-700"
+            }`}
             aria-label="Toggle options"
           >
             ▾
@@ -227,14 +261,12 @@ function Combo({
             style={{ left: rect.left, top: rect.top, width: rect.width, maxHeight: 300 }}
             role="listbox"
           >
-            {/* options */}
             <div className="py-1">
               {filtered.map((n) => (
                 <button
                   key={n}
                   type="button"
                   onMouseDown={(e) => {
-                    // keep focus + stop the outside-close handler
                     e.preventDefault();
                     e.stopPropagation();
                   }}
@@ -299,7 +331,7 @@ export default function QuickAdd() {
   const { data: itemsQ = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
   const { data: marketsQ = [] } = useQuery({ queryKey: ["markets"], queryFn: getMarketplaces });
 
-  // keep local copies so “Add …” shows up instantly
+  // local copies so "Add…" appears immediately
   const [itemOpts, setItemOpts] = useState(itemsQ);
   const [retailerOpts, setRetailerOpts] = useState(retailersQ);
   const [marketOpts, setMarketOpts] = useState(marketsQ);
@@ -357,7 +389,7 @@ export default function QuickAdd() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  /* ---- add-new handlers for combos ---- */
+  /* ---- add-new handlers ---- */
   async function createItemByName(name) {
     const { data, error } = await supabase.from("items").insert({ name }).select().single();
     if (error) throw error;
@@ -461,7 +493,7 @@ export default function QuickAdd() {
     "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="add" showTabs />
 
