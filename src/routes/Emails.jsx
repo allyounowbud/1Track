@@ -1,5 +1,6 @@
 // src/routes/Emails.jsx
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
@@ -100,21 +101,9 @@ export default function Emails() {
   const connected = !!accounts.length;
   const acctEmail = accounts[0]?.email_address || null;
 
-  // Show “connected” banner when returning from OAuth
-  const [justConnected, setJustConnected] = useState(false);
-  useEffect(() => {
-    const u = new URL(window.location.href);
-    if (u.searchParams.get("connected")) {
-      setJustConnected(true);
-      u.searchParams.delete("connected");
-      window.history.replaceState({}, "", u.toString());
-    }
-  }, []);
-
   /* ----------------------------- filters ----------------------------- */
   const [tab, setTab] = useState("orders"); // "orders" | "shipments"
 
-  // shared date range
   const [range, setRange] = useState("30"); // all | month | 30 | custom
   const [fromStr, setFromStr] = useState("");
   const [toStr, setToStr] = useState("");
@@ -193,50 +182,38 @@ export default function Emails() {
   const [syncMsg, setSyncMsg] = useState("");
   const [syncing, setSyncing] = useState(false);
 
-  // IMPORTANT: pass the Supabase user id in the query so the function can
-  // store tokens against the correct user_id.
-  async function connectGmail() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      alert("Please sign in first.");
-      return;
-    }
-    window.location.href =
-      `/.netlify/functions/gmail-auth-start?uid=${encodeURIComponent(user.id)}`;
+  function connectGmail() {
+    window.location.href = "/.netlify/functions/gmail-auth-start";
   }
 
   async function syncNow() {
-  try {
-    setSyncing(true);
-    setSyncMsg("Syncing…");
+    try {
+      setSyncing(true);
+      setSyncMsg("Syncing…");
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch("/.netlify/functions/gmail-sync", {
-      method: "POST",
-      headers: {
-        "Authorization": session?.access_token ? `Bearer ${session.access_token}` : "",
-      },
-    });
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/.netlify/functions/gmail-sync", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+      });
+      const j = await res.json().catch(() => ({}));
 
-    // Try to read JSON; fall back to text for better error surfacing
-    const text = await res.text();
-    let j;
-    try { j = JSON.parse(text); } catch { j = { error: text }; }
+      setSyncMsg(
+        res.ok ? `Imported ${j?.imported ?? 0} message(s) ✓` : `Sync failed: ${j?.error || res.status}`
+      );
 
-    if (!res.ok) {
-      setSyncMsg(`Sync failed: ${j?.error || res.status}`);
-    } else {
-      setSyncMsg(`Imported ${j?.imported ?? 0} message(s) ✓`);
       await Promise.all([refetchAcct(), refetchOrders(), refetchShips()]);
+    } catch (e) {
+      setSyncMsg(String(e.message || e));
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncMsg(""), 2200);
     }
-  } catch (e) {
-    setSyncMsg(String(e.message || e));
-  } finally {
-    setSyncing(false);
-    setTimeout(() => setSyncMsg(""), 2200);
   }
-}
 
+  // Banner if redirected with ?connected=1
+  const [params] = useSearchParams();
+  const justConnected = params.get("connected") === "1";
 
   /* -------------------------------- render -------------------------------- */
   return (
@@ -245,7 +222,7 @@ export default function Emails() {
         <HeaderWithTabs active="emails" showTabs />
 
         {justConnected && (
-          <div className="mb-4 rounded-xl border border-emerald-700 bg-emerald-900/30 text-emerald-200 px-4 py-3">
+          <div className="mb-4 rounded-xl bg-emerald-900/40 border border-emerald-700 text-emerald-200 px-4 py-3">
             Gmail connected ✓ — you can sync now.
           </div>
         )}
@@ -260,7 +237,7 @@ export default function Emails() {
               </div>
               <p className="text-slate-400 text-sm mt-1">
                 Connect your mailbox to automatically import order confirmations and shipping
-                updates. We normalize each email into Orders &amp; Shipments.
+                updates. We normalize each email into Orders & Shipments.
               </p>
               {connected && (
                 <p className="text-slate-300 text-sm mt-1">
@@ -289,11 +266,7 @@ export default function Emails() {
               )}
             </div>
           </div>
-          {syncMsg && (
-            <div className="mt-3 text-sm text-slate-300">
-              {syncMsg}
-            </div>
-          )}
+          {syncMsg && <div className="mt-3 text-sm text-slate-300">{syncMsg}</div>}
         </div>
 
         {/* Filters */}
@@ -321,11 +294,7 @@ export default function Emails() {
 
             <div>
               <label className="text-slate-300 mb-1 block text-sm">Date range</label>
-              <select
-                value={range}
-                onChange={(e) => setRange(e.target.value)}
-                className={inputBase}
-              >
+              <select value={range} onChange={(e) => setRange(e.target.value)} className={inputBase}>
                 <option value="30">Last 30 days</option>
                 <option value="month">This month</option>
                 <option value="all">All time</option>
@@ -416,20 +385,27 @@ export default function Emails() {
                 </thead>
                 <tbody className="text-slate-200">
                   {ordersLoading && (
-                    <tr><td className="py-6 text-slate-400" colSpan={4}>Loading…</td></tr>
-                  )}
-                  {!ordersLoading && ordersView.map((o) => (
-                    <tr key={o.id} className="border-t border-slate-800">
-                      <td className="py-2 pr-3">{o.retailer || "—"}</td>
-                      <td className="py-2 pr-3">{o.order_id || "—"}</td>
-                      <td className="py-2 pr-3">{o.order_date || "—"}</td>
-                      <td className="py-2 pr-3 text-right">
-                        ${centsToStr(o.total_cents)}
+                    <tr>
+                      <td className="py-6 text-slate-400" colSpan={4}>
+                        Loading…
                       </td>
                     </tr>
-                  ))}
+                  )}
+                  {!ordersLoading &&
+                    ordersView.map((o) => (
+                      <tr key={o.id} className="border-t border-slate-800">
+                        <td className="py-2 pr-3">{o.retailer || "—"}</td>
+                        <td className="py-2 pr-3">{o.order_id || "—"}</td>
+                        <td className="py-2 pr-3">{o.order_date || "—"}</td>
+                        <td className="py-2 pr-3 text-right">${centsToStr(o.total_cents)}</td>
+                      </tr>
+                    ))}
                   {!ordersLoading && ordersView.length === 0 && (
-                    <tr><td className="py-6 text-slate-400" colSpan={4}>No orders in this view.</td></tr>
+                    <tr>
+                      <td className="py-6 text-slate-400" colSpan={4}>
+                        No orders in this view.
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
@@ -453,25 +429,34 @@ export default function Emails() {
                 </thead>
                 <tbody className="text-slate-200">
                   {shipsLoading && (
-                    <tr><td className="py-6 text-slate-400" colSpan={7}>Loading…</td></tr>
-                  )}
-                  {!shipsLoading && shipsView.map((s) => (
-                    <tr key={s.id} className="border-t border-slate-800">
-                      <td className="py-2 pr-3">{s.retailer || "—"}</td>
-                      <td className="py-2 pr-3">{s.order_id || "—"}</td>
-                      <td className="py-2 pr-3">{s.carrier || "—"}</td>
-                      <td className="py-2 pr-3">{s.tracking_number || "—"}</td>
-                      <td className="py-2 pr-3">{s.status || "—"}</td>
-                      <td className="py-2 pr-3">
-                        {s.shipped_at ? new Date(s.shipped_at).toLocaleDateString() : "—"}
-                      </td>
-                      <td className="py-2 pr-3">
-                        {s.delivered_at ? new Date(s.delivered_at).toLocaleDateString() : "—"}
+                    <tr>
+                      <td className="py-6 text-slate-400" colSpan={7}>
+                        Loading…
                       </td>
                     </tr>
-                  ))}
+                  )}
+                  {!shipsLoading &&
+                    shipsView.map((s) => (
+                      <tr key={s.id} className="border-t border-slate-800">
+                        <td className="py-2 pr-3">{s.retailer || "—"}</td>
+                        <td className="py-2 pr-3">{s.order_id || "—"}</td>
+                        <td className="py-2 pr-3">{s.carrier || "—"}</td>
+                        <td className="py-2 pr-3">{s.tracking_number || "—"}</td>
+                        <td className="py-2 pr-3">{s.status || "—"}</td>
+                        <td className="py-2 pr-3">
+                          {s.shipped_at ? new Date(s.shipped_at).toLocaleDateString() : "—"}
+                        </td>
+                        <td className="py-2 pr-3">
+                          {s.delivered_at ? new Date(s.delivered_at).toLocaleDateString() : "—"}
+                        </td>
+                      </tr>
+                    ))}
                   {!shipsLoading && shipsView.length === 0 && (
-                    <tr><td className="py-6 text-slate-400" colSpan={7}>No shipments in this view.</td></tr>
+                    <tr>
+                      <td className="py-6 text-slate-400" colSpan={7}>
+                        No shipments in this view.
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>

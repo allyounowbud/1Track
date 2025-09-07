@@ -1,36 +1,6 @@
-# === Build ===
-[build]
-  command = "npm run build"
-  publish = "dist"
-
-# Environment defaults (safe to commit — no secrets)
-# Used by Netlify Dev and any context unless overridden below.
-[build.environment]
-  GOOGLE_REDIRECT_URI = "http://localhost:8888/.netlify/functions/gmail-oauth-callback"
-
-# Production overrides
-[context.production.environment]
-  GOOGLE_REDIRECT_URI = "https://onetracking.netlify.app/.netlify/functions/gmail-oauth-callback"
-
-# === Functions ===
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  external_node_modules = ["googleapis", "@supabase/supabase-js"]
 
-# Schedule the Gmail sync function (runs hourly)
 [functions."gmail-sync"]
   schedule = "@hourly"
-
-# === Redirects ===
-# Let function calls pass straight through
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-# Single-page app fallback (Vite)
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
