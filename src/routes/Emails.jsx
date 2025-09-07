@@ -25,7 +25,7 @@ function trackingUrl(carrier, tn) {
   return `https://www.google.com/search?q=${encodeURIComponent(tn + " tracking")}`;
 }
 
-/** Merge orders + shipments into shipment-like rows */
+/** Merge orders + shipments into shipment-like rows (now with stable uid) */
 function stitch(orders = [], shipments = []) {
   const byKey = new Map();
   const makeKey = (retailer, order_id) => `${(retailer||'').trim()}::${(order_id||'').trim()}`;
@@ -44,6 +44,7 @@ function stitch(orders = [], shipments = []) {
       delivered_at: o.delivered_at || null,
       status: (o.status || "ordered").toLowerCase(),
       trackings: new Map(),
+      uid: null, // filled later
     });
   });
 
@@ -68,6 +69,7 @@ function stitch(orders = [], shipments = []) {
         delivered_at: null,
         status: "in_transit",
         trackings: new Map(),
+        uid: null,
       });
     }
     return byKey.get(key);
@@ -99,12 +101,15 @@ function stitch(orders = [], shipments = []) {
     if (rank(st) > rank(row.status)) row.status = st;
   });
 
-  for (const row of byKey.values()) {
+  // finalize & produce stable unique ids per row
+  const out = Array.from(byKey.values());
+  for (const row of out) {
+    const firstTracking = Array.from(row.trackings.keys()).sort()[0] || "";
+    row.uid = `${row.retailer || ""}::${row.order_id || ""}::${firstTracking}`;
     if (row.delivered_at) row.status = "delivered";
     else if (!row.shipped_at) row.status = row.status || "ordered";
   }
-
-  return Array.from(byKey.values());
+  return out;
 }
 
 /* ---------- queries ---------- */
@@ -140,7 +145,6 @@ async function getEmailAccounts() {
 
 /* --------------------------------- page --------------------------------- */
 export default function Emails() {
-  // header user (kept to match other pages)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -173,9 +177,9 @@ export default function Emails() {
   const acctEmail = accounts[0]?.email_address || null;
 
   /* ------------------ controls (filters/top tabs/search) ------------------ */
-  const [scope, setScope] = useState("all"); // all | shipping | to_ship | delivered | canceled
+  const [scope, setScope] = useState("all"); // all | ordered | shipping | delivered
   const [q, setQ] = useState("");
-  const [expanded, setExpanded] = useState(() => new Set()); // keys of expanded rows
+  const [expanded, setExpanded] = useState(() => new Set()); // uids of expanded rows
 
   const rowsAll = useMemo(() => stitch(orders, ships), [orders, ships]);
 
@@ -183,12 +187,10 @@ export default function Emails() {
     let r = rowsAll;
     if (scope === "shipping") {
       r = r.filter(x => !x.delivered_at && (x.status === "in_transit" || x.status === "out_for_delivery" || x.status === "label_created"));
-    } else if (scope === "to_ship") {
-      r = r.filter(x => !x.shipped_at && !x.delivered_at);
+    } else if (scope === "ordered") {
+      r = r.filter(x => !x.shipped_at && !x.delivered_at); // not shipped yet
     } else if (scope === "delivered") {
       r = r.filter(x => !!x.delivered_at || x.status === "delivered");
-    } else if (scope === "canceled") {
-      r = r.filter(x => x.status === "canceled");
     }
     if (q.trim()) {
       const t = q.toLowerCase();
@@ -216,13 +218,15 @@ export default function Emails() {
     window.location.href = "/.netlify/functions/gmail-auth-start";
   }
 
-  async function syncNow({ silent = false } = {}) {
+  async function syncNow({ silent = false, label } = {}) {
     try {
       setSyncing(true);
-      if (!silent) setSyncMsg("Syncing…");
+      if (!silent) setSyncMsg(label || "Syncing…");
       const res = await fetch("/.netlify/functions/gmail-sync", { method: "POST" });
       const j = await res.json().catch(() => ({}));
-      if (!silent) setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}, skipped ${j?.skipped_existing ?? 0}` : `Sync failed: ${j?.error || res.status}`);
+      if (!silent) {
+        setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}, skipped ${j?.skipped_existing ?? 0}` : `Sync failed: ${j?.error || res.status}`);
+      }
       await Promise.all([refetchOrders(), refetchShips()]);
     } catch (e) {
       if (!silent) setSyncMsg(String(e.message || e));
@@ -241,7 +245,7 @@ export default function Emails() {
       if (list.length === 0) {
         setSyncMsg("No new orders found.");
         setTimeout(() => setSyncMsg(""), 2200);
-        return; // do not open modal
+        return;
       }
       setSyncMsg("");
       setProposed(list);
@@ -270,10 +274,12 @@ export default function Emails() {
   /* ---------------- Auto-sync on page load + gentle interval ---------- */
   useEffect(() => {
     if (!connected) return;
-    syncNow({ silent: true });
+    // First load shows a message
+    syncNow({ silent: false, label: "Fetching new orders…" });
+    // Subsequent background checks are silent
     const id = setInterval(() => { syncNow({ silent: true }); }, 15 * 60 * 1000);
     return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
 
   /* ------------------------------- render ------------------------------- */
@@ -324,10 +330,9 @@ export default function Emails() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-4">
               <TopTab label="All" active={scope === "all"} onClick={() => setScope("all")} />
+              <TopTab label="Ordered" active={scope === "ordered"} onClick={() => setScope("ordered")} />
               <TopTab label="Shipping" active={scope === "shipping"} onClick={() => setScope("shipping")} />
-              <TopTab label="To be shipped" active={scope === "to_ship"} onClick={() => setScope("to_ship")} />
               <TopTab label="Delivered" active={scope === "delivered"} onClick={() => setScope("delivered")} />
-              <TopTab label="Canceled" active={scope === "canceled"} onClick={() => setScope("canceled")} />
             </div>
             <div className="w-full sm:w-64">
               <input
@@ -347,12 +352,12 @@ export default function Emails() {
           {!lo1 && !lo2 && rows.length === 0 && <div className="text-slate-400">No results.</div>}
 
           <div className="divide-y divide-slate-800">
-            {rows.map((r, i) => {
-              const key = `${r.retailer || "—"}::${r.order_id || i}`;
+            {rows.map((r) => {
+              const key = r.uid; // stable & unique
               const isOpen = expanded.has(key);
               return (
                 <div key={key} className="py-2">
-                  {/* Row header (collapsed content) */}
+                  {/* Row header */}
                   <div className="flex items-center gap-3">
                     <div className="shrink-0">
                       <TruckIcon className="h-8 w-8 text-slate-300" />
@@ -361,23 +366,23 @@ export default function Emails() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
-                          {/* MAIN ROW: Item Name · Retailer */}
                           <div className="font-medium truncate">
                             {r.item_name || "Item —"} <span className="text-slate-400">· {r.retailer || "—"}</span>
                           </div>
                           <div className="text-xs text-slate-400 mt-0.5 truncate">
-                            {/* helpful secondary hint */}
                             {r.order_id ? `Order # ${r.order_id}` : "Order # —"}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <StatusPill status={r.status} />
                           <button
-                            onClick={() => {
-                              const next = new Set(expanded);
-                              if (next.has(key)) next.delete(key); else next.add(key);
-                              setExpanded(next);
-                            }}
+                            onClick={() =>
+                              setExpanded((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(key)) next.delete(key); else next.add(key);
+                                return next;
+                              })
+                            }
                             className="h-9 w-9 grid place-items-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 transition"
                             aria-label={isOpen ? "Collapse" : "Expand"}
                           >
@@ -454,7 +459,7 @@ export default function Emails() {
         </div>
 
         <div className="text-xs text-slate-500 mt-4">
-          New order emails create an order row. Shipping/delivery/cancel emails update the same order over time.
+          New order emails create an order row. Shipping/delivery emails update the same order over time.
         </div>
       </div>
 
@@ -505,7 +510,6 @@ function TopTab({ label, active, onClick }) {
 function StatusPill({ status }) {
   const s = (status || "").toLowerCase();
   const map = {
-    canceled: "bg-rose-600/20 text-rose-300",
     delivered: "bg-emerald-600/20 text-emerald-300",
     out_for_delivery: "bg-amber-600/20 text-amber-300",
     in_transit: "bg-sky-600/20 text-sky-300",
@@ -513,10 +517,9 @@ function StatusPill({ status }) {
     ordered: "bg-slate-700/50 text-slate-300",
   };
   const txt =
-    s === "canceled" ? "Canceled" :
     s === "delivered" ? "Delivered" :
     s === "out_for_delivery" ? "Out for delivery" :
-    s === "in_transit" ? "In transit" :
+    s === "in_transit" ? "Shipping" :
     s === "label_created" ? "Label created" :
     "Ordered";
   return <span className={`${pill} ${map[s] || map.ordered}`}>{txt}</span>;
