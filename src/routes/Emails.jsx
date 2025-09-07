@@ -1,6 +1,5 @@
 // src/routes/Emails.jsx
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
@@ -183,9 +182,37 @@ export default function Emails() {
   /* ------------------------ actions: connect/sync ------------------------ */
   const [syncMsg, setSyncMsg] = useState("");
   const [syncing, setSyncing] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
 
-  function connectGmail() {
-    window.location.href = "/.netlify/functions/gmail-auth-start";
+  // read callback messages like ?connected=1 or ?error=...
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const ok = sp.get("connected");
+    const err = sp.get("error");
+    if (ok) setSyncMsg("Gmail connected ✓");
+    if (err) setSyncMsg(`Gmail connect failed: ${decodeURIComponent(err)}`);
+    if (ok || err) {
+      // clean up the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // refresh account state
+      refetchAcct();
+    }
+  }, [refetchAcct]);
+
+  async function connectGmail() {
+    try {
+      setAuthLoading(true);
+      setSyncMsg("");
+      // Ask the function for the Google consent URL, then redirect there
+      const res = await fetch("/.netlify/functions/gmail-auth-start");
+      if (!res.ok) throw new Error(`start failed (${res.status})`);
+      const { url } = await res.json();
+      if (!url) throw new Error("No auth URL returned");
+      window.location.assign(url);
+    } catch (e) {
+      setSyncMsg(`Unable to start Google sign-in: ${e.message || e}`);
+      setAuthLoading(false);
+    }
   }
 
   async function syncNow() {
@@ -235,9 +262,10 @@ export default function Emails() {
               {!connected && (
                 <button
                   onClick={connectGmail}
-                  className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+                  disabled={authLoading}
+                  className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-medium"
                 >
-                  Connect Gmail
+                  {authLoading ? "Opening Google…" : "Connect Gmail"}
                 </button>
               )}
               {connected && (
