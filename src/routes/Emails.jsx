@@ -33,19 +33,11 @@ function trackingUrl(carrier, tn) {
   return `https://www.google.com/search?q=${encodeURIComponent(tn + " tracking")}`;
 }
 
-function retailerOrderLink(retailer, orderId) {
-  if (!retailer) return null;
-  const r = retailer.toLowerCase();
-  if (r.includes("amazon") && orderId) {
-    // Auth required on Amazon, but this lands on the right page
-    return `https://www.amazon.com/progress-tracker/package?orderId=${encodeURIComponent(orderId)}`;
-  }
-  if (r.includes("target")) return "https://www.target.com/account/orders";
-  if (r.includes("walmart")) return "https://www.walmart.com/account/trackorder";
-  if (r.includes("ebay")) return "https://www.ebay.com/myb/PurchaseHistory";
-  // Fallback: helpful search
-  const q = orderId ? `${retailer} order ${orderId}` : `${retailer} order history`;
-  return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+// Deep link to Gmail if we have a message id, otherwise a helpful search
+function orderEmailLink(orderId, sourceMessageId, retailer) {
+  if (sourceMessageId) return `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(sourceMessageId)}`;
+  const q = orderId ? `${retailer || ""} order ${orderId}`.trim() : `${retailer || ""} order confirmation`.trim();
+  return `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(q)}`;
 }
 
 function statusToPct(status) {
@@ -56,10 +48,10 @@ function statusToPct(status) {
   return 15; // ordered
 }
 
-/** Merge orders + shipments into shipment-like rows (now with stable uid) */
+/** Merge orders + shipments into shipment-like rows (with stable uid) */
 function stitch(orders = [], shipments = []) {
   const byKey = new Map();
-  const makeKey = (retailer, order_id) => `${(retailer||'').trim()}::${(order_id||'').trim()}`;
+  const makeKey = (retailer, order_id) => `${(retailer || "").trim()}::${(order_id || "").trim()}`;
 
   orders.forEach((o) => {
     const key = makeKey(o.retailer, o.order_id);
@@ -71,9 +63,11 @@ function stitch(orders = [], shipments = []) {
       quantity: o.quantity || null,
       unit_price_cents: o.unit_price_cents || null,
       total_cents: o.total_cents || 0,
+      image_url: o.image_url || null,
       shipped_at: o.shipped_at || null,
       delivered_at: o.delivered_at || null,
       status: (o.status || "ordered").toLowerCase(),
+      source_message_id: o.source_message_id || null,
       trackings: new Map(),
       uid: null,
     });
@@ -96,9 +90,11 @@ function stitch(orders = [], shipments = []) {
         quantity: null,
         unit_price_cents: null,
         total_cents: 0,
+        image_url: null,
         shipped_at: null,
         delivered_at: null,
         status: "in_transit",
+        source_message_id: null,
         trackings: new Map(),
         uid: null,
       });
@@ -112,17 +108,18 @@ function stitch(orders = [], shipments = []) {
       row.trackings.set(s.tracking_number, {
         tracking_number: s.tracking_number,
         carrier: s.carrier || "",
-        shipped_at: s.shipped_at || null,
-        delivered_at: s.delivered_at || null,
+        shipped_at: s.shipped_at || null,     // used in timeline
+        delivered_at: s.delivered_at || null, // used in timeline
         status: (s.status || "").toLowerCase(),
       });
       globalTracking.set(s.tracking_number, row);
     }
+    // Aggregate
     row.shipped_at = row.shipped_at || s.shipped_at || null;
     row.delivered_at = row.delivered_at || s.delivered_at || null;
 
+    // Status precedence
     const rank = (x) =>
-      x === "canceled" ? 5 :
       x === "delivered" ? 4 :
       x === "out_for_delivery" ? 3 :
       (x === "in_transit" || x === "label_created") ? 2 :
@@ -144,9 +141,10 @@ function stitch(orders = [], shipments = []) {
 
 /* ---------- queries ---------- */
 async function getOrders() {
+  // Requires: image_url (nullable) and source_message_id in email_orders
   const { data, error } = await supabase
     .from("email_orders")
-    .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, shipped_at, delivered_at, status")
+    .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, shipped_at, delivered_at, status, source_message_id")
     .order("order_date", { ascending: false })
     .limit(2000);
   if (error) throw error;
@@ -299,13 +297,13 @@ export default function Emails() {
     }
   }
 
-  /* ---------------- Auto-sync on page load + gentle interval ---------- */
+  /* ---------------- Auto-sync on page load + interval ---------- */
   useEffect(() => {
     if (!connected) return;
     syncNow({ silent: false, label: "Fetching new orders…" });
     const id = setInterval(() => { syncNow({ silent: true }); }, 15 * 60 * 1000);
     return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
 
   /* ------------------------------- render ------------------------------- */
@@ -382,16 +380,14 @@ export default function Emails() {
               const key = r.uid;
               const isOpen = expanded.has(key);
 
-              // Compute UI helpers
               const pct = statusToPct(r.status);
-              const lastUpdate =
-                r.delivered_at || r.shipped_at || r.order_date || null;
+              const lastUpdate = r.delivered_at || r.shipped_at || r.order_date || null;
+              const firstTracking = r.trackings.size ? Array.from(r.trackings.values())[0] : null;
+              const emailHref = orderEmailLink(r.order_id, r.source_message_id, r.retailer);
 
-              const firstTracking = r.trackings.size
-                ? Array.from(r.trackings.values())[0]
-                : null;
-
-              const orderLink = retailerOrderLink(r.retailer, r.order_id);
+              // infer timeline flags
+              const showLabelCreated = r.status === "label_created";
+              const showOutForDelivery = r.status === "out_for_delivery";
 
               return (
                 <div key={key} className="py-2">
@@ -432,129 +428,98 @@ export default function Emails() {
                   </div>
 
                   {/* Slide-down detail panel */}
-                  <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: isOpen ? 1000 : 0 }}>
+                  <div className="transition-all duration-300 ease-in-out overflow-hidden" style={{ maxHeight: isOpen ? 1000 : 0 }}>
                     <div className="pt-4 pl-11 pr-1">
-                      {/* Status header + progress */}
+                      {/* 1) Status + progress */}
                       <div className="flex items-center justify-between">
-                        <div className="text-sm text-slate-200 font-medium capitalize">
-                          {r.status.replace(/_/g, " ")}
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          {lastUpdate ? `Updated ${timeAgo(lastUpdate)}` : ""}
-                        </div>
+                        <div className="text-sm text-slate-200 font-medium capitalize">{(r.status || "ordered").replace(/_/g, " ")}</div>
+                        <div className="text-xs text-slate-400">{lastUpdate ? `Updated ${timeAgo(lastUpdate)}` : ""}</div>
                       </div>
                       <div className="mt-2 h-2 w-full rounded-full bg-slate-800 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-500 transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
+                        <div className="h-full bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-500 transition-all" style={{ width: `${pct}%` }} />
                       </div>
 
-                      {/* Timeline */}
-                      <div className="mt-4 grid gap-2 text-sm">
-                        {r.shipped_at && (
-                          <TimelineRow title="Shipment on the way" subtitle="Your package was shipped!" when={r.shipped_at} />
-                        )}
-                        {r.status === "out_for_delivery" && (
-                          <TimelineRow title="Out for delivery" subtitle="Carrier is delivering today" when={r.shipped_at || r.order_date} />
-                        )}
-                        {r.delivered_at && (
-                          <TimelineRow title="Delivered" subtitle="Package arrived" when={r.delivered_at} done />
-                        )}
+                      {/* 2) Shipment status sentence */}
+                      <div className="mt-3 text-sm text-slate-200">
+                        {showLabelCreated && <>Label created — waiting for carrier pickup{r.order_date ? <> · {safeDate(r.order_date)}</> : null}</>}
+                        {!showLabelCreated && r.shipped_at && !r.delivered_at && <>Shipment on the way — shipped {safeDate(r.shipped_at)} {`· ${timeAgo(r.shipped_at)}`}</>}
+                        {showOutForDelivery && <>Out for delivery — arriving today (est.)</>}
+                        {r.delivered_at && <>Delivered {safeDate(r.delivered_at)} {`· ${timeAgo(r.delivered_at)}`}</>}
+                        {!r.shipped_at && !showLabelCreated && !r.delivered_at && <>Order placed {safeDate(r.order_date)}</>}
                       </div>
 
-                      {/* Tracking block */}
-                      <div className="mt-5 rounded-xl border border-slate-800 bg-slate-900/50 p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-xs text-slate-400">Tracking number</div>
-                          <div className="text-xs text-slate-400">Carrier</div>
-                        </div>
-                        <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-                          <div className="font-mono text-slate-100 break-all">
-                            {firstTracking?.tracking_number || "—"}
-                          </div>
-                          <div className="text-slate-200">{firstTracking?.carrier || r.retailer || "—"}</div>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
+                      {/* 3) Carrier + tracking */}
+                      <div className="mt-4 text-sm">
+                        <div className="text-xs text-slate-400">Carrier</div>
+                        <div className="text-slate-200 mt-0.5">{firstTracking?.carrier || "—"}</div>
+
+                        <div className="text-xs text-slate-400 mt-3">Tracking number</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                          <div className="font-mono text-slate-100 break-all">{firstTracking?.tracking_number || "—"}</div>
                           {firstTracking?.tracking_number && (
                             <>
                               <a
                                 href={trackingUrl(firstTracking?.carrier, firstTracking?.tracking_number)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="h-9 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm inline-flex items-center"
+                                className="h-8 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs inline-flex items-center"
                               >
-                                Open tracking
+                                View tracking
                               </a>
                               <button
                                 onClick={() => navigator.clipboard?.writeText(String(firstTracking.tracking_number))}
-                                className="h-9 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-sm"
+                                className="h-8 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-xs"
                               >
-                                Copy tracking
+                                Copy
                               </button>
                             </>
                           )}
                         </div>
                       </div>
 
-                      {/* Item + order meta */}
-                      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* Item card */}
-                        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
-                          <div className="text-xs text-slate-400 mb-1">Item</div>
-                          <div className="flex items-start gap-3">
-                            <div className="h-12 w-12 rounded-lg bg-slate-800 border border-slate-700 grid place-items-center text-slate-400">
-                              {/* Placeholder image block */}
-                              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="3" width="18" height="14" rx="2"/><path d="M3 13l5-5 4 4 2-2 4 4"/>
-                              </svg>
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-slate-200 font-medium truncate">{r.item_name || "—"}</div>
-                              <div className="text-xs text-slate-400 mt-0.5">Qty {r.quantity ?? "—"}</div>
-                              <div className="text-sm text-slate-200 mt-1">
-                                {r.unit_price_cents ? `$${centsToStr(r.unit_price_cents)} each` : <span className="text-slate-500">—</span>}
+                      {/* 4) Order details (flat layout, with tiny thumbnail) */}
+                      <div className="mt-5 text-sm">
+                        <div className="flex items-start gap-3">
+                          <div className="h-12 w-12 rounded-lg bg-slate-800 border border-slate-700 overflow-hidden shrink-0">
+                            {r.image_url ? (
+                              <img src={r.image_url} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="h-full w-full grid place-items-center text-slate-500">
+                                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <rect x="3" y="3" width="18" height="14" rx="2" />
+                                  <path d="M3 13l5-5 4 4 2-2 4 4" />
+                                </svg>
                               </div>
-                            </div>
+                            )}
                           </div>
-                        </div>
-
-                        {/* Order card */}
-                        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
-                          <div className="text-xs text-slate-400 mb-1">Order</div>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                            <div className="text-slate-400">Retailer</div>
-                            <div className="text-slate-200">{r.retailer || "—"}</div>
-
-                            <div className="text-slate-400">Order number</div>
-                            <div className="text-slate-200">
-                              {r.order_id ? (
-                                <button
-                                  onClick={() => navigator.clipboard?.writeText(String(r.order_id))}
-                                  className="font-mono underline decoration-slate-600 underline-offset-2 hover:text-white"
-                                  title="Copy order number"
-                                >
-                                  {r.order_id}
-                                </button>
-                              ) : "—"}
+                          <div className="min-w-0">
+                            <div className="text-slate-200 font-medium truncate">{r.item_name || "—"}</div>
+                            <div className="text-xs text-slate-400 mt-0.5">Qty {r.quantity ?? "—"}</div>
+                            <div className="text-slate-200 mt-1">
+                              {r.total_cents ? `Total $${centsToStr(r.total_cents)}` : <span className="text-slate-500">Total —</span>}
                             </div>
-
-                            <div className="text-slate-400">Ordered on</div>
-                            <div className="text-slate-200">{safeDate(r.order_date)}</div>
-
-                            <div className="text-slate-400">Total</div>
-                            <div className="text-slate-200">{r.total_cents ? `$${centsToStr(r.total_cents)}` : "—"}</div>
-                          </div>
-
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <a
-                              href={orderLink || "#"}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="h-9 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-sm"
-                            >
-                              View order details
-                            </a>
+                            <div className="mt-2 text-xs text-slate-400">Order number</div>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                              <div className="font-mono text-slate-100 break-all">{r.order_id || "—"}</div>
+                              {r.order_id && (
+                                <>
+                                  <button
+                                    onClick={() => navigator.clipboard?.writeText(String(r.order_id))}
+                                    className="h-8 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-xs"
+                                  >
+                                    Copy
+                                  </button>
+                                  <a
+                                    href={emailHref}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="h-8 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs inline-flex items-center"
+                                  >
+                                    View order email
+                                  </a>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -639,21 +604,6 @@ function TopTab({ label, active, onClick }) {
   );
 }
 
-function TimelineRow({ title, subtitle, when, done = false }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className={`h-5 w-5 rounded-full grid place-items-center mt-0.5 ${done ? "bg-emerald-600/20 text-emerald-300" : "bg-slate-800 text-slate-300"}`}>
-        <Dot />
-      </div>
-      <div className="min-w-0">
-        <div className="text-slate-200">{title}</div>
-        <div className="text-xs text-slate-400">{subtitle}</div>
-        <div className="text-xs text-slate-400 mt-0.5">{safeDate(when)} {when ? `· ${timeAgo(when)}` : ""}</div>
-      </div>
-    </div>
-  );
-}
-
 function StatusPill({ status }) {
   const s = (status || "").toLowerCase();
   const map = {
@@ -693,13 +643,6 @@ function ChevronDown({ className = "h-5 w-5" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M6 9l6 6 6-6" />
-    </svg>
-  );
-}
-function Dot({ className = "h-3 w-3" }) {
-  return (
-    <svg viewBox="0 0 10 10" className={className} fill="currentColor">
-      <circle cx="5" cy="5" r="5" />
     </svg>
   );
 }
