@@ -1,13 +1,6 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  external_node_modules = ["googleapis","@supabase/supabase-js"]
-  node_version = "18"
 
 [functions."gmail-sync"]
-  timeout = 26
-  memory = 256
-
-# Optional scheduled run
-# [functions."gmail-sync"]
-#   schedule = "@hourly"
+  schedule = "@hourly"
