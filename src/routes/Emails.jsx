@@ -206,22 +206,37 @@ export default function Emails() {
   }
 
   async function syncNow() {
-    try {
-      setSyncing(true);
-      setSyncMsg("Syncing…");
-      const res = await fetch("/.netlify/functions/gmail-sync", { method: "POST" });
-      const j = await res.json().catch(() => ({}));
-      setSyncMsg(
-        res.ok ? `Imported ${j?.imported ?? 0} message(s) ✓` : `Sync failed: ${j?.error || res.status}`
-      );
+  try {
+    setSyncing(true);
+    setSyncMsg("Syncing…");
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch("/.netlify/functions/gmail-sync", {
+      method: "POST",
+      headers: {
+        "Authorization": session?.access_token ? `Bearer ${session.access_token}` : "",
+      },
+    });
+
+    // Try to read JSON; fall back to text for better error surfacing
+    const text = await res.text();
+    let j;
+    try { j = JSON.parse(text); } catch { j = { error: text }; }
+
+    if (!res.ok) {
+      setSyncMsg(`Sync failed: ${j?.error || res.status}`);
+    } else {
+      setSyncMsg(`Imported ${j?.imported ?? 0} message(s) ✓`);
       await Promise.all([refetchAcct(), refetchOrders(), refetchShips()]);
-    } catch (e) {
-      setSyncMsg(String(e.message || e));
-    } finally {
-      setSyncing(false);
-      setTimeout(() => setSyncMsg(""), 2200);
     }
+  } catch (e) {
+    setSyncMsg(String(e.message || e));
+  } finally {
+    setSyncing(false);
+    setTimeout(() => setSyncMsg(""), 2200);
   }
+}
+
 
   /* -------------------------------- render -------------------------------- */
   return (
