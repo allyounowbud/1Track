@@ -14,7 +14,6 @@ const tabBtn =
 const tabActive = "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600";
 
 /* ----------------------------- helpers ------------------------------ */
-const cents = (n) => Math.round(Number(n || 0));
 const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
 const within = (d, from, to) => {
   if (!d) return false;
@@ -101,6 +100,17 @@ export default function Emails() {
   const connected = !!accounts.length;
   const acctEmail = accounts[0]?.email_address || null;
 
+  // Show “connected” banner when returning from OAuth
+  const [justConnected, setJustConnected] = useState(false);
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    if (u.searchParams.get("connected")) {
+      setJustConnected(true);
+      u.searchParams.delete("connected");
+      window.history.replaceState({}, "", u.toString());
+    }
+  }, []);
+
   /* ----------------------------- filters ----------------------------- */
   const [tab, setTab] = useState("orders"); // "orders" | "shipments"
 
@@ -182,37 +192,17 @@ export default function Emails() {
   /* ------------------------ actions: connect/sync ------------------------ */
   const [syncMsg, setSyncMsg] = useState("");
   const [syncing, setSyncing] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
 
-  // read callback messages like ?connected=1 or ?error=...
-  useEffect(() => {
-    const sp = new URLSearchParams(window.location.search);
-    const ok = sp.get("connected");
-    const err = sp.get("error");
-    if (ok) setSyncMsg("Gmail connected ✓");
-    if (err) setSyncMsg(`Gmail connect failed: ${decodeURIComponent(err)}`);
-    if (ok || err) {
-      // clean up the URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-      // refresh account state
-      refetchAcct();
-    }
-  }, [refetchAcct]);
-
+  // IMPORTANT: pass the Supabase user id in the query so the function can
+  // store tokens against the correct user_id.
   async function connectGmail() {
-    try {
-      setAuthLoading(true);
-      setSyncMsg("");
-      // Ask the function for the Google consent URL, then redirect there
-      const res = await fetch("/.netlify/functions/gmail-auth-start");
-      if (!res.ok) throw new Error(`start failed (${res.status})`);
-      const { url } = await res.json();
-      if (!url) throw new Error("No auth URL returned");
-      window.location.assign(url);
-    } catch (e) {
-      setSyncMsg(`Unable to start Google sign-in: ${e.message || e}`);
-      setAuthLoading(false);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please sign in first.");
+      return;
     }
+    window.location.href =
+      `/.netlify/functions/gmail-auth-start?uid=${encodeURIComponent(user.id)}`;
   }
 
   async function syncNow() {
@@ -239,6 +229,12 @@ export default function Emails() {
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="emails" showTabs />
 
+        {justConnected && (
+          <div className="mb-4 rounded-xl border border-emerald-700 bg-emerald-900/30 text-emerald-200 px-4 py-3">
+            Gmail connected ✓ — you can sync now.
+          </div>
+        )}
+
         {/* Connect + Actions */}
         <div className={`${card} mb-6`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -249,7 +245,7 @@ export default function Emails() {
               </div>
               <p className="text-slate-400 text-sm mt-1">
                 Connect your mailbox to automatically import order confirmations and shipping
-                updates. We normalize each email into Orders & Shipments.
+                updates. We normalize each email into Orders &amp; Shipments.
               </p>
               {connected && (
                 <p className="text-slate-300 text-sm mt-1">
@@ -262,10 +258,9 @@ export default function Emails() {
               {!connected && (
                 <button
                   onClick={connectGmail}
-                  disabled={authLoading}
-                  className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-medium"
+                  className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
                 >
-                  {authLoading ? "Opening Google…" : "Connect Gmail"}
+                  Connect Gmail
                 </button>
               )}
               {connected && (
@@ -452,8 +447,12 @@ export default function Emails() {
                       <td className="py-2 pr-3">{s.carrier || "—"}</td>
                       <td className="py-2 pr-3">{s.tracking_number || "—"}</td>
                       <td className="py-2 pr-3">{s.status || "—"}</td>
-                      <td className="py-2 pr-3">{s.shipped_at ? new Date(s.shipped_at).toLocaleDateString() : "—"}</td>
-                      <td className="py-2 pr-3">{s.delivered_at ? new Date(s.delivered_at).toLocaleDateString() : "—"}</td>
+                      <td className="py-2 pr-3">
+                        {s.shipped_at ? new Date(s.shipped_at).toLocaleDateString() : "—"}
+                      </td>
+                      <td className="py-2 pr-3">
+                        {s.delivered_at ? new Date(s.delivered_at).toLocaleDateString() : "—"}
+                      </td>
                     </tr>
                   ))}
                   {!shipsLoading && shipsView.length === 0 && (

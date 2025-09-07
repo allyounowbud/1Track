@@ -1,44 +1,47 @@
-// Netlify function: starts Google OAuth by returning a consent URL
-export const handler = async () => {
-  const {
-    GOOGLE_CLIENT_ID,
-    GOOGLE_REDIRECT_URI, // e.g. https://YOUR_SITE.netlify.app/.netlify/functions/gmail-oauth-callback
-  } = process.env;
+// Redirect the user to Google's OAuth consent screen.
+// We include the Supabase user_id inside "state" so we know whose
+// account to upsert after the callback.
 
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI) {
-    return { statusCode: 500, body: JSON.stringify({ error: "Missing Google env vars" }) };
-  }
+exports.handler = async (event) => {
+  try {
+    const { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } = process.env;
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI) {
+      return { statusCode: 500, body: "Missing GOOGLE_CLIENT_ID/GOOGLE_REDIRECT_URI" };
+    }
 
-  // CSRF state
-  const state = crypto.randomUUID();
-  const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: GOOGLE_REDIRECT_URI,
-    response_type: "code",
-    access_type: "offline",
-    prompt: "consent",
-    scope: [
+    const uid = event.queryStringParameters?.uid || ""; // <- passed from client
+    const state = Buffer.from(
+      JSON.stringify({ uid, nonce: cryptoSafeUUID() })
+    ).toString("base64url");
+
+    const scopes = [
       "https://www.googleapis.com/auth/gmail.readonly",
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
       "openid",
-    ].join(" "),
-    state,
-  });
+    ].join(" ");
 
-  // set a short-lived, httpOnly cookie with the state
-  const cookie = [
-    `gmail_oauth_state=${state}`,
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Lax",
-    "Max-Age=600",
-    "Secure",
-  ].join("; ");
+    const params = new URLSearchParams({
+      access_type: "offline",
+      prompt: "consent",
+      response_type: "code",
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      scope: scopes,
+      state,
+    });
 
-  return {
-    statusCode: 200,
-    headers: { "Set-Cookie": cookie, "Content-Type": "application/json" },
-    body: JSON.stringify({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` }),
-  };
+    return {
+      statusCode: 302,
+      headers: { Location: `https://accounts.google.com/o/oauth2/v2/auth?${params}` },
+    };
+  } catch (e) {
+    return { statusCode: 500, body: String(e.message || e) };
+  }
 };
+
+/** RFC4122-ish UUID for state nonce (no crypto import needed in Node 18+) */
+function cryptoSafeUUID() {
+  const rnd = () => Math.random().toString(16).slice(2, 10);
+  return `${rnd()}-${rnd()}-${rnd()}-${rnd()}`;
+}
