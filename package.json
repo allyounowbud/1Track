@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "22": "^0.0.0",
-    "@supabase/supabase-js": "^2.57.0",
+    "@supabase/supabase-js": "^2.57.2",
     "@tanstack/react-query": "^5.85.9",
     "googleapis": "^159.0.0",
     "react": "^19.1.1",
