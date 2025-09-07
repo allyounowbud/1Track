@@ -2,16 +2,110 @@
 import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
 
+// ---------- tiny utils ----------
 const json = (status, body) => ({
   statusCode: status,
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify(body),
 });
-
-// tiny helper to chunk arrays
 const chunk = (arr, n) =>
   arr.reduce((acc, _, i) => (i % n ? acc : [...acc, arr.slice(i, i + n)]), []);
 
+// Base64url → utf8 (for Gmail parts)
+const b64uToUtf8 = (s = '') => {
+  try {
+    return Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+  } catch {
+    return '';
+  }
+};
+
+// Recursively pull a concise text body (prefers text/plain, falls back to stripped html)
+function extractBody(payload, cap = 10000) {
+  if (!payload) return '';
+  // direct body
+  if (payload.body?.data) return b64uToUtf8(payload.body.data).slice(0, cap);
+
+  const parts = payload.parts || [];
+  // try plain parts first
+  for (const p of parts) {
+    if (p.mimeType && p.mimeType.toLowerCase().includes('text/plain') && p.body?.data) {
+      return b64uToUtf8(p.body.data).slice(0, cap);
+    }
+  }
+  // then any parts (strip html)
+  for (const p of parts) {
+    const t = extractBody(p, cap);
+    if (t) return t;
+  }
+  return '';
+}
+
+// ---------- simple classifier (subject/body/from) ----------
+const WORD = (xs) => new RegExp(`\\b(${xs.join('|')})\\b`, 'i');
+
+const ORDER_RX = WORD([
+  'order confirmation',
+  'thanks for your order',
+  'we received your order',
+  'order placed',
+  'receipt',
+  'invoice',
+  'pedido',        // ES
+  'commande',      // FR
+  'pedido confirmado',
+  'order #',
+  'order no',
+]);
+
+const SHIP_RX = WORD([
+  'shipped',
+  'has shipped',
+  'on its way',
+  'in transit',
+  'track your package',
+  'tracking number',
+  'track shipment',
+  'dispatched',
+  'fulfilled',
+  'out for delivery',
+]);
+
+const DELIVERED_RX = WORD([
+  'delivered',
+  'has been delivered',
+  'package delivered',
+  'delivered today',
+]);
+
+// Light retailer hint (optional)
+const RETAILER_DOMAINS = [
+  'amazon', 'ebay', 'walmart', 'target', 'bestbuy', 'apple',
+  'nike', 'adidas', 'shopify', 'etsy', 'costco', 'homedepot',
+  'lowes', 'microcenter', 'newegg', 'bhphotovideo', 'gamestop'
+];
+
+function classify({ subject = '', body = '', from = '' }) {
+  const s = subject.toLowerCase();
+  const b = body.toLowerCase();
+  const f = from.toLowerCase();
+
+  const looksRetailer = RETAILER_DOMAINS.some(d => f.includes(d));
+
+  // Strong signals first (subject)
+  if (ORDER_RX.test(s) || (looksRetailer && ORDER_RX.test(b))) return 'order';
+  if (SHIP_RX.test(s)  || (looksRetailer && SHIP_RX.test(b)))  return 'shipment';
+  if (DELIVERED_RX.test(s) || (looksRetailer && DELIVERED_RX.test(b))) return 'delivery';
+
+  // Fallback using body only
+  if (ORDER_RX.test(b)) return 'order';
+  if (SHIP_RX.test(b))  return 'shipment';
+  if (DELIVERED_RX.test(b)) return 'delivery';
+
+  return null;
+}
+
+// ---------- function ----------
 export const handler = async (event) => {
   const debug = /\bdebug=1\b/.test(event.rawQuery || '');
   const log = (...a) => { if (debug) console.log(...a); };
@@ -22,9 +116,9 @@ export const handler = async (event) => {
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
     GOOGLE_REDIRECT_URI,
-    GMAIL_SYNC_LIMIT,            // optional (default 100)
-    GMAIL_SYNC_PAGES,            // optional (default 2)
-    GMAIL_SYNC_BATCH_SIZE,       // optional (default 10 inserts per statement)
+    GMAIL_SYNC_LIMIT,
+    GMAIL_SYNC_PAGES,
+    GMAIL_SYNC_BATCH_SIZE,
   } = process.env;
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -34,27 +128,21 @@ export const handler = async (event) => {
     return json(500, { error: 'Missing Google OAuth env vars' });
   }
 
-  // allow URL ?limit= & ?pages= to override, else env, else defaults
+  // runtime knobs
   const qs = new URLSearchParams(event.rawQuery || '');
-  const LIMIT = Math.max(
-    1,
-    Math.min(
-      300,
-      Number(qs.get('limit')) || Number(GMAIL_SYNC_LIMIT) || 100
-    )
-  );
+  const LIMIT = Math.max(1, Math.min(300, Number(qs.get('limit')) || Number(GMAIL_SYNC_LIMIT) || 100));
   const PAGES = Math.max(1, Math.min(5, Number(qs.get('pages')) || Number(GMAIL_SYNC_PAGES) || 2));
   const INSERT_BATCH = Math.max(1, Math.min(25, Number(GMAIL_SYNC_BATCH_SIZE) || 10));
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
-    global: { headers: { 'X-Client-Info': 'gmail-sync/timeout-safe' } },
+    global: { headers: { 'X-Client-Info': 'gmail-sync/orders-only' } },
   });
 
   try {
     log('stage: start', { LIMIT, PAGES, INSERT_BATCH });
 
-    // 1) Get the most recent connected Gmail account
+    // 1) get account
     const { data: acctRows, error: acctErr } = await admin
       .from('email_accounts')
       .select('id, provider, email_address, user_id, access_token, refresh_token, expires_at')
@@ -66,9 +154,8 @@ export const handler = async (event) => {
     if (acctErr) throw acctErr;
     const acct = acctRows?.[0];
     if (!acct) return json(400, { error: 'No Gmail account connected' });
-    if (!acct.user_id) return json(400, { error: "email_accounts.user_id is null; set it to the auth user's id" });
 
-    // 2) OAuth client
+    // 2) OAuth
     const oAuth2Client = new google.auth.OAuth2(
       GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET,
@@ -79,36 +166,36 @@ export const handler = async (event) => {
       access_token: acct.access_token || undefined,
       expiry_date: acct.expires_at ? Number(acct.expires_at) * 1000 : undefined,
     });
-
     const token = await oAuth2Client.getAccessToken();
     if (!token?.token) return json(500, { error: 'Could not obtain access token' });
-    log('access token ok');
 
     const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
 
-    // 3) List recent messages (paged; capped by LIMIT)
+    // 3) Gmail query focused on commerce
+    // Keep it short so Gmail accepts it. (You can tweak keywords as needed.)
+    const QUERY =
+      'newer_than:90d -in:spam -in:trash ("order confirmation" OR shipped OR tracking OR delivered OR receipt OR invoice)';
+
+    // page through results (LIMIT, PAGES)
     const fetched = [];
-    let pageToken = undefined;
-    let loops = 0;
-    while (loops < PAGES && fetched.length < LIMIT) {
+    let pageToken;
+    for (let i = 0; i < PAGES && fetched.length < LIMIT; i++) {
       const left = LIMIT - fetched.length;
-      const listRes = await gmail.users.messages.list({
+      const res = await gmail.users.messages.list({
         userId: 'me',
         maxResults: Math.min(100, left),
-        // basic filter to reduce noise; adjust as you like
-        q: 'newer_than:30d (order OR receipt OR "order confirmation" OR shipped OR tracking)',
+        q: QUERY,
         pageToken,
       });
-      const msgs = listRes.data.messages || [];
+      const msgs = res.data.messages || [];
       fetched.push(...msgs);
-      pageToken = listRes.data.nextPageToken;
-      loops++;
+      pageToken = res.data.nextPageToken;
       if (!pageToken) break;
     }
     log('gmail list count:', fetched.length);
-    if (fetched.length === 0) return json(200, { imported: 0 });
+    if (fetched.length === 0) return json(200, { imported: 0, skipped_existing: 0, fetch_errors: 0 });
 
-    // 4) Fetch details in small batches
+    // 4) fetch + classify
     const details = [];
     for (const batch of chunk(fetched, 20)) {
       const got = await Promise.all(
@@ -119,33 +206,37 @@ export const handler = async (event) => {
               id: m.id,
               format: 'full',
             });
-
             const payload = msg.data.payload || {};
             const headers = (payload.headers || []).reduce((map, h) => {
               map[h.name.toLowerCase()] = h.value;
               return map;
             }, {});
+            const subj = headers['subject'] || '';
+            const from = headers['from'] || '';
+            const body = extractBody(payload, 16000);
+            const hint = classify({ subject: subj, body, from });
+
+            if (!hint) {
+              return { ok: false, id: m.id, reason: 'not-commerce' };
+            }
 
             const dateStr = headers['date'] || null;
             const dateIso = dateStr ? new Date(dateStr).toISOString() : null;
-            const internalMs = Number(
-              msg.data.internalDate || (dateIso ? Date.parse(dateIso) : Date.now())
-            );
+            const internalMs = Number(msg.data.internalDate || (dateIso ? Date.parse(dateIso) : Date.now()));
 
-            // Keep raw_json small-ish to avoid huge insert statements
+            // keep raw small-ish, and attach event_hint
             const rawSlim = {
               id: msg.data.id,
               threadId: msg.data.threadId,
               labelIds: msg.data.labelIds || [],
               historyId: msg.data.historyId,
               internalDate: msg.data.internalDate,
-              sizeEstimate: msg.data.sizeEstimate,
               snippet: msg.data.snippet,
               payload: {
                 mimeType: payload.mimeType,
-                headers: payload.headers, // still useful for parsing
-                parts: payload.parts ? payload.parts.slice(0, 3) : null, // cap parts to reduce bloat
+                headers: payload.headers,
               },
+              event_hint: hint, // <— store classification hint here
             };
 
             return {
@@ -156,13 +247,13 @@ export const handler = async (event) => {
                 email_address: acct.email_address || null,
                 message_id: m.id,
                 thread_id: msg.data.threadId || null,
-                subject: headers['subject'] || '',
+                subject: subj,
                 snippet: msg.data.snippet || null,
-                from_addr: headers['from'] || null,
+                from_addr: from || null,
                 to_addr: headers['to'] || null,
-                date_header: dateIso, // timestamptz
+                date_header: dateIso,
                 internal_timestamp_ms: Number.isFinite(internalMs) ? internalMs : null,
-                raw_json: rawSlim,    // keep; but trimmed
+                raw_json: rawSlim,
               },
             };
           } catch (e) {
@@ -174,36 +265,35 @@ export const handler = async (event) => {
     }
 
     const okRows = details.filter((d) => d.ok).map((d) => d.data);
-    const errs = details.filter((d) => !d.ok);
-    if (debug && errs.length) log('fetch errors:', errs.slice(0, 3));
+    const fetchErrors = details.filter((d) => !d.ok && d.error).length;
+    const nonCommerceSkipped = details.filter((d) => !d.ok && d.reason === 'not-commerce').length;
 
     if (okRows.length === 0) {
-      return json(200, { imported: 0, errors: errs.length });
+      return json(200, {
+        imported: 0,
+        skipped_existing: 0,
+        fetch_errors: fetchErrors,
+        non_commerce_skipped: nonCommerceSkipped,
+      });
     }
 
-    // 5) Get existing message_ids to avoid heavy upserts
+    // 5) skip existing by message_id
     const ids = okRows.map((r) => r.message_id);
     const existing = new Set();
-
     for (const idBatch of chunk(ids, 100)) {
       const { data: existRows, error: existErr } = await admin
         .from('email_raw')
         .select('message_id')
         .in('message_id', idBatch);
-
       if (existErr) throw existErr;
       for (const r of existRows || []) existing.add(r.message_id);
     }
-
     const toInsert = okRows.filter((r) => !existing.has(r.message_id));
-    log('new rows to insert:', toInsert.length);
 
-    // 6) Insert in very small batches with minimal returning to avoid timeouts
+    // 6) insert in tiny batches
     let inserted = 0;
-    for (const insBatch of chunk(toInsert, INSERT_BATCH)) {
-      const { error: insErr } = await admin
-        .from('email_raw')
-        .insert(insBatch, { returning: 'minimal' });
+    for (const insBatch of chunk(toInsert, Number(process.env.GMAIL_SYNC_BATCH_SIZE) || 10)) {
+      const { error: insErr } = await admin.from('email_raw').insert(insBatch, { returning: 'minimal' });
       if (insErr) throw insErr;
       inserted += insBatch.length;
     }
@@ -211,9 +301,10 @@ export const handler = async (event) => {
     return json(200, {
       imported: inserted,
       skipped_existing: existing.size,
-      fetch_errors: errs.length,
+      fetch_errors: fetchErrors,
+      non_commerce_skipped: nonCommerceSkipped,
       limit_used: LIMIT,
-      pages_used: loops,
+      pages_used: Math.min(PAGES, Math.ceil(fetched.length / 100)),
     });
   } catch (e) {
     console.error(e);
