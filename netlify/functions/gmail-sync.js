@@ -2,99 +2,135 @@
 import { google } from "googleapis";
 import { createClient } from "@supabase/supabase-js";
 
-const json = (status, body) => ({
-  statusCode: status,
+const {
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI, // must match what you set in Google console
+} = process.env;
+
+// Simple helper so we never return a raw 500 without context
+const json = (status, body) => new Response(JSON.stringify(body), {
+  status,
   headers: { "content-type": "application/json" },
-  body: JSON.stringify(body),
 });
 
-export const handler = async (event) => {
+export default async () => {
   try {
-    // ---------- (A) Auth: get Supabase user from the bearer token ----------
-    const auth = event.headers.authorization || event.headers.Authorization || "";
-    const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-    if (!token) return json(401, { error: "Missing Authorization bearer token" });
-
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!SUPABASE_URL || !SERVICE_KEY) {
-      console.error("Missing Supabase envs");
-      return json(500, { error: "Server not configured (Supabase envs missing)" });
+    // ---- sanity checks on env ----
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return json(500, { error: "Missing Supabase env (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)" });
+    }
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
+      return json(500, { error: "Missing Google OAuth env (CLIENT_ID / CLIENT_SECRET / REDIRECT_URI)" });
     }
 
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
-    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-    if (userErr || !userData?.user) {
-      console.error("getUser failed", userErr);
-      return json(401, { error: "Invalid session" });
-    }
-    const userId = userData.user.id;
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-    // ---------- (B) Load connected Gmail account for this user ----------
-    const { data: accounts, error: acctErr } = await supabase
+    // ---- fetch the most recent connected Gmail account ----
+    const { data: acctRows, error: acctErr } = await admin
       .from("email_accounts")
       .select("*")
-      .eq("user_id", userId)
       .eq("provider", "gmail")
       .order("updated_at", { ascending: false })
       .limit(1);
 
     if (acctErr) {
-      console.error("email_accounts select error", acctErr);
-      return json(500, { error: "DB error: email_accounts" });
+      console.error("SB select email_accounts error:", acctErr);
+      return json(500, { error: "Supabase select failed (email_accounts)" });
     }
-    const acct = accounts?.[0];
-    if (!acct) return json(400, { error: "No Gmail account connected" });
+    const acct = acctRows?.[0];
+    if (!acct) return json(400, { error: "No connected Gmail account found" });
 
-    // ---------- (C) OAuth client + refresh access token if needed ----------
-    const oauth2 = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    );
+    const refresh_token = acct.refresh_token;
+    let access_token = acct.access_token;
+    let expires_at = acct.expires_at ? Number(acct.expires_at) : 0; // seconds since epoch
 
-    oauth2.setCredentials({
-      refresh_token: acct.refresh_token,
-      access_token: acct.access_token || undefined,
-      expiry_date: acct.expires_at ? new Date(acct.expires_at).getTime() : undefined,
-      token_type: acct.token_type || "Bearer",
-      scope: acct.scope || undefined,
-    });
-
-    let newAccess;
-    try {
-      const at = await oauth2.getAccessToken(); // { token }
-      newAccess = at?.token;
-    } catch (e) {
-      console.error("getAccessToken failed", e);
-      return json(401, { error: "Access token refresh failed (check refresh_token)" });
+    if (!refresh_token) {
+      return json(400, { error: "Account is missing refresh_token; re-connect Gmail" });
     }
 
-    if (newAccess && newAccess !== acct.access_token) {
-      const { error: updErr } = await supabase
-        .from("email_accounts")
-        .update({
-          access_token: newAccess,
-          expires_at: new Date(Date.now() + 55 * 60 * 1000).toISOString(),
-        })
-        .eq("id", acct.id);
-      if (updErr) console.error("email_accounts update error", updErr);
+    // ---- set up OAuth2 client ----
+    const oauth2 = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI);
+
+    // Refresh if token missing/expired or within 60s of expiry
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (!access_token || !expires_at || expires_at - nowSec < 60) {
+      try {
+        const { credentials } = await oauth2.refreshToken(refresh_token);
+        access_token = credentials.access_token;
+        const newExpirySec =
+          credentials.expiry_date ? Math.floor(credentials.expiry_date / 1000) : nowSec + 3500;
+
+        // Persist refreshed token
+        const { error: updErr } = await admin
+          .from("email_accounts")
+          .update({
+            access_token,
+            expires_at: newExpirySec,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", acct.id);
+
+        if (updErr) console.error("SB update email_accounts error:", updErr);
+        expires_at = newExpirySec;
+      } catch (e) {
+        console.error("Google refreshToken error:", e?.response?.data || e);
+        return json(401, { error: "Failed to refresh Gmail token; re-connect Gmail" });
+      }
     }
 
-    // ---------- (D) Simple Gmail call to verify pipeline ----------
+    oauth2.setCredentials({ access_token, refresh_token });
     const gmail = google.gmail({ version: "v1", auth: oauth2 });
-    const list = await gmail.users.messages.list({
+
+    // ---- list recent messages (start small to avoid quota/timeouts) ----
+    const { data: list } = await gmail.users.messages.list({
       userId: "me",
-      maxResults: 25,
-      q: "newer_than:30d (order OR shipped OR confirmation)",
+      // You can tune this query; this is intentionally broad while safe:
+      q: "newer_than:30d (order OR shipped OR shipment OR tracking)",
+      maxResults: 20,
     });
 
-    const ids = list.data.messages?.map((m) => m.id) ?? [];
-    // TODO: fetch each message, parse, and upsert into email_orders / email_shipments
+    const ids = list?.messages?.map((m) => m.id) || [];
+    let fetched = 0;
 
-    return json(200, { imported: ids.length });
+    // Example parse stub: just fetch payloads; insert raw rows you can parse later
+    // Ensure you created a table `email_raw` (id text pk, snippet text, internal_date timestamptz, raw jsonb)
+    for (const id of ids) {
+      try {
+        const { data: msg } = await gmail.users.messages.get({
+          userId: "me",
+          id,
+          format: "full",
+        });
+        fetched++;
+
+        // Upsert raw (safe no-op if it exists)
+        await admin.from("email_raw").upsert({
+          id: msg.id,
+          snippet: msg.snippet || null,
+          internal_date: msg.internalDate
+            ? new Date(Number(msg.internalDate)).toISOString()
+            : new Date().toISOString(),
+          raw: msg, // jsonb
+          account_id: acct.id,
+        });
+      } catch (e) {
+        // keep going; log individual failures
+        console.error("Gmail fetch message error:", id, e?.response?.data || e);
+      }
+    }
+
+    // Return counts so the UI never sees a bare 500
+    return json(200, {
+      ok: true,
+      account: acct.email_address,
+      scanned: ids.length,
+      fetched,
+    });
   } catch (err) {
-    console.error("gmail-sync crash:", err);
-    return json(500, { error: err?.message || String(err) });
+    console.error("gmail-sync top-level error:", err);
+    return json(500, { error: "Internal error in gmail-sync (see function logs)" });
   }
-};
+}
