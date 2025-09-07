@@ -33,7 +33,7 @@ function trackingUrl(carrier, tn) {
   return `https://www.google.com/search?q=${encodeURIComponent(tn + " tracking")}`;
 }
 
-// Deep link to Gmail if we have a message id, otherwise a helpful search
+// Deep link to Gmail if we have a message id, otherwise a Gmail search query
 function orderEmailLink(orderId, sourceMessageId, retailer) {
   if (sourceMessageId) return `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(sourceMessageId)}`;
   const q = orderId ? `${retailer || ""} order ${orderId}`.trim() : `${retailer || ""} order confirmation`.trim();
@@ -48,10 +48,10 @@ function statusToPct(status) {
   return 15; // ordered
 }
 
-/** Merge orders + shipments into shipment-like rows (with stable uid) */
+/** Merge orders + shipments into stitched rows (with stable uid) */
 function stitch(orders = [], shipments = []) {
   const byKey = new Map();
-  const makeKey = (retailer, order_id) => `${(retailer || "").trim()}::${(order_id || "").trim()}`;
+  const makeKey = (retailer, order_id) => `${(retailer||'').trim()}::${(order_id||'').trim()}`;
 
   orders.forEach((o) => {
     const key = makeKey(o.retailer, o.order_id);
@@ -108,17 +108,15 @@ function stitch(orders = [], shipments = []) {
       row.trackings.set(s.tracking_number, {
         tracking_number: s.tracking_number,
         carrier: s.carrier || "",
-        shipped_at: s.shipped_at || null,     // used in timeline
-        delivered_at: s.delivered_at || null, // used in timeline
+        shipped_at: s.shipped_at || null,
+        delivered_at: s.delivered_at || null,
         status: (s.status || "").toLowerCase(),
       });
       globalTracking.set(s.tracking_number, row);
     }
-    // Aggregate
     row.shipped_at = row.shipped_at || s.shipped_at || null;
     row.delivered_at = row.delivered_at || s.delivered_at || null;
 
-    // Status precedence
     const rank = (x) =>
       x === "delivered" ? 4 :
       x === "out_for_delivery" ? 3 :
@@ -141,7 +139,6 @@ function stitch(orders = [], shipments = []) {
 
 /* ---------- queries ---------- */
 async function getOrders() {
-  // Requires: image_url (nullable) and source_message_id in email_orders
   const { data, error } = await supabase
     .from("email_orders")
     .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, shipped_at, delivered_at, status, source_message_id")
@@ -185,7 +182,7 @@ export default function Emails() {
     loadUser();
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       const user = session?.user;
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
+      if (!user) return setUserInfo({ avatar_url, username: "" });
       const m = user.user_metadata || {};
       const username =
         m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
@@ -385,9 +382,11 @@ export default function Emails() {
               const firstTracking = r.trackings.size ? Array.from(r.trackings.values())[0] : null;
               const emailHref = orderEmailLink(r.order_id, r.source_message_id, r.retailer);
 
-              // infer timeline flags
-              const showLabelCreated = r.status === "label_created";
-              const showOutForDelivery = r.status === "out_for_delivery";
+              // inferred flags (for timeline)
+              const showLabelCreated = r.status === "label_created" || (!r.shipped_at && r.status !== "ordered");
+              const showShipped = !!r.shipped_at;
+              const showOFD = r.status === "out_for_delivery";
+              const showDelivered = !!r.delivered_at;
 
               return (
                 <div key={key} className="py-2">
@@ -428,7 +427,7 @@ export default function Emails() {
                   </div>
 
                   {/* Slide-down detail panel */}
-                  <div className="transition-all duration-300 ease-in-out overflow-hidden" style={{ maxHeight: isOpen ? 1000 : 0 }}>
+                  <div className="transition-all duration-300 ease-in-out overflow-hidden" style={{ maxHeight: isOpen ? 1100 : 0 }}>
                     <div className="pt-4 pl-11 pr-1">
                       {/* 1) Status + progress */}
                       <div className="flex items-center justify-between">
@@ -439,17 +438,58 @@ export default function Emails() {
                         <div className="h-full bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-500 transition-all" style={{ width: `${pct}%` }} />
                       </div>
 
-                      {/* 2) Shipment status sentence */}
-                      <div className="mt-3 text-sm text-slate-200">
-                        {showLabelCreated && <>Label created — waiting for carrier pickup{r.order_date ? <> · {safeDate(r.order_date)}</> : null}</>}
-                        {!showLabelCreated && r.shipped_at && !r.delivered_at && <>Shipment on the way — shipped {safeDate(r.shipped_at)} {`· ${timeAgo(r.shipped_at)}`}</>}
-                        {showOutForDelivery && <>Out for delivery — arriving today (est.)</>}
-                        {r.delivered_at && <>Delivered {safeDate(r.delivered_at)} {`· ${timeAgo(r.delivered_at)}`}</>}
-                        {!r.shipped_at && !showLabelCreated && !r.delivered_at && <>Order placed {safeDate(r.order_date)}</>}
+                      {/* 2) Shipping details timeline (AfterShip-like) */}
+                      <div className="mt-4">
+                        <div className="relative pl-6">
+                          <div className="absolute left-2 top-1 bottom-1 w-px bg-slate-800" />
+                          {/* Steps bottom → top like AfterShip */}
+                          {showDelivered && (
+                            <TimelineStep
+                              title="Shipment delivered successfully"
+                              subtitle="Delivered"
+                              when={r.delivered_at}
+                              active
+                            />
+                          )}
+                          {showOFD && (
+                            <TimelineStep
+                              title="Out For Delivery Today"
+                              subtitle=""
+                              when={r.shipped_at || r.order_date}
+                            />
+                          )}
+                          {showShipped && (
+                            <TimelineStep
+                              title="Shipment on the way"
+                              subtitle="Your package was shipped!"
+                              when={r.shipped_at}
+                            />
+                          )}
+                          {showLabelCreated && !showShipped && (
+                            <TimelineStep
+                              title="Label created"
+                              subtitle="Carrier has not received the package yet"
+                              when={r.order_date}
+                            />
+                          )}
+                          {!showShipped && !showLabelCreated && !showOFD && !showDelivered && (
+                            <TimelineStep
+                              title="Order confirmed"
+                              subtitle="Tracking info will appear once the shop sends an update"
+                              when={r.order_date}
+                            />
+                          )}
+                        </div>
+                        {/* “Shipped X • Updated Y” summary like AfterShip */}
+                        <div className="mt-3 text-xs text-slate-400 flex items-center gap-2">
+                          {r.shipped_at && <>Shipped {timeAgo(r.shipped_at)}</>}
+                          {r.shipped_at && lastUpdate && <span>·</span>}
+                          {lastUpdate && <>Updated {timeAgo(lastUpdate)}</>}
+                        </div>
                       </div>
 
                       {/* 3) Carrier + tracking */}
-                      <div className="mt-4 text-sm">
+                      <div className="mt-5 text-sm">
                         <div className="text-xs text-slate-400">Carrier</div>
                         <div className="text-slate-200 mt-0.5">{firstTracking?.carrier || "—"}</div>
 
@@ -477,8 +517,8 @@ export default function Emails() {
                         </div>
                       </div>
 
-                      {/* 4) Order details (flat layout, with tiny thumbnail) */}
-                      <div className="mt-5 text-sm">
+                      {/* 4) Order details (flat) */}
+                      <div className="mt-6 text-sm">
                         <div className="flex items-start gap-3">
                           <div className="h-12 w-12 rounded-lg bg-slate-800 border border-slate-700 overflow-hidden shrink-0">
                             {r.image_url ? (
@@ -495,32 +535,32 @@ export default function Emails() {
                           <div className="min-w-0">
                             <div className="text-slate-200 font-medium truncate">{r.item_name || "—"}</div>
                             <div className="text-xs text-slate-400 mt-0.5">Qty {r.quantity ?? "—"}</div>
-                            <div className="text-slate-200 mt-1">
-                              {r.total_cents ? `Total $${centsToStr(r.total_cents)}` : <span className="text-slate-500">Total —</span>}
-                            </div>
-                            <div className="mt-2 text-xs text-slate-400">Order number</div>
-                            <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                              <div className="font-mono text-slate-100 break-all">{r.order_id || "—"}</div>
-                              {r.order_id && (
-                                <>
-                                  <button
-                                    onClick={() => navigator.clipboard?.writeText(String(r.order_id))}
-                                    className="h-8 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-xs"
-                                  >
-                                    Copy
-                                  </button>
-                                  <a
-                                    href={emailHref}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="h-8 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs inline-flex items-center"
-                                  >
-                                    View order email
-                                  </a>
-                                </>
-                              )}
-                            </div>
                           </div>
+                        </div>
+
+                        <div className="mt-3 text-slate-200">
+                          {r.total_cents ? <>Total ${centsToStr(r.total_cents)}</> : <span className="text-slate-500">Total —</span>}
+                        </div>
+
+                        <div className="mt-2 text-xs text-slate-400">Order number</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                          <div className="font-mono text-slate-100 break-all">{r.order_id || "—"}</div>
+                          {r.order_id && (
+                            <button
+                              onClick={() => navigator.clipboard?.writeText(String(r.order_id))}
+                              className="h-8 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-xs"
+                            >
+                              Copy
+                            </button>
+                          )}
+                          <a
+                            href={emailHref}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="h-8 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs inline-flex items-center"
+                          >
+                            View original email
+                          </a>
                         </div>
                       </div>
 
@@ -601,6 +641,19 @@ function TopTab({ label, active, onClick }) {
     >
       {label}
     </button>
+  );
+}
+
+function TimelineStep({ title, subtitle, when, active = false }) {
+  return (
+    <div className="relative mb-3">
+      <div className={`absolute -left-[7px] top-1 h-3.5 w-3.5 rounded-full ${active ? "bg-emerald-500" : "bg-slate-600"}`} />
+      <div className="text-slate-200">{title}</div>
+      {subtitle ? <div className="text-xs text-slate-400">{subtitle}</div> : null}
+      <div className="text-xs text-slate-400 mt-0.5">
+        {safeDate(when)}{when ? ` · ${timeAgo(when)}` : ""}
+      </div>
+    </div>
   );
 }
 
