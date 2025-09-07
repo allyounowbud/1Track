@@ -1,8 +1,4 @@
 // src/routes/Emails.jsx
-// Complete: auto-sync on page load, backup Sync button, Canceled tab/pill,
-// preview-new-orders logic (no modal if none), item/qty/price columns,
-// clickable tracking links.
-
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
@@ -144,6 +140,7 @@ async function getEmailAccounts() {
 
 /* --------------------------------- page --------------------------------- */
 export default function Emails() {
+  // header user (kept to match other pages)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -178,6 +175,7 @@ export default function Emails() {
   /* ------------------ controls (filters/top tabs/search) ------------------ */
   const [scope, setScope] = useState("all"); // all | shipping | to_ship | delivered | canceled
   const [q, setQ] = useState("");
+  const [expanded, setExpanded] = useState(() => new Set()); // keys of expanded rows
 
   const rowsAll = useMemo(() => stitch(orders, ships), [orders, ships]);
 
@@ -195,7 +193,7 @@ export default function Emails() {
     if (q.trim()) {
       const t = q.toLowerCase();
       r = r.filter(x =>
-        [x.retailer, x.order_id, x.item_name, ...Array.from(x.trackings.keys())]
+        [x.item_name, x.retailer, x.order_id, ...Array.from(x.trackings.keys())]
           .filter(Boolean)
           .some(s => String(s).toLowerCase().includes(t))
       );
@@ -224,9 +222,7 @@ export default function Emails() {
       if (!silent) setSyncMsg("Syncing…");
       const res = await fetch("/.netlify/functions/gmail-sync", { method: "POST" });
       const j = await res.json().catch(() => ({}));
-      if (!silent) {
-        setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}, skipped ${j?.skipped_existing ?? 0}` : `Sync failed: ${j?.error || res.status}`);
-      }
+      if (!silent) setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}, skipped ${j?.skipped_existing ?? 0}` : `Sync failed: ${j?.error || res.status}`);
       await Promise.all([refetchOrders(), refetchShips()]);
     } catch (e) {
       if (!silent) setSyncMsg(String(e.message || e));
@@ -274,15 +270,11 @@ export default function Emails() {
   /* ---------------- Auto-sync on page load + gentle interval ---------- */
   useEffect(() => {
     if (!connected) return;
-    // auto sync once on mount/reload
     syncNow({ silent: true });
-    // gentle nudge every 15 minutes while page is open
-    const id = setInterval(() => {
-      syncNow({ silent: true });
-    }, 15 * 60 * 1000);
+    const id = setInterval(() => { syncNow({ silent: true }); }, 15 * 60 * 1000);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected]); // re-run only when account connects/disconnects
+  }, [connected]);
 
   /* ------------------------------- render ------------------------------- */
   return (
@@ -355,67 +347,109 @@ export default function Emails() {
           {!lo1 && !lo2 && rows.length === 0 && <div className="text-slate-400">No results.</div>}
 
           <div className="divide-y divide-slate-800">
-            {rows.map((r, i) => (
-              <div key={i} className="py-3 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                {/* icon */}
-                <div className="sm:col-span-1 shrink-0">
-                  <TruckIcon className="h-9 w-9 text-slate-300" />
-                </div>
-
-                {/* core info */}
-                <div className="sm:col-span-6 min-w-0">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">
-                        {r.order_id || "Unknown"} <span className="text-slate-400">· {r.retailer}</span>
-                      </div>
-                      <div className="text-xs text-slate-400 mt-0.5">
-                        {r.order_date ? `Ordered ${safeDate(r.order_date)}` : "Order date —"}
-                        {r.shipped_at ? ` · Shipped ${safeDate(r.shipped_at)}` : ""}
-                        {r.delivered_at ? ` · Delivered ${safeDate(r.delivered_at)}` : ""}
-                      </div>
+            {rows.map((r, i) => {
+              const key = `${r.retailer || "—"}::${r.order_id || i}`;
+              const isOpen = expanded.has(key);
+              return (
+                <div key={key} className="py-2">
+                  {/* Row header (collapsed content) */}
+                  <div className="flex items-center gap-3">
+                    <div className="shrink-0">
+                      <TruckIcon className="h-8 w-8 text-slate-300" />
                     </div>
-                    <StatusPill status={r.status} />
-                  </div>
 
-                  {/* item/qty/price */}
-                  <div className="mt-1 text-sm text-slate-200 truncate">
-                    {r.item_name ? r.item_name : <span className="text-slate-500">Item —</span>}
-                    {r.quantity ? <span className="text-slate-400"> · Qty {r.quantity}</span> : null}
-                    {r.unit_price_cents ? <span className="text-slate-400"> · ${centsToStr(r.unit_price_cents)} ea</span> : null}
-                  </div>
-
-                  {/* tracking chips */}
-                  {r.trackings.size > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {Array.from(r.trackings.values()).map((t) => {
-                        const url = trackingUrl(t.carrier, t.tracking_number);
-                        return (
-                          <a
-                            key={t.tracking_number}
-                            href={url || "#"}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={`${pill} bg-slate-800/70 text-slate-200 hover:bg-slate-700`}
-                            title="Open tracking"
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          {/* MAIN ROW: Item Name · Retailer */}
+                          <div className="font-medium truncate">
+                            {r.item_name || "Item —"} <span className="text-slate-400">· {r.retailer || "—"}</span>
+                          </div>
+                          <div className="text-xs text-slate-400 mt-0.5 truncate">
+                            {/* helpful secondary hint */}
+                            {r.order_id ? `Order # ${r.order_id}` : "Order # —"}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusPill status={r.status} />
+                          <button
+                            onClick={() => {
+                              const next = new Set(expanded);
+                              if (next.has(key)) next.delete(key); else next.add(key);
+                              setExpanded(next);
+                            }}
+                            className="h-9 w-9 grid place-items-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 transition"
+                            aria-label={isOpen ? "Collapse" : "Expand"}
                           >
-                            <span className="opacity-70">{t.carrier || "Carrier"}</span>
-                            <span className="font-mono">{t.tracking_number}</span>
-                          </a>
-                        );
-                      })}
+                            <ChevronDown className={`h-5 w-5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* totals */}
-                <div className="sm:col-span-5 text-right shrink-0">
-                  <div className="text-slate-200">
-                    {r.total_cents ? <>${centsToStr(r.total_cents)}</> : <span className="text-slate-500">—</span>}
+                  {/* Slide-down detail panel */}
+                  <div
+                    className={`transition-all duration-300 ease-in-out overflow-hidden`}
+                    style={{ maxHeight: isOpen ? 500 : 0 }}
+                  >
+                    <div className="pt-3 pl-11 pr-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Detail label="Order number">
+                          {r.order_id ? (
+                            <Copyable code={r.order_id} />
+                          ) : (
+                            <span className="text-slate-500">—</span>
+                          )}
+                        </Detail>
+                        <Detail label="Retailer">{r.retailer || <span className="text-slate-500">—</span>}</Detail>
+
+                        <Detail label="Item">{r.item_name || <span className="text-slate-500">—</span>}</Detail>
+                        <Detail label="Quantity">{r.quantity ?? <span className="text-slate-500">—</span>}</Detail>
+
+                        <Detail label="Price (each)">
+                          {r.unit_price_cents ? `$${centsToStr(r.unit_price_cents)}` : <span className="text-slate-500">—</span>}
+                        </Detail>
+                        <Detail label="Order total">
+                          {r.total_cents ? `$${centsToStr(r.total_cents)}` : <span className="text-slate-500">—</span>}
+                        </Detail>
+
+                        <Detail label="Ordered on">{safeDate(r.order_date)}</Detail>
+                        <Detail label="Shipped on">{safeDate(r.shipped_at)}</Detail>
+                        <Detail label="Delivered on">{safeDate(r.delivered_at)}</Detail>
+
+                        {/* Tracking chips */}
+                        <div className="sm:col-span-2">
+                          <div className="text-xs text-slate-400 mb-1">Tracking</div>
+                          {r.trackings.size > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {Array.from(r.trackings.values()).map((t) => {
+                                const url = trackingUrl(t.carrier, t.tracking_number);
+                                return (
+                                  <a
+                                    key={t.tracking_number}
+                                    href={url || "#"}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className={`${pill} bg-slate-800/70 text-slate-200 hover:bg-slate-700`}
+                                    title="Open tracking"
+                                  >
+                                    <span className="opacity-70">{t.carrier || "Carrier"}</span>
+                                    <span className="font-mono">{t.tracking_number}</span>
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-slate-500">—</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -432,16 +466,11 @@ export default function Emails() {
             <div className="mt-3 max-h-72 overflow-auto divide-y divide-slate-800">
               {proposed.map((p, i) => (
                 <div key={i} className="p-3 grid grid-cols-1 sm:grid-cols-12 gap-2">
-                  <div className="sm:col-span-7 min-w-0">
-                    <div className="font-medium truncate">{p.order_id} <span className="text-slate-400">· {p.retailer}</span></div>
-                    <div className="text-xs text-slate-400">Order date {safeDate(p.order_date)}</div>
-                    <div className="text-sm text-slate-300 truncate mt-1">
-                      {p.item_name ? p.item_name : <span className="text-slate-500">Item —</span>}
-                      {p.quantity ? <span className="text-slate-400"> · Qty {p.quantity}</span> : null}
-                      {p.unit_price_cents ? <span className="text-slate-400"> · ${centsToStr(p.unit_price_cents)} ea</span> : null}
-                    </div>
+                  <div className="sm:col-span-8 min-w-0">
+                    <div className="font-medium truncate">{p.item_name || "Item —"} <span className="text-slate-400">· {p.retailer}</span></div>
+                    <div className="text-xs text-slate-400">Order # {p.order_id || "—"} · {safeDate(p.order_date)}</div>
                   </div>
-                  <div className="sm:col-span-5 text-right">
+                  <div className="sm:col-span-4 text-right">
                     {p.total_cents ? <>${centsToStr(p.total_cents)}</> : <span className="text-slate-500">—</span>}
                   </div>
                 </div>
@@ -493,6 +522,27 @@ function StatusPill({ status }) {
   return <span className={`${pill} ${map[s] || map.ordered}`}>{txt}</span>;
 }
 
+function Detail({ label, children }) {
+  return (
+    <div>
+      <div className="text-xs text-slate-400 mb-1">{label}</div>
+      <div className="text-sm text-slate-200">{children}</div>
+    </div>
+  );
+}
+
+function Copyable({ code }) {
+  return (
+    <button
+      onClick={() => navigator.clipboard?.writeText(String(code))}
+      className="font-mono text-slate-200 hover:text-white underline decoration-slate-600 underline-offset-2"
+      title="Copy to clipboard"
+    >
+      {code}
+    </button>
+  );
+}
+
 function MailIcon({ className = "h-5 w-5" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
@@ -507,6 +557,13 @@ function TruckIcon({ className = "h-6 w-6" }) {
       <path d="M3 7h11v10H3zM14 10h4l3 3v4h-7z" />
       <circle cx="7.5" cy="18" r="1.5" />
       <circle cx="17.5" cy="18" r="1.5" />
+    </svg>
+  );
+}
+function ChevronDown({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 9l6 6 6-6" />
     </svg>
   );
 }
