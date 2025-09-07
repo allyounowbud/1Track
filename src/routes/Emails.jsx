@@ -4,76 +4,147 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 
-/* ----------------------------- UI tokens ----------------------------- */
+/* ---------- tokens ---------- */
 const card =
   "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden";
 const inputBase =
   "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500";
-const tabBtn =
-  "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition";
-const tabActive = "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600";
+const pill = "inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-xs font-medium";
 
-/* ----------------------------- helpers ------------------------------ */
-const cents = (n) => Math.round(Number(n || 0));
+/* ---------- helpers ---------- */
 const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
-const within = (d, from, to) => {
-  if (!d) return false;
-  const x = new Date(d).getTime();
-  if (isNaN(x)) return false;
-  if (from && x < from) return false;
-  if (to && x > to) return false;
-  return true;
-};
 
-/* ----------------------------- queries ------------------------------ */
+/** Merge orders + shipments into shipment-like rows */
+function stitch(orders = [], shipments = []) {
+  // Map orders by composite key for quick lookup
+  const byKey = new Map(); // key => entity
+  const makeKey = (retailer, order_id) => `${(retailer||'').trim()}::${(order_id||'').trim()}`;
+
+  orders.forEach((o) => {
+    const key = makeKey(o.retailer, o.order_id);
+    byKey.set(key, {
+      retailer: o.retailer || "—",
+      order_id: o.order_id || "—",
+      order_date: o.order_date || null,
+      total_cents: o.total_cents || 0,
+      // shipping aggregates – will be extended by shipments
+      shipped_at: o.shipped_at || null,
+      delivered_at: o.delivered_at || null,
+      status: o.status || "ordered",
+      // extra
+      trackings: new Map(), // tracking_number -> shipment row
+    });
+  });
+
+  // Attach shipments to their order by (retailer, order_id) first
+  // If no order_id, attach by unique tracking_number to any existing order with same tracking already seen
+  const globalTracking = new Map(); // tracking -> stitched row (to avoid duplicates)
+  // seed from existing stitched rows (in case your normalize already put shipped/delivered on orders)
+  for (const row of byKey.values()) {
+    for (const t of row.trackings?.keys?.() || []) {
+      globalTracking.set(t, row);
+    }
+  }
+
+  const attachToRow = (s) => {
+    const viaOrder = s.order_id ? byKey.get(makeKey(s.retailer, s.order_id)) : null;
+    if (viaOrder) return viaOrder;
+
+    // Fallback: if tracking already attached somewhere, reuse that row
+    if (s.tracking_number && globalTracking.has(s.tracking_number)) {
+      return globalTracking.get(s.tracking_number);
+    }
+
+    // Final fallback: create a synthetic row (for shipments we can't tie back yet)
+    const key = makeKey(s.retailer, s.order_id || `#${s.tracking_number || s.id}`);
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        retailer: s.retailer || "—",
+        order_id: s.order_id || "Unknown",
+        order_date: null,
+        total_cents: 0,
+        shipped_at: null,
+        delivered_at: null,
+        status: "in_transit",
+        trackings: new Map(),
+      });
+    }
+    return byKey.get(key);
+  };
+
+  shipments.forEach((s) => {
+    const row = attachToRow(s);
+    if (s.tracking_number) {
+      row.trackings.set(s.tracking_number, {
+        tracking_number: s.tracking_number,
+        carrier: s.carrier || "",
+        shipped_at: s.shipped_at || null,
+        delivered_at: s.delivered_at || null,
+        status: s.status || "",
+      });
+      globalTracking.set(s.tracking_number, row);
+    }
+    // Update aggregates
+    row.shipped_at = row.shipped_at || s.shipped_at || null;
+    row.delivered_at = row.delivered_at || s.delivered_at || null;
+
+    // Status precedence
+    const st = (s.status || "").toLowerCase();
+    const rank = (x) =>
+      x === "delivered" ? 3 :
+      (x === "out_for_delivery" ? 2 :
+      (x === "in_transit" || x === "label_created" ? 1 :
+      (x === "ordered" ? 0 : -1)));
+    const best = rank(row.status);
+    const cur = rank(st || "in_transit");
+    if (cur > best) row.status = st || "in_transit";
+  });
+
+  // If no shipments, derive status from order
+  for (const row of byKey.values()) {
+    if (!row.shipped_at && !row.delivered_at) {
+      row.status = row.status || "ordered";
+    }
+    if (row.delivered_at) row.status = "delivered";
+  }
+
+  return Array.from(byKey.values());
+}
+
+/* ---------- queries ---------- */
+async function getOrders() {
+  const { data, error } = await supabase
+    .from("email_orders")
+    .select("id, user_id, retailer, order_id, order_date, total_cents, shipped_at, delivered_at, status")
+    .order("order_date", { ascending: false })
+    .limit(2000);
+  if (error) throw error;
+  return data || [];
+}
+
+async function getShipments() {
+  const { data, error } = await supabase
+    .from("email_shipments")
+    .select("id, user_id, retailer, order_id, tracking_number, carrier, status, shipped_at, delivered_at, created_at")
+    .order("created_at", { ascending: false })
+    .limit(4000);
+  if (error) throw error;
+  return data || [];
+}
+
 async function getEmailAccounts() {
   const { data, error } = await supabase
     .from("email_accounts")
-    .select("id, provider, email_address, updated_at")
+    .select("email_address, updated_at")
     .order("updated_at", { ascending: false })
     .limit(1);
   if (error) throw error;
   return data || [];
 }
 
-async function getEmailOrders() {
-  const { data, error } = await supabase
-    .from("email_orders")
-    .select("id, retailer, order_id, order_date, currency, total_cents, created_at")
-    .order("order_date", { ascending: false })
-    .limit(1000);
-  if (error) throw error;
-  return data || [];
-}
-
-async function getEmailShipments() {
-  const { data, error } = await supabase
-    .from("email_shipments")
-    .select(
-      "id, retailer, order_id, carrier, tracking_number, status, shipped_at, delivered_at, created_at"
-    )
-    .order("shipped_at", { ascending: false })
-    .limit(1000);
-  if (error) throw error;
-  return data || [];
-}
-
 /* --------------------------------- page --------------------------------- */
 export default function Emails() {
-  const { data: accounts = [], refetch: refetchAcct, isLoading: acctLoading } = useQuery({
-    queryKey: ["email-accounts"],
-    queryFn: getEmailAccounts,
-  });
-  const { data: orders = [], refetch: refetchOrders, isLoading: ordersLoading } = useQuery({
-    queryKey: ["email-orders"],
-    queryFn: getEmailOrders,
-  });
-  const { data: ships = [], refetch: refetchShips, isLoading: shipsLoading } = useQuery({
-    queryKey: ["email-shipments"],
-    queryFn: getEmailShipments,
-  });
-
-  // current user (header avatar/name)
+  // header user (kept to match other pages)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -98,92 +169,49 @@ export default function Emails() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const { data: accounts = [] } = useQuery({ queryKey: ["email-accounts"], queryFn: getEmailAccounts });
+  const { data: orders = [], refetch: refetchOrders, isLoading: lo1 } = useQuery({ queryKey: ["email-orders"], queryFn: getOrders });
+  const { data: ships = [], refetch: refetchShips, isLoading: lo2 } = useQuery({ queryKey: ["email-shipments"], queryFn: getShipments });
+
   const connected = !!accounts.length;
   const acctEmail = accounts[0]?.email_address || null;
 
-  /* ----------------------------- filters ----------------------------- */
-  const [tab, setTab] = useState("orders"); // "orders" | "shipments"
-
-  // shared date range
-  const [range, setRange] = useState("30"); // all | month | 30 | custom
-  const [fromStr, setFromStr] = useState("");
-  const [toStr, setToStr] = useState("");
-
-  const { fromMs, toMs } = useMemo(() => {
-    if (range === "custom") {
-      const f = fromStr ? new Date(fromStr).setHours(0, 0, 0, 0) : null;
-      const t = toStr ? new Date(toStr).setHours(23, 59, 59, 999) : null;
-      return { fromMs: f, toMs: t };
-    }
-    if (range === "month") {
-      const now = new Date();
-      const f = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      const t = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
-      return { fromMs: f, toMs: t };
-    }
-    if (range === "30") {
-      const t = Date.now();
-      const f = t - 29 * 24 * 3600 * 1000;
-      return { fromMs: f, toMs: t };
-    }
-    return { fromMs: null, toMs: null };
-  }, [range, fromStr, toStr]);
-
-  // retailer filter (computed from data)
-  const [retailer, setRetailer] = useState("");
-  const orderRetailers = useMemo(
-    () => Array.from(new Set(orders.map((o) => o.retailer).filter(Boolean))).sort(),
-    [orders]
-  );
-  const shipRetailers = useMemo(
-    () => Array.from(new Set(ships.map((s) => s.retailer).filter(Boolean))).sort(),
-    [ships]
-  );
-
-  // shipment status filter
-  const [shipStatus, setShipStatus] = useState(""); // '', 'in_transit', 'delivered', etc.
-
-  // search bar
+  /* ------------------ controls (filters/top tabs/search) ------------------ */
+  const [scope, setScope] = useState("all"); // all | shipping | to_ship | delivered
   const [q, setQ] = useState("");
 
-  /* --------------------------- filtered views --------------------------- */
-  const ordersView = useMemo(() => {
-    return orders
-      .filter((o) => (retailer ? o.retailer === retailer : true))
-      .filter((o) => within(o.order_date, fromMs, toMs) || (!fromMs && !toMs))
-      .filter((o) =>
-        q
-          ? [o.retailer, o.order_id, o.order_date]
-              .filter(Boolean)
-              .some((t) => String(t).toLowerCase().includes(q.toLowerCase()))
-          : true
-      );
-  }, [orders, retailer, fromMs, toMs, q]);
+  const rowsAll = useMemo(() => stitch(orders, ships), [orders, ships]);
 
-  const shipsView = useMemo(() => {
-    return ships
-      .filter((s) => (retailer ? s.retailer === retailer : true))
-      .filter((s) => (shipStatus ? s.status === shipStatus : true))
-      .filter(
-        (s) =>
-          within(s.shipped_at || s.created_at, fromMs, toMs) ||
-          within(s.delivered_at, fromMs, toMs) ||
-          (!fromMs && !toMs)
-      )
-      .filter((s) =>
-        q
-          ? [s.retailer, s.order_id, s.carrier, s.tracking_number]
-              .filter(Boolean)
-              .some((t) => String(t).toLowerCase().includes(q.toLowerCase()))
-          : true
+  const rows = useMemo(() => {
+    let r = rowsAll;
+    // Status filter buckets
+    if (scope === "shipping") {
+      r = r.filter(x => !x.delivered_at && (x.status === "in_transit" || x.status === "out_for_delivery" || x.status === "label_created"));
+    } else if (scope === "to_ship") {
+      r = r.filter(x => !x.shipped_at && !x.delivered_at);
+    } else if (scope === "delivered") {
+      r = r.filter(x => !!x.delivered_at || x.status === "delivered");
+    }
+    // Search
+    if (q.trim()) {
+      const t = q.toLowerCase();
+      r = r.filter(x =>
+        [x.retailer, x.order_id, ...Array.from(x.trackings.keys())]
+          .filter(Boolean)
+          .some(s => String(s).toLowerCase().includes(t))
       );
-  }, [ships, retailer, shipStatus, fromMs, toMs, q]);
+    }
+    // Sort: delivered last date desc, otherwise recent activity desc
+    return r.sort((a, b) => {
+      const ad = a.delivered_at ? new Date(a.delivered_at).getTime() : (a.shipped_at ? new Date(a.shipped_at).getTime() : new Date(a.order_date || 0).getTime());
+      const bd = b.delivered_at ? new Date(b.delivered_at).getTime() : (b.shipped_at ? new Date(b.shipped_at).getTime() : new Date(b.order_date || 0).getTime());
+      return bd - ad;
+    });
+  }, [rowsAll, scope, q]);
 
-  /* ------------------------ actions: connect/sync/normalize ------------------------ */
-  const [syncMsg, setSyncMsg] = useState("");
+  /* ----------------------------- actions ----------------------------- */
   const [syncing, setSyncing] = useState(false);
-  const [normMsg, setNormMsg] = useState("");
-  const [normalizing, setNormalizing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState("");
 
   function connectGmail() {
     window.location.href = "/.netlify/functions/gmail-auth-start";
@@ -195,11 +223,8 @@ export default function Emails() {
       setSyncMsg("Syncing…");
       const res = await fetch("/.netlify/functions/gmail-sync", { method: "POST" });
       const j = await res.json().catch(() => ({}));
-      setSyncMsg(
-        res.ok ? `Imported ${j?.imported ?? 0} message(s); skipped ${j?.skipped_existing ?? 0} ✓`
-               : `Sync failed: ${j?.error || res.status}`
-      );
-      await Promise.all([refetchAcct(), refetchOrders(), refetchShips()]);
+      setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}, skipped ${j?.skipped_existing ?? 0}` : `Sync failed: ${j?.error || res.status}`);
+      await Promise.all([refetchOrders(), refetchShips()]);
     } catch (e) {
       setSyncMsg(String(e.message || e));
     } finally {
@@ -208,43 +233,22 @@ export default function Emails() {
     }
   }
 
-  async function normalizeNow() {
-    try {
-      setNormalizing(true);
-      setNormMsg("Normalizing…");
-      const res = await fetch("/.netlify/functions/email-normalize", { method: "POST" });
-      const j = await res.json().catch(() => ({}));
-      setNormMsg(
-        res.ok
-          ? `Parsed ${j.orders_inserted ?? 0} orders, ${j.shipments_inserted ?? 0} shipments ✓`
-          : `Normalize failed: ${j?.error || res.status}`
-      );
-      await Promise.all([refetchOrders(), refetchShips()]);
-    } catch (e) {
-      setNormMsg(String(e.message || e));
-    } finally {
-      setNormalizing(false);
-      setTimeout(() => setNormMsg(""), 3000);
-    }
-  }
-
-  /* -------------------------------- render -------------------------------- */
+  /* ------------------------------- render ------------------------------- */
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="emails" showTabs />
 
-        {/* Connect + Actions */}
+        {/* Connect / Sync */}
         <div className={`${card} mb-6`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-lg font-semibold">
-                <EnvelopeIcon className="h-5 w-5" />
+                <MailIcon className="h-5 w-5" />
                 Emails
               </div>
               <p className="text-slate-400 text-sm mt-1">
-                Connect your mailbox, then <span className="text-slate-200">Sync</span> to fetch commerce emails,
-                and <span className="text-slate-200">Normalize</span> to populate Orders & Shipments.
+                Connect your mailbox to automatically import order confirmations and shipping updates. We link shipping emails to their orders by order # and tracking number.
               </p>
               {connected && (
                 <p className="text-slate-300 text-sm mt-1">
@@ -252,239 +256,145 @@ export default function Emails() {
                 </p>
               )}
             </div>
-
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              {!connected && (
-                <button
-                  onClick={connectGmail}
-                  className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
-                >
+            <div className="flex items-center gap-2 shrink-0">
+              {!connected ? (
+                <button onClick={connectGmail} className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium">
                   Connect Gmail
                 </button>
-              )}
-              {connected && (
-                <>
-                  <button
-                    onClick={syncNow}
-                    disabled={syncing}
-                    className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium"
-                  >
-                    {syncing ? "Syncing…" : "Sync now"}
-                  </button>
-                  <button
-                    onClick={normalizeNow}
-                    disabled={normalizing}
-                    className="h-11 px-5 rounded-2xl border border-slate-700 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                    title="Parse raw messages into Orders & Shipments"
-                  >
-                    {normalizing ? "Normalizing…" : "Normalize now"}
-                  </button>
-                </>
+              ) : (
+                <button onClick={syncNow} disabled={syncing} className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium">
+                  {syncing ? "Syncing…" : "Sync now"}
+                </button>
               )}
             </div>
           </div>
-
-          {(syncMsg || normMsg) && (
-            <div className="mt-3 text-sm text-slate-300">
-              {syncMsg || normMsg}
-            </div>
-          )}
+          {syncMsg && <div className="mt-3 text-sm text-slate-300">{syncMsg}</div>}
         </div>
 
-        {/* Filters */}
+        {/* Top tabs + search */}
         <div className={`${card} mb-6`}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
-            <div>
-              <label className="text-slate-300 mb-1 block text-sm">View</label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTab("orders")}
-                  className={`${tabBtn} ${tab === "orders" ? tabActive : ""}`}
-                >
-                  Orders
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTab("shipments")}
-                  className={`${tabBtn} ${tab === "shipments" ? tabActive : ""}`}
-                >
-                  Shipments
-                </button>
-              </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-4">
+              <TopTab label="All" active={scope === "all"} onClick={() => setScope("all")} />
+              <TopTab label="Shipping" active={scope === "shipping"} onClick={() => setScope("shipping")} />
+              <TopTab label="To be shipped" active={scope === "to_ship"} onClick={() => setScope("to_ship")} />
+              <TopTab label="Delivered" active={scope === "delivered"} onClick={() => setScope("delivered")} />
             </div>
-
-            <div>
-              <label className="text-slate-300 mb-1 block text-sm">Date range</label>
-              <select
-                value={range}
-                onChange={(e) => setRange(e.target.value)}
-                className={inputBase}
-              >
-                <option value="30">Last 30 days</option>
-                <option value="month">This month</option>
-                <option value="all">All time</option>
-                <option value="custom">Custom…</option>
-              </select>
-            </div>
-
-            {range === "custom" && (
-              <>
-                <div>
-                  <label className="text-slate-300 mb-1 block text-sm">From</label>
-                  <input
-                    type="date"
-                    value={fromStr}
-                    onChange={(e) => setFromStr(e.target.value)}
-                    className={inputBase}
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-300 mb-1 block text-sm">To</label>
-                  <input
-                    type="date"
-                    value={toStr}
-                    onChange={(e) => setToStr(e.target.value)}
-                    className={inputBase}
-                  />
-                </div>
-              </>
-            )}
-
-            <div>
-              <label className="text-slate-300 mb-1 block text-sm">Retailer</label>
-              <select
-                value={retailer}
-                onChange={(e) => setRetailer(e.target.value)}
-                className={inputBase}
-              >
-                <option value="">All</option>
-                {(tab === "orders" ? orderRetailers : shipRetailers).map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {tab === "shipments" && (
-              <div>
-                <label className="text-slate-300 mb-1 block text-sm">Status</label>
-                <select
-                  value={shipStatus}
-                  onChange={(e) => setShipStatus(e.target.value)}
-                  className={inputBase}
-                >
-                  <option value="">All</option>
-                  <option value="label_created">Label created</option>
-                  <option value="in_transit">In transit</option>
-                  <option value="delivered">Delivered</option>
-                </select>
-              </div>
-            )}
-
-            <div className="sm:col-span-2 lg:col-span-1">
-              <label className="text-slate-300 mb-1 block text-sm">Search</label>
+            <div className="w-full sm:w-64">
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder={tab === "orders" ? "Order # / retailer…" : "Tracking / carrier…"}
+                placeholder="Search retailer, order #, tracking…"
                 className={inputBase}
               />
             </div>
           </div>
         </div>
 
-        {/* Data */}
-        {tab === "orders" ? (
-          <div className={card}>
-            <div className="text-lg font-semibold mb-3">Orders</div>
-            <div className="overflow-x-auto">
-              <table className="min-w-[760px] w-full text-sm">
-                <thead className="text-slate-300">
-                  <tr className="text-left">
-                    <th className="py-2 pr-3">Retailer</th>
-                    <th className="py-2 pr-3">Order #</th>
-                    <th className="py-2 pr-3">Order Date</th>
-                    <th className="py-2 pr-3 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="text-slate-200">
-                  {ordersLoading && (
-                    <tr><td className="py-6 text-slate-400" colSpan={4}>Loading…</td></tr>
-                  )}
-                  {!ordersLoading && ordersView.map((o) => (
-                    <tr key={o.id} className="border-t border-slate-800">
-                      <td className="py-2 pr-3">{o.retailer || "—"}</td>
-                      <td className="py-2 pr-3">{o.order_id || "—"}</td>
-                      <td className="py-2 pr-3">{o.order_date || "—"}</td>
-                      <td className="py-2 pr-3 text-right">
-                        ${centsToStr(o.total_cents)}
-                      </td>
-                    </tr>
-                  ))}
-                  {!ordersLoading && ordersView.length === 0 && (
-                    <tr><td className="py-6 text-slate-400" colSpan={4}>No orders in this view.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : (
-          <div className={card}>
-            <div className="text-lg font-semibold mb-3">Shipments</div>
-            <div className="overflow-x-auto">
-              <table className="min-w-[900px] w-full text-sm">
-                <thead className="text-slate-300">
-                  <tr className="text-left">
-                    <th className="py-2 pr-3">Retailer</th>
-                    <th className="py-2 pr-3">Order #</th>
-                    <th className="py-2 pr-3">Carrier</th>
-                    <th className="py-2 pr-3">Tracking</th>
-                    <th className="py-2 pr-3">Status</th>
-                    <th className="py-2 pr-3">Shipped</th>
-                    <th className="py-2 pr-3">Delivered</th>
-                  </tr>
-                </thead>
-                <tbody className="text-slate-200">
-                  {shipsLoading && (
-                    <tr><td className="py-6 text-slate-400" colSpan={7}>Loading…</td></tr>
-                  )}
-                  {!shipsLoading && shipsView.map((s) => (
-                    <tr key={s.id} className="border-t border-slate-800">
-                      <td className="py-2 pr-3">{s.retailer || "—"}</td>
-                      <td className="py-2 pr-3">{s.order_id || "—"}</td>
-                      <td className="py-2 pr-3">{s.carrier || "—"}</td>
-                      <td className="py-2 pr-3">{s.tracking_number || "—"}</td>
-                      <td className="py-2 pr-3">{s.status || "—"}</td>
-                      <td className="py-2 pr-3">{s.shipped_at ? new Date(s.shipped_at).toLocaleDateString() : "—"}</td>
-                      <td className="py-2 pr-3">{s.delivered_at ? new Date(s.delivered_at).toLocaleDateString() : "—"}</td>
-                    </tr>
-                  ))}
-                  {!shipsLoading && shipsView.length === 0 && (
-                    <tr><td className="py-6 text-slate-400" colSpan={7}>No shipments in this view.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {/* List */}
+        <div className={`${card}`}>
+          <div className="text-lg font-semibold mb-3">Shipments</div>
+          {(lo1 || lo2) && <div className="text-slate-400">Loading…</div>}
+          {!lo1 && !lo2 && rows.length === 0 && <div className="text-slate-400">No results.</div>}
 
-        {/* Tiny helper / footer */}
+          <div className="divide-y divide-slate-800">
+            {rows.map((r, i) => (
+              <div key={i} className="py-3 flex items-center gap-3">
+                <div className="shrink-0">
+                  <TruckIcon className="h-9 w-9 text-slate-300" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">
+                        {r.order_id || "Unknown"} <span className="text-slate-400">· {r.retailer}</span>
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        {r.order_date ? `Ordered ${new Date(r.order_date).toLocaleDateString()}` : "Order date —"}
+                        {r.shipped_at ? ` · Shipped ${new Date(r.shipped_at).toLocaleDateString()}` : ""}
+                        {r.delivered_at ? ` · Delivered ${new Date(r.delivered_at).toLocaleDateString()}` : ""}
+                      </div>
+                    </div>
+                    <StatusPill status={r.status} />
+                  </div>
+
+                  {/* Tracking chips */}
+                  {r.trackings.size > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {Array.from(r.trackings.values()).map((t) => (
+                        <span key={t.tracking_number} className={`${pill} bg-slate-800/70 text-slate-200`}>
+                          <span className="opacity-70">{t.carrier || "Carrier"}</span>
+                          <span className="font-mono">{t.tracking_number}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* total (if present) */}
+                <div className="hidden sm:block text-right shrink-0 min-w-[80px] text-slate-200">
+                  {r.total_cents ? <>${centsToStr(r.total_cents)}</> : <span className="text-slate-500">—</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="text-xs text-slate-500 mt-4">
-          Tip: You can run <span className="text-slate-200">Sync</span> anytime. Then run <span className="text-slate-200">Normalize</span> to populate the tables shown here.
+          We automatically link shipping emails to their orders (by order # and tracking). Re-sync anytime to pick up new messages.
         </div>
       </div>
     </div>
   );
 }
 
-/* ------------------------------- icons ------------------------------- */
-function EnvelopeIcon({ className = "h-5 w-5" }) {
+/* ---------- small UI ---------- */
+function TopTab({ label, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`h-9 px-4 rounded-full border transition ${
+        active ? "bg-indigo-600 text-white border-indigo-600" : "bg-slate-900/60 text-slate-200 border-slate-800 hover:bg-slate-900"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function StatusPill({ status }) {
+  const s = (status || "").toLowerCase();
+  const map = {
+    delivered: "bg-emerald-600/20 text-emerald-300",
+    out_for_delivery: "bg-amber-600/20 text-amber-300",
+    in_transit: "bg-sky-600/20 text-sky-300",
+    label_created: "bg-slate-700/50 text-slate-300",
+    ordered: "bg-slate-700/50 text-slate-300",
+  };
+  const txt =
+    s === "delivered" ? "Delivered" :
+    s === "out_for_delivery" ? "Out for delivery" :
+    s === "in_transit" ? "In transit" :
+    s === "label_created" ? "Label created" :
+    "Ordered";
+  return <span className={`${pill} ${map[s] || map.ordered}`}>{txt}</span>;
+}
+
+function MailIcon({ className = "h-5 w-5" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 6h16v12H4z" />
-      <path d="m22 7-10 6L2 7" />
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 6 9-6" />
+    </svg>
+  );
+}
+function TruckIcon({ className = "h-6 w-6" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 7h11v10H3zM14 10h4l3 3v4h-7z" />
+      <circle cx="7.5" cy="18" r="1.5" />
+      <circle cx="17.5" cy="18" r="1.5" />
     </svg>
   );
 }
