@@ -9,35 +9,34 @@ const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 /* ---------------- helpers ---------------- */
+const str = (v) => (v == null ? "" : String(v)); // coerce null/undefined to ""
 const parseDateISO = (s) => {
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 };
-const classify = (subject = "", snippet = "") => {
-  const S = (subject + " " + snippet).toLowerCase();
-  if (/your order|order confirmation|thanks for your order|order #|order no|we received your order/.test(S)) {
+const classify = (subject, snippet) => {
+  const S = (str(subject) + " " + str(snippet)).toLowerCase();
+  if (/your order|order confirmation|thanks for your order|order #|order no|we received your order/.test(S))
     return "order_confirmation";
-  }
-  if (/shipped|on the way|tracking|label created|out for delivery/.test(S)) {
+  if (/shipped|on the way|tracking|label created|out for delivery/.test(S))
     return "shipping_update";
-  }
-  if (/delivered|has been delivered|package delivered/.test(S)) {
+  if (/delivered|has been delivered|package delivered/.test(S))
     return "delivery_confirmation";
-  }
   return "other";
 };
-const detectRetailer = (from_email = "", subject = "") => {
-  const dom = (from_email.split("@")[1] || "").toLowerCase();
+const detectRetailer = (from_email, subject) => {
+  const fe = str(from_email);
+  const dom = fe.includes("@") ? fe.split("@")[1].toLowerCase() : "";
   if (dom.includes("amazon")) return "Amazon";
   if (dom.includes("ebay")) return "eBay";
   if (dom.includes("walmart")) return "Walmart";
   if (dom.includes("bestbuy")) return "Best Buy";
   if (dom.includes("target")) return "Target";
-  const first = (subject || "").split("-")[0].split("|")[0].trim();
+  const first = str(subject).split("-")[0].split("|")[0].trim();
   return first || (dom ? dom.replace(/\..+$/, "") : "Unknown");
 };
-const extractOrderId = (text = "") => {
-  const s = String(text);
+const extractOrderId = (text) => {
+  const s = str(text);
   const reList = [
     /order\s*(?:number|no\.?|#)\s*[:\-]?\s*([A-Z0-9\-]+)/i,
     /\border\s*#\s*([A-Z0-9\-]+)/i,
@@ -49,8 +48,8 @@ const extractOrderId = (text = "") => {
   }
   return null;
 };
-const extractTotal = (text = "") => {
-  const s = String(text);
+const extractTotal = (text) => {
+  const s = str(text);
   const amounts = Array.from(s.matchAll(/\$([0-9][0-9,]*\.?[0-9]{0,2})/g)).map((m) =>
     Number(m[1].replace(/,/g, ""))
   );
@@ -58,8 +57,8 @@ const extractTotal = (text = "") => {
   const max = Math.max(...amounts.filter((x) => !isNaN(x)));
   return Math.round(max * 100);
 };
-const extractTrackingAndCarrier = (text = "") => {
-  const s = String(text);
+const extractTrackingAndCarrier = (text) => {
+  const s = str(text);
   let m = s.match(/\b1Z[0-9A-Z]{16}\b/i);
   if (m) return { tracking_number: m[0], carrier: "UPS" };
   m = s.match(/\b(\d{12,15})\b/);
@@ -90,7 +89,6 @@ exports.handler = async (event) => {
   }
 
   try {
-    // normalize for most-recently updated connected account
     const { data: acctRows, error: acctErr } = await admin
       .from("email_accounts")
       .select("user_id, email_address")
@@ -102,7 +100,6 @@ exports.handler = async (event) => {
     }
     const user_id = acctRows[0].user_id;
 
-    // pull recent raw emails for this user (no normalized_at dependency)
     const { data: raws, error: rawErr } = await admin
       .from("email_raw")
       .select("id, user_id, subject, snippet, from_email, date_header, raw_json, created_at")
@@ -116,13 +113,13 @@ exports.handler = async (event) => {
 
     for (const r of raws || []) {
       const cls = classify(r.subject, r.snippet);
-      if (!["order_confirmation", "shipping_update", "delivery_confirmation"].includes(cls)) {
-        continue; // ignore non-commerce mail
-      }
+      if (!["order_confirmation", "shipping_update", "delivery_confirmation"].includes(cls)) continue;
+
       const retailer = detectRetailer(r.from_email, r.subject);
-      const order_id = extractOrderId(`${r.subject}\n${r.snippet}\n${JSON.stringify(r.raw_json || {})}`);
+      const blob = `${str(r.subject)}\n${str(r.snippet)}\n${str(JSON.stringify(r.raw_json || {}))}`;
+      const order_id = extractOrderId(blob);
       const order_date = parseDateISO(r.date_header);
-      const total_cents = extractTotal(`${r.subject}\n${r.snippet}`);
+      const total_cents = extractTotal(blob);
 
       if (cls === "order_confirmation" || (cls !== "order_confirmation" && order_id)) {
         orders.push({
@@ -136,13 +133,11 @@ exports.handler = async (event) => {
       }
 
       if (cls === "shipping_update" || cls === "delivery_confirmation") {
-        const { tracking_number, carrier } = extractTrackingAndCarrier(
-          `${r.subject}\n${r.snippet}\n${JSON.stringify(r.raw_json || {})}`
-        );
+        const { tracking_number, carrier } = extractTrackingAndCarrier(blob);
         const status =
           cls === "delivery_confirmation"
             ? "delivered"
-            : /out for delivery/i.test(r.snippet || "")
+            : /out for delivery/i.test(str(r.snippet))
             ? "out_for_delivery"
             : "in_transit";
         ships.push({
@@ -197,6 +192,6 @@ exports.handler = async (event) => {
       }),
     };
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: String(err.message || err) }) };
+    return { statusCode: 500, body: JSON.stringify({ error: String(err && err.message ? err.message : err) }) };
   }
 };
