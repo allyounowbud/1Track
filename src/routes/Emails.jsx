@@ -1,6 +1,5 @@
 // src/routes/Emails.jsx
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
@@ -15,6 +14,7 @@ const tabBtn =
 const tabActive = "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600";
 
 /* ----------------------------- helpers ------------------------------ */
+const cents = (n) => Math.round(Number(n || 0));
 const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
 const within = (d, from, to) => {
   if (!d) return false;
@@ -104,6 +104,7 @@ export default function Emails() {
   /* ----------------------------- filters ----------------------------- */
   const [tab, setTab] = useState("orders"); // "orders" | "shipments"
 
+  // shared date range
   const [range, setRange] = useState("30"); // all | month | 30 | custom
   const [fromStr, setFromStr] = useState("");
   const [toStr, setToStr] = useState("");
@@ -178,9 +179,11 @@ export default function Emails() {
       );
   }, [ships, retailer, shipStatus, fromMs, toMs, q]);
 
-  /* ------------------------ actions: connect/sync ------------------------ */
+  /* ------------------------ actions: connect/sync/normalize ------------------------ */
   const [syncMsg, setSyncMsg] = useState("");
   const [syncing, setSyncing] = useState(false);
+  const [normMsg, setNormMsg] = useState("");
+  const [normalizing, setNormalizing] = useState(false);
 
   function connectGmail() {
     window.location.href = "/.netlify/functions/gmail-auth-start";
@@ -190,42 +193,46 @@ export default function Emails() {
     try {
       setSyncing(true);
       setSyncMsg("Syncing…");
-
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/.netlify/functions/gmail-sync", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
-      });
+      const res = await fetch("/.netlify/functions/gmail-sync", { method: "POST" });
       const j = await res.json().catch(() => ({}));
-
       setSyncMsg(
-        res.ok ? `Imported ${j?.imported ?? 0} message(s) ✓` : `Sync failed: ${j?.error || res.status}`
+        res.ok ? `Imported ${j?.imported ?? 0} message(s); skipped ${j?.skipped_existing ?? 0} ✓`
+               : `Sync failed: ${j?.error || res.status}`
       );
-
       await Promise.all([refetchAcct(), refetchOrders(), refetchShips()]);
     } catch (e) {
       setSyncMsg(String(e.message || e));
     } finally {
       setSyncing(false);
-      setTimeout(() => setSyncMsg(""), 2200);
+      setTimeout(() => setSyncMsg(""), 2600);
     }
   }
 
-  // Banner if redirected with ?connected=1
-  const [params] = useSearchParams();
-  const justConnected = params.get("connected") === "1";
+  async function normalizeNow() {
+    try {
+      setNormalizing(true);
+      setNormMsg("Normalizing…");
+      const res = await fetch("/.netlify/functions/email-normalize", { method: "POST" });
+      const j = await res.json().catch(() => ({}));
+      setNormMsg(
+        res.ok
+          ? `Parsed ${j.orders_inserted ?? 0} orders, ${j.shipments_inserted ?? 0} shipments ✓`
+          : `Normalize failed: ${j?.error || res.status}`
+      );
+      await Promise.all([refetchOrders(), refetchShips()]);
+    } catch (e) {
+      setNormMsg(String(e.message || e));
+    } finally {
+      setNormalizing(false);
+      setTimeout(() => setNormMsg(""), 3000);
+    }
+  }
 
   /* -------------------------------- render -------------------------------- */
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="emails" showTabs />
-
-        {justConnected && (
-          <div className="mb-4 rounded-xl bg-emerald-900/40 border border-emerald-700 text-emerald-200 px-4 py-3">
-            Gmail connected ✓ — you can sync now.
-          </div>
-        )}
 
         {/* Connect + Actions */}
         <div className={`${card} mb-6`}>
@@ -236,8 +243,8 @@ export default function Emails() {
                 Emails
               </div>
               <p className="text-slate-400 text-sm mt-1">
-                Connect your mailbox to automatically import order confirmations and shipping
-                updates. We normalize each email into Orders & Shipments.
+                Connect your mailbox, then <span className="text-slate-200">Sync</span> to fetch commerce emails,
+                and <span className="text-slate-200">Normalize</span> to populate Orders & Shipments.
               </p>
               {connected && (
                 <p className="text-slate-300 text-sm mt-1">
@@ -246,7 +253,7 @@ export default function Emails() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               {!connected && (
                 <button
                   onClick={connectGmail}
@@ -256,17 +263,32 @@ export default function Emails() {
                 </button>
               )}
               {connected && (
-                <button
-                  onClick={syncNow}
-                  disabled={syncing}
-                  className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium"
-                >
-                  {syncing ? "Syncing…" : "Sync now"}
-                </button>
+                <>
+                  <button
+                    onClick={syncNow}
+                    disabled={syncing}
+                    className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium"
+                  >
+                    {syncing ? "Syncing…" : "Sync now"}
+                  </button>
+                  <button
+                    onClick={normalizeNow}
+                    disabled={normalizing}
+                    className="h-11 px-5 rounded-2xl border border-slate-700 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+                    title="Parse raw messages into Orders & Shipments"
+                  >
+                    {normalizing ? "Normalizing…" : "Normalize now"}
+                  </button>
+                </>
               )}
             </div>
           </div>
-          {syncMsg && <div className="mt-3 text-sm text-slate-300">{syncMsg}</div>}
+
+          {(syncMsg || normMsg) && (
+            <div className="mt-3 text-sm text-slate-300">
+              {syncMsg || normMsg}
+            </div>
+          )}
         </div>
 
         {/* Filters */}
@@ -294,7 +316,11 @@ export default function Emails() {
 
             <div>
               <label className="text-slate-300 mb-1 block text-sm">Date range</label>
-              <select value={range} onChange={(e) => setRange(e.target.value)} className={inputBase}>
+              <select
+                value={range}
+                onChange={(e) => setRange(e.target.value)}
+                className={inputBase}
+              >
                 <option value="30">Last 30 days</option>
                 <option value="month">This month</option>
                 <option value="all">All time</option>
@@ -385,27 +411,20 @@ export default function Emails() {
                 </thead>
                 <tbody className="text-slate-200">
                   {ordersLoading && (
-                    <tr>
-                      <td className="py-6 text-slate-400" colSpan={4}>
-                        Loading…
-                      </td>
-                    </tr>
+                    <tr><td className="py-6 text-slate-400" colSpan={4}>Loading…</td></tr>
                   )}
-                  {!ordersLoading &&
-                    ordersView.map((o) => (
-                      <tr key={o.id} className="border-t border-slate-800">
-                        <td className="py-2 pr-3">{o.retailer || "—"}</td>
-                        <td className="py-2 pr-3">{o.order_id || "—"}</td>
-                        <td className="py-2 pr-3">{o.order_date || "—"}</td>
-                        <td className="py-2 pr-3 text-right">${centsToStr(o.total_cents)}</td>
-                      </tr>
-                    ))}
-                  {!ordersLoading && ordersView.length === 0 && (
-                    <tr>
-                      <td className="py-6 text-slate-400" colSpan={4}>
-                        No orders in this view.
+                  {!ordersLoading && ordersView.map((o) => (
+                    <tr key={o.id} className="border-t border-slate-800">
+                      <td className="py-2 pr-3">{o.retailer || "—"}</td>
+                      <td className="py-2 pr-3">{o.order_id || "—"}</td>
+                      <td className="py-2 pr-3">{o.order_date || "—"}</td>
+                      <td className="py-2 pr-3 text-right">
+                        ${centsToStr(o.total_cents)}
                       </td>
                     </tr>
+                  ))}
+                  {!ordersLoading && ordersView.length === 0 && (
+                    <tr><td className="py-6 text-slate-400" colSpan={4}>No orders in this view.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -429,34 +448,21 @@ export default function Emails() {
                 </thead>
                 <tbody className="text-slate-200">
                   {shipsLoading && (
-                    <tr>
-                      <td className="py-6 text-slate-400" colSpan={7}>
-                        Loading…
-                      </td>
-                    </tr>
+                    <tr><td className="py-6 text-slate-400" colSpan={7}>Loading…</td></tr>
                   )}
-                  {!shipsLoading &&
-                    shipsView.map((s) => (
-                      <tr key={s.id} className="border-t border-slate-800">
-                        <td className="py-2 pr-3">{s.retailer || "—"}</td>
-                        <td className="py-2 pr-3">{s.order_id || "—"}</td>
-                        <td className="py-2 pr-3">{s.carrier || "—"}</td>
-                        <td className="py-2 pr-3">{s.tracking_number || "—"}</td>
-                        <td className="py-2 pr-3">{s.status || "—"}</td>
-                        <td className="py-2 pr-3">
-                          {s.shipped_at ? new Date(s.shipped_at).toLocaleDateString() : "—"}
-                        </td>
-                        <td className="py-2 pr-3">
-                          {s.delivered_at ? new Date(s.delivered_at).toLocaleDateString() : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  {!shipsLoading && shipsView.length === 0 && (
-                    <tr>
-                      <td className="py-6 text-slate-400" colSpan={7}>
-                        No shipments in this view.
-                      </td>
+                  {!shipsLoading && shipsView.map((s) => (
+                    <tr key={s.id} className="border-t border-slate-800">
+                      <td className="py-2 pr-3">{s.retailer || "—"}</td>
+                      <td className="py-2 pr-3">{s.order_id || "—"}</td>
+                      <td className="py-2 pr-3">{s.carrier || "—"}</td>
+                      <td className="py-2 pr-3">{s.tracking_number || "—"}</td>
+                      <td className="py-2 pr-3">{s.status || "—"}</td>
+                      <td className="py-2 pr-3">{s.shipped_at ? new Date(s.shipped_at).toLocaleDateString() : "—"}</td>
+                      <td className="py-2 pr-3">{s.delivered_at ? new Date(s.delivered_at).toLocaleDateString() : "—"}</td>
                     </tr>
+                  ))}
+                  {!shipsLoading && shipsView.length === 0 && (
+                    <tr><td className="py-6 text-slate-400" colSpan={7}>No shipments in this view.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -466,8 +472,7 @@ export default function Emails() {
 
         {/* Tiny helper / footer */}
         <div className="text-xs text-slate-500 mt-4">
-          Tip: You can re-run sync anytime. We keep raw emails so future parser improvements can
-          repopulate Orders/Shipments without re-authorizing.
+          Tip: You can run <span className="text-slate-200">Sync</span> anytime. Then run <span className="text-slate-200">Normalize</span> to populate the tables shown here.
         </div>
       </div>
     </div>
