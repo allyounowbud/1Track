@@ -1,313 +1,525 @@
 // netlify/functions/gmail-sync.js
-import { createClient } from '@supabase/supabase-js';
-import { google } from 'googleapis';
+// Pull commerce emails from Gmail, store raw, normalize to orders/shipments, link intelligently.
 
-// ---------- tiny utils ----------
-const json = (status, body) => ({
-  statusCode: status,
-  headers: { 'content-type': 'application/json' },
+import { google } from "googleapis";
+import { createClient } from "@supabase/supabase-js";
+
+const {
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+} = process.env;
+
+// --------------------------- helpers ---------------------------
+const okJson = (body) => ({
+  statusCode: 200,
+  headers: { "content-type": "application/json" },
   body: JSON.stringify(body),
 });
-const chunk = (arr, n) =>
-  arr.reduce((acc, _, i) => (i % n ? acc : [...acc, arr.slice(i, i + n)]), []);
+const errJson = (status, body) => ({
+  statusCode: status,
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(body),
+});
 
-// Base64url → utf8 (for Gmail parts)
-const b64uToUtf8 = (s = '') => {
-  try {
-    return Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
-  } catch {
-    return '';
-  }
-};
-
-// Recursively pull a concise text body (prefers text/plain, falls back to stripped html)
-function extractBody(payload, cap = 10000) {
-  if (!payload) return '';
-  // direct body
-  if (payload.body?.data) return b64uToUtf8(payload.body.data).slice(0, cap);
-
-  const parts = payload.parts || [];
-  // try plain parts first
-  for (const p of parts) {
-    if (p.mimeType && p.mimeType.toLowerCase().includes('text/plain') && p.body?.data) {
-      return b64uToUtf8(p.body.data).slice(0, cap);
-    }
-  }
-  // then any parts (strip html)
-  for (const p of parts) {
-    const t = extractBody(p, cap);
-    if (t) return t;
-  }
-  return '';
+function getBearerJwt(headers) {
+  const h = headers?.authorization || headers?.Authorization || "";
+  const m = /^Bearer\s+(.+)$/.exec(h);
+  return m ? m[1] : null;
 }
 
-// ---------- simple classifier (subject/body/from) ----------
-const WORD = (xs) => new RegExp(`\\b(${xs.join('|')})\\b`, 'i');
+function pickHeader(payload, name) {
+  const h = payload?.headers || [];
+  const f = h.find((x) => (x.name || "").toLowerCase() === name.toLowerCase());
+  return f?.value || null;
+}
 
-const ORDER_RX = WORD([
-  'order confirmation',
-  'thanks for your order',
-  'we received your order',
-  'order placed',
-  'receipt',
-  'invoice',
-  'pedido',        // ES
-  'commande',      // FR
-  'pedido confirmado',
-  'order #',
-  'order no',
-]);
+function parseInternalDate(ms) {
+  if (!ms) return null;
+  const n = Number(ms);
+  if (!Number.isFinite(n)) return null;
+  return new Date(n).toISOString();
+}
 
-const SHIP_RX = WORD([
-  'shipped',
-  'has shipped',
-  'on its way',
-  'in transit',
-  'track your package',
-  'tracking number',
-  'track shipment',
-  'dispatched',
-  'fulfilled',
-  'out for delivery',
-]);
+function toIsoOrNull(v) {
+  const t = Date.parse(v);
+  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+}
 
-const DELIVERED_RX = WORD([
-  'delivered',
-  'has been delivered',
-  'package delivered',
-  'delivered today',
-]);
-
-// Light retailer hint (optional)
-const RETAILER_DOMAINS = [
-  'amazon', 'ebay', 'walmart', 'target', 'bestbuy', 'apple',
-  'nike', 'adidas', 'shopify', 'etsy', 'costco', 'homedepot',
-  'lowes', 'microcenter', 'newegg', 'bhphotovideo', 'gamestop'
-];
-
-function classify({ subject = '', body = '', from = '' }) {
-  const s = subject.toLowerCase();
-  const b = body.toLowerCase();
-  const f = from.toLowerCase();
-
-  const looksRetailer = RETAILER_DOMAINS.some(d => f.includes(d));
-
-  // Strong signals first (subject)
-  if (ORDER_RX.test(s) || (looksRetailer && ORDER_RX.test(b))) return 'order';
-  if (SHIP_RX.test(s)  || (looksRetailer && SHIP_RX.test(b)))  return 'shipment';
-  if (DELIVERED_RX.test(s) || (looksRetailer && DELIVERED_RX.test(b))) return 'delivery';
-
-  // Fallback using body only
-  if (ORDER_RX.test(b)) return 'order';
-  if (SHIP_RX.test(b))  return 'shipment';
-  if (DELIVERED_RX.test(b)) return 'delivery';
-
+// Retailer mapping from From: header domain / display name keywords
+function detectRetailer(fromStr = "", subject = "") {
+  const s = (fromStr + " " + subject).toLowerCase();
+  const map = [
+    ["amazon", "Amazon"],
+    ["walmart", "Walmart"],
+    ["target", "Target"],
+    ["bestbuy", "Best Buy"],
+    ["ebay", "eBay"],
+    ["stockx", "StockX"],
+    ["nike", "Nike"],
+    ["adidas", "Adidas"],
+    ["homedepot", "Home Depot"],
+    ["lowe", "Lowe's"],
+    ["costco", "Costco"],
+    ["etsy", "Etsy"],
+    ["apple", "Apple"],
+    ["gamestop", "GameStop"],
+    ["shopify", "Shopify"],
+  ];
+  for (const [needle, label] of map) {
+    if (s.includes(needle)) return label;
+  }
+  // Fallback: extract display part before <...>
+  const m = /^(.*?)</.exec(fromStr);
+  if (m && m[1]) return m[1].trim();
   return null;
 }
 
-// ---------- function ----------
-export const handler = async (event) => {
-  const debug = /\bdebug=1\b/.test(event.rawQuery || '');
-  const log = (...a) => { if (debug) console.log(...a); };
+// Basic commerce classification
+function classify(subject = "", snippet = "") {
+  const s = (subject || "").toLowerCase();
+  const body = (snippet || "").toLowerCase();
+  const t = s + " " + body;
 
-  const {
-    SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-    GOOGLE_REDIRECT_URI,
-    GMAIL_SYNC_LIMIT,
-    GMAIL_SYNC_PAGES,
-    GMAIL_SYNC_BATCH_SIZE,
-  } = process.env;
-
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return json(500, { error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' });
+  // Strict delivery first
+  if (t.includes("delivered") || t.includes("has been delivered") || t.includes("was delivered")) {
+    return { type: "delivery", status: "delivered" };
   }
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
-    return json(500, { error: 'Missing Google OAuth env vars' });
+  // Out for delivery
+  if (t.includes("out for delivery")) {
+    return { type: "shipment", status: "out_for_delivery" };
+  }
+  // Shipped / on the way
+  if (t.includes("shipped") || t.includes("on the way") || t.includes("your package is on the way") || t.includes("label created")) {
+    if (t.includes("label created")) return { type: "shipment", status: "label_created" };
+    return { type: "shipment", status: "in_transit" };
+  }
+  // Order confirmation
+  if (
+    t.includes("order confirmation") ||
+    t.includes("thanks for your order") ||
+    t.includes("we received your order") ||
+    t.includes("order number") ||
+    t.includes("order #") ||
+    t.startsWith("order ")
+  ) {
+    return { type: "order" };
   }
 
-  // runtime knobs
-  const qs = new URLSearchParams(event.rawQuery || '');
-  const LIMIT = Math.max(1, Math.min(300, Number(qs.get('limit')) || Number(GMAIL_SYNC_LIMIT) || 100));
-  const PAGES = Math.max(1, Math.min(5, Number(qs.get('pages')) || Number(GMAIL_SYNC_PAGES) || 2));
-  const INSERT_BATCH = Math.max(1, Math.min(25, Number(GMAIL_SYNC_BATCH_SIZE) || 10));
+  // Ignore promos/social/etc
+  return { type: "other" };
+}
 
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false },
-    global: { headers: { 'X-Client-Info': 'gmail-sync/orders-only' } },
-  });
+// Extract order id from subject/snippet; avoid tracking numbers
+function extractOrderId(text = "") {
+  const s = text.replace(/\s+/g, " ");
 
-  try {
-    log('stage: start', { LIMIT, PAGES, INSERT_BATCH });
+  // Amazon-like 3-part
+  const amz = /(\d{3}-\d{7}-\d{7})/i.exec(s);
+  if (amz) return amz[1];
 
-    // 1) get account
-    const { data: acctRows, error: acctErr } = await admin
-      .from('email_accounts')
-      .select('id, provider, email_address, user_id, access_token, refresh_token, expires_at')
-      .eq('provider', 'gmail')
-      .not('refresh_token', 'is', null)
-      .order('updated_at', { ascending: false })
+  // "Order #XYZ-12345" or "Order XYZ123"
+  const hash = /order\s*(number|no\.|#)?[:\s\-]*([A-Z0-9\-]{5,})/i.exec(s);
+  if (hash) {
+    const candidate = hash[2];
+    // Filter obvious tracking formats so we don't misassign
+    if (!looksLikeTracking(candidate)) return candidate;
+  }
+
+  // Fallback: nothing
+  return null;
+}
+
+// Extract carrier + tracking
+function looksLikeTracking(str = "") {
+  // UPS
+  if (/^1Z[0-9A-Z]{16}$/i.test(str)) return true;
+  // USPS (20-22 / 26-34 digits; many start with 94 / 92 / 93)
+  if (/^\d{20,34}$/.test(str)) return true;
+  // FedEx common 12/14/15/20 digits
+  if (/^\d{12,20}$/.test(str)) return true;
+  return false;
+}
+
+function extractTrackingAndCarrier(text = "") {
+  const t = text.replace(/\s+/g, " ").toUpperCase();
+
+  // UPS
+  const ups = /\b1Z[0-9A-Z]{16}\b/.exec(t);
+  if (ups) return { tracking: ups[0], carrier: "UPS" };
+
+  // FedEx (12-20 digits). Use hints to avoid order ids.
+  const fedex = /\b(\d{12}|\d{14}|\d{15}|\d{20})\b/.exec(t);
+  if (fedex && (t.includes("FEDEX") || t.includes("TRACK"))) {
+    return { tracking: fedex[0], carrier: "FedEx" };
+  }
+
+  // USPS (20-34 digits). Use hint words
+  const usps = /\b\d{20,34}\b/.exec(t);
+  if (usps && (t.includes("USPS") || t.includes("TRACK"))) {
+    return { tracking: usps[0], carrier: "USPS" };
+  }
+
+  // DHL 10 digits (very loose)
+  const dhl = /\b\d{10}\b/.exec(t);
+  if (dhl && (t.includes("DHL") || t.includes("TRACK"))) {
+    return { tracking: dhl[0], carrier: "DHL" };
+  }
+
+  return { tracking: null, carrier: null };
+}
+
+// Money extraction (very loose)
+function extractTotalCents(text = "") {
+  const m = /\$([0-9]{1,6}(?:\.[0-9]{2})?)/.exec(text);
+  if (!m) return null;
+  const dollars = parseFloat(m[1]);
+  if (!Number.isFinite(dollars)) return null;
+  return Math.round(dollars * 100);
+}
+
+// --------------------------- Gmail search query ---------------------------
+// Focus on commerce: orders & shipping
+function buildQuery(days = 120) {
+  // newer_than is Gmail's relative filter; reduce noise with category/label negations
+  const terms = [
+    '(' +
+      [
+        'subject:"order confirmation"',
+        '"thanks for your order"',
+        '"we received your order"',
+        '"order number"',
+        '"order #"',
+        "shipped",
+        '"on the way"',
+        '"out for delivery"',
+        "delivered",
+        '"tracking number"',
+        '"label created"',
+      ].join(" OR ") +
+    ')',
+    "-in:chats",
+    "-category:social",
+    "-category:promotions",
+    `newer_than:${days}d`,
+  ];
+  return terms.join(" ");
+}
+
+// -------------------- Supabase admin client (server-side) --------------------
+function sbAdmin() {
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+}
+
+// Try to determine the user whose mailbox to sync.
+// Priority: x-user-id header -> Authorization Bearer (sub) -> only/most-recent account.
+async function resolveUserIdAndAccount(admin, evt) {
+  const hdr = evt.headers || {};
+  const explicit = hdr["x-user-id"] || hdr["X-User-Id"];
+  if (explicit) {
+    const { data, error } = await admin
+      .from("email_accounts")
+      .select("*")
+      .eq("user_id", explicit)
+      .eq("provider", "gmail")
+      .order("updated_at", { ascending: false })
       .limit(1);
+    if (!error && data && data[0]) return { userId: explicit, account: data[0] };
+  }
 
-    if (acctErr) throw acctErr;
-    const acct = acctRows?.[0];
-    if (!acct) return json(400, { error: 'No Gmail account connected' });
+  const jwt = getBearerJwt(hdr);
+  if (jwt) {
+    try {
+      // decode sub without verifying (header.payload.signature)
+      const payload = JSON.parse(Buffer.from(jwt.split(".")[1] || "", "base64").toString("utf8"));
+      const sub = payload?.sub;
+      if (sub) {
+        const { data, error } = await admin
+          .from("email_accounts")
+          .select("*")
+          .eq("user_id", sub)
+          .eq("provider", "gmail")
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        if (!error && data && data[0]) return { userId: sub, account: data[0] };
+      }
+    } catch {
+      /* ignore decode */
+    }
+  }
 
-    // 2) OAuth
-    const oAuth2Client = new google.auth.OAuth2(
-      GOOGLE_CLIENT_ID,
-      GOOGLE_CLIENT_SECRET,
-      GOOGLE_REDIRECT_URI
-    );
-    oAuth2Client.setCredentials({
-      refresh_token: acct.refresh_token,
-      access_token: acct.access_token || undefined,
-      expiry_date: acct.expires_at ? Number(acct.expires_at) * 1000 : undefined,
+  // Fallback: take most recent Gmail account (single-user dev convenience)
+  const { data, error } = await admin
+    .from("email_accounts")
+    .select("*")
+    .eq("provider", "gmail")
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  if (!data || !data[0]) throw new Error("No connected Gmail account found.");
+  return { userId: data[0].user_id, account: data[0] };
+}
+
+// --------------------------- main handler ---------------------------
+export const handler = async (event) => {
+  const debug = [];
+  try {
+    // GET or POST is fine
+    const admin = sbAdmin();
+
+    // Identify user + account
+    const { userId, account } = await resolveUserIdAndAccount(admin, event);
+    debug.push(`account ${JSON.stringify({ provider: account.provider, email: account.email_address, user_id: userId })}`);
+
+    // Ensure client credentials
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      return errJson(500, { error: "Missing Google OAuth env (client id/secret)" });
+    }
+
+    // Prepare OAuth client
+    const oauth2 = new google.auth.OAuth2({
+      clientId: GOOGLE_CLIENT_ID,
+      clientSecret: GOOGLE_CLIENT_SECRET,
     });
-    const token = await oAuth2Client.getAccessToken();
-    if (!token?.token) return json(500, { error: 'Could not obtain access token' });
 
-    const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
+    // Refresh token if expired/near expiry
+    let { access_token, refresh_token, expires_at } = account;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const needsRefresh = !access_token || !expires_at || (expires_at - 60) <= nowSec;
 
-    // 3) Gmail query focused on commerce
-    // Keep it short so Gmail accepts it. (You can tweak keywords as needed.)
-    const QUERY =
-      'newer_than:90d -in:spam -in:trash ("order confirmation" OR shipped OR tracking OR delivered OR receipt OR invoice)';
+    if (needsRefresh) {
+      if (!refresh_token) {
+        return errJson(400, { error: "Missing refresh_token; reconnect Gmail." });
+      }
+      const tokenResp = await oauth2.getToken({
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        refresh_token,
+        grant_type: "refresh_token",
+      });
+      access_token = tokenResp.tokens.access_token;
+      const expiry = tokenResp.tokens.expiry_date ? Math.floor(tokenResp.tokens.expiry_date / 1000) : nowSec + 3500;
+      expires_at = expiry;
 
-    // page through results (LIMIT, PAGES)
-    const fetched = [];
-    let pageToken;
-    for (let i = 0; i < PAGES && fetched.length < LIMIT; i++) {
-      const left = LIMIT - fetched.length;
-      const res = await gmail.users.messages.list({
-        userId: 'me',
-        maxResults: Math.min(100, left),
-        q: QUERY,
+      await admin
+        .from("email_accounts")
+        .update({ access_token, expires_at })
+        .eq("id", account.id);
+    }
+
+    oauth2.setCredentials({ access_token, refresh_token });
+    const gmail = google.gmail({ version: "v1", auth: oauth2 });
+    debug.push("access token acquired");
+
+    // --------------------- List relevant messages ---------------------
+    const days = Number(event.queryStringParameters?.days || 120);
+    const limit = Math.max(1, Math.min(500, Number(event.queryStringParameters?.limit || 100)));
+    const q = buildQuery(days);
+
+    let pageToken = undefined;
+    let ids = [];
+    let pages = 0;
+
+    while (ids.length < limit && pages < 5) {
+      const list = await gmail.users.messages.list({
+        userId: "me",
+        q,
+        maxResults: Math.min(100, limit - ids.length),
         pageToken,
       });
-      const msgs = res.data.messages || [];
-      fetched.push(...msgs);
-      pageToken = res.data.nextPageToken;
+      const msgs = list.data.messages || [];
+      ids.push(...msgs.map((m) => m.id));
+      pageToken = list.data.nextPageToken;
+      pages++;
       if (!pageToken) break;
     }
-    log('gmail list count:', fetched.length);
-    if (fetched.length === 0) return json(200, { imported: 0, skipped_existing: 0, fetch_errors: 0 });
 
-    // 4) fetch + classify
-    const details = [];
-    for (const batch of chunk(fetched, 20)) {
-      const got = await Promise.all(
-        batch.map(async (m) => {
-          try {
-            const msg = await gmail.users.messages.get({
-              userId: 'me',
-              id: m.id,
-              format: 'full',
-            });
-            const payload = msg.data.payload || {};
-            const headers = (payload.headers || []).reduce((map, h) => {
-              map[h.name.toLowerCase()] = h.value;
-              return map;
-            }, {});
-            const subj = headers['subject'] || '';
-            const from = headers['from'] || '';
-            const body = extractBody(payload, 16000);
-            const hint = classify({ subject: subj, body, from });
+    debug.push(`gmail list ${JSON.stringify({ count: ids.length })}`);
 
-            if (!hint) {
-              return { ok: false, id: m.id, reason: 'not-commerce' };
-            }
-
-            const dateStr = headers['date'] || null;
-            const dateIso = dateStr ? new Date(dateStr).toISOString() : null;
-            const internalMs = Number(msg.data.internalDate || (dateIso ? Date.parse(dateIso) : Date.now()));
-
-            // keep raw small-ish, and attach event_hint
-            const rawSlim = {
-              id: msg.data.id,
-              threadId: msg.data.threadId,
-              labelIds: msg.data.labelIds || [],
-              historyId: msg.data.historyId,
-              internalDate: msg.data.internalDate,
-              snippet: msg.data.snippet,
-              payload: {
-                mimeType: payload.mimeType,
-                headers: payload.headers,
-              },
-              event_hint: hint, // <— store classification hint here
-            };
-
-            return {
-              ok: true,
-              data: {
-                user_id: acct.user_id,
-                provider: 'gmail',
-                email_address: acct.email_address || null,
-                message_id: m.id,
-                thread_id: msg.data.threadId || null,
-                subject: subj,
-                snippet: msg.data.snippet || null,
-                from_addr: from || null,
-                to_addr: headers['to'] || null,
-                date_header: dateIso,
-                internal_timestamp_ms: Number.isFinite(internalMs) ? internalMs : null,
-                raw_json: rawSlim,
-              },
-            };
-          } catch (e) {
-            return { ok: false, id: m.id, error: String(e.message || e) };
-          }
-        })
-      );
-      details.push(...got);
-    }
-
-    const okRows = details.filter((d) => d.ok).map((d) => d.data);
-    const fetchErrors = details.filter((d) => !d.ok && d.error).length;
-    const nonCommerceSkipped = details.filter((d) => !d.ok && d.reason === 'not-commerce').length;
-
-    if (okRows.length === 0) {
-      return json(200, {
-        imported: 0,
-        skipped_existing: 0,
-        fetch_errors: fetchErrors,
-        non_commerce_skipped: nonCommerceSkipped,
+    // --------------------- Fetch + UPSERT raw ---------------------
+    const newlySeen = [];
+    for (const id of ids) {
+      const full = await gmail.users.messages.get({
+        userId: "me",
+        id,
+        format: "full",
       });
+
+      const payload = full.data?.payload || {};
+      const subject = pickHeader(payload, "Subject") || "";
+      const fromH = pickHeader(payload, "From") || "";
+      const toH = pickHeader(payload, "To") || "";
+      const dateH = pickHeader(payload, "Date");
+      const internal = parseInternalDate(full.data?.internalDate);
+      const snippet = full.data?.snippet || "";
+
+      const row = {
+        id, // important: email_raw.id must be unique/PK
+        user_id: userId,
+        thread_id: full.data?.threadId || null,
+        subject,
+        from_header: fromH,
+        to_header: toH,
+        date_header: toIsoOrNull(dateH),
+        internal_date: internal,
+        snippet,
+        // defer classification/normalized_at so we can reclassify in code below
+      };
+
+      // upsert raw
+      const { error } = await admin
+        .from("email_raw")
+        .upsert(row, { onConflict: "id" });
+      if (error && error.code !== "23505") {
+        // 23505 = unique violation; safe to ignore
+        throw error;
+      }
+
+      // detect whether this was new by checking normalized_at/classification
+      const { data: existing } = await admin
+        .from("email_raw")
+        .select("classification, normalized_at")
+        .eq("id", id)
+        .single();
+
+      if (!existing?.classification || !existing?.normalized_at) {
+        newlySeen.push({ id, subject, fromH, snippet, dateIso: row.date_header || row.internal_date });
+      }
     }
 
-    // 5) skip existing by message_id
-    const ids = okRows.map((r) => r.message_id);
-    const existing = new Set();
-    for (const idBatch of chunk(ids, 100)) {
-      const { data: existRows, error: existErr } = await admin
-        .from('email_raw')
-        .select('message_id')
-        .in('message_id', idBatch);
-      if (existErr) throw existErr;
-      for (const r of existRows || []) existing.add(r.message_id);
-    }
-    const toInsert = okRows.filter((r) => !existing.has(r.message_id));
+    // --------------------- Classify & Normalize ---------------------
+    let normOrders = 0;
+    let normShips = 0;
 
-    // 6) insert in tiny batches
-    let inserted = 0;
-    for (const insBatch of chunk(toInsert, Number(process.env.GMAIL_SYNC_BATCH_SIZE) || 10)) {
-      const { error: insErr } = await admin.from('email_raw').insert(insBatch, { returning: 'minimal' });
-      if (insErr) throw insErr;
-      inserted += insBatch.length;
+    // Pull the set we need to normalize (freshly fetched and any stale ones)
+    const { data: toNormalize, error: normSelErr } = await admin
+      .from("email_raw")
+      .select("*")
+      .eq("user_id", userId)
+      .is("normalized_at", null)
+      .limit(400);
+    if (normSelErr) throw normSelErr;
+
+    for (const m of toNormalize) {
+      const { type, status } = classify(m.subject, m.snippet);
+      const retailer = detectRetailer(m.from_header, m.subject);
+      const textBlob = [m.subject || "", m.snippet || ""].join("  ");
+
+      let orderId = null;
+      let tracking = null;
+      let carrier = null;
+
+      if (type === "order") {
+        orderId = extractOrderId(textBlob);
+      } else if (type === "shipment" || type === "delivery") {
+        const t = extractTrackingAndCarrier(textBlob);
+        tracking = t.tracking;
+        carrier = t.carrier;
+        orderId = extractOrderId(textBlob); // sometimes present alongside tracking
+      }
+
+      // Insert/Upsert into orders/shipments accordingly
+      if (type === "order") {
+        const orderRow = {
+          user_id: userId,
+          retailer: retailer || null,
+          order_id: orderId || null,
+          order_date: m.date_header || m.internal_date || new Date().toISOString(),
+          currency: null,
+          total_cents: extractTotalCents(textBlob),
+        };
+
+        // require at least retailer OR order_id to avoid garbage rows
+        if (orderRow.retailer || orderRow.order_id) {
+          const { error: upErr } = await admin
+            .from("email_orders")
+            .upsert(orderRow, { onConflict: "user_id,retailer,order_id" });
+          if (upErr) throw upErr;
+          normOrders++;
+        }
+      }
+
+      if (type === "shipment" || type === "delivery") {
+        const shipped_at =
+          type === "shipment" ? (m.date_header || m.internal_date) : null;
+        const delivered_at =
+          (type === "delivery" || status === "delivered") ? (m.date_header || m.internal_date) : null;
+
+        // If we have a tracking number, use tracking uniqueness; else fall back to (user, retailer, order_id)
+        const shipRow = {
+          user_id: userId,
+          retailer: retailer || null,
+          order_id: orderId || null,
+          carrier: carrier || null,
+          tracking_number: tracking || null,
+          status: status || (type === "delivery" ? "delivered" : "in_transit"),
+          shipped_at,
+          delivered_at,
+        };
+
+        if (shipRow.tracking_number) {
+          // Upsert by (user_id, tracking_number): update status/dates
+          const { error: upErr } = await admin
+            .from("email_shipments")
+            .upsert(shipRow, { onConflict: "user_id,tracking_number" });
+          if (upErr) throw upErr;
+          normShips++;
+        } else if (shipRow.retailer || shipRow.order_id) {
+          // Less precise, but keep 1 per (user, retailer, order)
+          const { error: upErr } = await admin
+            .from("email_shipments")
+            .upsert(shipRow, { onConflict: "user_id,retailer,order_id" });
+          if (upErr && upErr.code !== "23505") throw upErr;
+          normShips++;
+        }
+
+        // Try to link shipments to an existing order using order_id or retailer proximity
+        if (!shipRow.order_id && shipRow.tracking_number) {
+          // attempt to discover matching order by retailer and recent date window
+          const { data: maybeOrders } = await admin
+            .from("email_orders")
+            .select("order_id, retailer, order_date")
+            .eq("user_id", userId)
+            .gte("order_date", new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString())
+            .lte("order_date", new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString())
+            .limit(50);
+
+          // pick the closest retailer match if any
+          const match = (maybeOrders || []).find(
+            (o) => shipRow.retailer && o.retailer && o.retailer.toLowerCase() === shipRow.retailer.toLowerCase()
+          );
+          if (match) {
+            await admin
+              .from("email_shipments")
+              .update({ retailer: match.retailer, order_id: match.order_id })
+              .eq("user_id", userId)
+              .eq("tracking_number", shipRow.tracking_number);
+          }
+        }
+      }
+
+      // Mark normalized
+      const { error: doneErr } = await admin
+        .from("email_raw")
+        .update({
+          classification: type,
+          normalized_at: new Date().toISOString(),
+        })
+        .eq("id", m.id);
+      if (doneErr) throw doneErr;
     }
 
-    return json(200, {
-      imported: inserted,
-      skipped_existing: existing.size,
-      fetch_errors: fetchErrors,
-      non_commerce_skipped: nonCommerceSkipped,
-      limit_used: LIMIT,
-      pages_used: Math.min(PAGES, Math.ceil(fetched.length / 100)),
+    return okJson({
+      imported: newlySeen.length,
+      normalized_orders: normOrders,
+      normalized_shipments: normShips,
+      skipped_existing: ids.length - newlySeen.length,
+      limit_used: ids.length,
+      pages_used: Math.ceil(ids.length / 100),
+      debug,
     });
   } catch (e) {
-    console.error(e);
-    return json(500, { error: String(e.message || e) });
+    return errJson(500, { error: e.message || String(e), debug });
   }
 };
