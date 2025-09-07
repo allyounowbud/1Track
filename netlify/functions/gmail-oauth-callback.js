@@ -1,76 +1,111 @@
-// netlify/functions/gmail-oauth-callback.js
-import { google } from "googleapis";
+// Netlify function: handles Google redirect, exchanges code, stores tokens in Supabase
 import { createClient } from "@supabase/supabase-js";
+
+function parseCookies(header = "") {
+  return Object.fromEntries(
+    header.split(/;\s*/).map((p) => {
+      const i = p.indexOf("=");
+      return i === -1 ? [p, ""] : [p.slice(0, i), decodeURIComponent(p.slice(i + 1))];
+    })
+  );
+}
 
 export const handler = async (event) => {
   try {
-    const url = new URL(event.rawUrl);
-    const code = url.searchParams.get("code");
-    const stateB64 = url.searchParams.get("state");
-    if (!code || !stateB64) return { statusCode: 400, body: "Missing code/state" };
+    const qs = new URLSearchParams(event.rawQuery || "");
+    const code = qs.get("code");
+    const state = qs.get("state");
 
-    const state = JSON.parse(Buffer.from(stateB64, "base64").toString("utf8"));
-    const { uid, redirectTo } = state || {};
-    if (!uid) return { statusCode: 400, body: "Missing uid" };
+    const cookies = parseCookies(event.headers.cookie || "");
+    const expected = cookies["gmail_oauth_state"];
+
+    if (!code || !state || !expected || state !== expected) {
+      return {
+        statusCode: 400,
+        body: "Missing code/state",
+        headers: {
+          // clear the cookie if present
+          "Set-Cookie": "gmail_oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure",
+        },
+      };
+    }
 
     const {
       GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET,
       GOOGLE_REDIRECT_URI,
       SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY
+      SUPABASE_SERVICE_ROLE_KEY,
     } = process.env;
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false }
-    });
-
-    const oauth2Client = new google.auth.OAuth2(
-      GOOGLE_CLIENT_ID,
-      GOOGLE_CLIENT_SECRET,
-      GOOGLE_REDIRECT_URI
-    );
-
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
-
-    // Get user email from profile
-    const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
-    const me = await oauth2.userinfo.get();
-    const email = me?.data?.email || null;
-
-    // Persist (upsert) the account
-    const now = new Date().toISOString();
-    const refresh_token = tokens.refresh_token; // critical
-    const access_token = tokens.access_token || null;
-    const token_expires_at = tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null;
-
-    if (!refresh_token) {
-      // If user had previously consented, Google may not return refresh_token again.
-      // Keep existing refresh_token if present.
-      // Nothing else to do — redirect back gracefully.
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
+      throw new Error("Missing Google env vars");
+    }
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Missing Supabase env vars");
     }
 
-    await supabase
-      .from("email_accounts")
-      .upsert(
-        {
-          user_id: uid,
-          provider: "gmail",
-          email_address: email,
-          refresh_token: refresh_token || undefined, // don't overwrite with null
-          access_token,
-          token_expires_at,
-          updated_at: now
-        },
-        { onConflict: "user_id" }
-      );
+    // exchange code for tokens
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: GOOGLE_REDIRECT_URI,
+        grant_type: "authorization_code",
+      }),
+    });
 
+    const tokenJson = await tokenRes.json();
+    if (!tokenRes.ok) {
+      throw new Error(tokenJson.error_description || tokenJson.error || "Token exchange failed");
+    }
+
+    const { access_token, refresh_token, expires_in, id_token } = tokenJson;
+    const expires_at = new Date(Date.now() + (expires_in || 3600) * 1000).toISOString();
+
+    // fetch user info (email)
+    const uiRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+    const userInfo = await uiRes.json();
+    const email = userInfo?.email || null;
+
+    // store in Supabase (service role)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { error } = await supabase.from("email_accounts").upsert(
+      {
+        provider: "gmail",
+        email_address: email,
+        access_token,
+        refresh_token: refresh_token || null,
+        expires_at,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "provider" }
+    );
+    if (error) throw error;
+
+    // clear the state cookie
+    const clearCookie = "gmail_oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure";
+
+    // bounce back to the UI with a success flag
     return {
       statusCode: 302,
-      headers: { Location: redirectTo || "/emails" }
+      headers: {
+        Location: "/emails?connected=1",
+        "Set-Cookie": clearCookie,
+      },
     };
   } catch (e) {
-    return { statusCode: 500, body: String(e.message || e) };
+    return {
+      statusCode: 302,
+      headers: {
+        Location: `/emails?error=${encodeURIComponent(e.message || String(e))}`,
+        "Set-Cookie": "gmail_oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure",
+      },
+    };
   }
 };
