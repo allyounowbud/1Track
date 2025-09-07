@@ -1,64 +1,54 @@
 // netlify/functions/gmail-sync.js
+// Fully updated: scheduled auto-sync, preview/commit, tightened shipment creation,
+// status precedence (includes 'canceled'), and robust parsing/classification.
+
 import { google } from "googleapis";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+/* ------------------------- Supabase (server) ------------------------- */
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-// Utility: auth for the current user (reads the stored Gmail tokens tied to Supabase auth.user())
-async function getUserAndGmail(oauthTokensRow) {
-  // You likely already store tokens in a table like email_accounts
-  // Expected row fields: access_token, refresh_token, expiry_date, email_address, user_id
+/* ------------------------- Gmail OAuth client ------------------------ */
+function makeOAuth2Client(tokensRow) {
   const oAuth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     process.env.GMAIL_REDIRECT_URI
   );
   oAuth2Client.setCredentials({
-    access_token: oauthTokensRow.access_token,
-    refresh_token: oauthTokensRow.refresh_token,
-    expiry_date: oauthTokensRow.expiry_date,
+    access_token: tokensRow.access_token,
+    refresh_token: tokensRow.refresh_token,
+    expiry_date: tokensRow.expiry_date ? Number(tokensRow.expiry_date) : undefined,
   });
-  return { userId: oauthTokensRow.user_id, acctEmail: oauthTokensRow.email_address, gmail: google.gmail({ version: "v1", auth: oAuth2Client }) };
+  return oAuth2Client;
 }
 
-// ---- Classification & parsing core ---------------------------------------
+/* --------------------------- Helpers: HTTP --------------------------- */
+function resp(code, body) {
+  return {
+    statusCode: code,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  };
+}
 
+/* ---------------------- Classification & parsing --------------------- */
 const CANCELED_WORDS = /\b(cancel(?:led|ed|ation)|order\s+cancel)/i;
 const SHIPPED_WORDS  = /\b(shipped|shipping\s+update|your\s+order\s+has\s+shipped|on\s+the\s+way)\b/i;
 const OUT_FOR_DELIVERY_WORDS = /\bout\s+for\s+delivery\b/i;
 const DELIVERED_WORDS = /\b(delivered|delivery\s+complete|arrived)\b/i;
 const ORDER_CONFIRM_WORDS = /\b(order\s+confirmation|thanks\s+for\s+your\s+order|we\s+received\s+your\s+order)\b/i;
 
-// extract first tracking (fallback generic carriers)
-const TRACKING_RE = /\b(1Z[0-9A-Z]{16}|9\d{15,22}|\d{12,22})\b/g; // UPS 1Z..., USPS 20-22 digits, FedEx 12-22
-const UPS_HINT = /\bUPS\b/i;
+// Generic tracking candidates
+const TRACKING_RE = /\b(1Z[0-9A-Z]{16}|9\d{15,22}|\d{12,22})\b/g; // UPS + USPS + general FedEx-ish
+const UPS_HINT  = /\bUPS\b/i;
 const USPS_HINT = /\bUSPS|Postal Service\b/i;
 const FEDEX_HINT = /\bFedEx\b/i;
 
-// Retailer-specific hooks (fill out as you go)
-const retailerParsers = [
-  // Example: Target
-  {
-    name: "Target",
-    match: ({from, subject}) => /@target\.com$/.test(from) || /\bTarget\b/.test(subject),
-    parse: ({html, text, subject}) => {
-      const orderId = (text.match(/Order\s+#\s*([A-Z0-9-]+)/i) || [])[1] || (subject.match(/Order\s+#\s*([A-Z0-9-]+)/i) || [])[1];
-      const total = (text.match(/\$([\d,]+\.\d{2})\s*(total|order total)/i) || [])[1];
-      return { retailer: "Target", order_id: orderId, total_cents: total ? Math.round(parseFloat(total.replace(/,/g, ""))*100) : undefined };
-    }
-  },
-  // Example: Amazon
-  {
-    name: "Amazon",
-    match: ({from, subject}) => /@amazon\.com$/.test(from) || /\bAmazon\b/.test(subject),
-    parse: ({text, subject}) => {
-      const orderId = (text.match(/Order\s+#\s*([0-9\-]+)/i) || [])[1] || (subject.match(/#\s*([0-9\-]+)/) || [])[1];
-      return { retailer: "Amazon", order_id: orderId };
-    }
-  }
-];
-
-function classify({ from, subject, text, html }) {
+function classify({ subject, text }) {
   const s = subject || "";
   const t = text || "";
   if (CANCELED_WORDS.test(s) || CANCELED_WORDS.test(t)) return "canceled";
@@ -69,11 +59,38 @@ function classify({ from, subject, text, html }) {
   return "other";
 }
 
+const retailerParsers = [
+  // Target (example)
+  {
+    name: "Target",
+    match: ({ from, subject }) => /@target\.com/i.test(from || "") || /\bTarget\b/i.test(subject || ""),
+    parse: ({ subject, text }) => {
+      const orderId = (text?.match(/Order\s+#\s*([A-Z0-9-]+)/i) || [])[1]
+        || (subject?.match(/Order\s+#\s*([A-Z0-9-]+)/i) || [])[1];
+      const total = (text?.match(/\$([\d,]+\.\d{2})\s*(total|order total)/i) || [])[1];
+      return {
+        retailer: "Target",
+        order_id: orderId,
+        total_cents: total ? Math.round(parseFloat(total.replace(/,/g, "")) * 100) : undefined
+      };
+    }
+  },
+  // Amazon (example)
+  {
+    name: "Amazon",
+    match: ({ from, subject }) => /@amazon\.com/i.test(from || "") || /\bAmazon\b/i.test(subject || ""),
+    parse: ({ subject, text }) => {
+      const orderId = (text?.match(/Order\s+#\s*([0-9\-]+)/i) || [])[1]
+        || (subject?.match(/#\s*([0-9\-]+)/) || [])[1];
+      return { retailer: "Amazon", order_id: orderId };
+    }
+  },
+  // Add more retailers here as you encounter formats...
+];
+
 function detectRetailer(payload) {
-  const from = payload.from || "";
-  const subject = payload.subject || "";
   for (const r of retailerParsers) {
-    if (r.match({from, subject})) return r;
+    if (r.match(payload)) return r;
   }
   return null;
 }
@@ -91,18 +108,22 @@ function parseMessage(payload) {
     total_cents = out.total_cents;
   }
 
-  // generic order id fallback
+  // Generic order id fallback
   if (!order_id) {
     const m = (text || subject || "").match(/\b(Order|PO)\s*#?\s*([A-Z0-9\-]{4,})/i);
     if (m) order_id = m[2];
   }
 
-  // tracking & carrier heuristic
+  // Tracking + carrier heuristics
   const trackings = new Set();
   const combined = `${text || ""}\n${html || ""}`;
   const tr = combined.match(TRACKING_RE) || [];
-  tr.slice(0, 5).forEach(x => trackings.add(x));
-  let carrier = UPS_HINT.test(combined) ? "UPS" : (USPS_HINT.test(combined) ? "USPS" : (FEDEX_HINT.test(combined) ? "FedEx" : null));
+  tr.slice(0, 6).forEach(x => trackings.add(x));
+  const carrier =
+    UPS_HINT.test(combined) ? "UPS" :
+    USPS_HINT.test(combined) ? "USPS" :
+    FEDEX_HINT.test(combined) ? "FedEx" :
+    null;
 
   return {
     classification: cls,
@@ -114,18 +135,16 @@ function parseMessage(payload) {
   };
 }
 
-// --- Gmail helpers ---------------------------------------------------------
+/* ------------------------- Gmail payload utils ----------------------- */
 function header(h, name) {
   const row = (h || []).find(x => x.name?.toLowerCase() === name.toLowerCase());
   return row?.value || null;
 }
-
 function decodeBody(part) {
-  if (!part || !part.body?.data) return "";
+  if (!part?.body?.data) return "";
   const b64 = part.body.data.replace(/-/g, "+").replace(/_/g, "/");
   try { return Buffer.from(b64, "base64").toString("utf8"); } catch { return ""; }
 }
-
 function flattenParts(parts, acc = { text: "", html: "" }) {
   if (!parts) return acc;
   for (const p of parts) {
@@ -136,7 +155,7 @@ function flattenParts(parts, acc = { text: "", html: "" }) {
   return acc;
 }
 
-// --- Upsert helpers --------------------------------------------------------
+/* --------------------------- DB upsert utils ------------------------- */
 async function upsertOrder(userId, retailer, order_id, fields) {
   if (!retailer || !order_id) return null;
   const { data, error } = await supabase
@@ -165,9 +184,7 @@ function mergeStatus(cur, incoming) {
   return rank(incoming) > rank(cur || "") ? incoming : cur;
 }
 
-// --- Preview collector -----------------------------------------------------
 function makeProposedOrder(parse, messageTs) {
-  // minimal Order Book payload
   return {
     retailer: parse.retailer || "Unknown",
     order_id: parse.order_id || "Unknown",
@@ -176,10 +193,30 @@ function makeProposedOrder(parse, messageTs) {
   };
 }
 
-// --- handler ---------------------------------------------------------------
-export const handler = async (event, context) => {
+/* -------------------- Tighten shipment creation ---------------------- */
+function isLikelyTracking(tn, carrierHint) {
+  if (!tn) return false;
+  const s = String(tn).trim();
+  // UPS strict
+  if (/^1Z[0-9A-Z]{16}$/i.test(s)) return true;
+  // USPS common: 20–22 digits (allow when USPS or no hint)
+  if (/^\d{20,22}$/.test(s)) return carrierHint === "USPS" || !carrierHint;
+  // FedEx lengths (require hint to cut false positives)
+  if (/^\d{12}$/.test(s) || /^\d{14}$/.test(s) || /^\d{15}$/.test(s) || /^\d{22}$/.test(s)) {
+    return carrierHint === "FedEx";
+  }
+  return false;
+}
+function shouldMakeShipment(classification) {
+  const c = (classification || "").toLowerCase();
+  return c === "shipping" || c === "out_for_delivery" || c === "delivered";
+}
+
+/* ----------------------------- Handler ------------------------------- */
+export const handler = async (event) => {
   try {
-    const mode = (event.queryStringParameters?.mode || "sync").toLowerCase(); // "sync" | "preview" | "commit"
+    const mode = (event.queryStringParameters?.mode || (event.httpMethod === "POST" ? "sync" : "preview")).toLowerCase();
+    // Pull the newest/active email account (supports single-account per user app flow)
     const { data: acctRow, error: acctErr } = await supabase
       .from("email_accounts")
       .select("*")
@@ -188,16 +225,18 @@ export const handler = async (event, context) => {
       .single();
     if (acctErr || !acctRow) return resp(400, { error: "No connected Gmail account." });
 
-    const { userId, acctEmail, gmail } = await getUserAndGmail(acctRow);
+    const userId = acctRow.user_id;
+    const oAuth2Client = makeOAuth2Client(acctRow);
+    const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
-    // Search query: restrict to likely commerce emails; tailor as needed
+    // Keep query inclusive but commerce-focused
     const query = [
       'category:updates OR category:promotions OR in:inbox',
       '(order OR shipped OR delivery OR delivered OR tracking OR cancel)',
       '-from:noreply@github.com'
     ].join(' ');
 
-    // Fetch message ids first
+    // 1) List candidate messages
     const list = await gmail.users.messages.list({
       userId: "me",
       q: query,
@@ -205,12 +244,15 @@ export const handler = async (event, context) => {
     });
     const ids = (list.data.messages || []).map(m => m.id);
 
-    // Pull existing to short-circuit
-    const { data: seen } = await supabase
-      .from("email_messages")
-      .select("gmail_message_id")
-      .in("gmail_message_id", ids);
-    const seenSet = new Set((seen || []).map(x => x.gmail_message_id));
+    // 2) Skip already ingested messages
+    let seenSet = new Set();
+    if (ids.length) {
+      const { data: seen } = await supabase
+        .from("email_messages")
+        .select("gmail_message_id")
+        .in("gmail_message_id", ids);
+      seenSet = new Set((seen || []).map(x => x.gmail_message_id));
+    }
 
     let imported = 0, updated = 0, skipped = 0;
     const proposedNewOrders = [];
@@ -232,7 +274,7 @@ export const handler = async (event, context) => {
       const parsed = parseMessage({ from, subject, text, html });
       const classification = parsed.classification;
 
-      // Write message row (idempotent unique constraint)
+      // 3) Persist raw message (idempotency & audit)
       await supabase.from("email_messages").insert([{
         user_id: userId,
         gmail_message_id: id,
@@ -251,14 +293,14 @@ export const handler = async (event, context) => {
         parsed_json: parsed
       }]);
 
-      // Build mutations in preview/commit modes only for order emails
+      // 4) PREVIEW: collect proposed order rows from order confirmations only
       if ((mode === "preview" || mode === "commit") && classification === "order" && parsed.retailer && parsed.order_id) {
         proposedNewOrders.push(makeProposedOrder(parsed, internalTs));
       }
 
-      // On sync/commit, actually upsert the normalized entities
+      // 5) SYNC/COMMIT: upsert normalized entities
       if (mode !== "preview") {
-        // 1) ORDER
+        // ORDER upsert + status timestamps
         if (parsed.retailer && parsed.order_id) {
           const base = { order_date: internalTs, total_cents: parsed.total_cents || undefined };
           const targetStatus =
@@ -271,7 +313,7 @@ export const handler = async (event, context) => {
           const stamps = {
             canceled_at: targetStatus === "canceled" ? internalTs : undefined,
             delivered_at: targetStatus === "delivered" ? internalTs : undefined,
-            shipped_at:   targetStatus === "in_transit" || targetStatus === "out_for_delivery" ? internalTs : undefined
+            shipped_at: (targetStatus === "in_transit" || targetStatus === "out_for_delivery") ? internalTs : undefined
           };
 
           const cur = await upsertOrder(userId, parsed.retailer, parsed.order_id, { ...base, ...stamps });
@@ -286,45 +328,49 @@ export const handler = async (event, context) => {
           }
         }
 
-        // 2) SHIPMENTS
-        for (const tn of parsed.trackings || []) {
-          await upsertShipment(userId, parsed.retailer, parsed.order_id, tn, {
-            carrier: parsed.carrier || null,
-            status:
-              classification === "delivered" ? "delivered" :
-              classification === "out_for_delivery" ? "out_for_delivery" :
-              classification === "shipping" ? "in_transit" :
-              "label_created",
-            shipped_at: (classification === "shipping" || classification === "out_for_delivery") ? internalTs : null,
-            delivered_at: (classification === "delivered") ? internalTs : null
-          });
+        // SHIPMENT upserts (tightened; only on shipping-type events, and only if likely tracking)
+        if (shouldMakeShipment(classification)) {
+          for (const tn of parsed.trackings || []) {
+            if (!isLikelyTracking(tn, parsed.carrier)) continue;
+            await upsertShipment(userId, parsed.retailer, parsed.order_id, tn, {
+              carrier: parsed.carrier || null,
+              status:
+                classification === "delivered" ? "delivered" :
+                classification === "out_for_delivery" ? "out_for_delivery" :
+                "in_transit",
+              shipped_at: (classification === "shipping" || classification === "out_for_delivery") ? internalTs : null,
+              delivered_at: (classification === "delivered") ? internalTs : null
+            });
+          }
         }
       }
     }
 
     if (mode === "preview") {
-      // return deduped only-new orders relative to email_orders
+      // Deduplicate proposed and drop ones already existing in email_orders
       const uniq = new Map();
       for (const p of proposedNewOrders) {
         const key = `${p.retailer}::${p.order_id}`;
         if (!uniq.has(key)) uniq.set(key, p);
       }
       const pending = Array.from(uniq.values());
-      // remove those that already exist
-      const existing = await supabase.from("email_orders")
+      if (!pending.length) return resp(200, { mode, proposed: [] });
+
+      // Fetch existing orders for this user+retailers; filter client-side by order_id pair
+      const retailers = Array.from(new Set(pending.map(x => x.retailer)));
+      const { data: existing, error: exErr } = await supabase
+        .from("email_orders")
         .select("retailer, order_id")
-        .in("retailer", pending.map(x => x.retailer))
-        .eq("user_id", (await supabase.auth.getUser()).data?.user?.id || ""); // when using service key, you may pass userId directly
-      const existSet = new Set((existing.data || []).map(x => `${x.retailer}::${x.order_id}`));
+        .eq("user_id", userId)
+        .in("retailer", retailers);
+      if (exErr) return resp(500, { error: exErr.message });
+
+      const existSet = new Set((existing || []).map(x => `${x.retailer}::${x.order_id}`));
       const onlyNew = pending.filter(x => !existSet.has(`${x.retailer}::${x.order_id}`));
       return resp(200, { mode, proposed: onlyNew });
     }
 
-    if (mode === "commit") {
-      // In your app, “commit” might also create rows in your separate Order Book table.
-      // Here, we simply ensure email_orders exists (upsert already done above during commit run).
-    }
-
+    // For commit/sync, normal summary:
     return resp(200, { imported, updated, skipped_existing: skipped });
 
   } catch (e) {
@@ -333,6 +379,9 @@ export const handler = async (event, context) => {
   }
 };
 
-function resp(code, body) {
-  return { statusCode: code, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
-}
+/* ------------------------ Netlify Scheduled Run ---------------------- */
+/** Runs every 10 minutes automatically on Netlify, while the HTTP endpoint
+ *  remains available for manual sync and for preview/commit flows. */
+export const config = {
+  schedule: "*/10 * * * *",
+};

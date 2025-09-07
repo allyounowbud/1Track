@@ -1,4 +1,7 @@
 // src/routes/Emails.jsx
+// Fully updated: canceled tab/pill, preview → confirm modal, manual Sync,
+// optional gentle client auto-sync nudge, and your stitch UI.
+
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
@@ -159,7 +162,7 @@ export default function Emails() {
   const acctEmail = accounts[0]?.email_address || null;
 
   /* ------------------ controls (filters/top tabs/search) ------------------ */
-  const [scope, setScope] = useState("all"); // all | shipping | to_ship | delivered
+  const [scope, setScope] = useState("all"); // all | shipping | to_ship | delivered | canceled
   const [q, setQ] = useState("");
 
   const rowsAll = useMemo(() => stitch(orders, ships), [orders, ships]);
@@ -172,6 +175,8 @@ export default function Emails() {
       r = r.filter(x => !x.shipped_at && !x.delivered_at);
     } else if (scope === "delivered") {
       r = r.filter(x => !!x.delivered_at || x.status === "delivered");
+    } else if (scope === "canceled") {
+      r = r.filter(x => x.status === "canceled");
     }
     if (q.trim()) {
       const t = q.toLowerCase();
@@ -244,6 +249,15 @@ export default function Emails() {
     }
   }
 
+  /* --------------------- optional gentle auto-sync -------------------- */
+  useEffect(() => {
+    if (!connected) return;
+    const id = setInterval(() => {
+      fetch("/.netlify/functions/gmail-sync", { method: "POST" }).catch(() => {});
+    }, 15 * 60 * 1000); // every 15 minutes (server also runs every 10 via Netlify cron)
+    return () => clearInterval(id);
+  }, [connected]);
+
   /* ------------------------------- render ------------------------------- */
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -295,6 +309,7 @@ export default function Emails() {
               <TopTab label="Shipping" active={scope === "shipping"} onClick={() => setScope("shipping")} />
               <TopTab label="To be shipped" active={scope === "to_ship"} onClick={() => setScope("to_ship")} />
               <TopTab label="Delivered" active={scope === "delivered"} onClick={() => setScope("delivered")} />
+              <TopTab label="Canceled" active={scope === "canceled"} onClick={() => setScope("canceled")} />
             </div>
             <div className="w-full sm:w-64">
               <input
