@@ -1,6 +1,21 @@
+# netlify.toml
+
+# Your app build (adjust if your publish/command are already set in the UI)
+[build]
+  command = "npm run build"
+  publish = "dist"
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  # bundling googleapis + supabase is fine with esbuild; keep if you prefer:
+  external_node_modules = ["googleapis","@supabase/supabase-js"]
 
+# Give gmail-sync a slightly higher limit (optional)
 [functions."gmail-sync"]
-  schedule = "@hourly"
+  timeout = 26
+  memory = 256
+
+# Scheduled runs (ONLY if your plan supports scheduled functions)
+# [functions."gmail-sync"]
+#   schedule = "@hourly"
