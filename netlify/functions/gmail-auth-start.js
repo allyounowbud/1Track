@@ -1,48 +1,65 @@
-// netlify/functions/gmail-auth-start.js
+// ESM is supported by Netlify Functions out of the box
 import { google } from "googleapis";
 
-export const handler = async (event) => {
+export async function handler(event) {
   try {
-    const url = new URL(event.rawUrl);
-    const uid = url.searchParams.get("uid");          // required: Supabase user id
-    const redirectTo = url.searchParams.get("redirect") || `${url.origin}/emails`;
-
-    if (!uid) {
-      return { statusCode: 400, body: "Missing uid" };
-    }
-
     const {
       GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET,
-      GOOGLE_REDIRECT_URI
+      GOOGLE_REDIRECT_URI,
     } = process.env;
 
-    const oauth2Client = new google.auth.OAuth2(
+    // Fail loudly if env isn’t set so you’ll see a 500 with a clear message (instead of 502)
+    const missing = [];
+    if (!GOOGLE_CLIENT_ID) missing.push("GOOGLE_CLIENT_ID");
+    if (!GOOGLE_CLIENT_SECRET) missing.push("GOOGLE_CLIENT_SECRET");
+    if (!GOOGLE_REDIRECT_URI) missing.push("GOOGLE_REDIRECT_URI");
+    if (missing.length) {
+      console.error("Missing env:", missing.join(", "));
+      return {
+        statusCode: 500,
+        body: `Server misconfigured: missing ${missing.join(", ")}`,
+      };
+    }
+
+    const oauth2 = new google.auth.OAuth2(
       GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET,
       GOOGLE_REDIRECT_URI
     );
 
-    const state = Buffer.from(JSON.stringify({ uid, redirectTo })).toString("base64");
-
-    const scopes = [
+    const scope = [
       "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile",
       "openid",
-      "email"
     ];
 
-    const authUrl = oauth2Client.generateAuthUrl({
-      access_type: "offline",
-      prompt: "consent", // ensures refresh_token on first consent
-      scope: scopes,
-      state
+    const url = oauth2.generateAuthUrl({
+      access_type: "offline",      // get refresh_token
+      prompt: "consent",           // always ask so we get refresh_token first time
+      scope,
     });
 
+    // If you call ?redirect=1 we 302 straight to Google, otherwise return JSON {url}
+    const wantsRedirect = event.queryStringParameters?.redirect === "1";
+    if (wantsRedirect) {
+      return {
+        statusCode: 302,
+        headers: { Location: url },
+        body: "",
+      };
+    }
     return {
-      statusCode: 302,
-      headers: { Location: authUrl }
+      statusCode: 200,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url }),
     };
-  } catch (e) {
-    return { statusCode: 500, body: String(e.message || e) };
+  } catch (err) {
+    console.error("gmail-auth-start error:", err);
+    return {
+      statusCode: 500,
+      body: `Internal error: ${err?.message || String(err)}`,
+    };
   }
-};
+}
