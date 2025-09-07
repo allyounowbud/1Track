@@ -1,13 +1,16 @@
 // netlify/functions/gmail-sync.js
 import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
-import { randomUUID } from 'crypto';
 
 const json = (status, body) => ({
   statusCode: status,
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify(body),
 });
+
+// tiny helper to chunk arrays
+const chunk = (arr, n) =>
+  arr.reduce((acc, _, i) => (i % n ? acc : [...acc, arr.slice(i, i + n)]), []);
 
 export const handler = async (event) => {
   const debug = /\bdebug=1\b/.test(event.rawQuery || '');
@@ -19,9 +22,11 @@ export const handler = async (event) => {
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
     GOOGLE_REDIRECT_URI,
+    GMAIL_SYNC_LIMIT,            // optional (default 100)
+    GMAIL_SYNC_PAGES,            // optional (default 2)
+    GMAIL_SYNC_BATCH_SIZE,       // optional (default 10 inserts per statement)
   } = process.env;
 
-  // Basic env checks
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return json(500, { error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' });
   }
@@ -29,40 +34,46 @@ export const handler = async (event) => {
     return json(500, { error: 'Missing Google OAuth env vars' });
   }
 
+  // allow URL ?limit= & ?pages= to override, else env, else defaults
+  const qs = new URLSearchParams(event.rawQuery || '');
+  const LIMIT = Math.max(
+    1,
+    Math.min(
+      300,
+      Number(qs.get('limit')) || Number(GMAIL_SYNC_LIMIT) || 100
+    )
+  );
+  const PAGES = Math.max(1, Math.min(5, Number(qs.get('pages')) || Number(GMAIL_SYNC_PAGES) || 2));
+  const INSERT_BATCH = Math.max(1, Math.min(25, Number(GMAIL_SYNC_BATCH_SIZE) || 10));
+
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
+    global: { headers: { 'X-Client-Info': 'gmail-sync/timeout-safe' } },
   });
 
   try {
-    log('stage: start');
+    log('stage: start', { LIMIT, PAGES, INSERT_BATCH });
 
-    // 1) Grab latest Gmail account row (must have user_id + refresh_token)
+    // 1) Get the most recent connected Gmail account
     const { data: acctRows, error: acctErr } = await admin
       .from('email_accounts')
       .select('id, provider, email_address, user_id, access_token, refresh_token, expires_at')
       .eq('provider', 'gmail')
+      .not('refresh_token', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(1);
 
     if (acctErr) throw acctErr;
     const acct = acctRows?.[0];
     if (!acct) return json(400, { error: 'No Gmail account connected' });
-    if (!acct.user_id) return json(400, { error: 'email_accounts.user_id is null; set it to the auth user id' });
-    if (!acct.refresh_token) return json(400, { error: 'Missing refresh_token; reconnect Gmail' });
+    if (!acct.user_id) return json(400, { error: "email_accounts.user_id is null; set it to the auth user's id" });
 
-    log('account', JSON.stringify({
-      provider: acct.provider,
-      email: acct.email_address,
-      user_id: acct.user_id,
-    }));
-
-    // 2) Build OAuth client, ensure access token
+    // 2) OAuth client
     const oAuth2Client = new google.auth.OAuth2(
       GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET,
       GOOGLE_REDIRECT_URI
     );
-
     oAuth2Client.setCredentials({
       refresh_token: acct.refresh_token,
       access_token: acct.access_token || undefined,
@@ -75,14 +86,16 @@ export const handler = async (event) => {
 
     const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
 
-    // 3) List recent messages (a couple pages)
+    // 3) List recent messages (paged; capped by LIMIT)
     const fetched = [];
     let pageToken = undefined;
     let loops = 0;
-    do {
+    while (loops < PAGES && fetched.length < LIMIT) {
+      const left = LIMIT - fetched.length;
       const listRes = await gmail.users.messages.list({
         userId: 'me',
-        maxResults: 100,
+        maxResults: Math.min(100, left),
+        // basic filter to reduce noise; adjust as you like
         q: 'newer_than:30d (order OR receipt OR "order confirmation" OR shipped OR tracking)',
         pageToken,
       });
@@ -90,16 +103,14 @@ export const handler = async (event) => {
       fetched.push(...msgs);
       pageToken = listRes.data.nextPageToken;
       loops++;
-    } while (pageToken && loops < 3);
-
+      if (!pageToken) break;
+    }
     log('gmail list count:', fetched.length);
     if (fetched.length === 0) return json(200, { imported: 0 });
 
     // 4) Fetch details in small batches
-    const chunk = (arr, n) => arr.reduce((acc, _, i) => (i % n ? acc : [...acc, arr.slice(i, i + n)]), []);
     const details = [];
-
-    for (const batch of chunk(fetched, 25)) {
+    for (const batch of chunk(fetched, 20)) {
       const got = await Promise.all(
         batch.map(async (m) => {
           try {
@@ -121,10 +132,25 @@ export const handler = async (event) => {
               msg.data.internalDate || (dateIso ? Date.parse(dateIso) : Date.now())
             );
 
+            // Keep raw_json small-ish to avoid huge insert statements
+            const rawSlim = {
+              id: msg.data.id,
+              threadId: msg.data.threadId,
+              labelIds: msg.data.labelIds || [],
+              historyId: msg.data.historyId,
+              internalDate: msg.data.internalDate,
+              sizeEstimate: msg.data.sizeEstimate,
+              snippet: msg.data.snippet,
+              payload: {
+                mimeType: payload.mimeType,
+                headers: payload.headers, // still useful for parsing
+                parts: payload.parts ? payload.parts.slice(0, 3) : null, // cap parts to reduce bloat
+              },
+            };
+
             return {
               ok: true,
               data: {
-                id: randomUUID(),
                 user_id: acct.user_id,
                 provider: 'gmail',
                 email_address: acct.email_address || null,
@@ -136,9 +162,7 @@ export const handler = async (event) => {
                 to_addr: headers['to'] || null,
                 date_header: dateIso, // timestamptz
                 internal_timestamp_ms: Number.isFinite(internalMs) ? internalMs : null,
-                raw_json: msg.data,   // full Gmail message JSON
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
+                raw_json: rawSlim,    // keep; but trimmed
               },
             };
           } catch (e) {
@@ -151,17 +175,46 @@ export const handler = async (event) => {
 
     const okRows = details.filter((d) => d.ok).map((d) => d.data);
     const errs = details.filter((d) => !d.ok);
-    if (debug && errs.length) log('fetch errors', errs);
+    if (debug && errs.length) log('fetch errors:', errs.slice(0, 3));
 
-    // 5) Upsert into email_raw (requires unique index on message_id)
-    if (okRows.length) {
-      const { error: upErr } = await admin
-        .from('email_raw')
-        .upsert(okRows, { onConflict: 'message_id' });
-      if (upErr) throw upErr;
+    if (okRows.length === 0) {
+      return json(200, { imported: 0, errors: errs.length });
     }
 
-    return json(200, { imported: okRows.length, errors: errs.length, ...(debug ? { errs } : {}) });
+    // 5) Get existing message_ids to avoid heavy upserts
+    const ids = okRows.map((r) => r.message_id);
+    const existing = new Set();
+
+    for (const idBatch of chunk(ids, 100)) {
+      const { data: existRows, error: existErr } = await admin
+        .from('email_raw')
+        .select('message_id')
+        .in('message_id', idBatch);
+
+      if (existErr) throw existErr;
+      for (const r of existRows || []) existing.add(r.message_id);
+    }
+
+    const toInsert = okRows.filter((r) => !existing.has(r.message_id));
+    log('new rows to insert:', toInsert.length);
+
+    // 6) Insert in very small batches with minimal returning to avoid timeouts
+    let inserted = 0;
+    for (const insBatch of chunk(toInsert, INSERT_BATCH)) {
+      const { error: insErr } = await admin
+        .from('email_raw')
+        .insert(insBatch, { returning: 'minimal' });
+      if (insErr) throw insErr;
+      inserted += insBatch.length;
+    }
+
+    return json(200, {
+      imported: inserted,
+      skipped_existing: existing.size,
+      fetch_errors: errs.length,
+      limit_used: LIMIT,
+      pages_used: loops,
+    });
   } catch (e) {
     console.error(e);
     return json(500, { error: String(e.message || e) });
