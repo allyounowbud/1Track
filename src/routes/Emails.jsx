@@ -1,6 +1,7 @@
 // src/routes/Emails.jsx
-// Fully updated: canceled tab/pill, preview → confirm modal, manual Sync,
-// optional gentle client auto-sync nudge, and your stitch UI.
+// Complete: auto-sync on page load, backup Sync button, Canceled tab/pill,
+// preview-new-orders logic (no modal if none), item/qty/price columns,
+// clickable tracking links.
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +17,17 @@ const pill = "inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-xs fon
 
 /* ---------- helpers ---------- */
 const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
+const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
+
+function trackingUrl(carrier, tn) {
+  if (!tn) return null;
+  const c = (carrier || "").toLowerCase();
+  if (c === "ups")   return `https://www.ups.com/track?tracknum=${encodeURIComponent(tn)}`;
+  if (c === "usps")  return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(tn)}`;
+  if (c === "fedex") return `https://www.fedex.com/fedextrack/?tracknumbers=${encodeURIComponent(tn)}`;
+  if (/^1Z/i.test(tn)) return `https://www.ups.com/track?tracknum=${encodeURIComponent(tn)}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(tn + " tracking")}`;
+}
 
 /** Merge orders + shipments into shipment-like rows */
 function stitch(orders = [], shipments = []) {
@@ -28,6 +40,9 @@ function stitch(orders = [], shipments = []) {
       retailer: o.retailer || "—",
       order_id: o.order_id || "—",
       order_date: o.order_date || null,
+      item_name: o.item_name || null,
+      quantity: o.quantity || null,
+      unit_price_cents: o.unit_price_cents || null,
       total_cents: o.total_cents || 0,
       shipped_at: o.shipped_at || null,
       delivered_at: o.delivered_at || null,
@@ -41,10 +56,7 @@ function stitch(orders = [], shipments = []) {
   const attachToRow = (s) => {
     const viaOrder = s.order_id ? byKey.get(makeKey(s.retailer, s.order_id)) : null;
     if (viaOrder) return viaOrder;
-
-    if (s.tracking_number && globalTracking.has(s.tracking_number)) {
-      return globalTracking.get(s.tracking_number);
-    }
+    if (s.tracking_number && globalTracking.has(s.tracking_number)) return globalTracking.get(s.tracking_number);
 
     const key = makeKey(s.retailer, s.order_id || `#${s.tracking_number || s.id}`);
     if (!byKey.has(key)) {
@@ -52,6 +64,9 @@ function stitch(orders = [], shipments = []) {
         retailer: s.retailer || "—",
         order_id: s.order_id || "Unknown",
         order_date: null,
+        item_name: null,
+        quantity: null,
+        unit_price_cents: null,
         total_cents: 0,
         shipped_at: null,
         delivered_at: null,
@@ -100,7 +115,7 @@ function stitch(orders = [], shipments = []) {
 async function getOrders() {
   const { data, error } = await supabase
     .from("email_orders")
-    .select("id, user_id, retailer, order_id, order_date, total_cents, shipped_at, delivered_at, status")
+    .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, shipped_at, delivered_at, status")
     .order("order_date", { ascending: false })
     .limit(2000);
   if (error) throw error;
@@ -129,7 +144,6 @@ async function getEmailAccounts() {
 
 /* --------------------------------- page --------------------------------- */
 export default function Emails() {
-  // header user (kept to match other pages)
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   useEffect(() => {
     async function loadUser() {
@@ -181,7 +195,7 @@ export default function Emails() {
     if (q.trim()) {
       const t = q.toLowerCase();
       r = r.filter(x =>
-        [x.retailer, x.order_id, ...Array.from(x.trackings.keys())]
+        [x.retailer, x.order_id, x.item_name, ...Array.from(x.trackings.keys())]
           .filter(Boolean)
           .some(s => String(s).toLowerCase().includes(t))
       );
@@ -204,19 +218,21 @@ export default function Emails() {
     window.location.href = "/.netlify/functions/gmail-auth-start";
   }
 
-  async function syncNow() {
+  async function syncNow({ silent = false } = {}) {
     try {
       setSyncing(true);
-      setSyncMsg("Syncing…");
+      if (!silent) setSyncMsg("Syncing…");
       const res = await fetch("/.netlify/functions/gmail-sync", { method: "POST" });
       const j = await res.json().catch(() => ({}));
-      setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}, skipped ${j?.skipped_existing ?? 0}` : `Sync failed: ${j?.error || res.status}`);
+      if (!silent) {
+        setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}, skipped ${j?.skipped_existing ?? 0}` : `Sync failed: ${j?.error || res.status}`);
+      }
       await Promise.all([refetchOrders(), refetchShips()]);
     } catch (e) {
-      setSyncMsg(String(e.message || e));
+      if (!silent) setSyncMsg(String(e.message || e));
     } finally {
       setSyncing(false);
-      setTimeout(() => setSyncMsg(""), 2600);
+      if (!silent) setTimeout(() => setSyncMsg(""), 2600);
     }
   }
 
@@ -225,8 +241,14 @@ export default function Emails() {
       setSyncMsg("Looking for new orders…");
       const res = await fetch("/.netlify/functions/gmail-sync?mode=preview");
       const j = await res.json().catch(() => ({}));
+      const list = j?.proposed || [];
+      if (list.length === 0) {
+        setSyncMsg("No new orders found.");
+        setTimeout(() => setSyncMsg(""), 2200);
+        return; // do not open modal
+      }
       setSyncMsg("");
-      setProposed(j?.proposed || []);
+      setProposed(list);
       setPreviewOpen(true);
     } catch (e) {
       setSyncMsg(String(e.message || e));
@@ -249,14 +271,18 @@ export default function Emails() {
     }
   }
 
-  /* --------------------- optional gentle auto-sync -------------------- */
+  /* ---------------- Auto-sync on page load + gentle interval ---------- */
   useEffect(() => {
     if (!connected) return;
+    // auto sync once on mount/reload
+    syncNow({ silent: true });
+    // gentle nudge every 15 minutes while page is open
     const id = setInterval(() => {
-      fetch("/.netlify/functions/gmail-sync", { method: "POST" }).catch(() => {});
-    }, 15 * 60 * 1000); // every 15 minutes (server also runs every 10 via Netlify cron)
+      syncNow({ silent: true });
+    }, 15 * 60 * 1000);
     return () => clearInterval(id);
-  }, [connected]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected]); // re-run only when account connects/disconnects
 
   /* ------------------------------- render ------------------------------- */
   return (
@@ -291,7 +317,7 @@ export default function Emails() {
                   <button onClick={previewNew} className="h-11 px-5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-medium">
                     Preview new orders
                   </button>
-                  <button onClick={syncNow} disabled={syncing} className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium">
+                  <button onClick={() => syncNow()} disabled={syncing} className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium">
                     {syncing ? "Syncing…" : "Sync now"}
                   </button>
                 </>
@@ -315,7 +341,7 @@ export default function Emails() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search retailer, order #, tracking…"
+                placeholder="Search retailer, order #, item, tracking…"
                 className={inputBase}
               />
             </div>
@@ -330,41 +356,63 @@ export default function Emails() {
 
           <div className="divide-y divide-slate-800">
             {rows.map((r, i) => (
-              <div key={i} className="py-3 flex items-center gap-3">
-                <div className="shrink-0">
+              <div key={i} className="py-3 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                {/* icon */}
+                <div className="sm:col-span-1 shrink-0">
                   <TruckIcon className="h-9 w-9 text-slate-300" />
                 </div>
-                <div className="min-w-0 flex-1">
+
+                {/* core info */}
+                <div className="sm:col-span-6 min-w-0">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="min-w-0">
                       <div className="font-medium truncate">
                         {r.order_id || "Unknown"} <span className="text-slate-400">· {r.retailer}</span>
                       </div>
                       <div className="text-xs text-slate-400 mt-0.5">
-                        {r.order_date ? `Ordered ${new Date(r.order_date).toLocaleDateString()}` : "Order date —"}
-                        {r.shipped_at ? ` · Shipped ${new Date(r.shipped_at).toLocaleDateString()}` : ""}
-                        {r.delivered_at ? ` · Delivered ${new Date(r.delivered_at).toLocaleDateString()}` : ""}
+                        {r.order_date ? `Ordered ${safeDate(r.order_date)}` : "Order date —"}
+                        {r.shipped_at ? ` · Shipped ${safeDate(r.shipped_at)}` : ""}
+                        {r.delivered_at ? ` · Delivered ${safeDate(r.delivered_at)}` : ""}
                       </div>
                     </div>
                     <StatusPill status={r.status} />
                   </div>
 
-                  {/* Tracking chips */}
+                  {/* item/qty/price */}
+                  <div className="mt-1 text-sm text-slate-200 truncate">
+                    {r.item_name ? r.item_name : <span className="text-slate-500">Item —</span>}
+                    {r.quantity ? <span className="text-slate-400"> · Qty {r.quantity}</span> : null}
+                    {r.unit_price_cents ? <span className="text-slate-400"> · ${centsToStr(r.unit_price_cents)} ea</span> : null}
+                  </div>
+
+                  {/* tracking chips */}
                   {r.trackings.size > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {Array.from(r.trackings.values()).map((t) => (
-                        <span key={t.tracking_number} className={`${pill} bg-slate-800/70 text-slate-200`}>
-                          <span className="opacity-70">{t.carrier || "Carrier"}</span>
-                          <span className="font-mono">{t.tracking_number}</span>
-                        </span>
-                      ))}
+                      {Array.from(r.trackings.values()).map((t) => {
+                        const url = trackingUrl(t.carrier, t.tracking_number);
+                        return (
+                          <a
+                            key={t.tracking_number}
+                            href={url || "#"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`${pill} bg-slate-800/70 text-slate-200 hover:bg-slate-700`}
+                            title="Open tracking"
+                          >
+                            <span className="opacity-70">{t.carrier || "Carrier"}</span>
+                            <span className="font-mono">{t.tracking_number}</span>
+                          </a>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
 
-                {/* total (if present) */}
-                <div className="hidden sm:block text-right shrink-0 min-w-[80px] text-slate-200">
-                  {r.total_cents ? <>${centsToStr(r.total_cents)}</> : <span className="text-slate-500">—</span>}
+                {/* totals */}
+                <div className="sm:col-span-5 text-right shrink-0">
+                  <div className="text-slate-200">
+                    {r.total_cents ? <>${centsToStr(r.total_cents)}</> : <span className="text-slate-500">—</span>}
+                  </div>
                 </div>
               </div>
             ))}
@@ -372,7 +420,7 @@ export default function Emails() {
         </div>
 
         <div className="text-xs text-slate-500 mt-4">
-          We automatically link shipping emails to their orders (by order # and tracking). Re-sync anytime to pick up new messages.
+          New order emails create an order row. Shipping/delivery/cancel emails update the same order over time.
         </div>
       </div>
 
@@ -382,15 +430,19 @@ export default function Emails() {
           <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-4">
             <div className="text-lg font-semibold">Add these new orders?</div>
             <div className="mt-3 max-h-72 overflow-auto divide-y divide-slate-800">
-              {proposed.length === 0 && <div className="text-slate-400 p-3">No new orders detected.</div>}
               {proposed.map((p, i) => (
-                <div key={i} className="p-3 flex items-center justify-between">
-                  <div className="min-w-0">
+                <div key={i} className="p-3 grid grid-cols-1 sm:grid-cols-12 gap-2">
+                  <div className="sm:col-span-7 min-w-0">
                     <div className="font-medium truncate">{p.order_id} <span className="text-slate-400">· {p.retailer}</span></div>
-                    <div className="text-xs text-slate-400">Order date {new Date(p.order_date).toLocaleDateString()}</div>
+                    <div className="text-xs text-slate-400">Order date {safeDate(p.order_date)}</div>
+                    <div className="text-sm text-slate-300 truncate mt-1">
+                      {p.item_name ? p.item_name : <span className="text-slate-500">Item —</span>}
+                      {p.quantity ? <span className="text-slate-400"> · Qty {p.quantity}</span> : null}
+                      {p.unit_price_cents ? <span className="text-slate-400"> · ${centsToStr(p.unit_price_cents)} ea</span> : null}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    {p.total_cents ? <>${(p.total_cents/100).toFixed(2)}</> : <span className="text-slate-500">—</span>}
+                  <div className="sm:col-span-5 text-right">
+                    {p.total_cents ? <>${centsToStr(p.total_cents)}</> : <span className="text-slate-500">—</span>}
                   </div>
                 </div>
               ))}
