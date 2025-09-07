@@ -14,6 +14,14 @@ const pill = "inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-xs fon
 /* ---------- helpers ---------- */
 const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
 const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
+const timeAgo = (d) => {
+  if (!d) return null;
+  const ms = Date.now() - new Date(d).getTime();
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "today";
+  if (days === 1) return "1 day ago";
+  return `${days} days ago`;
+};
 
 function trackingUrl(carrier, tn) {
   if (!tn) return null;
@@ -23,6 +31,29 @@ function trackingUrl(carrier, tn) {
   if (c === "fedex") return `https://www.fedex.com/fedextrack/?tracknumbers=${encodeURIComponent(tn)}`;
   if (/^1Z/i.test(tn)) return `https://www.ups.com/track?tracknum=${encodeURIComponent(tn)}`;
   return `https://www.google.com/search?q=${encodeURIComponent(tn + " tracking")}`;
+}
+
+function retailerOrderLink(retailer, orderId) {
+  if (!retailer) return null;
+  const r = retailer.toLowerCase();
+  if (r.includes("amazon") && orderId) {
+    // Auth required on Amazon, but this lands on the right page
+    return `https://www.amazon.com/progress-tracker/package?orderId=${encodeURIComponent(orderId)}`;
+  }
+  if (r.includes("target")) return "https://www.target.com/account/orders";
+  if (r.includes("walmart")) return "https://www.walmart.com/account/trackorder";
+  if (r.includes("ebay")) return "https://www.ebay.com/myb/PurchaseHistory";
+  // Fallback: helpful search
+  const q = orderId ? `${retailer} order ${orderId}` : `${retailer} order history`;
+  return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+}
+
+function statusToPct(status) {
+  const s = (status || "").toLowerCase();
+  if (s === "delivered") return 100;
+  if (s === "out_for_delivery") return 75;
+  if (s === "in_transit" || s === "label_created") return 45;
+  return 15; // ordered
 }
 
 /** Merge orders + shipments into shipment-like rows (now with stable uid) */
@@ -44,7 +75,7 @@ function stitch(orders = [], shipments = []) {
       delivered_at: o.delivered_at || null,
       status: (o.status || "ordered").toLowerCase(),
       trackings: new Map(),
-      uid: null, // filled later
+      uid: null,
     });
   });
 
@@ -101,7 +132,6 @@ function stitch(orders = [], shipments = []) {
     if (rank(st) > rank(row.status)) row.status = st;
   });
 
-  // finalize & produce stable unique ids per row
   const out = Array.from(byKey.values());
   for (const row of out) {
     const firstTracking = Array.from(row.trackings.keys()).sort()[0] || "";
@@ -122,7 +152,6 @@ async function getOrders() {
   if (error) throw error;
   return data || [];
 }
-
 async function getShipments() {
   const { data, error } = await supabase
     .from("email_shipments")
@@ -132,7 +161,6 @@ async function getShipments() {
   if (error) throw error;
   return data || [];
 }
-
 async function getEmailAccounts() {
   const { data, error } = await supabase
     .from("email_accounts")
@@ -176,7 +204,7 @@ export default function Emails() {
   const connected = !!accounts.length;
   const acctEmail = accounts[0]?.email_address || null;
 
-  /* ------------------ controls (filters/top tabs/search) ------------------ */
+  /* ------------------ controls ------------------ */
   const [scope, setScope] = useState("all"); // all | ordered | shipping | delivered
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState(() => new Set()); // uids of expanded rows
@@ -188,7 +216,7 @@ export default function Emails() {
     if (scope === "shipping") {
       r = r.filter(x => !x.delivered_at && (x.status === "in_transit" || x.status === "out_for_delivery" || x.status === "label_created"));
     } else if (scope === "ordered") {
-      r = r.filter(x => !x.shipped_at && !x.delivered_at); // not shipped yet
+      r = r.filter(x => !x.shipped_at && !x.delivered_at);
     } else if (scope === "delivered") {
       r = r.filter(x => !!x.delivered_at || x.status === "delivered");
     }
@@ -274,12 +302,10 @@ export default function Emails() {
   /* ---------------- Auto-sync on page load + gentle interval ---------- */
   useEffect(() => {
     if (!connected) return;
-    // First load shows a message
     syncNow({ silent: false, label: "Fetching new orders…" });
-    // Subsequent background checks are silent
     const id = setInterval(() => { syncNow({ silent: true }); }, 15 * 60 * 1000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
 
   /* ------------------------------- render ------------------------------- */
@@ -353,8 +379,20 @@ export default function Emails() {
 
           <div className="divide-y divide-slate-800">
             {rows.map((r) => {
-              const key = r.uid; // stable & unique
+              const key = r.uid;
               const isOpen = expanded.has(key);
+
+              // Compute UI helpers
+              const pct = statusToPct(r.status);
+              const lastUpdate =
+                r.delivered_at || r.shipped_at || r.order_date || null;
+
+              const firstTracking = r.trackings.size
+                ? Array.from(r.trackings.values())[0]
+                : null;
+
+              const orderLink = retailerOrderLink(r.retailer, r.order_id);
+
               return (
                 <div key={key} className="py-2">
                   {/* Row header */}
@@ -394,62 +432,156 @@ export default function Emails() {
                   </div>
 
                   {/* Slide-down detail panel */}
-                  <div
-                    className={`transition-all duration-300 ease-in-out overflow-hidden`}
-                    style={{ maxHeight: isOpen ? 500 : 0 }}
-                  >
-                    <div className="pt-3 pl-11 pr-1">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <Detail label="Order number">
-                          {r.order_id ? (
-                            <Copyable code={r.order_id} />
-                          ) : (
-                            <span className="text-slate-500">—</span>
-                          )}
-                        </Detail>
-                        <Detail label="Retailer">{r.retailer || <span className="text-slate-500">—</span>}</Detail>
+                  <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: isOpen ? 1000 : 0 }}>
+                    <div className="pt-4 pl-11 pr-1">
+                      {/* Status header + progress */}
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-slate-200 font-medium capitalize">
+                          {r.status.replace(/_/g, " ")}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {lastUpdate ? `Updated ${timeAgo(lastUpdate)}` : ""}
+                        </div>
+                      </div>
+                      <div className="mt-2 h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-500 transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
 
-                        <Detail label="Item">{r.item_name || <span className="text-slate-500">—</span>}</Detail>
-                        <Detail label="Quantity">{r.quantity ?? <span className="text-slate-500">—</span>}</Detail>
+                      {/* Timeline */}
+                      <div className="mt-4 grid gap-2 text-sm">
+                        {r.shipped_at && (
+                          <TimelineRow title="Shipment on the way" subtitle="Your package was shipped!" when={r.shipped_at} />
+                        )}
+                        {r.status === "out_for_delivery" && (
+                          <TimelineRow title="Out for delivery" subtitle="Carrier is delivering today" when={r.shipped_at || r.order_date} />
+                        )}
+                        {r.delivered_at && (
+                          <TimelineRow title="Delivered" subtitle="Package arrived" when={r.delivered_at} done />
+                        )}
+                      </div>
 
-                        <Detail label="Price (each)">
-                          {r.unit_price_cents ? `$${centsToStr(r.unit_price_cents)}` : <span className="text-slate-500">—</span>}
-                        </Detail>
-                        <Detail label="Order total">
-                          {r.total_cents ? `$${centsToStr(r.total_cents)}` : <span className="text-slate-500">—</span>}
-                        </Detail>
-
-                        <Detail label="Ordered on">{safeDate(r.order_date)}</Detail>
-                        <Detail label="Shipped on">{safeDate(r.shipped_at)}</Detail>
-                        <Detail label="Delivered on">{safeDate(r.delivered_at)}</Detail>
-
-                        {/* Tracking chips */}
-                        <div className="sm:col-span-2">
-                          <div className="text-xs text-slate-400 mb-1">Tracking</div>
-                          {r.trackings.size > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {Array.from(r.trackings.values()).map((t) => {
-                                const url = trackingUrl(t.carrier, t.tracking_number);
-                                return (
-                                  <a
-                                    key={t.tracking_number}
-                                    href={url || "#"}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className={`${pill} bg-slate-800/70 text-slate-200 hover:bg-slate-700`}
-                                    title="Open tracking"
-                                  >
-                                    <span className="opacity-70">{t.carrier || "Carrier"}</span>
-                                    <span className="font-mono">{t.tracking_number}</span>
-                                  </a>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="text-slate-500">—</div>
+                      {/* Tracking block */}
+                      <div className="mt-5 rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-xs text-slate-400">Tracking number</div>
+                          <div className="text-xs text-slate-400">Carrier</div>
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                          <div className="font-mono text-slate-100 break-all">
+                            {firstTracking?.tracking_number || "—"}
+                          </div>
+                          <div className="text-slate-200">{firstTracking?.carrier || r.retailer || "—"}</div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {firstTracking?.tracking_number && (
+                            <>
+                              <a
+                                href={trackingUrl(firstTracking?.carrier, firstTracking?.tracking_number)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="h-9 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm inline-flex items-center"
+                              >
+                                Open tracking
+                              </a>
+                              <button
+                                onClick={() => navigator.clipboard?.writeText(String(firstTracking.tracking_number))}
+                                className="h-9 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-sm"
+                              >
+                                Copy tracking
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
+
+                      {/* Item + order meta */}
+                      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Item card */}
+                        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                          <div className="text-xs text-slate-400 mb-1">Item</div>
+                          <div className="flex items-start gap-3">
+                            <div className="h-12 w-12 rounded-lg bg-slate-800 border border-slate-700 grid place-items-center text-slate-400">
+                              {/* Placeholder image block */}
+                              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="3" width="18" height="14" rx="2"/><path d="M3 13l5-5 4 4 2-2 4 4"/>
+                              </svg>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-slate-200 font-medium truncate">{r.item_name || "—"}</div>
+                              <div className="text-xs text-slate-400 mt-0.5">Qty {r.quantity ?? "—"}</div>
+                              <div className="text-sm text-slate-200 mt-1">
+                                {r.unit_price_cents ? `$${centsToStr(r.unit_price_cents)} each` : <span className="text-slate-500">—</span>}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Order card */}
+                        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                          <div className="text-xs text-slate-400 mb-1">Order</div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                            <div className="text-slate-400">Retailer</div>
+                            <div className="text-slate-200">{r.retailer || "—"}</div>
+
+                            <div className="text-slate-400">Order number</div>
+                            <div className="text-slate-200">
+                              {r.order_id ? (
+                                <button
+                                  onClick={() => navigator.clipboard?.writeText(String(r.order_id))}
+                                  className="font-mono underline decoration-slate-600 underline-offset-2 hover:text-white"
+                                  title="Copy order number"
+                                >
+                                  {r.order_id}
+                                </button>
+                              ) : "—"}
+                            </div>
+
+                            <div className="text-slate-400">Ordered on</div>
+                            <div className="text-slate-200">{safeDate(r.order_date)}</div>
+
+                            <div className="text-slate-400">Total</div>
+                            <div className="text-slate-200">{r.total_cents ? `$${centsToStr(r.total_cents)}` : "—"}</div>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <a
+                              href={orderLink || "#"}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="h-9 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100 text-sm"
+                            >
+                              View order details
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* All tracking chips (if multiple) */}
+                      {r.trackings.size > 1 && (
+                        <div className="mt-5">
+                          <div className="text-xs text-slate-400 mb-1">All tracking numbers</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {Array.from(r.trackings.values()).map((t) => {
+                              const url = trackingUrl(t.carrier, t.tracking_number);
+                              return (
+                                <a
+                                  key={t.tracking_number}
+                                  href={url || "#"}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className={`${pill} bg-slate-800/70 text-slate-200 hover:bg-slate-700`}
+                                >
+                                  <span className="opacity-70">{t.carrier || "Carrier"}</span>
+                                  <span className="font-mono">{t.tracking_number}</span>
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -507,6 +639,21 @@ function TopTab({ label, active, onClick }) {
   );
 }
 
+function TimelineRow({ title, subtitle, when, done = false }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className={`h-5 w-5 rounded-full grid place-items-center mt-0.5 ${done ? "bg-emerald-600/20 text-emerald-300" : "bg-slate-800 text-slate-300"}`}>
+        <Dot />
+      </div>
+      <div className="min-w-0">
+        <div className="text-slate-200">{title}</div>
+        <div className="text-xs text-slate-400">{subtitle}</div>
+        <div className="text-xs text-slate-400 mt-0.5">{safeDate(when)} {when ? `· ${timeAgo(when)}` : ""}</div>
+      </div>
+    </div>
+  );
+}
+
 function StatusPill({ status }) {
   const s = (status || "").toLowerCase();
   const map = {
@@ -523,27 +670,6 @@ function StatusPill({ status }) {
     s === "label_created" ? "Label created" :
     "Ordered";
   return <span className={`${pill} ${map[s] || map.ordered}`}>{txt}</span>;
-}
-
-function Detail({ label, children }) {
-  return (
-    <div>
-      <div className="text-xs text-slate-400 mb-1">{label}</div>
-      <div className="text-sm text-slate-200">{children}</div>
-    </div>
-  );
-}
-
-function Copyable({ code }) {
-  return (
-    <button
-      onClick={() => navigator.clipboard?.writeText(String(code))}
-      className="font-mono text-slate-200 hover:text-white underline decoration-slate-600 underline-offset-2"
-      title="Copy to clipboard"
-    >
-      {code}
-    </button>
-  );
 }
 
 function MailIcon({ className = "h-5 w-5" }) {
@@ -567,6 +693,13 @@ function ChevronDown({ className = "h-5 w-5" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+function Dot({ className = "h-3 w-3" }) {
+  return (
+    <svg viewBox="0 0 10 10" className={className} fill="currentColor">
+      <circle cx="5" cy="5" r="5" />
     </svg>
   );
 }
