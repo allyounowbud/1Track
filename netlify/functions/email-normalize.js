@@ -8,7 +8,7 @@ const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
-// ---------- helpers ----------
+/* ---------------- helpers ---------------- */
 const parseDateISO = (s) => {
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
@@ -83,14 +83,14 @@ async function upsertOrInsert(table, rows, onConflictCols) {
   return { count: ins ? ins.length : rows.length };
 }
 
-// ---------- handler ----------
+/* ---------------- handler ---------------- */
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
   try {
-    // who to normalize for (latest connected account)
+    // normalize for most-recently updated connected account
     const { data: acctRows, error: acctErr } = await admin
       .from("email_accounts")
       .select("user_id, email_address")
@@ -102,23 +102,22 @@ exports.handler = async (event) => {
     }
     const user_id = acctRows[0].user_id;
 
-    // pull un-normalized RAW emails (NO classification column needed)
+    // pull recent raw emails for this user (no normalized_at dependency)
     const { data: raws, error: rawErr } = await admin
       .from("email_raw")
-      .select("id, user_id, subject, snippet, from_email, date_header, raw_json, normalized_at")
+      .select("id, user_id, subject, snippet, from_email, date_header, raw_json, created_at")
       .eq("user_id", user_id)
-      .is("normalized_at", null)
-      .limit(500);
+      .order("created_at", { ascending: false })
+      .limit(1000);
     if (rawErr) throw rawErr;
 
     const orders = [];
     const ships = [];
-    const normalizedIds = [];
 
     for (const r of raws || []) {
-      const cls = classify(r.subject, r.snippet); // compute on the fly
+      const cls = classify(r.subject, r.snippet);
       if (!["order_confirmation", "shipping_update", "delivery_confirmation"].includes(cls)) {
-        continue;
+        continue; // ignore non-commerce mail
       }
       const retailer = detectRetailer(r.from_email, r.subject);
       const order_id = extractOrderId(`${r.subject}\n${r.snippet}\n${JSON.stringify(r.raw_json || {})}`);
@@ -157,11 +156,9 @@ exports.handler = async (event) => {
           delivered_at: cls === "delivery_confirmation" ? order_date : null,
         });
       }
-
-      normalizedIds.push(r.id);
     }
 
-    // write rows
+    // de-dupe + write
     let ordersInserted = 0;
     let shipsInserted = 0;
 
@@ -191,16 +188,12 @@ exports.handler = async (event) => {
       shipsInserted = res.count;
     }
 
-    if (normalizedIds.length) {
-      await admin.from("email_raw").update({ normalized_at: new Date().toISOString() }).in("id", normalizedIds);
-    }
-
     return {
       statusCode: 200,
       body: JSON.stringify({
         orders_inserted: ordersInserted,
         shipments_inserted: shipsInserted,
-        processed_raw: normalizedIds.length,
+        scanned_raw: raws?.length || 0,
       }),
     };
   } catch (err) {
