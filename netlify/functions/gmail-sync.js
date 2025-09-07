@@ -3,27 +3,40 @@ import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
 import { randomUUID } from 'crypto';
 
+const json = (status, body) => ({
+  statusCode: status,
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(body),
+});
+
 export const handler = async (event) => {
   const debug = /\bdebug=1\b/.test(event.rawQuery || '');
+  const log = (...a) => { if (debug) console.log(...a); };
 
-  const admin = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false } }
-  );
+  const {
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI,
+  } = process.env;
 
-  const log = (...args) => debug && console.log(...args);
-  const respond = (status, body) => ({
-    statusCode: status,
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
+  // Basic env checks
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return json(500, { error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' });
+  }
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
+    return json(500, { error: 'Missing Google OAuth env vars' });
+  }
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
   });
 
   try {
     log('stage: start');
 
-    // Find the most recently connected Gmail account for this site (single-user)
-    // If you support multi-user, key this by the current supabase auth user.
+    // 1) Grab latest Gmail account row (must have user_id + refresh_token)
     const { data: acctRows, error: acctErr } = await admin
       .from('email_accounts')
       .select('id, provider, email_address, user_id, access_token, refresh_token, expires_at')
@@ -33,123 +46,124 @@ export const handler = async (event) => {
 
     if (acctErr) throw acctErr;
     const acct = acctRows?.[0];
-    if (!acct) return respond(400, { error: 'No Gmail account connected' });
-    log('account', JSON.stringify({ provider: acct.provider, email: acct.email_address, user_id: acct.user_id }));
+    if (!acct) return json(400, { error: 'No Gmail account connected' });
+    if (!acct.user_id) return json(400, { error: 'email_accounts.user_id is null; set it to the auth user id' });
+    if (!acct.refresh_token) return json(400, { error: 'Missing refresh_token; reconnect Gmail' });
 
-    // Prepare OAuth2 client
+    log('account', JSON.stringify({
+      provider: acct.provider,
+      email: acct.email_address,
+      user_id: acct.user_id,
+    }));
+
+    // 2) Build OAuth client, ensure access token
     const oAuth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET,
+      GOOGLE_REDIRECT_URI
     );
 
-    // Refresh access token if needed
-    if (!acct.refresh_token) {
-      return respond(400, { error: 'Missing refresh_token; reconnect Gmail' });
-    }
     oAuth2Client.setCredentials({
       refresh_token: acct.refresh_token,
       access_token: acct.access_token || undefined,
       expiry_date: acct.expires_at ? Number(acct.expires_at) * 1000 : undefined,
     });
 
-    // Get a fresh access token (googleapis handles caching/refresh)
     const token = await oAuth2Client.getAccessToken();
-    if (!token || !token.token) {
-      return respond(500, { error: 'Could not obtain access token' });
-    }
-    log('access token acquired');
+    if (!token?.token) return json(500, { error: 'Could not obtain access token' });
+    log('access token ok');
 
     const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
 
-    // Fetch recent messages that look like orders/shipping
-    const listRes = await gmail.users.messages.list({
-      userId: 'me',
-      maxResults: 100,
-      q: 'newer_than:30d (order OR receipt OR "order confirmation" OR shipped OR tracking)',
-    });
-    const messages = listRes.data.messages || [];
-    log('gmail list', JSON.stringify({ count: messages.length }));
+    // 3) List recent messages (a couple pages)
+    const fetched = [];
+    let pageToken = undefined;
+    let loops = 0;
+    do {
+      const listRes = await gmail.users.messages.list({
+        userId: 'me',
+        maxResults: 100,
+        q: 'newer_than:30d (order OR receipt OR "order confirmation" OR shipped OR tracking)',
+        pageToken,
+      });
+      const msgs = listRes.data.messages || [];
+      fetched.push(...msgs);
+      pageToken = listRes.data.nextPageToken;
+      loops++;
+    } while (pageToken && loops < 3);
 
-    if (messages.length === 0) {
-      return respond(200, { imported: 0 });
+    log('gmail list count:', fetched.length);
+    if (fetched.length === 0) return json(200, { imported: 0 });
+
+    // 4) Fetch details in small batches
+    const chunk = (arr, n) => arr.reduce((acc, _, i) => (i % n ? acc : [...acc, arr.slice(i, i + n)]), []);
+    const details = [];
+
+    for (const batch of chunk(fetched, 25)) {
+      const got = await Promise.all(
+        batch.map(async (m) => {
+          try {
+            const msg = await gmail.users.messages.get({
+              userId: 'me',
+              id: m.id,
+              format: 'full',
+            });
+
+            const payload = msg.data.payload || {};
+            const headers = (payload.headers || []).reduce((map, h) => {
+              map[h.name.toLowerCase()] = h.value;
+              return map;
+            }, {});
+
+            const dateStr = headers['date'] || null;
+            const dateIso = dateStr ? new Date(dateStr).toISOString() : null;
+            const internalMs = Number(
+              msg.data.internalDate || (dateIso ? Date.parse(dateIso) : Date.now())
+            );
+
+            return {
+              ok: true,
+              data: {
+                id: randomUUID(),
+                user_id: acct.user_id,
+                provider: 'gmail',
+                email_address: acct.email_address || null,
+                message_id: m.id,
+                thread_id: msg.data.threadId || null,
+                subject: headers['subject'] || '',
+                snippet: msg.data.snippet || null,
+                from_addr: headers['from'] || null,
+                to_addr: headers['to'] || null,
+                date_header: dateIso, // timestamptz
+                internal_timestamp_ms: Number.isFinite(internalMs) ? internalMs : null,
+                raw_json: msg.data,   // full Gmail message JSON
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              },
+            };
+          } catch (e) {
+            return { ok: false, id: m.id, error: String(e.message || e) };
+          }
+        })
+      );
+      details.push(...got);
     }
 
-    // Fetch each message (metadata + raw)
-    const details = await Promise.all(
-      messages.map(async (m) => {
-        try {
-          const msg = await gmail.users.messages.get({
-            userId: 'me',
-            id: m.id,
-            format: 'full',
-          });
-          const payload = msg.data.payload || {};
-          const headers = (payload.headers || []).reduce((map, h) => {
-            map[h.name.toLowerCase()] = h.value;
-            return map;
-          }, {});
+    const okRows = details.filter((d) => d.ok).map((d) => d.data);
+    const errs = details.filter((d) => !d.ok);
+    if (debug && errs.length) log('fetch errors', errs);
 
-          // RFC 2822 Date header → JS date
-          const dateStr = headers['date'];
-          const dateMs = dateStr ? Date.parse(dateStr) : Date.now();
+    // 5) Upsert into email_raw (requires unique index on message_id)
+    if (okRows.length) {
+      const { error: upErr } = await admin
+        .from('email_raw')
+        .upsert(okRows, { onConflict: 'message_id' });
+      if (upErr) throw upErr;
+    }
 
-          // Subject
-          const subject = headers['subject'] || '';
-
-          return {
-            ok: true,
-            gmail_id: m.id,
-            thread_id: msg.data.threadId || null,
-            internal_ts: Number(msg.data.internalDate || dateMs),
-            date_header: dateStr || null,
-            from: headers['from'] || null,
-            to: headers['to'] || null,
-            subject,
-            snippet: msg.data.snippet || null,
-            payload,
-          };
-        } catch (e) {
-          return { ok: false, gmail_id: m.id, error: String(e.message || e) };
-        }
-      })
-    );
-
-    // Build raw rows (include a UUID id so DB default not required)
-    const rawRows = details
-      .filter((d) => d.ok)
-      .map((d) => ({
-        id: randomUUID(), // <— important: always set id
-        user_id: acct.user_id, // who this data belongs to
-        provider: 'gmail',
-        email_address: acct.email_address,
-        message_id: d.gmail_id,        // Gmail’s message id (unique per account)
-        thread_id: d.thread_id,        // optional
-        subject: d.subject,
-        snippet: d.snippet,
-        from_addr: d.from,
-        to_addr: d.to,
-        date_header: d.date_header,
-        internal_timestamp_ms: d.internal_ts,
-        raw_json: d.payload,           // store payload for future parsing improvements
-        created_at: new Date().toISOString(),
-      }));
-
-    // Upsert by message_id to avoid duplicates
-    const { error: rawErr } = await admin
-      .from('email_raw')
-      .upsert(rawRows, { onConflict: 'message_id' });
-
-    if (rawErr) throw rawErr;
-
-    // Optionally call a DB function to parse into normalized tables
-    // (If you have a SQL function named parse_email_raw, call it here)
-    // const { error: parseErr } = await admin.rpc('parse_email_raw');
-    // if (parseErr) throw parseErr;
-
-    return respond(200, { imported: rawRows.length });
-  } catch (err) {
-    console.error(err);
-    return respond(500, { error: String(err.message || err) });
+    return json(200, { imported: okRows.length, errors: errs.length, ...(debug ? { errs } : {}) });
+  } catch (e) {
+    console.error(e);
+    return json(500, { error: String(e.message || e) });
   }
 };
