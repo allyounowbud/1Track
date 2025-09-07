@@ -1,6 +1,7 @@
 // netlify/functions/gmail-sync.js
-// Complete: auto-scheduled, order lifecycle updates, preview/commit flow,
-// stricter shipment creation, item/qty/price parsing, tracking URLs.
+// Robust body extraction, broader order detection (Target, Amazon, generic),
+// item/qty/price parsing, shipment tightening, and a one-time ?mode=backfill
+// to re-process recent email_messages with the improved parser.
 
 import { google } from "googleapis";
 import { createClient } from "@supabase/supabase-js";
@@ -27,17 +28,30 @@ function makeOAuth2Client(tokensRow) {
 }
 
 /* --------------------------- Helpers: HTTP --------------------------- */
-const ok = (body) => ({ statusCode: 200, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+const ok  = (body) => ({ statusCode: 200, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const err = (code, body) => ({ statusCode: code, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 /* ---------------------- Classification & parsing --------------------- */
-const CANCELED_WORDS = /\b(cancel(?:led|ed|ation)|order\s+cancel)/i;
+/** Broadened phrases for order confirmation (covers more retailer copy). */
+const ORDER_CONFIRM_WORDS = new RegExp([
+  'order\\s+confirmation',
+  'thanks\\s+for\\s+your\\s+order',
+  'we\\s+received\\s+your\\s+order',
+  'we\\s+got\\s+your\\s+order',
+  'order\\s+received',
+  'your\\s+order\\s+number',
+  'your\\s+order\\s+is\\s+confirmed',
+  'order\\s+placed',
+  'receipt\\s+for\\s+your\\s+order',
+  'order\\s+details'
+].join('|'), 'i');
+
+const CANCELED_WORDS = /\b(cancel(?:led|ed|ation)|order\s+cancel(?:led|ed)?)/i;
 const SHIPPED_WORDS  = /\b(shipped|shipping\s+update|your\s+order\s+has\s+shipped|on\s+the\s+way)\b/i;
 const OUT_FOR_DELIVERY_WORDS = /\bout\s+for\s+delivery\b/i;
 const DELIVERED_WORDS = /\b(delivered|delivery\s+complete|arrived)\b/i;
-const ORDER_CONFIRM_WORDS = /\b(order\s+confirmation|thanks\s+for\s+your\s+order|we\s+received\s+your\s+order)\b/i;
 
-const TRACKING_RE = /\b(1Z[0-9A-Z]{16}|9\d{15,22}|\d{12,22})\b/g; // UPS + USPS + common FedEx-ish
+const TRACKING_RE = /\b(1Z[0-9A-Z]{16}|9\d{15,22}|\d{12,22})\b/g; // UPS + USPS + general FedEx-ish
 const UPS_HINT  = /\bUPS\b/i;
 const USPS_HINT = /\bUSPS|Postal Service\b/i;
 const FEDEX_HINT = /\bFedEx\b/i;
@@ -54,47 +68,62 @@ function classify({ subject, text }) {
 }
 
 /* ---------------------- Retailer hooks (extensible) ------------------ */
+/** Improved Target + Amazon parsing; easy to add more later. */
 const retailerParsers = [
   {
     name: "Target",
-    match: ({ from, subject }) => /@target\.com/i.test(from || "") || /\bTarget\b/i.test(subject || ""),
-    parse: ({ subject, text }) => {
-      const orderId = (text?.match(/Order\s+#\s*([A-Z0-9-]+)/i) || [])[1]
-        || (subject?.match(/Order\s+#\s*([A-Z0-9-]+)/i) || [])[1];
-      const item = (text?.match(/Item\s*:\s*(.+)/i) || [])[1];
-      const qty = Number((text?.match(/\bQty(?:\.|:)?\s*(\d{1,3})\b/i) || [])[1] || 1);
-      const price = (text?.match(/\$([\d,]+\.\d{2})\s*(each|price)/i) || [])[1] || (text?.match(/Total\s*\$([\d,]+\.\d{2})/i) || [])[1];
+    match: ({ from, subject }) =>
+      /target\.com/i.test(from || "") || /\bTarget\b/i.test(subject || ""),
+    parse: ({ subject, text, html }) => {
+      const body = (text || "") + "\n" + (html || "");
+      // Target order IDs are often 12–14 digits starting with 1
+      const orderId = (body.match(/\bOrder\s*#\s*([0-9\-]{6,})/i) || [])[1]
+        || (body.match(/\b(1\d{11,13})\b/) || [])[1];
+      // Item: look near "Item" / "Item details" or first product-like line
+      let item = (body.match(/(?:Item\s*[:\-]\s*)(.+)/i) || [])[1];
+      if (!item) {
+        const m = body.match(/Item\s+details(?:[^A-Za-z0-9]+)([^\n<]{4,120})/i);
+        if (m) item = m[1].trim();
+      }
+      // Qty
+      const qty = Number((body.match(/\bQty(?:\.|:)?\s*(\d{1,3})\b/i) || [])[1] || 1);
+      // Price: prefer each price, else order total
+      const priceEach = (body.match(/\$([\d,]+\.\d{2})\s*(?:each|ea|price)/i) || [])[1];
+      const orderTotal = (body.match(/(?:Order\s+Total|Total)\s*\$([\d,]+\.\d{2})/i) || [])[1];
       return {
         retailer: "Target",
         order_id: orderId,
-        item_name: item,
+        item_name: item ? item.replace(/<\/?[^>]+(>|$)/g, "").trim().slice(0, 140) : undefined,
         quantity: Number.isFinite(qty) ? qty : 1,
-        unit_price_cents: price ? Math.round(parseFloat(String(price).replace(/,/g, "")) * 100) : undefined
+        unit_price_cents: priceEach ? Math.round(parseFloat(priceEach.replace(/,/g, "")) * 100) : undefined,
+        total_cents: orderTotal ? Math.round(parseFloat(orderTotal.replace(/,/g, "")) * 100) : undefined
       };
     }
   },
   {
     name: "Amazon",
-    match: ({ from, subject }) => /@amazon\.com/i.test(from || "") || /\bAmazon\b/i.test(subject || ""),
+    match: ({ from, subject }) =>
+      /amazon\./i.test(from || "") || /\bAmazon\b/i.test(subject || ""),
     parse: ({ subject, text, html }) => {
-      const orderId = (text?.match(/Order\s+#\s*([0-9\-]+)/i) || [])[1]
-        || (subject?.match(/#\s*([0-9\-]+)/) || [])[1];
-      const item = (text?.match(/(?:Item|Items ordered)\s*:\s*(.+)/i) || [])[1];
-      const qty = Number((text?.match(/\bQty(?:\.|:)?\s*(\d{1,3})\b/i) || [])[1] || 1);
-      const price = (text?.match(/\$([\d,]+\.\d{2})\s*(each|price)/i) || [])[1];
+      const body = (text || "") + "\n" + (html || "");
+      const orderId = (body.match(/Order\s+#\s*([0-9\-]+)/i) || [])[1]
+        || (body.match(/\b\d{3}-\d{7}-\d{7}\b/) || [])[0];
+      const item = (body.match(/(?:Item|Items ordered)\s*[:\-]\s*([^\n<]{4,140})/i) || [])[1];
+      const qty = Number((body.match(/\bQty(?:\.|:)?\s*(\d{1,3})\b/i) || [])[1] || 1);
+      const priceEach = (body.match(/\$([\d,]+\.\d{2})\s*(?:each|ea|price)/i) || [])[1];
+      const orderTotal = (body.match(/(?:Order\s+Total|Total Before Tax)\s*\$([\d,]+\.\d{2})/i) || [])[1];
       return {
         retailer: "Amazon",
         order_id: orderId,
-        item_name: item,
+        item_name: item ? item.replace(/<\/?[^>]+(>|$)/g, "").trim() : undefined,
         quantity: Number.isFinite(qty) ? qty : 1,
-        unit_price_cents: price ? Math.round(parseFloat(String(price).replace(/,/g, "")) * 100) : undefined
+        unit_price_cents: priceEach ? Math.round(parseFloat(priceEach.replace(/,/g, "")) * 100) : undefined,
+        total_cents: orderTotal ? Math.round(parseFloat(orderTotal.replace(/,/g, "")) * 100) : undefined
       };
     }
   },
-  // Add more retailers as needed...
 ];
 
-/* ----------------------- Generic parse fallbacks ---------------------- */
 function detectRetailer(payload) {
   for (const r of retailerParsers) if (r.match(payload)) return r;
   return null;
@@ -114,39 +143,31 @@ function parseMessage(payload) {
     item_name = out.item_name || item_name;
     quantity = out.quantity || quantity;
     unit_price_cents = out.unit_price_cents ?? unit_price_cents;
+    total_cents = out.total_cents ?? total_cents;
   }
 
-  // Generic order id fallback
+  // Generic fallbacks
   if (!order_id) {
     const m = (text || subject || "").match(/\b(Order|PO)\s*#?\s*([A-Z0-9\-]{4,})/i);
     if (m) order_id = m[2];
   }
-
-  // Generic item/qty/price fallbacks
   if (!item_name) {
-    const m = (text || "").match(/(?:Item|Product|Description)\s*:\s*(.+)/i);
-    if (m) item_name = m[1].trim().slice(0, 140);
+    const m = (text || "").match(/(?:Item|Product|Description)\s*[:\-]\s*([^\n]{4,140})/i);
+    if (m) item_name = m[1].trim();
   }
   if (!quantity) {
     const qm = (text || "").match(/\bQty(?:\.|:)?\s*(\d{1,3})\b/i);
     quantity = qm ? Number(qm[1]) : 1;
   }
   if (!unit_price_cents) {
-    const pm = (text || "").match(/\$([\d,]+\.\d{2})\s*(?:each|price)?/i);
+    const pm = (text || "").match(/\$([\d,]+\.\d{2})\s*(?:each|ea|price)?/i);
     if (pm) unit_price_cents = Math.round(parseFloat(pm[1].replace(/,/g, "")) * 100);
   }
-  if (unit_price_cents && quantity) {
-    total_cents = unit_price_cents * quantity;
-  } else {
-    const tm = (text || "").match(/(?:Total|Order Total)\s*\$([\d,]+\.\d{2})/i);
-    if (tm) total_cents = Math.round(parseFloat(tm[1].replace(/,/g, "")) * 100);
-  }
+  if (!total_cents && unit_price_cents && quantity) total_cents = unit_price_cents * quantity;
 
-  // Tracking & carrier heuristics
-  const trackings = new Set();
+  // Tracking + carrier
   const combined = `${text || ""}\n${html || ""}`;
-  const tr = combined.match(TRACKING_RE) || [];
-  tr.slice(0, 6).forEach(x => trackings.add(x));
+  const trackings = new Set((combined.match(TRACKING_RE) || []).slice(0, 6));
   const carrier =
     UPS_HINT.test(combined) ? "UPS" :
     USPS_HINT.test(combined) ? "USPS" :
@@ -171,19 +192,24 @@ function header(h, name) {
   const row = (h || []).find(x => x.name?.toLowerCase() === name.toLowerCase());
   return row?.value || null;
 }
-function decodeBody(part) {
+function decode(part) {
   if (!part?.body?.data) return "";
   const b64 = part.body.data.replace(/-/g, "+").replace(/_/g, "/");
   try { return Buffer.from(b64, "base64").toString("utf8"); } catch { return ""; }
 }
-function flattenParts(parts, acc = { text: "", html: "" }) {
-  if (!parts) return acc;
-  for (const p of parts) {
-    if (p.mimeType === "text/plain") acc.text += "\n" + decodeBody(p);
-    if (p.mimeType === "text/html") acc.html += "\n" + decodeBody(p);
-    if (p.parts) flattenParts(p.parts, acc);
+/** NEW: handle bodies that are on payload.body (no parts) and nested multiparts. */
+function extractBody(payload) {
+  let text = "", html = "";
+  const stack = [payload];
+  while (stack.length) {
+    const p = stack.pop();
+    if (!p) continue;
+    if (p.mimeType === "text/plain" && p.body?.data) text += "\n" + decode(p);
+    if (p.mimeType === "text/html"  && p.body?.data) html += "\n" + decode(p);
+    if (p.parts) p.parts.forEach(x => stack.push(x));
   }
-  return acc;
+  if (!text && payload?.body?.data) text = decode(payload); // single-part plain
+  return { text, html };
 }
 
 /* ------------------------ Tracking URL builder ----------------------- */
@@ -193,7 +219,6 @@ function trackingUrl(carrier, tn) {
   if (c === "ups")   return `https://www.ups.com/track?tracknum=${encodeURIComponent(tn)}`;
   if (c === "usps")  return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(tn)}`;
   if (c === "fedex") return `https://www.fedex.com/fedextrack/?tracknumbers=${encodeURIComponent(tn)}`;
-  // Fallback guess
   if (/^1Z/i.test(tn)) return `https://www.ups.com/track?tracknum=${encodeURIComponent(tn)}`;
   return `https://www.google.com/search?q=${encodeURIComponent(tn + " tracking")}`;
 }
@@ -209,7 +234,6 @@ async function upsertOrder(userId, retailer, order_id, fields) {
   if (error) throw error;
   return data;
 }
-
 async function upsertShipment(userId, retailer, order_id, tracking_number, fields) {
   if (!tracking_number) return null;
   const row = { user_id: userId, retailer: retailer || "—", order_id: order_id || null, tracking_number, ...fields };
@@ -221,12 +245,10 @@ async function upsertShipment(userId, retailer, order_id, tracking_number, field
   if (error) throw error;
   return data;
 }
-
 function mergeStatus(cur, incoming) {
   const rank = v => ({ canceled: 5, delivered: 4, out_for_delivery: 3, in_transit: 2, ordered: 1 })[v] || 0;
   return rank(incoming) > rank(cur || "") ? incoming : cur;
 }
-
 function makeProposedOrder(parse, messageTs) {
   return {
     retailer: parse.retailer || "Unknown",
@@ -238,13 +260,12 @@ function makeProposedOrder(parse, messageTs) {
     total_cents: parse.total_cents || null
   };
 }
-
-/* -------------------- Tighten shipment creation ---------------------- */
+/* Tightened shipment creation */
 function isLikelyTracking(tn, carrierHint) {
   if (!tn) return false;
   const s = String(tn).trim();
-  if (/^1Z[0-9A-Z]{16}$/i.test(s)) return true; // UPS strict
-  if (/^\d{20,22}$/.test(s)) return carrierHint === "USPS" || !carrierHint; // USPS common
+  if (/^1Z[0-9A-Z]{16}$/i.test(s)) return true;
+  if (/^\d{20,22}$/.test(s)) return carrierHint === "USPS" || !carrierHint;
   if (/^\d{12}$/.test(s) || /^\d{14}$/.test(s) || /^\d{15}$/.test(s) || /^\d{22}$/.test(s)) return carrierHint === "FedEx";
   return false;
 }
@@ -256,7 +277,8 @@ function shouldMakeShipment(classification) {
 /* ----------------------------- Handler ------------------------------- */
 export const handler = async (event) => {
   try {
-    const mode = (event.queryStringParameters?.mode || (event.httpMethod === "POST" ? "sync" : "preview")).toLowerCase();
+    const modeRaw = event.queryStringParameters?.mode;
+    const mode = (modeRaw || (event.httpMethod === "POST" ? "sync" : "preview")).toLowerCase();
 
     // Get most recent/active account
     const { data: acctRow, error: acctErr } = await supabase
@@ -268,20 +290,101 @@ export const handler = async (event) => {
     if (acctErr || !acctRow) return err(400, { error: "No connected Gmail account." });
 
     const userId = acctRow.user_id;
-    const gmail = google.gmail({ version: "v1", auth: makeOAuth2Client(acctRow) });
 
-    // Inclusive commerce-focused query
+    /* ----------------------- Backfill from email_messages -----------------------
+       Use when you've already imported messages but parsing logic has improved.
+       Call: /.netlify/functions/gmail-sync?mode=backfill
+    --------------------------------------------------------------------------- */
+    if (mode === "backfill") {
+      // last 14 days of raw messages (adjust as needed)
+      const { data: raws, error: re } = await supabase
+        .from("email_messages")
+        .select("id, gmail_message_id, gmail_thread_id, internal_ts, from_addr, subject, body_text, body_html")
+        .eq("user_id", userId)
+        .gte("internal_ts", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
+        .order("internal_ts", { ascending: true })
+        .limit(1000);
+      if (re) return err(500, { error: re.message });
+
+      let imported = 0, updated = 0;
+      for (const m of (raws || [])) {
+        const parsed = parseMessage({ from: m.from_addr, subject: m.subject, text: m.body_text, html: m.body_html });
+        const classification = parsed.classification;
+
+        // Orders: create on "order"
+        if (classification === "order" && parsed.retailer && parsed.order_id) {
+          await upsertOrder(userId, parsed.retailer, parsed.order_id, {
+            order_date: m.internal_ts,
+            item_name: parsed.item_name || null,
+            quantity: parsed.quantity || 1,
+            unit_price_cents: parsed.unit_price_cents ?? null,
+            total_cents: parsed.total_cents ?? null,
+            status: "ordered"
+          });
+          imported++;
+        }
+
+        // Status updates
+        if (parsed.retailer && parsed.order_id) {
+          const targetStatus =
+            classification === "canceled" ? "canceled" :
+            classification === "delivered" ? "delivered" :
+            classification === "out_for_delivery" ? "out_for_delivery" :
+            classification === "shipping" ? "in_transit" :
+            null;
+
+          if (targetStatus) {
+            const stamps = {
+              canceled_at: targetStatus === "canceled" ? m.internal_ts : undefined,
+              delivered_at: targetStatus === "delivered" ? m.internal_ts : undefined,
+              shipped_at: (targetStatus === "in_transit" || targetStatus === "out_for_delivery") ? m.internal_ts : undefined
+            };
+            const cur = await upsertOrder(userId, parsed.retailer, parsed.order_id, { ...stamps });
+            const finalStatus = mergeStatus(cur?.status, targetStatus);
+            if (finalStatus && finalStatus !== cur?.status) {
+              await supabase.from("email_orders")
+                .update({ status: finalStatus, ...stamps })
+                .eq("user_id", userId).eq("retailer", parsed.retailer).eq("order_id", parsed.order_id);
+              updated++;
+            }
+          }
+        }
+
+        // Shipments
+        if (shouldMakeShipment(classification)) {
+          for (const tn of parsed.trackings || []) {
+            if (!isLikelyTracking(tn, parsed.carrier)) continue;
+            await upsertShipment(userId, parsed.retailer, parsed.order_id, tn, {
+              carrier: parsed.carrier || null,
+              status:
+                classification === "delivered" ? "delivered" :
+                classification === "out_for_delivery" ? "out_for_delivery" :
+                "in_transit",
+              shipped_at: (classification === "shipping" || classification === "out_for_delivery") ? m.internal_ts : null,
+              delivered_at: (classification === "delivered") ? m.internal_ts : null
+            });
+          }
+        }
+      }
+      return ok({ mode, imported, updated });
+    }
+
+    /* ------------------------------- Gmail sync ------------------------------- */
+    const oAuth2Client = makeOAuth2Client(acctRow);
+    const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+    // Pull recent commerce-related messages (newer_than to avoid very old noise)
     const query = [
+      'newer_than:30d',
       'category:updates OR category:promotions OR in:inbox',
-      '(order OR shipped OR delivery OR delivered OR tracking OR cancel)',
+      '(order OR receipt OR shipped OR delivery OR delivered OR tracking OR cancel)',
       '-from:noreply@github.com'
     ].join(' ');
 
-    // 1) Candidate message IDs
     const list = await gmail.users.messages.list({ userId: "me", q: query, maxResults: 200 });
     const ids = (list.data.messages || []).map(m => m.id);
 
-    // 2) Skip already-ingested messages
+    // Skip already ingested messages
     let seenSet = new Set();
     if (ids.length) {
       const { data: seen } = await supabase
@@ -302,16 +405,15 @@ export const handler = async (event) => {
       const h = msg.payload?.headers || [];
       const from = header(h, "From") || "";
       const subject = header(h, "Subject") || "";
-      const { text, html } = flattenParts(msg.payload?.parts);
+      const { text, html } = extractBody(msg.payload || {});
       const snippet = msg.snippet || "";
       const internalTs = new Date(Number(msg.internalDate || Date.now())).toISOString();
       const threadId = msg.threadId;
 
-      // Parse + classify
       const parsed = parseMessage({ from, subject, text, html });
       const classification = parsed.classification;
 
-      // 3) Persist raw message for audit/idempotency
+      // Store raw message (audit/idempotency)
       await supabase.from("email_messages").insert([{
         user_id: userId,
         gmail_message_id: id,
@@ -328,31 +430,30 @@ export const handler = async (event) => {
         tracking_number: parsed.trackings?.[0] || null,
         carrier: parsed.carrier || null,
         parsed_json: parsed,
-        // store a first tracking URL (optional)
         tracking_url: parsed.trackings?.[0] ? trackingUrl(parsed.carrier, parsed.trackings[0]) : null
       }]);
 
-      // 4) PREVIEW: collect only true order confirmations that aren't in orders yet
+      // Collect preview candidates (only true order confirmations)
       if ((mode === "preview" || mode === "commit") && classification === "order" && parsed.retailer && parsed.order_id) {
         proposedNewOrders.push(makeProposedOrder(parsed, internalTs));
       }
 
-      // 5) SYNC/COMMIT: mutate normalized entities
+      // Mutate normalized tables (skip for preview)
       if (mode !== "preview") {
-        // Orders are ONLY created on 'order' classification
+        // Create order only on "order"
         if (classification === "order" && parsed.retailer && parsed.order_id) {
-          const base = {
+          await upsertOrder(userId, parsed.retailer, parsed.order_id, {
             order_date: internalTs,
             item_name: parsed.item_name || null,
             quantity: parsed.quantity || 1,
             unit_price_cents: parsed.unit_price_cents ?? null,
-            total_cents: parsed.total_cents ?? null
-          };
-          const cur = await upsertOrder(userId, parsed.retailer, parsed.order_id, { ...base, status: "ordered" });
-          if (!cur) imported++; // defensive
+            total_cents: parsed.total_cents ?? null,
+            status: "ordered"
+          });
+          imported++;
         }
 
-        // Status updates for shipping/out_for_delivery/delivered/canceled
+        // Status updates
         if (parsed.retailer && parsed.order_id) {
           const targetStatus =
             classification === "canceled" ? "canceled" :
@@ -374,13 +475,11 @@ export const handler = async (event) => {
                 .update({ status: finalStatus, ...stamps })
                 .eq("user_id", userId).eq("retailer", parsed.retailer).eq("order_id", parsed.order_id);
               updated++;
-            } else {
-              imported++;
             }
           }
         }
 
-        // Shipments: only for shipping-type messages and with likely tracking
+        // Shipments with likely tracking
         if (shouldMakeShipment(classification)) {
           for (const tn of parsed.trackings || []) {
             if (!isLikelyTracking(tn, parsed.carrier)) continue;
@@ -399,12 +498,8 @@ export const handler = async (event) => {
     }
 
     if (mode === "preview") {
-      // Dedupe & filter out ones already in email_orders
       const uniq = new Map();
-      for (const p of proposedNewOrders) {
-        const key = `${p.retailer}::${p.order_id}`;
-        if (!uniq.has(key)) uniq.set(key, p);
-      }
+      for (const p of proposedNewOrders) uniq.set(`${p.retailer}::${p.order_id}`, p);
       const pending = Array.from(uniq.values());
       if (!pending.length) return ok({ mode, proposed: [] });
 
@@ -412,7 +507,7 @@ export const handler = async (event) => {
       const { data: existing, error: exErr } = await supabase
         .from("email_orders")
         .select("retailer, order_id")
-        .eq("user_id", (await supabase.from("email_accounts").select("user_id").eq("id", acctRow.id).single()).data.user_id) // same userId
+        .eq("user_id", userId)
         .in("retailer", retailers);
       if (exErr) return err(500, { error: exErr.message });
 
@@ -422,6 +517,7 @@ export const handler = async (event) => {
     }
 
     return ok({ imported, updated, skipped_existing: skipped });
+
   } catch (e) {
     console.error(e);
     return err(500, { error: e.message || String(e) });
