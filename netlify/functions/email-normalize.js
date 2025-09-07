@@ -1,266 +1,255 @@
 // netlify/functions/email-normalize.js
-import { createClient } from '@supabase/supabase-js';
+// CommonJS for Netlify Functions with esbuild bundler
+const { createClient } = require("@supabase/supabase-js");
 
-// ---------- helpers ----------
-const json = (status, body) => ({
-  statusCode: status,
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify(body),
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Admin client (server-side only)
+const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
 });
 
-const currencyFrom = (s = '') => {
-  if (/[€]/.test(s)) return { sym: '€', code: 'EUR' };
-  if (/[£]/.test(s)) return { sym: '£', code: 'GBP' };
-  return { sym: '$', code: 'USD' }; // default
+// --- tiny helpers ---
+const moneyToCents = (txt) => {
+  if (!txt) return 0;
+  const m = String(txt).match(/([0-9][0-9,]*\.?[0-9]{0,2})/);
+  if (!m) return 0;
+  const n = Number(m[1].replace(/,/g, ""));
+  return Math.round((isNaN(n) ? 0 : n) * 100);
+};
+const parseDateISO = (s) => {
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 };
 
-const toCents = (amtStr = '') => {
-  const n = Number(String(amtStr).replace(/[^0-9.]/g, ''));
-  return Math.round((isFinite(n) ? n : 0) * 100);
-};
+// Very light classification fallback (if sync didn’t set it)
+function classify(subject = "", snippet = "") {
+  const S = (subject + " " + snippet).toLowerCase();
+  if (/your order|order confirmation|thanks for your order|order #|order no|we received your order/.test(S)) {
+    return "order_confirmation";
+  }
+  if (/shipped|on the way|tracking|label created|out for delivery/.test(S)) {
+    return "shipping_update";
+  }
+  if (/delivered|has been delivered|package delivered/.test(S)) {
+    return "delivery_confirmation";
+  }
+  return "other";
+}
 
-const mapDomainToRetailer = (fromAddr = '') => {
-  const m = fromAddr.toLowerCase().match(/@([^>\s;]+)/);
-  const domain = m?.[1] || '';
-  const map = {
-    'amazon.com': 'Amazon',
-    'amazon.ca': 'Amazon',
-    'ebay.com': 'eBay',
-    'walmart.com': 'Walmart',
-    'target.com': 'Target',
-    'bestbuy.com': 'Best Buy',
-    'apple.com': 'Apple',
-    'microcenter.com': 'Micro Center',
-    'newegg.com': 'Newegg',
-    'bhphotovideo.com': 'B&H',
-    'homedepot.com': 'Home Depot',
-    'lowes.com': 'Lowe’s',
-    'etsy.com': 'Etsy',
-    'shopify.com': 'Shopify',
-  };
-  for (const d of Object.keys(map)) if (domain.endsWith(d)) return map[d];
-  return null;
-};
+// Naive retailer extraction: domain or first word
+function detectRetailer(from_email = "", subject = "") {
+  const dom = (from_email.split("@")[1] || "").toLowerCase();
+  if (dom.includes("amazon")) return "Amazon";
+  if (dom.includes("ebay")) return "eBay";
+  if (dom.includes("walmart")) return "Walmart";
+  if (dom.includes("bestbuy")) return "Best Buy";
+  if (dom.includes("target")) return "Target";
+  const first = (subject || "").split("-")[0].split("|")[0].trim();
+  return first || (dom ? dom.replace(/\..+$/, "") : "Unknown");
+}
 
-// very loose order id finder
-const findOrderId = (text = '') => {
-  // Common patterns: "Order # 123-1234567-1234567", "Order Number: 987654"
-  const rxes = [
-    /order[\s#:-]*([A-Z0-9\-]{5,})/i,
-    /order\s*number[\s#:-]*([A-Z0-9\-]{5,})/i,
-    /\b([0-9]{3}-[0-9]{7}-[0-9]{7})\b/, // Amazon-like
+// Order id regexes
+function extractOrderId(text = "") {
+  const s = String(text);
+  const reList = [
+    /order\s*(?:number|no\.?|#)\s*[:\-]?\s*([A-Z0-9\-]+)/i,
+    /\border\s*#\s*([A-Z0-9\-]+)/i,
+    /\b([A-Z0-9]{8,})\b/, // last resort token
   ];
-  for (const rx of rxes) {
-    const m = text.match(rx);
-    if (m?.[1]) return m[1].trim();
+  for (const re of reList) {
+    const m = s.match(re);
+    if (m && m[1]) return m[1].trim();
   }
-  return null;
-};
-
-// loose total extractor (prefers lines with "total", otherwise first currency)
-const findTotal = (subject = '', snippet = '') => {
-  const pick = (s) => {
-    const currencyPref = /(?:total|grand total|amount|order total)[^\n$£€]*([$£€]\s?\d[\d,]*(?:\.\d{2})?)/i;
-    const firstMoney = /([$£€]\s?\d[\d,]*(?:\.\d{2})?)/;
-    let m = s.match(currencyPref);
-    if (!m) m = s.match(firstMoney);
-    if (m?.[1]) return m[1];
-    return null;
-  };
-  return pick(subject) || pick(snippet) || null;
-};
-
-// carrier + tracking
-const findCarrier = (text = '') => {
-  const s = text.toLowerCase();
-  if (s.includes('ups')) return 'UPS';
-  if (s.includes('usps')) return 'USPS';
-  if (s.includes('fedex')) return 'FedEx';
-  if (s.includes('dhl')) return 'DHL';
-  if (s.includes('lasership')) return 'LaserShip';
-  if (s.includes('ontrac')) return 'OnTrac';
-  return null;
-};
-
-const findTracking = (text = '') => {
-  // Very approximate; good enough for MVP:
-  // UPS: 1Z + 16 alnum
-  const ups = /(1Z[0-9A-Z]{16})/i;
-  // FedEx (12-15 digits)
-  const fedex = /\b(\d{12,15})\b/;
-  // USPS: long 20-22 digits often starting 92 / 94 / 927...
-  const usps = /\b(9\d{19,21})\b/;
-
-  for (const rx of [ups, usps, fedex]) {
-    const m = text.match(rx);
-    if (m?.[1]) return m[1];
-  }
-  return null;
-};
-
-// ---------- parser ----------
-function parseRow(r) {
-  const subject = r.subject || '';
-  const snippet = r.snippet || '';
-  const from = r.from_addr || '';
-  const hint = r.raw_json?.event_hint || null;
-
-  const merged = `${subject}\n${snippet}`;
-
-  const retailer = mapDomainToRetailer(from);
-  const orderId = findOrderId(merged);
-
-  if (hint === 'order') {
-    const moneyStr = findTotal(subject, snippet);
-    const { sym, code } = currencyFrom(moneyStr || merged);
-    const totalC = toCents(moneyStr || '');
-    return {
-      type: 'order',
-      retailer: retailer || null,
-      order_id: orderId,
-      currency: code,
-      total_cents: totalC || 0,
-      order_date: r.date_header || null,
-    };
-  }
-
-  if (hint === 'shipment' || hint === 'delivery') {
-    const carrier = findCarrier(merged);
-    const tracking = findTracking(merged);
-    return {
-      type: 'shipment',
-      retailer: retailer || null,
-      order_id: orderId,
-      carrier: carrier,
-      tracking_number: tracking,
-      status: hint === 'delivery' ? 'delivered' : 'in_transit',
-      shipped_at: r.date_header || null,
-      delivered_at: hint === 'delivery' ? (r.date_header || null) : null,
-    };
-  }
-
   return null;
 }
 
-// ---------- handler ----------
-export const handler = async () => {
-  const {
-    SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-  } = process.env;
+// Amount (total)
+function extractTotal(text = "") {
+  const s = String(text);
+  // choose the largest $ amount we see (rough heuristic)
+  const amounts = Array.from(s.matchAll(/\$([0-9][0-9,]*\.?[0-9]{0,2})/g)).map((m) =>
+    Number(m[1].replace(/,/g, ""))
+  );
+  if (!amounts.length) return 0;
+  const max = Math.max(...amounts.filter((x) => !isNaN(x)));
+  return Math.round(max * 100);
+}
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return json(500, { error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' });
+// Tracking + carrier heuristics
+function extractTrackingAndCarrier(text = "") {
+  const s = String(text);
+  // UPS
+  let m = s.match(/\b1Z[0-9A-Z]{16}\b/i);
+  if (m) return { tracking_number: m[0], carrier: "UPS" };
+  // FedEx (12-15 digits)
+  m = s.match(/\b(\d{12,15})\b/);
+  if (m) return { tracking_number: m[1], carrier: "FedEx" };
+  // USPS (20-22 digits commonly)
+  m = s.match(/\b(\d{20,22})\b/);
+  if (m) return { tracking_number: m[1], carrier: "USPS" };
+
+  // Fallback for common links
+  if (/ups\.com\/track/i.test(s)) return { tracking_number: null, carrier: "UPS" };
+  if (/fedex\.com\/tracking/i.test(s)) return { tracking_number: null, carrier: "FedEx" };
+  if (/tools\.usps\.com\/go\/TrackConfirm/i.test(s)) return { tracking_number: null, carrier: "USPS" };
+
+  return { tracking_number: null, carrier: null };
+}
+
+// Attempt to upsert; if unique index is missing, plain insert (skip duplicates best-effort)
+async function upsertOrInsert(table, rows, onConflictCols) {
+  if (!rows.length) return { count: 0 };
+  // Try upsert first
+  const { data, error } = await admin
+    .from(table)
+    .upsert(rows, { onConflict: onConflictCols, ignoreDuplicates: false });
+  if (!error) return { count: data ? data.length : rows.length };
+  if (!/no unique|exclusion constraint/i.test(error.message || "")) {
+    throw error;
+  }
+  // Fallback: insert (duplicates may happen across runs; acceptable for now)
+  const { data: ins, error: e2 } = await admin.from(table).insert(rows);
+  if (e2) throw e2;
+  return { count: ins ? ins.length : rows.length };
+}
+
+exports.handler = async (event) => {
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false },
-  });
-
   try {
-    // Pull recent raw emails (we keep it bounded)
+    // 1) Resolve the current user_id from last connected account
+    const { data: acctRows, error: acctErr } = await admin
+      .from("email_accounts")
+      .select("user_id, email_address")
+      .order("updated_at", { ascending: false })
+      .limit(1);
+
+    if (acctErr) throw acctErr;
+    if (!acctRows || !acctRows.length || !acctRows[0].user_id) {
+      return { statusCode: 400, body: JSON.stringify({ error: "No connected account/user_id" }) };
+    }
+    const user_id = acctRows[0].user_id;
+
+    // 2) Pull un-normalized commerce emails for this user
     const { data: raws, error: rawErr } = await admin
-      .from('email_raw')
-      .select('id, user_id, subject, snippet, from_addr, date_header, raw_json')
-      .order('date_header', { ascending: false })
-      .limit(1000);
+      .from("email_raw")
+      .select(
+        "id, user_id, subject, snippet, from_email, date_header, raw_json, classification, normalized_at"
+      )
+      .eq("user_id", user_id)
+      .is("normalized_at", null)
+      .limit(500);
 
     if (rawErr) throw rawErr;
 
-    let ordersInserted = 0;
-    let shipmentsInserted = 0;
-    let processed = 0;
-    let skipped = 0;
+    const orders = [];
+    const ships = [];
+    const normalizedIds = [];
 
-    for (const r of raws) {
-      const parsed = parseRow(r);
-      if (!parsed) { skipped++; continue; }
-      processed++;
-
-      if (parsed.type === 'order') {
-        // basic sanity
-        if (!(parsed.order_id || parsed.total_cents)) { skipped++; continue; }
-
-        // dedupe by (retailer, order_id) when order_id present; else by (retailer, order_date, total_cents)
-        let exists = false;
-        if (parsed.order_id) {
-          const { data: ex1, error: exErr1 } = await admin
-            .from('email_orders')
-            .select('id')
-            .eq('order_id', parsed.order_id)
-            .maybeSingle();
-          if (exErr1) throw exErr1;
-          exists = !!ex1;
-        } else {
-          const { data: ex2, error: exErr2 } = await admin
-            .from('email_orders')
-            .select('id')
-            .eq('retailer', parsed.retailer)
-            .eq('order_date', parsed.order_date)
-            .eq('total_cents', parsed.total_cents)
-            .maybeSingle();
-          if (exErr2) throw exErr2;
-          exists = !!ex2;
-        }
-        if (exists) { skipped++; continue; }
-
-        const row = {
-          retailer: parsed.retailer,
-          order_id: parsed.order_id,
-          order_date: parsed.order_date,
-          currency: parsed.currency || 'USD',
-          total_cents: parsed.total_cents || 0,
-        };
-        const { error: insErr } = await admin.from('email_orders').insert(row, { returning: 'minimal' });
-        if (insErr) throw insErr;
-        ordersInserted++;
+    for (const r of raws || []) {
+      const cls = r.classification || classify(r.subject, r.snippet);
+      if (!["order_confirmation", "shipping_update", "delivery_confirmation"].includes(cls)) {
+        continue; // ignore non-commerce
       }
 
-      if (parsed.type === 'shipment') {
-        // need at least a tracking or an order_id to be useful
-        if (!(parsed.tracking_number || parsed.order_id)) { skipped++; continue; }
+      const retailer = detectRetailer(r.from_email, r.subject);
+      const order_id = extractOrderId(`${r.subject}\n${r.snippet}\n${JSON.stringify(r.raw_json || {})}`);
+      const order_date = parseDateISO(r.date_header);
+      const total_cents = extractTotal(`${r.subject}\n${r.snippet}`);
 
-        // dedupe by tracking when available, else by (retailer, order_id, status)
-        let exists = false;
-        if (parsed.tracking_number) {
-          const { data: ex1, error: exErr1 } = await admin
-            .from('email_shipments')
-            .select('id')
-            .eq('tracking_number', parsed.tracking_number)
-            .maybeSingle();
-          if (exErr1) throw exErr1;
-          exists = !!ex1;
-        } else {
-          const { data: ex2, error: exErr2 } = await admin
-            .from('email_shipments')
-            .select('id')
-            .eq('retailer', parsed.retailer)
-            .eq('order_id', parsed.order_id)
-            .eq('status', parsed.status)
-            .maybeSingle();
-          if (exErr2) throw exErr2;
-          exists = !!ex2;
-        }
-        if (exists) { skipped++; continue; }
+      // If it's an order-style email, try to create order
+      if (cls === "order_confirmation" || (cls !== "order_confirmation" && order_id)) {
+        orders.push({
+          user_id,
+          retailer,
+          order_id: order_id || null,
+          order_date: order_date,
+          currency: "USD",
+          total_cents: total_cents || 0,
+        });
+      }
 
-        const row = {
-          retailer: parsed.retailer,
-          order_id: parsed.order_id,
-          carrier: parsed.carrier,
-          tracking_number: parsed.tracking_number,
-          status: parsed.status,
-          shipped_at: parsed.shipped_at,
-          delivered_at: parsed.delivered_at,
-        };
-        const { error: insErr } = await admin.from('email_shipments').insert(row, { returning: 'minimal' });
-        if (insErr) throw insErr;
-        shipmentsInserted++;
+      // If it's shipping/delivery, try to create shipment
+      if (cls === "shipping_update" || cls === "delivery_confirmation") {
+        const { tracking_number, carrier } = extractTrackingAndCarrier(
+          `${r.subject}\n${r.snippet}\n${JSON.stringify(r.raw_json || {})}`
+        );
+        const status =
+          cls === "delivery_confirmation" ? "delivered" : /out for delivery/i.test(r.snippet || "") ? "out_for_delivery" : "in_transit";
+        ships.push({
+          user_id, // <<< IMPORTANT: always set user_id
+          retailer,
+          order_id: order_id || null,
+          carrier: carrier,
+          tracking_number: tracking_number, // may be null if not detected
+          status,
+          shipped_at: order_date,
+          delivered_at: cls === "delivery_confirmation" ? order_date : null,
+        });
+      }
+
+      // mark as normalized only if we generated something
+      if (orders.length || ships.length) {
+        normalizedIds.push(r.id);
       }
     }
 
-    return json(200, { processed, orders_inserted: ordersInserted, shipments_inserted: shipmentsInserted, skipped });
-  } catch (e) {
-    console.error(e);
-    return json(500, { error: String(e.message || e) });
+    // 3) Write rows (skip if none)
+    let ordersInserted = 0;
+    let shipsInserted = 0;
+
+    if (orders.length) {
+      // Remove obvious duplicates within this batch
+      const seen = new Set();
+      const dedup = [];
+      for (const o of orders) {
+        const key = `${o.user_id}|${o.retailer}|${o.order_id || ""}|${o.order_date || ""}|${o.total_cents}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        dedup.push(o);
+      }
+      const res = await upsertOrInsert("email_orders", dedup, "user_id,retailer,order_id");
+      ordersInserted = res.count;
+    }
+
+    if (ships.length) {
+      // Dedup shipments in-batch
+      const seen = new Set();
+      const dedup = [];
+      for (const s of ships) {
+        const key = `${s.user_id}|${s.tracking_number || ""}|${s.retailer}|${s.order_id || ""}|${s.status}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        dedup.push(s);
+      }
+      const res = await upsertOrInsert("email_shipments", dedup, "user_id,tracking_number");
+      shipsInserted = res.count;
+    }
+
+    // 4) Mark processed raw rows
+    if (normalizedIds.length) {
+      await admin
+        .from("email_raw")
+        .update({ normalized_at: new Date().toISOString() })
+        .in("id", normalizedIds);
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        orders_inserted: ordersInserted,
+        shipments_inserted: shipsInserted,
+        processed_raw: normalizedIds.length,
+      }),
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: String(err.message || err) }),
+    };
   }
 };
