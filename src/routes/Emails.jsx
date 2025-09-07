@@ -16,8 +16,7 @@ const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
 
 /** Merge orders + shipments into shipment-like rows */
 function stitch(orders = [], shipments = []) {
-  // Map orders by composite key for quick lookup
-  const byKey = new Map(); // key => entity
+  const byKey = new Map();
   const makeKey = (retailer, order_id) => `${(retailer||'').trim()}::${(order_id||'').trim()}`;
 
   orders.forEach((o) => {
@@ -27,35 +26,23 @@ function stitch(orders = [], shipments = []) {
       order_id: o.order_id || "—",
       order_date: o.order_date || null,
       total_cents: o.total_cents || 0,
-      // shipping aggregates – will be extended by shipments
       shipped_at: o.shipped_at || null,
       delivered_at: o.delivered_at || null,
-      status: o.status || "ordered",
-      // extra
-      trackings: new Map(), // tracking_number -> shipment row
+      status: (o.status || "ordered").toLowerCase(),
+      trackings: new Map(),
     });
   });
 
-  // Attach shipments to their order by (retailer, order_id) first
-  // If no order_id, attach by unique tracking_number to any existing order with same tracking already seen
-  const globalTracking = new Map(); // tracking -> stitched row (to avoid duplicates)
-  // seed from existing stitched rows (in case your normalize already put shipped/delivered on orders)
-  for (const row of byKey.values()) {
-    for (const t of row.trackings?.keys?.() || []) {
-      globalTracking.set(t, row);
-    }
-  }
+  const globalTracking = new Map();
 
   const attachToRow = (s) => {
     const viaOrder = s.order_id ? byKey.get(makeKey(s.retailer, s.order_id)) : null;
     if (viaOrder) return viaOrder;
 
-    // Fallback: if tracking already attached somewhere, reuse that row
     if (s.tracking_number && globalTracking.has(s.tracking_number)) {
       return globalTracking.get(s.tracking_number);
     }
 
-    // Final fallback: create a synthetic row (for shipments we can't tie back yet)
     const key = makeKey(s.retailer, s.order_id || `#${s.tracking_number || s.id}`);
     if (!byKey.has(key)) {
       byKey.set(key, {
@@ -80,32 +67,27 @@ function stitch(orders = [], shipments = []) {
         carrier: s.carrier || "",
         shipped_at: s.shipped_at || null,
         delivered_at: s.delivered_at || null,
-        status: s.status || "",
+        status: (s.status || "").toLowerCase(),
       });
       globalTracking.set(s.tracking_number, row);
     }
-    // Update aggregates
     row.shipped_at = row.shipped_at || s.shipped_at || null;
     row.delivered_at = row.delivered_at || s.delivered_at || null;
 
-    // Status precedence
-    const st = (s.status || "").toLowerCase();
     const rank = (x) =>
-      x === "delivered" ? 3 :
-      (x === "out_for_delivery" ? 2 :
-      (x === "in_transit" || x === "label_created" ? 1 :
-      (x === "ordered" ? 0 : -1)));
-    const best = rank(row.status);
-    const cur = rank(st || "in_transit");
-    if (cur > best) row.status = st || "in_transit";
+      x === "canceled" ? 5 :
+      x === "delivered" ? 4 :
+      x === "out_for_delivery" ? 3 :
+      (x === "in_transit" || x === "label_created") ? 2 :
+      x === "ordered" ? 1 : 0;
+
+    const st = (s.status || "").toLowerCase() || "in_transit";
+    if (rank(st) > rank(row.status)) row.status = st;
   });
 
-  // If no shipments, derive status from order
   for (const row of byKey.values()) {
-    if (!row.shipped_at && !row.delivered_at) {
-      row.status = row.status || "ordered";
-    }
     if (row.delivered_at) row.status = "delivered";
+    else if (!row.shipped_at) row.status = row.status || "ordered";
   }
 
   return Array.from(byKey.values());
@@ -184,7 +166,6 @@ export default function Emails() {
 
   const rows = useMemo(() => {
     let r = rowsAll;
-    // Status filter buckets
     if (scope === "shipping") {
       r = r.filter(x => !x.delivered_at && (x.status === "in_transit" || x.status === "out_for_delivery" || x.status === "label_created"));
     } else if (scope === "to_ship") {
@@ -192,7 +173,6 @@ export default function Emails() {
     } else if (scope === "delivered") {
       r = r.filter(x => !!x.delivered_at || x.status === "delivered");
     }
-    // Search
     if (q.trim()) {
       const t = q.toLowerCase();
       r = r.filter(x =>
@@ -201,7 +181,6 @@ export default function Emails() {
           .some(s => String(s).toLowerCase().includes(t))
       );
     }
-    // Sort: delivered last date desc, otherwise recent activity desc
     return r.sort((a, b) => {
       const ad = a.delivered_at ? new Date(a.delivered_at).getTime() : (a.shipped_at ? new Date(a.shipped_at).getTime() : new Date(a.order_date || 0).getTime());
       const bd = b.delivered_at ? new Date(b.delivered_at).getTime() : (b.shipped_at ? new Date(b.shipped_at).getTime() : new Date(b.order_date || 0).getTime());
@@ -212,6 +191,9 @@ export default function Emails() {
   /* ----------------------------- actions ----------------------------- */
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [proposed, setProposed] = useState([]);
 
   function connectGmail() {
     window.location.href = "/.netlify/functions/gmail-auth-start";
@@ -229,6 +211,35 @@ export default function Emails() {
       setSyncMsg(String(e.message || e));
     } finally {
       setSyncing(false);
+      setTimeout(() => setSyncMsg(""), 2600);
+    }
+  }
+
+  async function previewNew() {
+    try {
+      setSyncMsg("Looking for new orders…");
+      const res = await fetch("/.netlify/functions/gmail-sync?mode=preview");
+      const j = await res.json().catch(() => ({}));
+      setSyncMsg("");
+      setProposed(j?.proposed || []);
+      setPreviewOpen(true);
+    } catch (e) {
+      setSyncMsg(String(e.message || e));
+      setTimeout(() => setSyncMsg(""), 2600);
+    }
+  }
+
+  async function confirmInsert() {
+    try {
+      setSyncMsg("Importing…");
+      const res = await fetch("/.netlify/functions/gmail-sync?mode=commit", { method: "POST" });
+      const j = await res.json().catch(() => ({}));
+      setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}` : `Failed: ${j?.error || res.status}`);
+      setPreviewOpen(false);
+      await Promise.all([refetchOrders(), refetchShips()]);
+    } catch (e) {
+      setSyncMsg(String(e.message || e));
+    } finally {
       setTimeout(() => setSyncMsg(""), 2600);
     }
   }
@@ -262,9 +273,14 @@ export default function Emails() {
                   Connect Gmail
                 </button>
               ) : (
-                <button onClick={syncNow} disabled={syncing} className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium">
-                  {syncing ? "Syncing…" : "Sync now"}
-                </button>
+                <>
+                  <button onClick={previewNew} className="h-11 px-5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-medium">
+                    Preview new orders
+                  </button>
+                  <button onClick={syncNow} disabled={syncing} className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium">
+                    {syncing ? "Syncing…" : "Sync now"}
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -344,6 +360,33 @@ export default function Emails() {
           We automatically link shipping emails to their orders (by order # and tracking). Re-sync anytime to pick up new messages.
         </div>
       </div>
+
+      {/* ---------- Preview Modal ---------- */}
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <div className="text-lg font-semibold">Add these new orders?</div>
+            <div className="mt-3 max-h-72 overflow-auto divide-y divide-slate-800">
+              {proposed.length === 0 && <div className="text-slate-400 p-3">No new orders detected.</div>}
+              {proposed.map((p, i) => (
+                <div key={i} className="p-3 flex items-center justify-between">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{p.order_id} <span className="text-slate-400">· {p.retailer}</span></div>
+                    <div className="text-xs text-slate-400">Order date {new Date(p.order_date).toLocaleDateString()}</div>
+                  </div>
+                  <div className="text-right">
+                    {p.total_cents ? <>${(p.total_cents/100).toFixed(2)}</> : <span className="text-slate-500">—</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setPreviewOpen(false)} className="h-10 px-4 rounded-xl bg-slate-800 text-slate-200">Cancel</button>
+              <button onClick={confirmInsert} className="h-10 px-4 rounded-xl bg-emerald-600 text-white">Confirm & Import</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -366,6 +409,7 @@ function TopTab({ label, active, onClick }) {
 function StatusPill({ status }) {
   const s = (status || "").toLowerCase();
   const map = {
+    canceled: "bg-rose-600/20 text-rose-300",
     delivered: "bg-emerald-600/20 text-emerald-300",
     out_for_delivery: "bg-amber-600/20 text-amber-300",
     in_transit: "bg-sky-600/20 text-sky-300",
@@ -373,6 +417,7 @@ function StatusPill({ status }) {
     ordered: "bg-slate-700/50 text-slate-300",
   };
   const txt =
+    s === "canceled" ? "Canceled" :
     s === "delivered" ? "Delivered" :
     s === "out_for_delivery" ? "Out for delivery" :
     s === "in_transit" ? "In transit" :
