@@ -15,6 +15,7 @@ import Inventory from "./routes/Inventory.jsx";
 import Stats from "./routes/Stats.jsx";
 import OrderBook from "./routes/OrderBook.jsx";
 import Automation from "./routes/Automation.jsx";
+import Emails from "./routes/Emails.jsx";
 
 const router = createBrowserRouter([
   { path: "/", element: <Hub /> },                 // Hub is now the root
@@ -25,13 +26,14 @@ const router = createBrowserRouter([
   { path: "/inventory", element: <Inventory /> },
   { path: "/stats", element: <Stats /> },
   { path: "/settings", element: <Settings /> },
-
   { path: "/automation", element: <Automation /> },
 
   // Legacy + fallback routes
   { path: "/app", element: <Navigate to="/add" replace /> }, // old Quick Add path
   { path: "*", element: <Navigate to="/add" replace /> },
 ]);
+
+<Route path="/emails" element={<Emails />} />
 
 const qc = new QueryClient();
 

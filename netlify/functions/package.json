@@ -1,0 +1,9 @@
+{
+  "name": "emails-functions",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "googleapis": "^131.0.0"
+  }
+}
