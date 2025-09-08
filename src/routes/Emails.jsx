@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
+import { useAuth } from "../hooks/useAuth.js";
 import { centsToStr } from "../utils/money.js";
 import { card, inputBase, pill } from "../utils/ui.js";
 const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
@@ -145,6 +146,7 @@ async function getEmailAccounts() {
 
 /* --------------------------------- page --------------------------------- */
 export default function Emails() {
+  const userInfo = useAuth();
 
   const { data: accounts = [], refetch: refetchAccounts } = useQuery({ queryKey: ["email-accounts"], queryFn: getEmailAccounts });
   const { data: orders = [], refetch: refetchOrders, isLoading: lo1 } = useQuery({ queryKey: ["email-orders"], queryFn: getOrders });
@@ -191,8 +193,20 @@ export default function Emails() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [proposed, setProposed] = useState([]);
 
-  function connectGmail() {
-    window.location.href = "/.netlify/functions/gmail-auth-start";
+  async function connectGmail() {
+    try {
+      // Get the current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setSyncMsg("Please log in first");
+        return;
+      }
+      
+      // Pass the user ID to the OAuth flow
+      window.location.href = `/.netlify/functions/gmail-auth-start?uid=${encodeURIComponent(user.id)}`;
+    } catch (e) {
+      setSyncMsg(`Failed to start Gmail connection: ${e.message}`);
+    }
   }
 
   async function disconnectGmail() {
