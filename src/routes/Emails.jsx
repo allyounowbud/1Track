@@ -263,13 +263,16 @@ export default function Emails() {
         if (res.ok) {
           const stats = j;
           const duration = Math.round((stats.duration_ms || 0) / 1000);
+          const status = stats.incomplete ? "⏱️ Sync partial" : "✅ Sync complete";
+          const remaining = stats.incomplete ? ` (${stats.remaining} remaining)` : "";
+          
           setSyncMsg(
-            `✅ Sync complete in ${duration}s: ` +
+            `${status} in ${duration}s: ` +
             `${stats.imported || 0} new orders, ` +
             `${stats.updated || 0} updated, ` +
             `${stats.skipped_existing || 0} duplicates skipped` +
             (stats.errors > 0 ? `, ${stats.errors} errors` : '') +
-            ` (${stats.processed || 0}/${stats.total_messages || 0} processed)`
+            ` (${stats.processed || 0}/${stats.total_messages || 0} processed)${remaining}`
           );
         } else {
           setSyncMsg(`❌ Sync failed: ${j?.error || res.status}`);
@@ -295,10 +298,9 @@ export default function Emails() {
     }
   }
 
-  // Auto-sync on load
+  // Auto-sync every 15 minutes (but not on page load)
   useEffect(() => {
     if (!connected) return;
-    syncNow({ silent: false, label: "Fetching new orders…" });
     const id = setInterval(() => { syncNow({ silent: true }); }, 15 * 60 * 1000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -322,14 +324,17 @@ export default function Emails() {
                 Connect your mailbox to automatically import order confirmations and shipping updates. We link shipping emails to their orders by order # and tracking number.
               </p>
               {connected && (
-                <div className="text-slate-300 text-sm mt-1">
-                  <div className="font-medium mb-1">Connected accounts:</div>
+                <div className="mt-3 p-3 rounded-xl border border-slate-700 bg-slate-800/50">
+                  <div className="text-slate-200 text-sm font-medium mb-2">📧 Connected Gmail Accounts</div>
                   {gmailAccounts.map((account) => (
-                    <div key={account.id} className="flex items-center justify-between gap-2 py-1">
-                      <span className="font-medium">{account.email_address}</span>
+                    <div key={account.id} className="flex items-center justify-between gap-3 py-2 px-2 rounded-lg bg-slate-700/50">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="text-slate-100 font-medium">{account.email_address}</span>
+                      </div>
                       <button
                         onClick={() => disconnectGmail(account.id)}
-                        className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-500 text-white"
+                        className="text-xs px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium transition-colors"
                       >
                         Disconnect
                       </button>

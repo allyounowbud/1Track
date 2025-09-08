@@ -325,7 +325,16 @@ exports.handler = async (event) => {
     let processed = 0;
     const startTime = Date.now();
 
+    // Add timeout protection - Netlify functions have 10s limit
+    const maxDuration = 8000; // 8 seconds to leave buffer for response
+    
     for (const id of ids) {
+      // Check if we're approaching timeout
+      if (Date.now() - startTime > maxDuration) {
+        console.log(`Timeout approaching, stopping at ${processed}/${ids.length} messages`);
+        break;
+      }
+      
       try {
         processed++;
         const msg = await getMessageFull(gmail, id);
@@ -342,6 +351,11 @@ exports.handler = async (event) => {
         const retailer = classifyRetailer(from);
         const type = classifyType(retailer, subject);
         if (!type) continue;
+        
+        // Debug logging for Amazon orders
+        if (retailer.name === "Amazon" && type === "order") {
+          console.log(`Processing Amazon order: ${subject}`);
+        }
 
       // parse
       let parsed = {};
@@ -351,6 +365,11 @@ exports.handler = async (event) => {
       else if (type === "delivered" && retailer.parseDelivered)
         parsed = retailer.parseDelivered(html, text);
       else if (type === "canceled") parsed = { status: "canceled" };
+      
+      // Debug logging for parsed data
+      if (retailer.name === "Amazon" && type === "order") {
+        console.log(`Parsed data:`, JSON.stringify(parsed, null, 2));
+      }
 
       // order id (fallback: subject)
       const order_id =
@@ -453,6 +472,7 @@ exports.handler = async (event) => {
     }
 
     const duration = Date.now() - startTime;
+    const wasTimeout = processed < ids.length;
     const stats = {
       imported,
       updated,
@@ -460,7 +480,9 @@ exports.handler = async (event) => {
       errors,
       processed,
       duration_ms: duration,
-      total_messages: ids.length
+      total_messages: ids.length,
+      incomplete: wasTimeout,
+      remaining: wasTimeout ? ids.length - processed : 0
     };
 
     if (mode === "preview") return json({ proposed, stats });
