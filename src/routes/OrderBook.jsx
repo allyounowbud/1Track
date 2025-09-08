@@ -310,9 +310,10 @@ function DayCard({
 
           <button
             onClick={() => setOpen((v) => !v)}
-            className="h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+            className="h-9 w-9 grid place-items-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 transition"
+            aria-label={open ? "Collapse" : "Expand"}
           >
-            {open ? "Collapse" : "Expand"}
+            <ChevronDown className={`h-5 w-5 transition-transform ${open ? "rotate-180" : ""}`} />
           </button>
         </div>
 
@@ -326,7 +327,7 @@ function DayCard({
       </div>
 
       {/* content */}
-      {open && (
+      <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 1000 : 0 }}>
         <div className="pt-5">
           {/* Header labels per group (desktop) */}
           <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
@@ -356,7 +357,7 @@ function DayCard({
             ))}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -578,5 +579,13 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted }) {
         </div>
       )}
     </div>
+  );
+}
+
+function ChevronDown({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
   );
 }

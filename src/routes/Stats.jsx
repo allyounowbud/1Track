@@ -360,23 +360,14 @@ export default function Stats() {
                   </div>
                   <button
                     onClick={() => toggleItem(g.item)}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900"
+                    className="h-9 w-9 grid place-items-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 transition"
                     aria-label={open ? "Collapse" : "Expand"}
-                    title={open ? "Collapse" : "Expand"}
                   >
-                    {open ? (
-                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 6L6 18M6 6l12 12" />
-                      </svg>
-                    ) : (
-                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    )}
+                    <ChevronDown className={`h-5 w-5 transition-transform ${open ? "rotate-180" : ""}`} />
                   </button>
                 </div>
 
-                {open && (
+                <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 500 : 0 }}>
                   <div className="mt-4 space-y-4">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                       <MiniPill title="Bought" value={`${g.bought}`} num={g.bought} sub="total purchases" />
@@ -395,7 +386,7 @@ export default function Stats() {
                       <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on mkt price" tone="unrealized" />
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -774,5 +765,13 @@ function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
       <div className={`text-base font-semibold mt-0.5 ${color}`}>{value}</div>
       {sub && <div className="text-[10px] leading-4 text-slate-400 mt-0.5">{sub}</div>}
     </div>
+  );
+}
+
+function ChevronDown({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
   );
 }
