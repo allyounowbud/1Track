@@ -40,7 +40,7 @@ exports.handler = async (event) => {
     const tokenJson = await tokenRes.json();
     if (!tokenRes.ok) throw new Error(tokenJson.error || "Token exchange failed");
 
-    const { access_token, refresh_token, expires_in } = tokenJson;
+    const { access_token, refresh_token, expires_in, scope } = tokenJson;
     const expires_at = new Date(Date.now() + (expires_in || 0) * 1000).toISOString();
 
     // ---- get profile email
@@ -61,6 +61,7 @@ exports.handler = async (event) => {
           email_address: email,
           access_token,
           refresh_token: refresh_token || null,
+          token_scope: scope || null,
           expires_at,
           updated_at: new Date().toISOString(),
         },
