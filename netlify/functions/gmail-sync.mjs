@@ -346,9 +346,23 @@ function parseGenericDelivered(_html, _text) {
   return { status: "delivered" };
 }
 
-/* --------------------------- DB upsert helpers --------------------------- */
-/* If you added UNIQUE constraints you can keep onConflict upserts.
-   If not, these manual upserts also work and don't require DB constraints. */
+
+
+   /* --------------------------- DB helpers --------------------------- */
+async function orderExists(retailer, order_id) {
+  if (!order_id) return false;
+  const { data, error } = await supabase
+    .from("email_orders")
+    .select("id")
+    .eq("retailer", retailer)
+    .eq("order_id", order_id)
+    .maybeSingle();
+
+  // ignore "no rows found" error
+  if (error && error.code !== "PGRST116") throw error;
+  return !!data;
+}
+
 
 async function upsertOrder(row) {
   const { data: existing, error: selErr } = await supabase
