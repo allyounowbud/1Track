@@ -579,6 +579,13 @@ exports.handler = async (event) => {
         // Parse order confirmation
         const parsed = retailer.parseOrder ? await retailer.parseOrder(html, text) : {};
         console.log(`Parsed order data:`, JSON.stringify(parsed, null, 2));
+
+        // Extract order ID with better fallbacks
+        const order_id = 
+          parsed.order_id ||
+          ((subject.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
+          ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
+          null;
         
         // Add debug info to the response for browser visibility
         if (!parsed.item_name || parsed.item_name.includes('...')) {
@@ -587,13 +594,6 @@ exports.handler = async (event) => {
         if (!parsed.image_url) {
           console.log(`DEBUG: No image found for order ${order_id}`);
         }
-
-        // Extract order ID with better fallbacks
-        const order_id = 
-          parsed.order_id ||
-          ((subject.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
-          ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
-          null;
 
         if (!order_id) {
           console.log(`No order ID found for: ${subject}`);
