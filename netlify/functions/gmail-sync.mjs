@@ -59,7 +59,7 @@ async function getAccount() {
   const { data, error } = await supabase
     .from("email_accounts")
     .select(
-      "id, user_id, email_address, access_token, refresh_token, token_expiry, updated_at"
+      "id, user_id, email_address, access_token, refresh_token, updated_at"
     )
     .order("updated_at", { ascending: false })
     .limit(1);
