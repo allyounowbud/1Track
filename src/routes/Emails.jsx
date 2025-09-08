@@ -823,19 +823,18 @@ function StatusPill({ status }) {
     in_transit: "bg-sky-600/20 text-sky-300",
     label_created: "bg-slate-700/50 text-slate-300",
     ordered: "bg-slate-700/50 text-slate-300",
+    canceled: "bg-rose-600/20 text-rose-300",
   };
   const txt =
-    s === "delivered"
-      ? "Delivered"
-      : s === "out_for_delivery"
-      ? "Out for delivery"
-      : s === "in_transit"
-      ? "Shipping"
-      : s === "label_created"
-      ? "Label created"
-      : "Ordered";
+    s === "delivered" ? "Delivered" :
+    s === "out_for_delivery" ? "Out for delivery" :
+    s === "in_transit" ? "In transit" :
+    s === "label_created" ? "Label created" :
+    s === "canceled" ? "Canceled" :
+    "Order placed"; // ordered
   return <span className={`${pill} ${map[s] || map.ordered}`}>{txt}</span>;
 }
+
 
 function MailIcon({ className = "h-5 w-5" }) {
   return (
