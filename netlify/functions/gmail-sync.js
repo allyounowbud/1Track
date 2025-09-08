@@ -45,7 +45,42 @@ const RETAILERS = [
     parseShipping: parseAmazonShipping,
     parseDelivered: parseAmazonDelivered,
   },
-  // Add Target again when you’re ready to turn it back on
+  // TARGET — basic support
+  {
+    name: "Target",
+    senderMatch: (from) => /@target\.com$/i.test(from),
+    orderSubject: /order|shipped|delivered/i,
+    shipSubject: /shipped|on the way/i,
+    deliverSubject: /delivered|arrived/i,
+    cancelSubject: /cancel/i,
+    parseOrder: parseGenericOrder,
+    parseShipping: parseGenericShipping,
+    parseDelivered: parseGenericDelivered,
+  },
+  // MACY'S — basic support
+  {
+    name: "Macy's",
+    senderMatch: (from) => /@macys\.com$/i.test(from),
+    orderSubject: /order|shipped|delivered/i,
+    shipSubject: /shipped|on the way/i,
+    deliverSubject: /delivered|arrived/i,
+    cancelSubject: /cancel/i,
+    parseOrder: parseGenericOrder,
+    parseShipping: parseGenericShipping,
+    parseDelivered: parseGenericDelivered,
+  },
+  // DOMINO'S — basic support
+  {
+    name: "Domino's",
+    senderMatch: (from) => /@dominos\.com$/i.test(from),
+    orderSubject: /order|shipped|delivered/i,
+    shipSubject: /shipped|on the way/i,
+    deliverSubject: /delivered|arrived/i,
+    cancelSubject: /cancel/i,
+    parseOrder: parseGenericOrder,
+    parseShipping: parseGenericShipping,
+    parseDelivered: parseGenericDelivered,
+  },
 ];
 
 /* -------------------------- Small helpers -------------------------- */
@@ -455,6 +490,89 @@ async function parseAmazonDelivered(html, text) {
   return { ...base, status: "delivered" };
 }
 
+/* ----------------------------- Generic parsers ----------------------------- */
+// Basic parsers for non-Amazon retailers that extract minimal info
+
+function parseGenericOrder(html, text) {
+  const $ = cheerio.load(html || "");
+  const bodyText = $("body").text();
+  
+  console.log("=== GENERIC PARSING DEBUG ===");
+  console.log("Body text length:", bodyText.length);
+  console.log("First 500 chars:", bodyText.substring(0, 500));
+  
+  const out = {};
+  
+  // Try to extract order ID from various patterns
+  const orderIdPatterns = [
+    /order\s*#\s*([0-9\-]+)/i,
+    /order\s*number\s*([0-9\-]+)/i,
+    /#\s*([0-9\-]+)/,
+    /([0-9]{10,})/, // long numbers that might be order IDs
+  ];
+  
+  for (const pattern of orderIdPatterns) {
+    const match = bodyText.match(pattern);
+    if (match && match[1]) {
+      out.order_id = match[1];
+      console.log("Found generic order ID:", out.order_id, "using pattern:", pattern);
+      break;
+    }
+  }
+  
+  // Try to extract total price
+  const priceMatches = bodyText.match(/\$([0-9,]+\.?[0-9]*)/g);
+  if (priceMatches) {
+    const prices = priceMatches
+      .map(m => parseFloat(m.replace(/[$,]/g, '')))
+      .filter(p => p > 0 && p < 10000);
+    
+    if (prices.length > 0) {
+      const sortedPrices = prices.sort((a, b) => b - a);
+      out.total_cents = Math.round(sortedPrices[0] * 100);
+      console.log("Found generic total:", sortedPrices[0], "cents:", out.total_cents);
+    }
+  }
+  
+  // Try to extract item name (look for common patterns)
+  const itemPatterns = [
+    /"([^"]{10,100})"/, // quoted text
+    /item[:\s]+([^\n\r]{10,100})/i,
+    /product[:\s]+([^\n\r]{10,100})/i,
+  ];
+  
+  for (const pattern of itemPatterns) {
+    const match = bodyText.match(pattern);
+    if (match && match[1] && match[1].length > 10) {
+      out.item_name = match[1].trim();
+      console.log("Found generic item name:", out.item_name);
+      break;
+    }
+  }
+  
+  console.log("Final generic parsed data:", out);
+  console.log("=== END GENERIC PARSING DEBUG ===");
+  
+  return out;
+}
+
+function parseGenericShipping(html, text) {
+  const base = parseGenericOrder(html, text);
+  return {
+    ...base,
+    status: "in_transit",
+    carrier: "Unknown",
+  };
+}
+
+function parseGenericDelivered(html, text) {
+  const base = parseGenericOrder(html, text);
+  return {
+    ...base,
+    status: "delivered",
+  };
+}
+
 /* --------------------------- DB upsert helpers --------------------------- */
 async function upsertOrder(row) {
   const { data, error } = await supabase
@@ -571,6 +689,8 @@ exports.handler = async (event) => {
         const retailer = classifyRetailer(from);
         const type = classifyType(retailer, subject);
         
+        console.log(`Processing email from: ${from}, retailer: ${retailer.name}, type: ${type}`);
+        
         // Only process order confirmations in this step
         if (type !== "order") continue;
         
@@ -585,6 +705,8 @@ exports.handler = async (event) => {
           parsed.order_id ||
           ((subject.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
           ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
+          ((subject.match(/order\s*number\s*([0-9\-]+)/i) || [])[1]) ||
+          ((subject.match(/([0-9]{10,})/) || [])[1]) || // long numbers
           null;
         
         // Add debug info to the response for browser visibility
