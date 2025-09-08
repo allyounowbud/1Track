@@ -1,4 +1,4 @@
-// netlify/functions/gmail-sync.js
+// netlify/functions/gmail-sync.(js|mjs)
 // Full sync + preview for order/shipment/delivery via Gmail
 
 import { google } from "googleapis";
@@ -55,23 +55,26 @@ const RETAILERS = [
 
 /* -------------------------- Helpers (Gmail utils) ------------------------ */
 async function getAccount() {
+  // IMPORTANT: include user_id so we can stamp it on inserts
   const { data, error } = await supabase
     .from("email_accounts")
-    .select("id, email_address, access_token, refresh_token, updated_at")
+    .select(
+      "id, user_id, email_address, access_token, refresh_token, token_expiry, updated_at"
+    )
     .order("updated_at", { ascending: false })
     .limit(1);
 
   if (error) throw error;
-  if (!data || !data.length) throw new Error("No connected Gmail account in email_accounts");
+  if (!data || !data.length)
+    throw new Error("No connected Gmail account in email_accounts");
   return data[0];
 }
 
-async function getGmailClient() {
-  const acct = await getAccount();
+async function getGmailClientWithAccount(acct) {
   oauth2.setCredentials({
     access_token: acct.access_token,
     refresh_token: acct.refresh_token,
-    scope: acct.token_scope || "https://www.googleapis.com/auth/gmail.readonly",
+    scope: "https://www.googleapis.com/auth/gmail.readonly",
     expiry_date: acct.token_expiry
       ? new Date(acct.token_expiry).getTime()
       : undefined,
@@ -89,10 +92,8 @@ async function getGmailClient() {
   });
 
   try {
-    // a harmless call to ensure credentials are OK
     await oauth2.getAccessToken();
   } catch (e) {
-    // last-ditch attempt to refresh
     if (acct.refresh_token) {
       const { credentials } = await oauth2.refreshAccessToken();
       oauth2.setCredentials(credentials);
@@ -107,18 +108,14 @@ async function getGmailClient() {
 // List message IDs from last ~90 days for subjects/senders we care about
 async function listCandidateMessageIds(gmail) {
   const qParts = [
-    // time window; broaden on first run
     "newer_than:90d",
-    // we read from Inbox (Promotions are also in inbox for many)
     "in:inbox",
-    // general phrases
     '(subject:"order" OR subject:"thanks for your order" OR subject:"order placed" OR subject:"shipped" OR subject:"delivered" OR subject:"shipment")',
   ];
   const q = qParts.join(" ");
 
   const ids = [];
   let pageToken = undefined;
-  // cap to ~300–400 per sync
   for (let i = 0; i < 8; i++) {
     const res = await gmail.users.messages.list({
       userId: "me",
@@ -158,10 +155,8 @@ function decodeB64url(str) {
 }
 
 function extractBodyParts(payload) {
-  // Recursively walk parts to find text/html and text/plain
   let html = null;
   let text = null;
-
   function walk(p) {
     if (!p) return;
     if (p.mimeType === "text/html" && p.body?.data)
@@ -171,7 +166,6 @@ function extractBodyParts(payload) {
     (p.parts || []).forEach(walk);
   }
   walk(payload);
-
   if (!html && payload?.body?.data && /html/i.test(payload.mimeType || "")) {
     html = decodeB64url(payload.body.data);
   }
@@ -195,7 +189,6 @@ function classifyType(retailer, subject) {
     return "delivered";
   if (retailer.cancelSubject && retailer.cancelSubject.test(s))
     return "canceled";
-  // fallback heuristics:
   if (
     /\b(order|confirmation|thanks for your order|we got your order)\b/i.test(s)
   )
@@ -208,7 +201,6 @@ function classifyType(retailer, subject) {
 }
 
 /* ------------------------------- Parsers --------------------------------- */
-// Helpers
 function parseMoney(str = "") {
   const m = String(str)
     .replace(/[,]/g, "")
@@ -229,13 +221,11 @@ function parseTargetOrder(html, text) {
   const $ = cheerio.load(html || "");
   const out = {};
 
-  // order id
   out.order_id =
     ($("body").text().match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
     (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
     null;
 
-  // total ("Order total $48.28")
   const totalNode = $('*:contains("Order total")')
     .filter((_, el) => /Order total/i.test($(el).text()))
     .first();
@@ -243,17 +233,15 @@ function parseTargetOrder(html, text) {
   const totalCents = parseMoney(totalText);
   if (totalCents != null) out.total_cents = totalCents;
 
-  // quantity (Qty: 2)
   const qty =
     (($("body").text().match(/Qty:\s*([0-9]+)/i) || [])[1]) ||
     (($('*:contains("Qty")').first().text().match(/Qty[:\s]+([0-9]+)/i) || [])[1]);
   if (qty) out.quantity = parseInt(qty, 10);
 
-  // item name (alt text or near qty)
   let item = "";
   $('img[alt]').each((_, el) => {
     const alt = ($(el).attr("alt") || "").trim();
-    if (/thanks/i.test(alt) || /target/i.test(alt) || /logo/i.test(alt)) return;
+    if (/thanks|target|logo/i.test(alt)) return;
     if (alt.length > 12 && alt.length < 160) item = item || alt;
   });
   if (!item) {
@@ -272,13 +260,11 @@ function parseTargetOrder(html, text) {
   }
   if (item) out.item_name = item;
 
-  // unit price (e.g., $21.99 / ea)
   const each =
     ($("body").text().match(/\$[0-9]+(?:\.[0-9]{2})?\s*\/\s*ea/i) || [])[0] ||
     null;
   if (each) out.unit_price_cents = parseMoney(each);
 
-  // image url – first non-logo product image
   let img = null;
   $("img").each((_, el) => {
     const src = $(el).attr("src") || "";
@@ -315,26 +301,22 @@ function parseAmazonOrderBasic(html, text) {
     (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
     null;
 
-  // Item (try alt text)
   let item = "";
   $('img[alt]').each((_, el) => {
     const alt = ($(el).attr("alt") || "").trim();
-    if (/amazon/i.test(alt) || /logo/i.test(alt)) return;
+    if (/amazon|logo/i.test(alt)) return;
     if (alt.length > 12 && alt.length < 160) item = item || alt;
   });
   if (item) out.item_name = item;
 
-  // Totals
   const totalText =
     ($("body").text().match(/Total:\s*\$[0-9,.]+/i) || [])[0] || "";
   const totalCents = parseMoney(totalText);
   if (totalCents != null) out.total_cents = totalCents;
 
-  // Qty
   const qty = (($("body").text().match(/Qty:\s*([0-9]+)/i) || [])[1]) || null;
   if (qty) out.quantity = parseInt(qty, 10);
 
-  // Image
   let img = null;
   $("img").each((_, el) => {
     const src = $(el).attr("src") || "";
@@ -346,7 +328,7 @@ function parseAmazonOrderBasic(html, text) {
   return out;
 }
 
-/* ---- Generic shipping ---- */
+/* ---- Generic shipping / delivered ---- */
 function parseGenericShipping(html, text) {
   const content = (html || "") + " " + (text || "");
   const tracking =
@@ -360,46 +342,71 @@ function parseGenericShipping(html, text) {
     status: "in_transit",
   };
 }
-
-/* ---- Generic delivered ---- */
 function parseGenericDelivered(_html, _text) {
   return { status: "delivered" };
 }
 
 /* --------------------------- DB upsert helpers --------------------------- */
-async function orderExists(retailer, order_id) {
-  if (!order_id) return false;
-  const { data, error } = await supabase
-    .from("email_orders")
-    .select("id")
-    .eq("retailer", retailer)
-    .eq("order_id", order_id)
-    .maybeSingle();
-  if (error && error.code !== "PGRST116") throw error;
-  return !!data;
-}
+/* If you added UNIQUE constraints you can keep onConflict upserts.
+   If not, these manual upserts also work and don't require DB constraints. */
 
 async function upsertOrder(row) {
-  // row: retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, shipped_at, delivered_at, status, source_message_id
-  const { data, error } = await supabase
+  const { data: existing, error: selErr } = await supabase
     .from("email_orders")
-    .upsert(row, { onConflict: "retailer,order_id" })
     .select("id")
+    .eq("retailer", row.retailer)
+    .eq("order_id", row.order_id)
     .maybeSingle();
-  if (error) throw error;
-  return data?.id || null;
+
+  if (selErr && selErr.code !== "PGRST116") throw selErr;
+
+  if (existing?.id) {
+    const { error: updErr } = await supabase
+      .from("email_orders")
+      .update(row)
+      .eq("id", existing.id);
+    if (updErr) throw updErr;
+    return existing.id;
+  } else {
+    const { data: ins, error: insErr } = await supabase
+      .from("email_orders")
+      .insert(row)
+      .select("id")
+      .maybeSingle();
+    if (insErr) throw insErr;
+    return ins?.id ?? null;
+  }
 }
 
 async function upsertShipment(row) {
-  // row: retailer, order_id, tracking_number, carrier, status, shipped_at, delivered_at
-  if (!row.tracking_number) return null; // nothing to write
-  const { data, error } = await supabase
+  if (!row.tracking_number) return null;
+
+  const { data: existing, error: selErr } = await supabase
     .from("email_shipments")
-    .upsert(row, { onConflict: "retailer,order_id,tracking_number" })
     .select("id")
+    .eq("retailer", row.retailer)
+    .eq("order_id", row.order_id)
+    .eq("tracking_number", row.tracking_number)
     .maybeSingle();
-  if (error) throw error;
-  return data?.id || null;
+
+  if (selErr && selErr.code !== "PGRST116") throw selErr;
+
+  if (existing?.id) {
+    const { error: updErr } = await supabase
+      .from("email_shipments")
+      .update(row)
+      .eq("id", existing.id);
+    if (updErr) throw updErr;
+    return existing.id;
+  } else {
+    const { data: ins, error: insErr } = await supabase
+      .from("email_shipments")
+      .insert(row)
+      .select("id")
+      .maybeSingle();
+    if (insErr) throw insErr;
+    return ins?.id ?? null;
+  }
 }
 
 function ymd(dateStr) {
@@ -413,10 +420,14 @@ function ymd(dateStr) {
 async function runSync(event) {
   const mode = (event.queryStringParameters?.mode || "").toLowerCase();
 
-  const gmail = await getGmailClient();
+  // Get the connected account FIRST so we have user_id
+  const acct = await getAccount();
+  const gmail = await getGmailClientWithAccount(acct);
+  const user_id = acct.user_id; // <<<<<< used in inserts
+
   const ids = await listCandidateMessageIds(gmail);
 
-  const proposed = []; // for preview
+  const proposed = [];
   let imported = 0;
   let updated = 0;
   let skipped_existing = 0;
@@ -438,11 +449,9 @@ async function runSync(event) {
     if (!type) continue;
 
     if (mode === "preview" && type !== "order") {
-      // preview only considers new orders
       continue;
     }
 
-    // Parse payload
     let parsed = {};
     if (type === "order" && retailer.parseOrder)
       parsed = retailer.parseOrder(html, text);
@@ -454,12 +463,10 @@ async function runSync(event) {
 
     const order_id =
       parsed.order_id ||
-      // fallback: sometimes included in subject
       ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
       null;
 
     if (mode === "preview") {
-      // only show orders that aren't in email_orders yet
       const exists = await orderExists(retailer.name, order_id);
       if (!exists) {
         proposed.push({
@@ -476,10 +483,10 @@ async function runSync(event) {
       continue;
     }
 
-    // --- Normal sync (create/update) ---
     if (type === "order") {
       const exists = await orderExists(retailer.name, order_id);
       const row = {
+        user_id, // <<<<<< REQUIRED
         retailer: retailer.name,
         order_id: order_id || `unknown-${msg.id}`,
         order_date: ymd(messageDate),
@@ -499,8 +506,8 @@ async function runSync(event) {
     }
 
     if (type === "shipping") {
-      // attach shipment to existing order if we can find order_id from subject/body; otherwise we still save the shipment row
       const ship = {
+        user_id, // <<<<<< REQUIRED
         retailer: retailer.name,
         order_id: order_id || "Unknown",
         tracking_number: parsed.tracking_number || null,
@@ -511,7 +518,6 @@ async function runSync(event) {
       };
       await upsertShipment(ship);
 
-      // If we have an order row, update it
       if (order_id) {
         await upsertOrder({
           retailer: retailer.name,
@@ -547,14 +553,8 @@ async function runSync(event) {
     }
   }
 
-  if (mode === "preview") {
-    // Only return proposals
-    return json({ proposed });
-  }
-  if (mode === "commit") {
-    // Friendly response to the Emails.jsx confirmInsert flow
-    return json({ imported, updated, skipped_existing });
-  }
+  if (mode === "preview") return json({ proposed });
+  if (mode === "commit") return json({ imported, updated, skipped_existing });
   return json({ imported, updated, skipped_existing });
 }
 
@@ -574,7 +574,6 @@ export async function handler(event) {
     method: event.httpMethod,
   });
 
-  // Quick health check: /.netlify/functions/gmail-sync?health=1
   if (event.queryStringParameters?.health === "1") {
     const envOk = {
       SUPABASE_URL: !!process.env.SUPABASE_URL,
