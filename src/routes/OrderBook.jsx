@@ -506,15 +506,15 @@ function DayCard({
                 className="h-3 w-3 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-1"
               />
             </div>
-            <div className="w-24 lg:w-28">Order date</div>
-            <div className="min-w-[120px] lg:min-w-[180px] flex-1">Item</div>
-            <div className="w-20 lg:w-24">Profile</div>
-            <div className="w-20 lg:w-24">Retailer</div>
-            <div className="w-16 lg:w-20">Buy $</div>
-            <div className="w-16 lg:w-20">Sale $</div>
-            <div className="w-24 lg:w-28">Sale date</div>
-            <div className="w-20 lg:w-24">Marketplace</div>
-            <div className="w-16 lg:w-20">Ship $</div>
+            <div className="w-24">Order date</div>
+            <div className="min-w-[100px] flex-1">Item</div>
+            <div className="w-18">Profile</div>
+            <div className="w-18">Retailer</div>
+            <div className="w-14">Buy $</div>
+            <div className="w-14">Sale $</div>
+            <div className="w-24">Sale date</div>
+            <div className="w-18">Marketplace</div>
+            <div className="w-14">Ship $</div>
           </div>
 
           <div className="space-y-3">
@@ -627,7 +627,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-28 sm:w-32"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-24"
         />
 
         {/* Item Name - Most Important */}
@@ -635,7 +635,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={item || ""}
           onChange={(e) => setItem(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none min-w-[200px] flex-1"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none min-w-[100px] flex-1"
         >
           <option value="" className="text-slate-400">Select item...</option>
           {items.map((it) => (
@@ -651,7 +651,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setProfile(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Profile"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-24 sm:w-28"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-18"
         />
 
         {/* Retailer */}
@@ -659,7 +659,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-24 sm:w-28"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-18"
         >
           <option value="" className="text-slate-400">Retailer</option>
           {retailers.map((r) => (
@@ -675,7 +675,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setBuyPrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Buy"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-20 sm:w-24"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-14"
         />
 
         {/* Sale Price */}
@@ -684,7 +684,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setSalePrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Sale"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-20 sm:w-24"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-14"
         />
 
         {/* Sale Date - Compact */}
@@ -693,7 +693,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={sale_date || ""}
           onChange={(e) => setSaleDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-28 sm:w-32"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-24"
         />
 
         {/* Marketplace */}
@@ -701,7 +701,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={marketplace || ""}
           onChange={(e) => handleMarketplaceChange(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-24 sm:w-28"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-18"
         >
           <option value="" className="text-slate-400">Market</option>
           {markets.map((m) => (
@@ -717,19 +717,9 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setShipping(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Ship"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-20 sm:w-24"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-14"
         />
 
-        {/* Status Badge */}
-        <div className="flex-shrink-0">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            moneyToCents(salePrice) > 0 
-              ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50' 
-              : 'bg-slate-800/50 text-slate-300 border border-slate-600/50'
-          }`}>
-            {moneyToCents(salePrice) > 0 ? 'Sold' : 'Ordered'}
-          </span>
-        </div>
       </div>
 
       {msg && (
