@@ -310,6 +310,10 @@ async function amazonCommon($, html, text) {
   // Look for product links and try to get full name from product page
   if (!item) {
     const prodLink = $("a[href*='gp/product'], a[href*='dp/']").first().text().trim();
+    console.log("All product links found:", $("a[href*='gp/product'], a[href*='dp/']").map((i, el) => ({
+      href: $(el).attr('href'),
+      text: $(el).text().trim()
+    })).get());
     if (prodLink && prodLink.length > 5) {
       item = prodLink;
       console.log("Found product link text:", item);
@@ -497,6 +501,28 @@ exports.handler = async (event) => {
     return json({ ok: true, envOk });
   }
 
+  // Test product page fetching
+  if (event?.queryStringParameters?.test === "product") {
+    const testUrl = event.queryStringParameters?.url;
+    if (!testUrl) {
+      return json({ error: "Missing url parameter" }, 400);
+    }
+    try {
+      const result = await fetchAmazonProductName(testUrl);
+      return json({ 
+        url: testUrl, 
+        result: result,
+        success: !!result 
+      });
+    } catch (error) {
+      return json({ 
+        url: testUrl, 
+        error: error.message,
+        success: false 
+      }, 500);
+    }
+  }
+
   try {
     const mode = (event.queryStringParameters?.mode || "").toLowerCase();
     const gmail = await getGmailClient();
@@ -553,6 +579,14 @@ exports.handler = async (event) => {
         // Parse order confirmation
         const parsed = retailer.parseOrder ? await retailer.parseOrder(html, text) : {};
         console.log(`Parsed order data:`, JSON.stringify(parsed, null, 2));
+        
+        // Add debug info to the response for browser visibility
+        if (!parsed.item_name || parsed.item_name.includes('...')) {
+          console.log(`DEBUG: Item name issue - name: "${parsed.item_name}", has ellipsis: ${parsed.item_name?.includes('...')}`);
+        }
+        if (!parsed.image_url) {
+          console.log(`DEBUG: No image found for order ${order_id}`);
+        }
 
         // Extract order ID with better fallbacks
         const order_id = 
