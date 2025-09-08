@@ -1,9 +1,10 @@
 {
-  "name": "emails-functions",
+  "name": "onetrack-functions",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.4",
-    "googleapis": "^131.0.0"
+    "@supabase/supabase-js": "^2.57.2",
+    "googleapis": "^159.0.0",
+    "cheerio": "^1.0.0-rc.12"
   }
 }
