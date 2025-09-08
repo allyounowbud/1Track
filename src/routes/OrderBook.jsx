@@ -594,114 +594,156 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       }`}
       onClick={onToggleSelection}
     >
-      <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
-        {/* Selection checkbox */}
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={(e) => {
-            e.stopPropagation(); // Prevent row click when clicking checkbox
-            onToggleSelection();
-          }}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-        />
-        {/* order date */}
-        <input
-          type="date"
-          value={order_date || ""}
-          onChange={(e) => setOrderDate(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className={`tw-date ${inputSm} w-36`}
-        />
+      <div className="space-y-3">
+        {/* Top Row - Main Info */}
+        <div className="flex items-center gap-3">
+          {/* Selection checkbox */}
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              onToggleSelection();
+            }}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all flex-shrink-0"
+          />
+          
+          {/* Item Name - Most Important */}
+          <div className="flex-1 min-w-0">
+            <select
+              value={item || ""}
+              onChange={(e) => setItem(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full bg-transparent border-none text-slate-100 font-medium text-sm focus:outline-none focus:ring-0 p-0"
+            >
+              <option value="" className="text-slate-400">Select item...</option>
+              {items.map((it) => (
+                <option key={it.id} value={it.name} className="bg-slate-800 text-slate-100">
+                  {it.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* item */}
-        <select
-          value={item || ""}
-          onChange={(e) => setItem(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className={`${inputSm} min-w-[240px] flex-1`}
-        >
-          <option value=""></option>
-          {items.map((it) => (
-            <option key={it.id} value={it.name}>
-              {it.name}
-            </option>
-          ))}
-        </select>
+          {/* Status Badge */}
+          <div className="flex-shrink-0">
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              moneyToCents(salePrice) > 0 
+                ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50' 
+                : 'bg-slate-800/50 text-slate-300 border border-slate-600/50'
+            }`}>
+              {moneyToCents(salePrice) > 0 ? 'Sold' : 'Ordered'}
+            </span>
+          </div>
+        </div>
 
-        {/* profile */}
-        <input
-          value={profile_name}
-          onChange={(e) => setProfile(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Profile"
-          className={`${inputSm} w-28`}
-        />
+        {/* Bottom Row - Details */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 ml-7">
+          {/* Date & Profile */}
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400 block">Order Date</label>
+            <input
+              type="date"
+              value={order_date || ""}
+              onChange={(e) => setOrderDate(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
 
-        {/* retailer */}
-        <select
-          value={retailer || ""}
-          onChange={(e) => setRetailer(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className={`${inputSm} w-28`}
-        >
-          <option value=""></option>
-          {retailers.map((r) => (
-            <option key={r.id} value={r.name}>
-              {r.name}
-            </option>
-          ))}
-        </select>
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400 block">Profile</label>
+            <input
+              value={profile_name}
+              onChange={(e) => setProfile(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Profile name"
+              className="w-full bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
 
-        {/* buy / sale */}
-        <input
-          value={buyPrice}
-          onChange={(e) => setBuyPrice(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Buy"
-          className={`${inputSm} w-24`}
-        />
-        <input
-          value={salePrice}
-          onChange={(e) => setSalePrice(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Sale"
-          className={`${inputSm} w-24`}
-        />
+          {/* Retailer & Marketplace */}
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400 block">Retailer</label>
+            <select
+              value={retailer || ""}
+              onChange={(e) => setRetailer(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="" className="text-slate-400">Select retailer...</option>
+              {retailers.map((r) => (
+                <option key={r.id} value={r.name} className="bg-slate-800 text-slate-100">
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* sale date */}
-        <input
-          type="date"
-          value={sale_date || ""}
-          onChange={(e) => setSaleDate(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className={`tw-date ${inputSm} w-36`}
-        />
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400 block">Marketplace</label>
+            <select
+              value={marketplace || ""}
+              onChange={(e) => handleMarketplaceChange(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="" className="text-slate-400">Select marketplace...</option>
+              {markets.map((m) => (
+                <option key={m.id} value={m.name} className="bg-slate-800 text-slate-100">
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-        {/* marketplace */}
-        <select
-          value={marketplace || ""}
-          onChange={(e) => handleMarketplaceChange(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className={`${inputSm} w-32`}
-        >
-          <option value=""></option>
-          {markets.map((m) => (
-            <option key={m.id} value={m.name}>
-              {m.name}
-            </option>
-          ))}
-        </select>
+        {/* Third Row - Financial Info */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 ml-7">
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400 block">Buy Price</label>
+            <input
+              value={buyPrice}
+              onChange={(e) => setBuyPrice(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="$0.00"
+              className="w-full bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
 
-        {/* ship */}
-        <input
-          value={shipping}
-          onChange={(e) => setShipping(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Ship"
-          className={`${inputSm} w-24`}
-        />
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400 block">Sale Price</label>
+            <input
+              value={salePrice}
+              onChange={(e) => setSalePrice(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="$0.00"
+              className="w-full bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
 
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400 block">Sale Date</label>
+            <input
+              type="date"
+              value={sale_date || ""}
+              onChange={(e) => setSaleDate(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400 block">Shipping</label>
+            <input
+              value={shipping}
+              onChange={(e) => setShipping(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="$0.00"
+              className="w-full bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+        </div>
       </div>
 
       {msg && (
