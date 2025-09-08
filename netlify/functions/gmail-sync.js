@@ -397,6 +397,17 @@ async function amazonCommon($, html, text) {
         }
       } else {
         console.log("No product link found in email");
+        // Try to find product links in the HTML source
+        const htmlSrc = html || "";
+        const productLinkMatches = htmlSrc.match(/https:\/\/[^"'\s]*\/gp\/product\/[A-Z0-9]+/gi);
+        if (productLinkMatches && productLinkMatches.length > 0) {
+          console.log("Found product links in HTML source:", productLinkMatches);
+          const fullName = await fetchAmazonProductName(productLinkMatches[0]);
+          if (fullName) {
+            item = fullName;
+            console.log("Got full product name from HTML source link:", item);
+          }
+        }
       }
     } catch (error) {
       console.log("Failed to fetch full product name:", error.message);
@@ -455,9 +466,9 @@ async function amazonCommon($, html, text) {
     
     if (!/^https?:\/\//.test(src)) return;
     
-    // Skip obvious non-product images
-    if (/logo|amazon|prime|sprite|tracker|icon|button|social|facebook|twitter|instagram/i.test(src) || 
-        /logo|amazon|prime|icon|button|social|facebook|twitter|instagram/.test(alt)) {
+    // Skip obvious non-product images (but allow product images from Amazon)
+    if (/logo|prime|sprite|tracker|icon|button|social|facebook|twitter|instagram|steptracker|pixel|transp\.gif|smile/i.test(src) || 
+        /logo|prime|icon|button|social|facebook|twitter|instagram|amazon\.com/.test(alt)) {
       console.log("Skipping non-product image:", src);
       return;
     }
@@ -481,12 +492,19 @@ async function amazonCommon($, html, text) {
     const imageMatches = htmlSrc.match(/https:\/\/[^"'\s]+\.(jpg|jpeg|png|gif|webp)/gi);
     if (imageMatches) {
       console.log("Found images in HTML source:", imageMatches);
+      // Prioritize product images over UI elements
       for (const imageUrl of imageMatches) {
+        // Skip UI elements
+        if (/steptracker|pixel|transp\.gif|smile|logo/i.test(imageUrl)) {
+          console.log("Skipping UI image from HTML source:", imageUrl);
+          continue;
+        }
+        // Look for product images
         if (imageUrl.includes('m.media-amazon.com') || 
             imageUrl.includes('images.amazon.com') ||
             imageUrl.includes('googleusercontent.com')) {
           img = imageUrl;
-          console.log("Using image from HTML source:", img);
+          console.log("Using product image from HTML source:", img);
           break;
         }
       }
