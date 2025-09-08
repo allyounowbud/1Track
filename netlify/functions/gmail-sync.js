@@ -192,81 +192,79 @@ function amazonCommon($, html, text) {
   const out = {};
   const bodyText = $("body").text();
   
-  // Enhanced order ID extraction
-  out.order_id =
-    (bodyText.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
-    (bodyText.match(/Order\s*Number[:\s]*([0-9\-]+)/i) || [])[1] ||
-    (bodyText.match(/#\s*([0-9\-]+)/) || [])[1] ||
-    (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
-    null;
-
-  // Enhanced item name extraction
+  console.log("=== AMAZON PARSING DEBUG ===");
+  console.log("Body text length:", bodyText.length);
+  console.log("First 500 chars:", bodyText.substring(0, 500));
+  
+  // Order ID extraction - try multiple patterns
+  const orderIdPatterns = [
+    /Order\s*#\s*([0-9\-]+)/i,
+    /Order\s*Number[:\s]*([0-9\-]+)/i,
+    /#\s*([0-9\-]+)/,
+    /([0-9]{3}-[0-9]{7}-[0-9]{7})/i, // Amazon format: 114-8261726-1969054
+  ];
+  
+  for (const pattern of orderIdPatterns) {
+    const match = bodyText.match(pattern);
+    if (match && match[1]) {
+      out.order_id = match[1];
+      console.log("Found order ID:", out.order_id);
+      break;
+    }
+  }
+  
+  // Item name extraction - look for product names in quotes or specific patterns
   let item = "";
   
-  // Try to find product name in various ways
-  const prodLink = $("a[href*='gp/product'], a[href*='dp/']").first().text().trim();
-  if (prodLink && prodLink.length > 5) {
-    item = prodLink;
+  // Look for quoted product names (common in Amazon emails)
+  const quotedMatch = bodyText.match(/"([^"]{10,100})"/);
+  if (quotedMatch && quotedMatch[1]) {
+    item = quotedMatch[1];
+    console.log("Found quoted item:", item);
   }
   
-  // Look for product name in table cells or divs
+  // Look for product names after "Ordered:", "Shipped:", "Delivered:"
   if (!item) {
-    $("td, div").each((_, el) => {
-      const text = $(el).text().trim();
-      if (text.length > 10 && text.length < 200 && 
-          !/order|total|quantity|price|amazon|prime/i.test(text) &&
-          !/your orders|buy again|track package/i.test(text)) {
-        item = text;
-        return false; // break
-      }
-    });
+    const statusMatch = bodyText.match(/(?:Ordered|Shipped|Delivered):\s*"([^"]+)"/i);
+    if (statusMatch && statusMatch[1]) {
+      item = statusMatch[1];
+      console.log("Found status item:", item);
+    }
   }
   
-  // Fallback: first meaningful link text
+  // Look for product links
   if (!item) {
-    $("a").each((_, el) => {
-      const t = ($(el).text() || "").trim();
-      if (!item && t.length > 12 && t.length < 140 && 
-          !/your orders|buy again|track package|amazon|prime/i.test(t)) {
-        item = t;
-        return false; // break
-      }
-    });
+    const prodLink = $("a[href*='gp/product'], a[href*='dp/']").first().text().trim();
+    if (prodLink && prodLink.length > 5) {
+      item = prodLink;
+      console.log("Found product link:", item);
+    }
   }
   
   if (item) out.item_name = item;
 
-  // Enhanced quantity extraction
-  const qty =
-    (bodyText.match(/Quantity[:\s]*([0-9]+)/i) || [])[1] ||
-    (bodyText.match(/Qty[:\s]*([0-9]+)/i) || [])[1] ||
-    (bodyText.match(/Qty[:\s]*([0-9]+)/i) || [])[1] ||
-    null;
-  if (qty) out.quantity = parseInt(qty, 10);
-
-  // Enhanced price extraction
-  const priceMatch =
-    (bodyText.match(/\$([0-9,]+\.?[0-9]*)/g) || [])
-      .map(m => m.replace('$', ''))
-      .map(p => parseFloat(p.replace(',', '')))
-      .filter(p => p > 0 && p < 10000) // reasonable price range
-      .sort((a, b) => b - a)[0]; // get highest price (likely total)
-      
-  if (priceMatch) {
-    out.total_cents = Math.round(priceMatch * 100);
+  // Quantity extraction
+  const qtyMatch = bodyText.match(/Quantity[:\s]*([0-9]+)/i);
+  if (qtyMatch) {
+    out.quantity = parseInt(qtyMatch[1], 10);
+    console.log("Found quantity:", out.quantity);
   }
 
-  // Enhanced total extraction (fallback)
-  if (!out.total_cents) {
-    const totalMatch =
-      (bodyText.match(/Total[:\s]*\$([0-9,]+\.?[0-9]*)/i) || [])[1] ||
-      (bodyText.match(/Order\s*Total[:\s]*\$([0-9,]+\.?[0-9]*)/i) || [])[1];
-    if (totalMatch) {
-      out.total_cents = Math.round(parseFloat(totalMatch.replace(',', '')) * 100);
+  // Price extraction - look for dollar amounts
+  const priceMatches = bodyText.match(/\$([0-9,]+\.?[0-9]*)/g);
+  if (priceMatches) {
+    const prices = priceMatches
+      .map(m => parseFloat(m.replace(/[$,]/g, '')))
+      .filter(p => p > 0 && p < 10000)
+      .sort((a, b) => b - a); // sort descending
+    
+    if (prices.length > 0) {
+      out.total_cents = Math.round(prices[0] * 100); // use highest price as total
+      console.log("Found prices:", prices, "using total:", prices[0]);
     }
   }
 
-  // Enhanced image extraction
+  // Image extraction
   let img = null;
   $("img").each((_, el) => {
     const src = $(el).attr("src") || "";
@@ -274,10 +272,16 @@ function amazonCommon($, html, text) {
     if (!/^https?:\/\//.test(src)) return;
     if (/logo|amazon|prime|sprite|tracker|icon/i.test(src) || 
         /logo|amazon|prime|icon/.test(alt)) return;
-    if (!img && src.includes('images')) img = src;
+    if (!img && src.includes('images')) {
+      img = src;
+      console.log("Found image:", img);
+    }
   });
   if (img) out.image_url = img;
 
+  console.log("Final parsed data:", out);
+  console.log("=== END AMAZON PARSING DEBUG ===");
+  
   return out;
 }
 
@@ -391,6 +395,13 @@ exports.handler = async (event) => {
             : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
         const { html, text } = extractBodyParts(msg.payload || {});
 
+        // Only process emails from the last 30 days to avoid old emails
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        if (messageDate < thirtyDaysAgo) {
+          console.log(`Skipping old email from ${messageDate.toISOString()}`);
+          continue;
+        }
+
         const retailer = classifyRetailer(from);
         const type = classifyType(retailer, subject);
         
@@ -412,6 +423,12 @@ exports.handler = async (event) => {
 
         if (!order_id) {
           console.log(`No order ID found for: ${subject}`);
+          continue;
+        }
+
+        // Additional validation - ensure we have meaningful data
+        if (!parsed.item_name && !parsed.total_cents) {
+          console.log(`Insufficient data for order ${order_id}: no item name or price`);
           continue;
         }
 
@@ -475,6 +492,10 @@ exports.handler = async (event) => {
             ? new Date(dateHeader)
             : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
         const { html, text } = extractBodyParts(msg.payload || {});
+
+        // Only process emails from the last 30 days
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        if (messageDate < thirtyDaysAgo) continue;
 
         const retailer = classifyRetailer(from);
         const type = classifyType(retailer, subject);
@@ -549,6 +570,10 @@ exports.handler = async (event) => {
             ? new Date(dateHeader)
             : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
         const { html, text } = extractBodyParts(msg.payload || {});
+
+        // Only process emails from the last 30 days
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        if (messageDate < thirtyDaysAgo) continue;
 
         const retailer = classifyRetailer(from);
         const type = classifyType(retailer, subject);
