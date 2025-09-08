@@ -37,7 +37,7 @@ const RETAILERS = [
     senderMatch: (from) =>
       /@amazon\.(com|ca|co\.uk|de|fr|it|es|co\.jp)$/i.test(from) ||
       /(auto-confirm|shipment-tracking|order-update)@amazon/i.test(from),
-    orderSubject: /\bordered:\s|order(ed)?[:\s]/i,
+    orderSubject: /\bordered:\s|order(ed)?[:\s]|thanks for your order|order confirmation/i,
     shipSubject: /\bshipped:|\bwas shipped\b|\bshipment\b/i,
     deliverSubject: /\bdelivered:|\bwas delivered\b/i,
     cancelSubject: /\bcancel(?:ed|led)\b/i,
@@ -223,7 +223,19 @@ async function getMessageFull(gmail, id) {
 /* ------------------------------ Classifier ------------------------------ */
 function classifyRetailer(from) {
   const f = (from || "").toLowerCase();
-  return RETAILERS.find((r) => r.senderMatch(f)) || {
+  console.log("Classifying retailer for email:", f);
+  
+  for (const retailer of RETAILERS) {
+    const matches = retailer.senderMatch(f);
+    console.log(`Testing ${retailer.name}: ${matches}`);
+    if (matches) {
+      console.log(`Matched retailer: ${retailer.name}`);
+      return retailer;
+    }
+  }
+  
+  console.log("No retailer matched, using Undefined");
+  return {
     name: "Undefined",
     orderSubject: /order/,
     shipSubject: /shipped|shipment/i,
