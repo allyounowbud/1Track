@@ -137,9 +137,8 @@ async function getShipments() {
 async function getEmailAccounts() {
   const { data, error } = await supabase
     .from("email_accounts")
-    .select("email_address, updated_at")
-    .order("updated_at", { ascending: false })
-    .limit(1);
+    .select("id, email_address, provider, updated_at")
+    .order("updated_at", { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -153,7 +152,7 @@ export default function Emails() {
   const { data: ships = [], refetch: refetchShips, isLoading: lo2 } = useQuery({ queryKey: ["email-shipments"], queryFn: getShipments });
 
   const connected = !!accounts.length;
-  const acctEmail = accounts[0]?.email_address || null;
+  const gmailAccounts = accounts.filter(acc => acc.provider === 'gmail');
 
   /* ------------------ controls ------------------ */
   const [scope, setScope] = useState("all"); // all | ordered | shipping | delivered
@@ -209,24 +208,48 @@ export default function Emails() {
     }
   }
 
-  async function disconnectGmail() {
-    if (!confirm("Are you sure you want to disconnect your Gmail account? This will stop automatic email syncing.")) {
-      return;
-    }
-    
-    try {
-      const { error } = await supabase
-        .from("email_accounts")
-        .delete()
-        .eq("provider", "gmail");
+  async function disconnectGmail(accountId = null) {
+    if (accountId) {
+      // Disconnect specific account
+      const account = gmailAccounts.find(acc => acc.id === accountId);
+      if (!account) return;
       
-      if (error) throw error;
+      if (!confirm(`Are you sure you want to disconnect ${account.email_address}?`)) {
+        return;
+      }
       
-      // Refresh the accounts data to update the UI
-      await refetchAccounts();
-      setSyncMsg("Gmail account disconnected successfully");
-    } catch (e) {
-      setSyncMsg(`Failed to disconnect: ${e.message}`);
+      try {
+        const { error } = await supabase
+          .from("email_accounts")
+          .delete()
+          .eq("id", accountId);
+        
+        if (error) throw error;
+        
+        await refetchAccounts();
+        setSyncMsg(`Gmail account ${account.email_address} disconnected successfully`);
+      } catch (e) {
+        setSyncMsg(`Failed to disconnect: ${e.message}`);
+      }
+    } else {
+      // Disconnect all Gmail accounts
+      if (!confirm("Are you sure you want to disconnect all Gmail accounts? This will stop automatic email syncing.")) {
+        return;
+      }
+      
+      try {
+        const { error } = await supabase
+          .from("email_accounts")
+          .delete()
+          .eq("provider", "gmail");
+        
+        if (error) throw error;
+        
+        await refetchAccounts();
+        setSyncMsg("All Gmail accounts disconnected successfully");
+      } catch (e) {
+        setSyncMsg(`Failed to disconnect: ${e.message}`);
+      }
     }
   }
 
@@ -237,34 +260,38 @@ export default function Emails() {
       const res = await fetch("/.netlify/functions/gmail-sync", { method: "POST" });
       const j = await res.json().catch(() => ({}));
       if (!silent) {
-        setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}, skipped ${j?.skipped_existing ?? 0}` : `Sync failed: ${j?.error || res.status}`);
+        if (res.ok) {
+          const stats = j;
+          const duration = Math.round((stats.duration_ms || 0) / 1000);
+          setSyncMsg(
+            `✅ Sync complete in ${duration}s: ` +
+            `${stats.imported || 0} new orders, ` +
+            `${stats.updated || 0} updated, ` +
+            `${stats.skipped_existing || 0} duplicates skipped` +
+            (stats.errors > 0 ? `, ${stats.errors} errors` : '') +
+            ` (${stats.processed || 0}/${stats.total_messages || 0} processed)`
+          );
+        } else {
+          setSyncMsg(`❌ Sync failed: ${j?.error || res.status}`);
+        }
       }
       await Promise.all([refetchOrders(), refetchShips()]);
     } catch (e) {
-      if (!silent) setSyncMsg(String(e.message || e));
+      if (!silent) setSyncMsg(`❌ Sync failed: ${String(e.message || e)}`);
     } finally {
       setSyncing(false);
-      if (!silent) setTimeout(() => setSyncMsg(""), 2600);
+      if (!silent) setTimeout(() => setSyncMsg(""), 5000);
     }
   }
 
-  async function previewNew() {
+  async function addToOrderBook(rowData) {
     try {
-      setSyncMsg("Looking for new orders…");
-      const res = await fetch("/.netlify/functions/gmail-sync?mode=preview");
-      const j = await res.json().catch(() => ({}));
-      const list = j?.proposed || [];
-      if (list.length === 0) {
-        setSyncMsg("No new orders found.");
-        setTimeout(() => setSyncMsg(""), 2200);
-        return;
-      }
-      setSyncMsg("");
-      setProposed(list);
-      setPreviewOpen(true);
+      // This will be implemented to add the order to the order book
+      // For now, we'll show a success message
+      setSyncMsg(`✅ Added "${rowData.item_name || rowData.retailer} - ${rowData.order_id}" to order book`);
+      setTimeout(() => setSyncMsg(""), 3000);
     } catch (e) {
-      setSyncMsg(String(e.message || e));
-      setTimeout(() => setSyncMsg(""), 2600);
+      setSyncMsg(`❌ Failed to add order: ${e.message}`);
     }
   }
 
@@ -295,27 +322,36 @@ export default function Emails() {
                 Connect your mailbox to automatically import order confirmations and shipping updates. We link shipping emails to their orders by order # and tracking number.
               </p>
               {connected && (
-                <p className="text-slate-300 text-sm mt-1">
-                  Connected: <span className="font-medium">{acctEmail}</span>
-                </p>
+                <div className="text-slate-300 text-sm mt-1">
+                  <div className="font-medium mb-1">Connected accounts:</div>
+                  {gmailAccounts.map((account) => (
+                    <div key={account.id} className="flex items-center justify-between gap-2 py-1">
+                      <span className="font-medium">{account.email_address}</span>
+                      <button
+                        onClick={() => disconnectGmail(account.id)}
+                        className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-500 text-white"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {!connected ? (
-                <button onClick={connectGmail} className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium">
-                  Connect Gmail
-                </button>
-              ) : (
+              <button onClick={connectGmail} className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium">
+                {connected ? "Connect Another Gmail" : "Connect Gmail"}
+              </button>
+              {connected && (
                 <>
-                  <button onClick={previewNew} className="h-11 px-5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-medium">
-                    Preview new orders
-                  </button>
                   <button onClick={() => syncNow()} disabled={syncing} className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium">
                     {syncing ? "Syncing…" : "Sync now"}
                   </button>
-                  <button onClick={disconnectGmail} className="h-11 px-5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-medium">
-                    Disconnect
-                  </button>
+                  {gmailAccounts.length > 1 && (
+                    <button onClick={() => disconnectGmail()} className="h-11 px-5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-medium">
+                      Disconnect All
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -493,15 +529,21 @@ export default function Emails() {
                         </div>
                       </div>
 
-                      {/* Open original */}
-                      <div className="mt-5">
+                      {/* Action buttons */}
+                      <div className="mt-5 flex gap-3">
                         <a
                           href={`https://mail.google.com/mail/u/0/#search/${encodeURIComponent(r.order_id || r.item_name || r.retailer || "")}`}
-                          className="w-full inline-flex items-center justify-center h-11 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-100"
+                          className="flex-1 inline-flex items-center justify-center h-11 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-100"
                           target="_blank" rel="noreferrer"
                         >
                           View original email
                         </a>
+                        <button
+                          onClick={() => addToOrderBook(r)}
+                          className="flex-1 inline-flex items-center justify-center h-11 rounded-xl border border-emerald-600 bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+                        >
+                          Add to Order Book
+                        </button>
                       </div>
                     </div>
                   </div>

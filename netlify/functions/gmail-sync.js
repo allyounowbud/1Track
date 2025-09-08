@@ -321,22 +321,27 @@ exports.handler = async (event) => {
     let imported = 0;
     let updated = 0;
     let skipped_existing = 0;
+    let errors = 0;
+    let processed = 0;
+    const startTime = Date.now();
 
     for (const id of ids) {
-      const msg = await getMessageFull(gmail, id);
-      const h = headersToObj(msg.payload?.headers || []);
-      const subject = h["subject"] || "";
-      const from = h["from"] || "";
-      const dateHeader = h["date"] || "";
-      const messageDate =
-        dateHeader
-          ? new Date(dateHeader)
-          : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
-      const { html, text } = extractBodyParts(msg.payload || {});
+      try {
+        processed++;
+        const msg = await getMessageFull(gmail, id);
+        const h = headersToObj(msg.payload?.headers || []);
+        const subject = h["subject"] || "";
+        const from = h["from"] || "";
+        const dateHeader = h["date"] || "";
+        const messageDate =
+          dateHeader
+            ? new Date(dateHeader)
+            : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
+        const { html, text } = extractBodyParts(msg.payload || {});
 
-      const retailer = classifyRetailer(from);
-      const type = classifyType(retailer, subject);
-      if (!type) continue;
+        const retailer = classifyRetailer(from);
+        const type = classifyType(retailer, subject);
+        if (!type) continue;
 
       // parse
       let parsed = {};
@@ -441,10 +446,25 @@ exports.handler = async (event) => {
         }
         updated++;
       }
+      } catch (err) {
+        console.error(`Error processing message ${id}:`, err);
+        errors++;
+      }
     }
 
-    if (mode === "preview") return json({ proposed });
-    return json({ imported, updated, skipped_existing });
+    const duration = Date.now() - startTime;
+    const stats = {
+      imported,
+      updated,
+      skipped_existing,
+      errors,
+      processed,
+      duration_ms: duration,
+      total_messages: ids.length
+    };
+
+    if (mode === "preview") return json({ proposed, stats });
+    return json(stats);
   } catch (err) {
     console.error("gmail-sync error:", err);
     return json({ error: String(err?.message || err) }, 500);
