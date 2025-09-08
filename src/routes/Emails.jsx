@@ -17,24 +17,25 @@ const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 
 function trackingUrl(carrier, tn) {
   if (!tn) return null;
+  // If tn is an Amazon tracking link (full URL) just return it
+  if (/^https?:\/\//i.test(tn)) return tn;
   const c = (carrier || "").toLowerCase();
   if (c === "ups") return `https://www.ups.com/track?tracknum=${encodeURIComponent(tn)}`;
   if (c === "usps") return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(tn)}`;
   if (c === "fedex") return `https://www.fedex.com/fedextrack/?tracknumbers=${encodeURIComponent(tn)}`;
-  // For Amazon we store the full tracking URL as the "number"
-  if (/^https?:\/\//i.test(tn)) return tn;
   if (/^1Z/i.test(tn)) return `https://www.ups.com/track?tracknum=${encodeURIComponent(tn)}`;
   return `https://www.google.com/search?q=${encodeURIComponent(tn + " tracking")}`;
 }
 
-/** Merge orders + shipments into shipment-like rows (with stable uid) */
+/** Merge orders + shipments into shipment-like rows */
 function stitch(orders = [], shipments = []) {
   const byKey = new Map();
-  const makeKey = (retailer, order_id) => `${(retailer || "").trim()}::${(order_id || "").trim()}`;
+  const makeKey = (uid, retailer, order_id) => `${uid || ""}::${(retailer||'').trim()}::${(order_id||'').trim()}`;
 
   orders.forEach((o) => {
-    const key = makeKey(o.retailer, o.order_id);
+    const key = makeKey(o.user_id, o.retailer, o.order_id);
     byKey.set(key, {
+      user_id: o.user_id,
       retailer: o.retailer || "Undefined",
       order_id: o.order_id || "—",
       order_date: o.order_date || null,
@@ -46,20 +47,24 @@ function stitch(orders = [], shipments = []) {
       shipped_at: o.shipped_at || null,
       delivered_at: o.delivered_at || null,
       status: (o.status || "ordered").toLowerCase(),
-      trackings: new Map(),
+      trackings: new Map(), // tn -> {tn, carrier}
       uid: null,
+      source_message_id: o.source_message_id || null,
     });
   });
 
   const globalTracking = new Map();
-  const attachToRow = (s) => {
-    const viaOrder = s.order_id ? byKey.get(makeKey(s.retailer, s.order_id)) : null;
-    if (viaOrder) return viaOrder;
-    if (s.tracking_number && globalTracking.has(s.tracking_number)) return globalTracking.get(s.tracking_number);
 
-    const key = makeKey(s.retailer, s.order_id || `#${s.tracking_number || s.id}`);
+  const attachToRow = (s) => {
+    const viaOrder = s.order_id ? byKey.get(makeKey(s.user_id, s.retailer, s.order_id)) : null;
+    if (viaOrder) return viaOrder;
+    if (s.tracking_number && globalTracking.has(s.tracking_number)) {
+      return globalTracking.get(s.tracking_number);
+    }
+    const key = makeKey(s.user_id, s.retailer, s.order_id || `#${s.tracking_number || s.id}`);
     if (!byKey.has(key)) {
       byKey.set(key, {
+        user_id: s.user_id,
         retailer: s.retailer || "Undefined",
         order_id: s.order_id || "Unknown",
         order_date: null,
@@ -73,6 +78,7 @@ function stitch(orders = [], shipments = []) {
         status: "in_transit",
         trackings: new Map(),
         uid: null,
+        source_message_id: null,
       });
     }
     return byKey.get(key);
@@ -81,13 +87,16 @@ function stitch(orders = [], shipments = []) {
   shipments.forEach((s) => {
     const row = attachToRow(s);
     if (s.tracking_number) {
-      row.trackings.set(s.tracking_number, {
-        tracking_number: s.tracking_number,
-        carrier: s.carrier || "",
-        shipped_at: s.shipped_at || null,
-        delivered_at: s.delivered_at || null,
-        status: (s.status || "").toLowerCase(),
-      });
+      // Only keep ONE tracking link for Amazon (first)
+      if (!row.trackings.has(s.tracking_number)) {
+        row.trackings.set(s.tracking_number, {
+          tracking_number: s.tracking_number,
+          carrier: s.carrier || "",
+          shipped_at: s.shipped_at || null,
+          delivered_at: s.delivered_at || null,
+          status: (s.status || "").toLowerCase(),
+        });
+      }
       globalTracking.set(s.tracking_number, row);
     }
     row.shipped_at = row.shipped_at || s.shipped_at || null;
@@ -99,7 +108,6 @@ function stitch(orders = [], shipments = []) {
       x === "out_for_delivery" ? 3 :
       (x === "in_transit" || x === "label_created") ? 2 :
       x === "ordered" ? 1 : 0;
-
     const st = (s.status || "").toLowerCase() || "in_transit";
     if (rank(st) > rank(row.status)) row.status = st;
   });
@@ -107,20 +115,18 @@ function stitch(orders = [], shipments = []) {
   const out = Array.from(byKey.values());
   for (const row of out) {
     const firstTracking = Array.from(row.trackings.keys()).sort()[0] || "";
-    row.uid = `${row.retailer || ""}::${row.order_id || ""}::${firstTracking}`;
+    row.uid = `${row.user_id || ""}::${row.retailer || ""}::${row.order_id || ""}::${firstTracking}`;
     if (row.delivered_at) row.status = "delivered";
     else if (!row.shipped_at) row.status = row.status || "ordered";
   }
   return out;
 }
 
-/* ------------------------------ queries --------------------------------- */
+/* ---------- queries ---------- */
 async function getOrders() {
   const { data, error } = await supabase
     .from("email_orders")
-    .select(
-      "id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, shipped_at, delivered_at, status"
-    )
+    .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, shipped_at, delivered_at, status, source_message_id")
     .order("order_date", { ascending: false })
     .limit(2000);
   if (error) throw error;
@@ -129,11 +135,9 @@ async function getOrders() {
 async function getShipments() {
   const { data, error } = await supabase
     .from("email_shipments")
-    .select(
-      "id, user_id, retailer, order_id, tracking_number, carrier, status, shipped_at, delivered_at, created_at"
-    )
+    .select("id, user_id, retailer, order_id, tracking_number, carrier, status, shipped_at, delivered_at, created_at")
     .order("created_at", { ascending: false })
-    .limit(4000);
+    .limit(3000);
   if (error) throw error;
   return data || [];
 }
@@ -183,9 +187,10 @@ export default function Emails() {
   /* ------------------ controls ------------------ */
   const [scope, setScope] = useState("all"); // all | ordered | shipping | delivered
   const [q, setQ] = useState("");
-  const [expanded, setExpanded] = useState(() => new Set());
+  const [expanded, setExpanded] = useState(() => new Set()); // uids of expanded rows
 
   const rowsAll = useMemo(() => stitch(orders, ships), [orders, ships]);
+
   const rows = useMemo(() => {
     let r = rowsAll;
     if (scope === "shipping") {
@@ -213,12 +218,14 @@ export default function Emails() {
   /* ----------------------------- actions ----------------------------- */
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
+
   const [previewOpen, setPreviewOpen] = useState(false);
   const [proposed, setProposed] = useState([]);
 
   function connectGmail() {
     window.location.href = "/.netlify/functions/gmail-auth-start";
   }
+
   async function syncNow({ silent = false, label } = {}) {
     try {
       setSyncing(true);
@@ -236,6 +243,7 @@ export default function Emails() {
       if (!silent) setTimeout(() => setSyncMsg(""), 2600);
     }
   }
+
   async function previewNew() {
     try {
       setSyncMsg("Looking for new orders…");
@@ -244,7 +252,7 @@ export default function Emails() {
       const list = j?.proposed || [];
       if (list.length === 0) {
         setSyncMsg("No new orders found.");
-        setTimeout(() => setSyncMsg(""), 2000);
+        setTimeout(() => setSyncMsg(""), 2200);
         return;
       }
       setSyncMsg("");
@@ -255,22 +263,8 @@ export default function Emails() {
       setTimeout(() => setSyncMsg(""), 2600);
     }
   }
-  async function confirmInsert() {
-    try {
-      setSyncMsg("Importing…");
-      const res = await fetch("/.netlify/functions/gmail-sync?mode=commit", { method: "POST" });
-      const j = await res.json().catch(() => ({}));
-      setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}` : `Failed: ${j?.error || res.status}`);
-      setPreviewOpen(false);
-      await Promise.all([refetchOrders(), refetchShips()]);
-    } catch (e) {
-      setSyncMsg(String(e.message || e));
-    } finally {
-      setTimeout(() => setSyncMsg(""), 2600);
-    }
-  }
 
-  // Auto-sync on load + periodic silent syncs
+  // Auto-sync on load
   useEffect(() => {
     if (!connected) return;
     syncNow({ silent: false, label: "Fetching new orders…" });
@@ -352,6 +346,17 @@ export default function Emails() {
             {rows.map((r) => {
               const key = r.uid;
               const isOpen = expanded.has(key);
+
+              // primary tracking (at most one, and dedupe Amazon urls)
+              let primaryTracking = null;
+              if (r.trackings.size > 0) {
+                const vals = Array.from(r.trackings.values());
+                // prefer the first Amazon link, else first tracking number
+                primaryTracking =
+                  vals.find(v => /^https?:\/\//.test(v.tracking_number)) ||
+                  vals[0];
+              }
+
               return (
                 <div key={key} className="py-2">
                   {/* Row header */}
@@ -359,23 +364,29 @@ export default function Emails() {
                     <div className="shrink-0">
                       <TruckIcon className="h-8 w-8 text-slate-300" />
                     </div>
+
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="font-medium truncate">
-                            {r.item_name || "Item —"} <span className="text-slate-400">· {r.retailer || "Undefined"}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate pr-2">
+                            {/* Title stops before the pill on small screens */}
+                            <span className="truncate max-w-[70vw] inline-block align-bottom">
+                              {r.item_name || "Item —"}
+                            </span>
+                            <span className="text-slate-400"> · {r.retailer || "Undefined"}</span>
                           </div>
                           <div className="text-xs text-slate-400 mt-0.5 truncate">
                             {r.order_id ? `Order # ${r.order_id}` : "Order # —"}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <StatusPill status={r.status} />
                           <button
                             onClick={() =>
                               setExpanded((prev) => {
                                 const next = new Set(prev);
-                                if (next.has(key)) next.delete(key); else next.add(key);
+                                if (next.has(key)) next.delete(key);
+                                else next.add(key);
                                 return next;
                               })
                             }
@@ -389,133 +400,102 @@ export default function Emails() {
                     </div>
                   </div>
 
-                  {/* Slide-down detail panel */}
-                  <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: isOpen ? 560 : 0 }}>
-                    <div className="pt-4 px-3 sm:px-4">
-                      {/* STATUS + PROGRESS */}
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="text-sm font-medium">
-                          {r.status === "delivered" ? "Delivered" :
-                           r.status === "in_transit" ? "In transit" :
-                           r.status === "out_for_delivery" ? "Out for delivery" :
-                           r.status === "canceled" ? "Canceled" :
-                           "Order placed"}
+                  {/* Slide-down detail (full-bleed inside the card) */}
+                  <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: isOpen ? 580 : 0 }}>
+                    <div className="pt-4">
+                      {/* Status strip */}
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="font-semibold">
+                          {statusHeadline(r.status)}
                         </div>
-                        <div className="text-xs text-slate-400">
-                          {r.delivered_at ? `Updated ${safeDate(r.delivered_at)}` :
-                           r.shipped_at ? `Updated ${safeDate(r.shipped_at)}` :
-                           r.order_date ? `Updated ${safeDate(r.order_date)}` : ""}
+                        <div className="text-slate-400 text-xs">
+                          {r.delivered_at
+                            ? `Updated ${timeAgo(r.delivered_at)}`
+                            : r.shipped_at
+                            ? `Updated ${timeAgo(r.shipped_at)}`
+                            : r.order_date
+                            ? `Updated ${timeAgo(r.order_date)}`
+                            : ""}
                         </div>
                       </div>
-                      <div className="h-2 rounded-full bg-slate-800 overflow-hidden mb-4">
-                        <div
-                          className="h-full bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400"
-                          style={{
-                            width:
-                              r.status === "delivered" ? "100%" :
-                              r.status === "in_transit" ? "60%" :
-                              r.status === "out_for_delivery" ? "80%" :
-                              r.status === "canceled" ? "0%" :
-                              "20%",
-                          }}
-                        />
-                      </div>
+                      <ProgressBar status={r.status} className="mt-2" />
 
-                      {/* SHIPPING TIMELINE (simple) */}
-                      <div className="space-y-3 mb-4">
+                      {/* Shipment line (single state text) */}
+                      <div className="mt-3">
                         <div className="flex items-start gap-3">
-                          <span className={`mt-1 h-3 w-3 rounded-full ${
-                            r.status === "delivered" ? "bg-emerald-400" :
-                            (r.status === "in_transit" || r.status === "out_for_delivery") ? "bg-sky-400" : "bg-slate-600"
-                          }`} />
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium">
-                              {r.status === "delivered" ? "Shipment delivered successfully" :
-                               r.status === "out_for_delivery" ? "Out for delivery" :
-                               r.status === "in_transit" ? "Shipment on the way" :
-                               "Order confirmed"}
-                            </div>
-                            <div className="text-xs text-slate-400">
-                              {r.status === "delivered" ? "Delivered" :
-                               r.status === "in_transit" ? "Your package was shipped!" :
-                               "Tracking info will appear once the shop sends an update"}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <span className="mt-1 h-3 w-3 rounded-full bg-slate-600" />
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium">
-                              {r.shipped_at ? "Label created" : "Order created"}
-                            </div>
-                            <div className="text-xs text-slate-400">
-                              {r.shipped_at ? "Carrier has not received the package yet" : ""}
+                          <span className="mt-1 inline-block h-2 w-2 rounded-full bg-slate-400"></span>
+                          <div>
+                            <div className="font-medium">{shipmentLineTitle(r.status)}</div>
+                            <div className="text-slate-400 text-sm">{shipmentLineSub(r.status)}</div>
+                            <div className="text-slate-400 text-xs mt-1">
+                              {dateForStatus(r)}
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* TRACKING */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                      {/* Tracking + Carrier */}
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <div className="text-xs text-slate-400 mb-1">Tracking number</div>
-                          {r.trackings.size ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {Array.from(r.trackings.values()).map((t) => {
-                                const url = trackingUrl(t.carrier, t.tracking_number);
-                                return (
-                                  <a key={t.tracking_number} href={url || "#"} target="_blank" rel="noreferrer"
-                                     className={`${pill} bg-slate-800/70 text-slate-200 hover:bg-slate-700`}>
-                                    <span className="font-mono truncate max-w-[240px]">{t.tracking_number}</span>
-                                  </a>
-                                );
-                              })}
-                            </div>
-                          ) : <div className="text-slate-500">—</div>}
+                          {primaryTracking ? (
+                            <a
+                              href={trackingUrl(primaryTracking.carrier, primaryTracking.tracking_number)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center font-mono text-sm px-3 py-2 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800"
+                            >
+                              {/^https?:\/\//.test(primaryTracking.tracking_number)
+                                ? "Open tracking"
+                                : primaryTracking.tracking_number}
+                            </a>
+                          ) : (
+                            <div className="text-slate-500">—</div>
+                          )}
                         </div>
                         <div>
                           <div className="text-xs text-slate-400 mb-1">Carrier</div>
-                          {r.trackings.size ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {Array.from(r.trackings.values()).map((t) => (
-                                <span key={`${t.tracking_number}-c`} className={`${pill} bg-slate-800/70 text-slate-200`}>
-                                  {t.carrier || "—"}
-                                </span>
-                              ))}
-                            </div>
-                          ) : <div className="text-slate-500">—</div>}
+                          <div className="text-sm text-slate-200">{primaryTracking?.carrier || "—"}</div>
                         </div>
                       </div>
 
-                      {/* PRODUCT + TOTAL + ORDER # */}
-                      <div className="grid grid-cols-[64px,1fr] gap-3 mb-4">
-                        <div className="h-16 w-16 rounded-xl border border-slate-800 bg-slate-900/60 grid place-items-center overflow-hidden">
-                          {r.image_url
-                            ? <img src={r.image_url} alt="" className="h-full w-full object-cover" />
-                            : <ImageIcon className="h-6 w-6 text-slate-400" />}
+                      {/* Item row */}
+                      <div className="mt-5 flex items-center gap-4">
+                        <div className="h-16 w-16 rounded-xl border border-slate-800 bg-slate-900/40 grid place-items-center overflow-hidden">
+                          {r.image_url ? (
+                            <img src={r.image_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <ImageIcon className="h-6 w-6 text-slate-400" />
+                          )}
                         </div>
                         <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">{r.item_name || "—"}</div>
-                          <div className="text-xs text-slate-400">Qty {r.quantity ?? "—"}</div>
+                          <div className="font-medium truncate">{r.item_name || "—"}</div>
+                          <div className="text-slate-400 text-sm">Qty {r.quantity ?? "—"}</div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+
+                      {/* Totals + order number */}
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <div className="text-xs text-slate-400 mb-1">Total</div>
-                          <div className="text-sm">{r.total_cents ? `$${centsToStr(r.total_cents)}` : <span className="text-slate-500">—</span>}</div>
+                          <div className="text-sm">{r.total_cents ? `$${centsToStr(r.total_cents)}` : "—"}</div>
                         </div>
                         <div>
                           <div className="text-xs text-slate-400 mb-1">Order number</div>
-                          <div className="text-sm font-mono">{r.order_id || <span className="text-slate-500">—</span>}</div>
+                          <div className="text-sm font-mono">{r.order_id || "—"}</div>
                         </div>
                       </div>
 
-                      <a
-                        href={`https://mail.google.com/mail/u/0/#search/${encodeURIComponent(r.order_id || r.item_name || r.retailer || "")}`}
-                        target="_blank" rel="noreferrer"
-                        className="block w-full text-center h-11 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 transition">
-                        View original email
-                      </a>
+                      {/* Open original */}
+                      <div className="mt-5">
+                        <a
+                          href={`https://mail.google.com/mail/u/0/#search/${encodeURIComponent(r.order_id || r.item_name || r.retailer || "")}`}
+                          className="w-full inline-flex items-center justify-center h-11 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-100"
+                          target="_blank" rel="noreferrer"
+                        >
+                          View original email
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -529,7 +509,7 @@ export default function Emails() {
         </div>
       </div>
 
-      {/* Preview Modal */}
+      {/* ---------- Preview Modal ---------- */}
       {previewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-4">
@@ -549,7 +529,20 @@ export default function Emails() {
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setPreviewOpen(false)} className="h-10 px-4 rounded-xl bg-slate-800 text-slate-200">Cancel</button>
-              <button onClick={confirmInsert} className="h-10 px-4 rounded-xl bg-emerald-600 text-white">Confirm & Import</button>
+              <button
+                onClick={async () => {
+                  setSyncMsg("Importing…");
+                  const res = await fetch("/.netlify/functions/gmail-sync?mode=commit", { method: "POST" });
+                  const j = await res.json().catch(() => ({}));
+                  setSyncMsg(res.ok ? `Imported ${j?.imported ?? 0}, updated ${j?.updated ?? 0}` : `Failed: ${j?.error || res.status}`);
+                  setPreviewOpen(false);
+                  await Promise.all([refetchOrders(), refetchShips()]);
+                  setTimeout(() => setSyncMsg(""), 2600);
+                }}
+                className="h-10 px-4 rounded-xl bg-emerald-600 text-white"
+              >
+                Confirm & Import
+              </button>
             </div>
           </div>
         </div>
@@ -558,7 +551,7 @@ export default function Emails() {
   );
 }
 
-/* ---------- small UI ---------- */
+/* ---------- UI bits ---------- */
 function TopTab({ label, active, onClick }) {
   return (
     <button
@@ -572,27 +565,73 @@ function TopTab({ label, active, onClick }) {
     </button>
   );
 }
-
 function StatusPill({ status }) {
   const s = (status || "").toLowerCase();
   const map = {
     delivered: "bg-emerald-600/20 text-emerald-300",
     out_for_delivery: "bg-amber-600/20 text-amber-300",
     in_transit: "bg-sky-600/20 text-sky-300",
-    canceled: "bg-rose-600/20 text-rose-300",
     label_created: "bg-slate-700/50 text-slate-300",
     ordered: "bg-slate-700/50 text-slate-300",
+    canceled: "bg-rose-600/20 text-rose-300",
   };
   const txt =
     s === "delivered" ? "Delivered" :
     s === "out_for_delivery" ? "Out for delivery" :
     s === "in_transit" ? "In transit" :
-    s === "canceled" ? "Canceled" :
     s === "label_created" ? "Label created" :
+    s === "canceled" ? "Canceled" :
     "Order placed";
   return <span className={`${pill} ${map[s] || map.ordered}`}>{txt}</span>;
 }
-
+function ProgressBar({ status, className = "" }) {
+  const s = (status || "").toLowerCase();
+  const pct =
+    s === "delivered" ? 100 :
+    s === "out_for_delivery" ? 80 :
+    s === "in_transit" ? 60 :
+    s === "label_created" ? 30 :
+    s === "canceled" ? 100 :
+    15;
+  return (
+    <div className={`h-2 rounded-full bg-slate-800 overflow-hidden ${className}`}>
+      <div className="h-full bg-gradient-to-r from-sky-500 to-emerald-500" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+function statusHeadline(s) {
+  s = (s || "").toLowerCase();
+  if (s === "delivered") return "Delivered";
+  if (s === "in_transit" || s === "out_for_delivery" || s === "label_created") return "In Transit";
+  if (s === "canceled") return "Canceled";
+  return "Ordered";
+}
+function shipmentLineTitle(s) {
+  s = (s || "").toLowerCase();
+  if (s === "delivered") return "Shipment delivered successfully";
+  if (s === "in_transit" || s === "out_for_delivery" || s === "label_created") return "Shipment on the way";
+  if (s === "canceled") return "Order canceled";
+  return "Order confirmed";
+}
+function shipmentLineSub(s) {
+  s = (s || "").toLowerCase();
+  if (s === "delivered") return "Your package has been delivered.";
+  if (s === "in_transit" || s === "out_for_delivery" || s === "label_created") return "Your package has been shipped. Check tracking below.";
+  if (s === "canceled") return "Your order has been canceled. View the email for details.";
+  return "Tracking information will appear once we get an update from the seller.";
+}
+function dateForStatus(r) {
+  if (r.delivered_at) return safeDate(r.delivered_at);
+  if (r.shipped_at) return safeDate(r.shipped_at);
+  if (r.order_date) return safeDate(r.order_date);
+  return "—";
+}
+function timeAgo(d) {
+  if (!d) return "—";
+  const ms = Date.now() - new Date(d).getTime();
+  const days = Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
 function MailIcon({ className = "h-5 w-5" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
@@ -621,8 +660,8 @@ function ImageIcon({ className = "h-5 w-5" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="3" y="5" width="18" height="14" rx="2" />
-      <circle cx="8.5" cy="10" r="1.5" />
-      <path d="M3 16l5-5 4 4 3-3 6 6" />
+      <path d="M8 13l2.5-3 3 4 2.5-2 3 4H5z" />
+      <circle cx="9" cy="9" r="1.5" />
     </svg>
   );
 }
