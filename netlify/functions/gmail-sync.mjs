@@ -55,18 +55,14 @@ const RETAILERS = [
 
 /* -------------------------- Helpers (Gmail utils) ------------------------ */
 async function getAccount() {
-  // Pick the most-recently updated Gmail connection
   const { data, error } = await supabase
     .from("email_accounts")
-    .select(
-      "id, email_address, access_token, refresh_token, token_scope, token_expiry"
-    )
+    .select("id, email_address, access_token, refresh_token, token_expiry, updated_at")
     .order("updated_at", { ascending: false })
     .limit(1);
 
   if (error) throw error;
-  if (!data || !data.length)
-    throw new Error("No connected Gmail account in email_accounts");
+  if (!data || !data.length) throw new Error("No connected Gmail account in email_accounts");
   return data[0];
 }
 
