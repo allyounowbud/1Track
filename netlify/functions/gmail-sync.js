@@ -195,20 +195,22 @@ function amazonCommon($, html, text) {
   console.log("=== AMAZON PARSING DEBUG ===");
   console.log("Body text length:", bodyText.length);
   console.log("First 500 chars:", bodyText.substring(0, 500));
+  console.log("All order number matches:", bodyText.match(/#\s*([0-9\-]+)/g));
+  console.log("All Amazon format matches:", bodyText.match(/([0-9]{3}-[0-9]{7}-[0-9]{7})/g));
   
-  // Order ID extraction - try multiple patterns
+  // Order ID extraction - try multiple patterns in order of specificity
   const orderIdPatterns = [
+    /([0-9]{3}-[0-9]{7}-[0-9]{7})/i, // Amazon format: 114-6370970-6938659 (most specific)
     /Order\s*#\s*([0-9\-]+)/i,
     /Order\s*Number[:\s]*([0-9\-]+)/i,
     /#\s*([0-9\-]+)/,
-    /([0-9]{3}-[0-9]{7}-[0-9]{7})/i, // Amazon format: 114-8261726-1969054
   ];
   
   for (const pattern of orderIdPatterns) {
     const match = bodyText.match(pattern);
     if (match && match[1]) {
       out.order_id = match[1];
-      console.log("Found order ID:", out.order_id);
+      console.log("Found order ID:", out.order_id, "using pattern:", pattern);
       break;
     }
   }
@@ -250,31 +252,42 @@ function amazonCommon($, html, text) {
     console.log("Found quantity:", out.quantity);
   }
 
-  // Price extraction - look for dollar amounts
+  // Price extraction - look for dollar amounts with better filtering
   const priceMatches = bodyText.match(/\$([0-9,]+\.?[0-9]*)/g);
+  console.log("All price matches found:", priceMatches);
   if (priceMatches) {
     const prices = priceMatches
       .map(m => parseFloat(m.replace(/[$,]/g, '')))
-      .filter(p => p > 0 && p < 10000)
+      .filter(p => p > 0 && p < 10000) // reasonable price range
+      .filter(p => p !== 494) // filter out order numbers that look like prices
       .sort((a, b) => b - a); // sort descending
     
+    console.log("Filtered prices:", prices);
     if (prices.length > 0) {
       out.total_cents = Math.round(prices[0] * 100); // use highest price as total
-      console.log("Found prices:", prices, "using total:", prices[0]);
+      console.log("Using total price:", prices[0], "cents:", out.total_cents);
     }
   }
 
-  // Image extraction
+  // Image extraction - look for product images
   let img = null;
   $("img").each((_, el) => {
     const src = $(el).attr("src") || "";
     const alt = ($(el).attr("alt") || "").toLowerCase();
+    const width = $(el).attr("width") || "";
+    const height = $(el).attr("height") || "";
+    
     if (!/^https?:\/\//.test(src)) return;
-    if (/logo|amazon|prime|sprite|tracker|icon/i.test(src) || 
-        /logo|amazon|prime|icon/.test(alt)) return;
-    if (!img && src.includes('images')) {
+    if (/logo|amazon|prime|sprite|tracker|icon|button/i.test(src) || 
+        /logo|amazon|prime|icon|button/.test(alt)) return;
+    
+    // Look for product images (usually have dimensions or are in images.amazon.com)
+    if (src.includes('images.amazon.com') || 
+        src.includes('m.media-amazon.com') ||
+        (width && height && parseInt(width) > 50 && parseInt(height) > 50)) {
       img = src;
-      console.log("Found image:", img);
+      console.log("Found product image:", img);
+      return false; // break
     }
   });
   if (img) out.image_url = img;
