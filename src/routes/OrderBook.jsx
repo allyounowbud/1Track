@@ -291,35 +291,46 @@ export default function OrderBook() {
 
         {/* Bulk Actions */}
         {bulkActionsVisible && (
-          <div className={`${pageCard} mb-6 border-indigo-500 bg-indigo-500/10`}>
+          <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-4 mb-6">
             <div className="flex items-center justify-between">
+              {/* Selection Info */}
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-indigo-500"></div>
-                  <span className="text-indigo-300 font-medium">
-                    {selectedRows.size} selected
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+                  <span className="text-sm font-semibold text-slate-200">
+                    {selectedRows.size} Selected
                   </span>
                 </div>
                 <button
                   onClick={toggleAllSelection}
-                  className="text-sm text-slate-400 hover:text-slate-300 transition"
+                  className="text-xs text-slate-400 hover:text-indigo-400 transition-colors"
                 >
                   {selectedRows.size === filtered.length ? "Deselect All" : "Select All"}
                 </button>
               </div>
               
+              {/* Action Buttons */}
               <div className="flex items-center gap-2">
+                {/* Save Button */}
                 <button
                   onClick={bulkSaveSelected}
-                  className="h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-100 transition"
+                  className="w-10 h-10 rounded-full border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                  title="Save Selected Orders"
                 >
-                  Save
+                  <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
                 </button>
+                
+                {/* Delete Button */}
                 <button
                   onClick={bulkDeleteSelected}
-                  className="h-9 px-4 rounded-xl border border-red-800 bg-red-900/60 hover:bg-red-800 text-red-100 transition"
+                  className="w-10 h-10 rounded-full border border-red-600/50 bg-red-900/30 hover:bg-red-800/50 hover:border-red-500 text-red-200 transition-all duration-200 flex items-center justify-center group"
+                  title="Delete Selected Orders"
                 >
-                  Delete
+                  <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -465,7 +476,7 @@ function DayCard({
                       setSelectedRows(newSelected);
                     }
                   }}
-                  className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
                 />
                 <span className="text-xs text-slate-400">Select all</span>
               </div>
@@ -592,7 +603,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
             e.stopPropagation(); // Prevent row click when clicking checkbox
             onToggleSelection();
           }}
-          className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
+          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
         />
         {/* order date */}
         <input
