@@ -287,14 +287,99 @@ export default function Emails() {
     }
   }
 
+  // State for order book preview modal
+  const [previewModal, setPreviewModal] = useState(null);
+  const [selectedRows, setSelectedRows] = useState(new Set());
+
   async function addToOrderBook(rowData) {
     try {
-      // This will be implemented to add the order to the order book
-      // For now, we'll show a success message
-      setSyncMsg(`✅ Added "${rowData.item_name || rowData.retailer} - ${rowData.order_id}" to order book`);
-      setTimeout(() => setSyncMsg(""), 3000);
+      // Calculate quantity (default to 1 if not specified)
+      const quantity = Math.max(1, rowData.quantity || 1);
+      const totalCents = rowData.total_cents || 0;
+      const unitPriceCents = quantity > 0 ? Math.round(totalCents / quantity) : 0;
+
+      // Create preview rows
+      const previewRows = Array.from({ length: quantity }, (_, index) => ({
+        id: index,
+        item_name: rowData.item_name || `${rowData.retailer} Item`,
+        retailer: rowData.retailer || "Unknown",
+        order_id: rowData.order_id || "N/A",
+        order_date: rowData.order_date || new Date().toISOString().split('T')[0],
+        buy_price_cents: unitPriceCents,
+        quantity: 1,
+        status: "ordered",
+        selected: true // All selected by default
+      }));
+
+      setSelectedRows(new Set(previewRows.map(row => row.id)));
+      setPreviewModal({
+        rows: previewRows,
+        originalData: rowData
+      });
     } catch (e) {
-      setSyncMsg(`❌ Failed to add order: ${e.message}`);
+      setSyncMsg(`❌ Failed to prepare order: ${e.message}`);
+    }
+  }
+
+  async function confirmAddToOrderBook() {
+    if (!previewModal) return;
+
+    try {
+      const rowsToAdd = previewModal.rows.filter(row => selectedRows.has(row.id));
+      
+      if (rowsToAdd.length === 0) {
+        setSyncMsg("❌ No rows selected to add");
+        return;
+      }
+
+      // Prepare data for insertion
+      const orderRows = rowsToAdd.map(row => ({
+        order_date: row.order_date,
+        item: row.item_name,
+        retailer: row.retailer,
+        buy_price_cents: row.buy_price_cents,
+        status: row.status,
+        // Add any additional fields needed for the orders table
+      }));
+
+      const { error } = await supabase.from("orders").insert(orderRows);
+      if (error) throw error;
+
+      setSyncMsg(`✅ Added ${rowsToAdd.length} item${rowsToAdd.length > 1 ? 's' : ''} to order book`);
+      setTimeout(() => setSyncMsg(""), 3000);
+
+      // Close modal and reset state
+      setPreviewModal(null);
+      setSelectedRows(new Set());
+    } catch (e) {
+      setSyncMsg(`❌ Failed to add orders: ${e.message}`);
+    }
+  }
+
+  function cancelAddToOrderBook() {
+    setPreviewModal(null);
+    setSelectedRows(new Set());
+  }
+
+  function toggleRowSelection(rowId) {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(rowId)) {
+      newSelected.delete(rowId);
+    } else {
+      newSelected.add(rowId);
+    }
+    setSelectedRows(newSelected);
+  }
+
+  function toggleAllSelection() {
+    if (!previewModal) return;
+    
+    if (selectedRows.size === previewModal.rows.length) {
+      // Deselect all
+      setSelectedRows(new Set());
+    } else {
+      // Select all
+      setSelectedRows(new Set(previewModal.rows.map(row => row.id)));
     }
   }
 
@@ -597,6 +682,105 @@ export default function Emails() {
               >
                 Confirm & Import
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Book Preview Modal */}
+      {previewModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 rounded-xl border border-slate-700 max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-slate-700">
+              <h2 className="text-xl font-semibold text-white">Add to Order Book</h2>
+              <p className="text-slate-400 mt-1">
+                Preview {previewModal.rows.length} item{previewModal.rows.length > 1 ? 's' : ''} from {previewModal.originalData.retailer}
+              </p>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[50vh]">
+              {/* Select All Toggle */}
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-700">
+                <input
+                  type="checkbox"
+                  checked={selectedRows.size === previewModal.rows.length}
+                  onChange={toggleAllSelection}
+                  className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
+                />
+                <label className="text-sm font-medium text-slate-300">
+                  Select All ({selectedRows.size}/{previewModal.rows.length})
+                </label>
+              </div>
+
+              {/* Preview Rows */}
+              <div className="space-y-3">
+                {previewModal.rows.map((row) => (
+                  <div
+                    key={row.id}
+                    className={`p-4 rounded-lg border transition ${
+                      selectedRows.has(row.id)
+                        ? 'border-indigo-500 bg-indigo-500/10'
+                        : 'border-slate-700 bg-slate-800/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.has(row.id)}
+                        onChange={() => toggleRowSelection(row.id)}
+                        className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-medium text-white truncate">
+                              {row.item_name}
+                            </h3>
+                            <div className="flex items-center gap-4 mt-1 text-sm text-slate-400">
+                              <span>Retailer: {row.retailer}</span>
+                              <span>Order: {row.order_id}</span>
+                              <span>Date: {row.order_date}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <div className="font-semibold text-white">
+                              {centsToStr(row.buy_price_cents)}
+                            </div>
+                            <div className="text-sm text-slate-400">
+                              Qty: {row.quantity}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-6 border-t border-slate-700 flex items-center justify-between">
+              <div className="text-sm text-slate-400">
+                {selectedRows.size} of {previewModal.rows.length} items selected
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={cancelAddToOrderBook}
+                  className="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmAddToOrderBook}
+                  disabled={selectedRows.size === 0}
+                  className="px-6 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  Add {selectedRows.size} Item{selectedRows.size !== 1 ? 's' : ''}
+                </button>
+              </div>
             </div>
           </div>
         </div>
