@@ -190,49 +190,91 @@ function classifyType(retailer, subject) {
 
 function amazonCommon($, html, text) {
   const out = {};
-  // order id
+  const bodyText = $("body").text();
+  
+  // Enhanced order ID extraction
   out.order_id =
-    ($("body").text().match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
+    (bodyText.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
+    (bodyText.match(/Order\s*Number[:\s]*([0-9\-]+)/i) || [])[1] ||
+    (bodyText.match(/#\s*([0-9\-]+)/) || [])[1] ||
     (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
     null;
 
-  // item name (first product link under the progress header)
+  // Enhanced item name extraction
   let item = "";
+  
+  // Try to find product name in various ways
   const prodLink = $("a[href*='gp/product'], a[href*='dp/']").first().text().trim();
-  if (prodLink) item = prodLink;
+  if (prodLink && prodLink.length > 5) {
+    item = prodLink;
+  }
+  
+  // Look for product name in table cells or divs
   if (!item) {
-    // fallback: first longish link text
-    $("a").each((_, el) => {
-      const t = ($(el).text() || "").trim();
-      if (!item && t.length > 12 && t.length < 140 && !/your orders|buy again/i.test(t)) {
-        item = t;
+    $("td, div").each((_, el) => {
+      const text = $(el).text().trim();
+      if (text.length > 10 && text.length < 200 && 
+          !/order|total|quantity|price|amazon|prime/i.test(text) &&
+          !/your orders|buy again|track package/i.test(text)) {
+        item = text;
+        return false; // break
       }
     });
   }
+  
+  // Fallback: first meaningful link text
+  if (!item) {
+    $("a").each((_, el) => {
+      const t = ($(el).text() || "").trim();
+      if (!item && t.length > 12 && t.length < 140 && 
+          !/your orders|buy again|track package|amazon|prime/i.test(t)) {
+        item = t;
+        return false; // break
+      }
+    });
+  }
+  
   if (item) out.item_name = item;
 
-  // quantity
+  // Enhanced quantity extraction
   const qty =
-    ($("body").text().match(/Quantity:\s*([0-9]+)/i) || [])[1] ||
-    ($("body").text().match(/Qty[:\s]+([0-9]+)/i) || [])[1] ||
+    (bodyText.match(/Quantity[:\s]*([0-9]+)/i) || [])[1] ||
+    (bodyText.match(/Qty[:\s]*([0-9]+)/i) || [])[1] ||
+    (bodyText.match(/Qty[:\s]*([0-9]+)/i) || [])[1] ||
     null;
   if (qty) out.quantity = parseInt(qty, 10);
 
-  // total
-  const totalMatch =
-    ($("body").text().match(/Total\s*\$[0-9,.]+/i) || [])[0] ||
-    ($("td,div").filter((_, el) => /Total/i.test($(el).text())).next().text() || "");
-  const totalCents = parseMoneyToCents(totalMatch);
-  if (totalCents != null) out.total_cents = totalCents;
+  // Enhanced price extraction
+  const priceMatch =
+    (bodyText.match(/\$([0-9,]+\.?[0-9]*)/g) || [])
+      .map(m => m.replace('$', ''))
+      .map(p => parseFloat(p.replace(',', '')))
+      .filter(p => p > 0 && p < 10000) // reasonable price range
+      .sort((a, b) => b - a)[0]; // get highest price (likely total)
+      
+  if (priceMatch) {
+    out.total_cents = Math.round(priceMatch * 100);
+  }
 
-  // image
+  // Enhanced total extraction (fallback)
+  if (!out.total_cents) {
+    const totalMatch =
+      (bodyText.match(/Total[:\s]*\$([0-9,]+\.?[0-9]*)/i) || [])[1] ||
+      (bodyText.match(/Order\s*Total[:\s]*\$([0-9,]+\.?[0-9]*)/i) || [])[1];
+    if (totalMatch) {
+      out.total_cents = Math.round(parseFloat(totalMatch.replace(',', '')) * 100);
+    }
+  }
+
+  // Enhanced image extraction
   let img = null;
   $("img").each((_, el) => {
     const src = $(el).attr("src") || "";
     const alt = ($(el).attr("alt") || "").toLowerCase();
     if (!/^https?:\/\//.test(src)) return;
-    if (/logo|amazon|prime|sprite|tracker/i.test(src) || /logo|amazon|prime/.test(alt)) return;
-    if (!img) img = src;
+    if (/logo|amazon|prime|sprite|tracker|icon/i.test(src) || 
+        /logo|amazon|prime|icon/.test(alt)) return;
+    if (!img && src.includes('images')) img = src;
   });
   if (img) out.image_url = img;
 
@@ -328,8 +370,9 @@ exports.handler = async (event) => {
     // Add timeout protection - Netlify functions have 10s limit
     const maxDuration = 8000; // 8 seconds to leave buffer for response
     
+    // Step 1: Process order confirmations first
+    console.log("Step 1: Processing order confirmations...");
     for (const id of ids) {
-      // Check if we're approaching timeout
       if (Date.now() - startTime > maxDuration) {
         console.log(`Timeout approaching, stopping at ${processed}/${ids.length} messages`);
         break;
@@ -350,57 +393,51 @@ exports.handler = async (event) => {
 
         const retailer = classifyRetailer(from);
         const type = classifyType(retailer, subject);
-        if (!type) continue;
         
-        // Debug logging for Amazon orders
-        if (retailer.name === "Amazon" && type === "order") {
-          console.log(`Processing Amazon order: ${subject}`);
+        // Only process order confirmations in this step
+        if (type !== "order") continue;
+        
+        console.log(`Processing order confirmation: ${subject}`);
+        
+        // Parse order confirmation
+        const parsed = retailer.parseOrder ? retailer.parseOrder(html, text) : {};
+        console.log(`Parsed order data:`, JSON.stringify(parsed, null, 2));
+
+        // Extract order ID with better fallbacks
+        const order_id = 
+          parsed.order_id ||
+          ((subject.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
+          ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
+          null;
+
+        if (!order_id) {
+          console.log(`No order ID found for: ${subject}`);
+          continue;
         }
 
-      // parse
-      let parsed = {};
-      if (type === "order" && retailer.parseOrder) parsed = retailer.parseOrder(html, text);
-      else if (type === "shipping" && retailer.parseShipping)
-        parsed = retailer.parseShipping(html, text);
-      else if (type === "delivered" && retailer.parseDelivered)
-        parsed = retailer.parseDelivered(html, text);
-      else if (type === "canceled") parsed = { status: "canceled" };
-      
-      // Debug logging for parsed data
-      if (retailer.name === "Amazon" && type === "order") {
-        console.log(`Parsed data:`, JSON.stringify(parsed, null, 2));
-      }
-
-      // order id (fallback: subject)
-      const order_id =
-        parsed.order_id ||
-        ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
-        null;
-
-      if (mode === "preview") {
-        const exists = await getOrderIdExists(acct.user_id, retailer.name, order_id);
-        if (!exists && type === "order") {
-          proposed.push({
-            retailer: retailer.name,
-            order_id: order_id || "—",
-            order_date: ymd(messageDate),
-            item_name: parsed.item_name || null,
-            quantity: parsed.quantity || null,
-            unit_price_cents: parsed.unit_price_cents || null,
-            total_cents: parsed.total_cents || null,
-            image_url: parsed.image_url || null,
-          });
+        if (mode === "preview") {
+          const exists = await getOrderIdExists(acct.user_id, retailer.name, order_id);
+          if (!exists) {
+            proposed.push({
+              retailer: retailer.name,
+              order_id: order_id,
+              order_date: ymd(messageDate),
+              item_name: parsed.item_name || null,
+              quantity: parsed.quantity || null,
+              unit_price_cents: parsed.unit_price_cents || null,
+              total_cents: parsed.total_cents || null,
+              image_url: parsed.image_url || null,
+            });
+          }
+          continue;
         }
-        continue;
-      }
 
-      // Normal sync:
-      if (type === "order") {
+        // Create or update order
         const exists = await getOrderIdExists(acct.user_id, retailer.name, order_id);
         const row = {
           user_id: acct.user_id,
           retailer: retailer.name,
-          order_id: order_id || `unknown-${msg.id}`,
+          order_id: order_id,
           order_date: ymd(messageDate),
           item_name: parsed.item_name || null,
           quantity: parsed.quantity || null,
@@ -415,58 +452,147 @@ exports.handler = async (event) => {
         await upsertOrder(row);
         if (exists) skipped_existing++;
         else imported++;
+        
+      } catch (err) {
+        console.error(`Error processing order confirmation ${id}:`, err);
+        errors++;
       }
+    }
 
-      if (type === "shipping") {
+    // Step 2: Process shipping updates for existing orders
+    console.log("Step 2: Processing shipping updates...");
+    for (const id of ids) {
+      if (Date.now() - startTime > maxDuration) break;
+      
+      try {
+        const msg = await getMessageFull(gmail, id);
+        const h = headersToObj(msg.payload?.headers || []);
+        const subject = h["subject"] || "";
+        const from = h["from"] || "";
+        const dateHeader = h["date"] || "";
+        const messageDate =
+          dateHeader
+            ? new Date(dateHeader)
+            : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
+        const { html, text } = extractBodyParts(msg.payload || {});
+
+        const retailer = classifyRetailer(from);
+        const type = classifyType(retailer, subject);
+        
+        // Only process shipping updates in this step
+        if (type !== "shipping") continue;
+        
+        console.log(`Processing shipping update: ${subject}`);
+        
+        // Parse shipping update
+        const parsed = retailer.parseShipping ? retailer.parseShipping(html, text) : {};
+        
+        // Extract order ID
+        const order_id = 
+          parsed.order_id ||
+          ((subject.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
+          ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
+          null;
+
+        if (!order_id) continue;
+
+        // Only process if corresponding order exists
+        const orderExists = await getOrderIdExists(acct.user_id, retailer.name, order_id);
+        if (!orderExists) {
+          console.log(`No existing order found for shipping update: ${order_id}`);
+          continue;
+        }
+
+        // Create shipment record
         const ship = {
           user_id: acct.user_id,
           retailer: retailer.name,
-          order_id: order_id || "Unknown",
-          tracking_number: parsed.tracking_number || null, // Amazon = URL
+          order_id: order_id,
+          tracking_number: parsed.tracking_number || null,
           carrier: parsed.carrier || "",
-          status: parsed.status || "in_transit",
+          status: "in_transit",
           shipped_at: ymd(messageDate),
           delivered_at: null,
         };
         await upsertShipment(ship);
-        if (order_id) {
-          await upsertOrder({
-            user_id: acct.user_id,
-            retailer: retailer.name,
-            order_id,
-            shipped_at: messageDate.toISOString(),
-            status: "in_transit",
-          });
-        }
+        
+        // Update order status to in_transit
+        await upsertOrder({
+          user_id: acct.user_id,
+          retailer: retailer.name,
+          order_id,
+          shipped_at: messageDate.toISOString(),
+          status: "in_transit",
+        });
+        
         updated++;
-      }
-
-      if (type === "delivered") {
-        if (order_id) {
-          await upsertOrder({
-            user_id: acct.user_id,
-            retailer: retailer.name,
-            order_id,
-            delivered_at: messageDate.toISOString(),
-            status: "delivered",
-          });
-        }
-        updated++;
-      }
-
-      if (type === "canceled") {
-        if (order_id) {
-          await upsertOrder({
-            user_id: acct.user_id,
-            retailer: retailer.name,
-            order_id,
-            status: "canceled",
-          });
-        }
-        updated++;
-      }
+        
       } catch (err) {
-        console.error(`Error processing message ${id}:`, err);
+        console.error(`Error processing shipping update ${id}:`, err);
+        errors++;
+      }
+    }
+
+    // Step 3: Process delivery updates for existing in-transit orders
+    console.log("Step 3: Processing delivery updates...");
+    for (const id of ids) {
+      if (Date.now() - startTime > maxDuration) break;
+      
+      try {
+        const msg = await getMessageFull(gmail, id);
+        const h = headersToObj(msg.payload?.headers || []);
+        const subject = h["subject"] || "";
+        const from = h["from"] || "";
+        const dateHeader = h["date"] || "";
+        const messageDate =
+          dateHeader
+            ? new Date(dateHeader)
+            : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
+        const { html, text } = extractBodyParts(msg.payload || {});
+
+        const retailer = classifyRetailer(from);
+        const type = classifyType(retailer, subject);
+        
+        // Only process delivery updates in this step
+        if (type !== "delivered") continue;
+        
+        console.log(`Processing delivery update: ${subject}`);
+        
+        // Extract order ID
+        const order_id = 
+          ((subject.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
+          ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
+          null;
+
+        if (!order_id) continue;
+
+        // Only process if corresponding order exists and is in transit
+        const { data: existingOrder } = await supabase
+          .from("email_orders")
+          .select("status")
+          .eq("user_id", acct.user_id)
+          .eq("retailer", retailer.name)
+          .eq("order_id", order_id)
+          .maybeSingle();
+          
+        if (!existingOrder || existingOrder.status !== "in_transit") {
+          console.log(`No in-transit order found for delivery update: ${order_id}`);
+          continue;
+        }
+
+        // Update order to delivered
+        await upsertOrder({
+          user_id: acct.user_id,
+          retailer: retailer.name,
+          order_id,
+          delivered_at: messageDate.toISOString(),
+          status: "delivered",
+        });
+        
+        updated++;
+        
+      } catch (err) {
+        console.error(`Error processing delivery update ${id}:`, err);
         errors++;
       }
     }
