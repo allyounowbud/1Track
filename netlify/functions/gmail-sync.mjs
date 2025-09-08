@@ -1,6 +1,4 @@
 // netlify/functions/gmail-sync.mjs
-// Gmail → Orders/Shipments sync (user-scoped) with preview/commit
-
 import { google } from "googleapis";
 import cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
@@ -25,7 +23,6 @@ const oauth2 = new google.auth.OAuth2(
 );
 
 /* ============================ PARSERS FIRST ============================== */
-/* Common helpers */
 function parseMoney(str = "") {
   const m = String(str).replace(/[,]/g, "").match(/\$?\s*([0-9]+(?:\.[0-9]{2})?)/);
   return m ? Math.round(parseFloat(m[1]) * 100) : null;
@@ -39,11 +36,10 @@ function pickCarrierByTracking(tn = "", html = "", text = "") {
   return "";
 }
 
-/* Target - order confirmation */
+/* Target */
 function parseTargetOrder(html, text) {
   const $ = cheerio.load(html || "");
   const out = {};
-
   out.order_id =
     ($("body").text().match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
     (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
@@ -98,8 +94,6 @@ function parseTargetOrder(html, text) {
 
   return out;
 }
-
-/* Target - shipping */
 function parseTargetShipping(html, text) {
   const content = (html || "") + " " + (text || "");
   const tracking =
@@ -110,11 +104,10 @@ function parseTargetShipping(html, text) {
   return { tracking_number: tracking || null, carrier, status: "in_transit" };
 }
 
-/* Amazon - enhanced order parser */
+/* Amazon */
 function parseAmazonOrderEnhanced(html, text) {
   const $ = cheerio.load(html || "");
   const out = {};
-
   out.order_id =
     ($("body").text().match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1] ||
     (text && (text.match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1]) ||
@@ -161,7 +154,7 @@ function parseAmazonOrderEnhanced(html, text) {
   return out;
 }
 
-/* Generic shipping & delivered */
+/* Generic shipping/delivered */
 function parseGenericShipping(html, text) {
   const content = (html || "") + " " + (text || "");
   const tracking =
@@ -175,7 +168,7 @@ function parseGenericDelivered() {
   return { status: "delivered" };
 }
 
-/* ============================ RETAILER MAP =============================== */
+/* =============================== RETAILERS =============================== */
 const RETAILERS = [
   {
     name: "Target",
@@ -226,10 +219,7 @@ async function getGmailClientWithAccount(acct) {
 
   oauth2.on("tokens", async (tokens) => {
     if (tokens.access_token) {
-      await supabase
-        .from("email_accounts")
-        .update({ access_token: tokens.access_token })
-        .eq("id", acct.id);
+      await supabase.from("email_accounts").update({ access_token: tokens.access_token }).eq("id", acct.id);
     }
   });
 
@@ -240,10 +230,7 @@ async function getGmailClientWithAccount(acct) {
       const { credentials } = await oauth2.refreshAccessToken();
       oauth2.setCredentials(credentials);
       if (credentials?.access_token) {
-        await supabase
-          .from("email_accounts")
-          .update({ access_token: credentials.access_token })
-          .eq("id", acct.id);
+        await supabase.from("email_accounts").update({ access_token: credentials.access_token }).eq("id", acct.id);
       }
     } else {
       throw new Error("Gmail token expired and no refresh token available");
@@ -253,8 +240,8 @@ async function getGmailClientWithAccount(acct) {
   return google.gmail({ version: "v1", auth: oauth2 });
 }
 
-// Pull up to maxTotal messages (default 200) from last 90d
-async function listCandidateMessageIds(gmail, maxTotal = 200) {
+/* Pull up to maxTotal (default 60) from last 90d */
+async function listCandidateMessageIds(gmail, maxTotal = 60) {
   const q = [
     "newer_than:90d",
     "in:inbox",
@@ -291,13 +278,11 @@ function headersToObj(headers = []) {
   headers.forEach((h) => (o[h.name.toLowerCase()] = h.value || ""));
   return o;
 }
-
 function decodeB64url(str) {
   if (!str) return "";
   const buff = Buffer.from(str.replace(/-/g, "+").replace(/_/g, "/"), "base64");
   return buff.toString("utf8");
 }
-
 function extractBodyParts(payload) {
   let html = null;
   let text = null;
@@ -318,13 +303,12 @@ function extractBodyParts(payload) {
 }
 
 /* =========================== Classify + DB utils ========================= */
-// Priority: canceled > delivered > shipping > order
 function classifyType(retailer, subject) {
   const s = (subject || "").toLowerCase();
-  if (retailer.cancelSubject && retailer.cancelSubject.test(s)) return "canceled";
-  if (retailer.deliverSubject && retailer.deliverSubject.test(s)) return "delivered";
-  if (retailer.shipSubject && retailer.shipSubject.test(s)) return "shipping";
-  if (retailer.orderSubject && retailer.orderSubject.test(s)) return "order";
+  if (retailer.cancelSubject?.test(s)) return "canceled";
+  if (retailer.deliverSubject?.test(s)) return "delivered";
+  if (retailer.shipSubject?.test(s)) return "shipping";
+  if (retailer.orderSubject?.test(s)) return "order";
   if (/\b(cancel|cancelled)\b/i.test(s)) return "canceled";
   if (/\b(delivered|has been delivered)\b/i.test(s)) return "delivered";
   if (/\b(shipped|on the way|label created|tracking)\b/i.test(s)) return "shipping";
@@ -418,10 +402,15 @@ function ymd(dateStr) {
 
 /* ================================= SYNC ================================== */
 async function runSync(event) {
+  const started = Date.now();
+  // leave ~3s headroom under Netlify timeout
+  const TIME_BUDGET_MS = (Number(process.env.FUNCTION_TIMEOUT_MS) || 22000);
+  const SOFT_DEADLINE = started + TIME_BUDGET_MS - 3000;
+
   const mode = (event.queryStringParameters?.mode || "").toLowerCase();
   const max = Math.max(
     20,
-    Math.min(500, Number(event.queryStringParameters?.max || 0) || 200)
+    Math.min(500, Number(event.queryStringParameters?.max || 0) || 60) // default now 60
   );
 
   const acct = await getAccount();
@@ -435,131 +424,140 @@ async function runSync(event) {
   let updated = 0;
   let skipped_existing = 0;
 
-  for (const id of ids) {
-    const msg = await getMessageFull(gmail, id);
-    const h = headersToObj(msg.payload?.headers || []);
-    const subject = h["subject"] || "";
-    const from = h["from"] || "";
-    const dateHeader = h["date"] || "";
-    const messageDate = dateHeader
-      ? new Date(dateHeader)
-      : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
-    const { html, text } = extractBodyParts(msg.payload || {});
-    const retailer = classifyRetailer(from);
-    if (!retailer) continue;
+  const BATCH = 25;
+  for (let i = 0; i < ids.length; i += BATCH) {
+    if (Date.now() > SOFT_DEADLINE) break;
+    const slice = ids.slice(i, i + BATCH);
 
-    const type = classifyType(retailer, subject);
-    if (!type) continue;
+    // process sequentially (safer with DB + avoids event loop starvation)
+    for (const id of slice) {
+      if (Date.now() > SOFT_DEADLINE) break;
+      try {
+        const msg = await getMessageFull(gmail, id);
+        const h = headersToObj(msg.payload?.headers || []);
+        const subject = h["subject"] || "";
+        const from = h["from"] || "";
+        const dateHeader = h["date"] || "";
+        const messageDate = dateHeader
+          ? new Date(dateHeader)
+          : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
+        const { html, text } = extractBodyParts(msg.payload || {});
+        const retailer = classifyRetailer(from);
+        if (!retailer) continue;
 
-    if (mode === "preview" && type !== "order") continue;
+        const type = classifyType(retailer, subject);
+        if (!type) continue;
 
-    // Parse
-    let parsed = {};
-    if (type === "order" && retailer.parseOrder) parsed = retailer.parseOrder(html, text);
-    else if (type === "shipping" && retailer.parseShipping) parsed = retailer.parseShipping(html, text);
-    else if (type === "delivered" && retailer.parseDelivered) parsed = retailer.parseDelivered(html, text);
-    else if (type === "canceled") parsed = { status: "canceled" };
+        if (mode === "preview" && type !== "order") continue;
 
-    const order_id =
-      parsed.order_id ||
-      ((subject.match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1]) ||
-      ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
-      null;
+        let parsed = {};
+        if (type === "order" && retailer.parseOrder) parsed = retailer.parseOrder(html, text);
+        else if (type === "shipping" && retailer.parseShipping) parsed = retailer.parseShipping(html, text);
+        else if (type === "delivered" && retailer.parseDelivered) parsed = retailer.parseDelivered(html, text);
+        else if (type === "canceled") parsed = { status: "canceled" };
 
-    if (mode === "preview") {
-      const exists = await orderExists(retailer.name, order_id, user_id);
-      if (!exists) {
-        proposed.push({
-          retailer: retailer.name,
-          order_id: order_id || "—",
-          order_date: ymd(messageDate),
-          item_name: parsed.item_name || null,
-          quantity: parsed.quantity || null,
-          unit_price_cents: parsed.unit_price_cents || null,
-          total_cents: parsed.total_cents || null,
-          image_url: parsed.image_url || null,
-        });
+        const order_id =
+          parsed.order_id ||
+          ((subject.match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1]) ||
+          ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
+          null;
+
+        if (mode === "preview") {
+          const exists = await orderExists(retailer.name, order_id, user_id);
+          if (!exists) {
+            proposed.push({
+              retailer: retailer.name,
+              order_id: order_id || "—",
+              order_date: ymd(messageDate),
+              item_name: parsed.item_name || null,
+              quantity: parsed.quantity || null,
+              unit_price_cents: parsed.unit_price_cents || null,
+              total_cents: parsed.total_cents || null,
+              image_url: parsed.image_url || null,
+            });
+          }
+          continue;
+        }
+
+        if (type === "order") {
+          const exists = await orderExists(retailer.name, order_id, user_id);
+          const row = {
+            user_id,
+            retailer: retailer.name,
+            order_id: order_id || `unknown-${msg.id}`,
+            order_date: ymd(messageDate),
+            item_name: parsed.item_name || null,
+            quantity: parsed.quantity || null,
+            unit_price_cents: parsed.unit_price_cents || null,
+            total_cents: parsed.total_cents || null,
+            image_url: parsed.image_url || null,
+            shipped_at: null,
+            delivered_at: null,
+            status: "ordered",
+            source_message_id: msg.id,
+          };
+          await upsertOrder(row, user_id);
+          if (exists) skipped_existing++; else imported++;
+        }
+
+        if (type === "shipping") {
+          const ship = {
+            user_id,
+            retailer: retailer.name,
+            order_id: order_id || "Unknown",
+            tracking_number: parsed.tracking_number || null,
+            carrier: parsed.carrier || "",
+            status: parsed.status || "in_transit",
+            shipped_at: ymd(messageDate),
+            delivered_at: null,
+          };
+          await upsertShipment(ship, user_id);
+
+          if (order_id) {
+            await upsertOrder(
+              { retailer: retailer.name, order_id, shipped_at: messageDate.toISOString(), status: "in_transit" },
+              user_id
+            );
+          }
+          updated++;
+        }
+
+        if (type === "delivered") {
+          if (order_id) {
+            await upsertOrder(
+              { retailer: retailer.name, order_id, delivered_at: messageDate.toISOString(), status: "delivered" },
+              user_id
+            );
+          }
+          updated++;
+        }
+
+        if (type === "canceled") {
+          if (order_id) {
+            await upsertOrder(
+              { retailer: retailer.name, order_id, order_date: ymd(messageDate), status: "canceled" },
+              user_id
+            );
+          }
+          updated++;
+        }
+      } catch (e) {
+        console.error("message sync error:", e?.message || e);
+        // keep going
       }
-      continue;
-    }
-
-    // Normal sync
-    if (type === "order") {
-      const exists = await orderExists(retailer.name, order_id, user_id);
-      const row = {
-        user_id,
-        retailer: retailer.name,
-        order_id: order_id || `unknown-${msg.id}`,
-        order_date: ymd(messageDate),
-        item_name: parsed.item_name || null,
-        quantity: parsed.quantity || null,
-        unit_price_cents: parsed.unit_price_cents || null,
-        total_cents: parsed.total_cents || null,
-        image_url: parsed.image_url || null,
-        shipped_at: null,
-        delivered_at: null,
-        status: "ordered",
-        source_message_id: msg.id,
-      };
-      await upsertOrder(row, user_id);
-      if (exists) skipped_existing++; else imported++;
-    }
-
-    if (type === "shipping") {
-      const ship = {
-        user_id,
-        retailer: retailer.name,
-        order_id: order_id || "Unknown",
-        tracking_number: parsed.tracking_number || null,
-        carrier: parsed.carrier || "",
-        status: parsed.status || "in_transit",
-        shipped_at: ymd(messageDate),
-        delivered_at: null,
-      };
-      await upsertShipment(ship, user_id);
-
-      if (order_id) {
-        await upsertOrder(
-          { retailer: retailer.name, order_id, shipped_at: messageDate.toISOString(), status: "in_transit" },
-          user_id
-        );
-      }
-      updated++;
-    }
-
-    if (type === "delivered") {
-      if (order_id) {
-        await upsertOrder(
-          { retailer: retailer.name, order_id, delivered_at: messageDate.toISOString(), status: "delivered" },
-          user_id
-        );
-      }
-      updated++;
-    }
-
-    if (type === "canceled") {
-      if (order_id) {
-        await upsertOrder(
-          { retailer: retailer.name, order_id, order_date: ymd(messageDate), status: "canceled" },
-          user_id
-        );
-      }
-      updated++;
     }
   }
 
-  if (mode === "preview") return json({ proposed });
-  if (mode === "commit") return json({ imported, updated, skipped_existing });
-  return json({ imported, updated, skipped_existing });
+  if (mode === "preview") return json({ proposed }, 200, started);
+  if (mode === "commit") return json({ imported, updated, skipped_existing }, 200, started);
+  return json({ imported, updated, skipped_existing }, 200, started);
 }
 
 /* ================================ UTIL =================================== */
-function json(body, status = 200) {
-  return {
-    statusCode: status,
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  };
+function json(body, status = 200, startedTs) {
+  const headers = { "content-type": "application/json" };
+  if (startedTs) headers["x-duration-ms"] = String(Date.now() - startedTs);
+  return { statusCode: status, headers, body: JSON.stringify(body) };
 }
 
 /* =============================== HANDLER ================================= */
