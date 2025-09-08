@@ -485,7 +485,7 @@ function DayCard({
         <div className="pt-5">
           {/* Header labels per group (desktop) */}
           <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2 items-center">
-            <div className="w-6 flex items-center gap-1">
+            <div className="w-6 flex items-center justify-center">
               <input
                 type="checkbox"
                 checked={rows.every(row => selectedRows.has(row.id))}
@@ -503,7 +503,7 @@ function DayCard({
                     setSelectedRows(newSelected);
                   }
                 }}
-                className="h-3 w-3 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-1"
+                className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
               />
             </div>
             <div className="w-24">Order date</div>
