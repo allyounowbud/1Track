@@ -95,7 +95,7 @@ async function getAccount() {
   const { data, error } = await supabase
     .from("email_accounts")
     .select(
-      "id, user_id, email_address, access_token, refresh_token, token_scope, token_expiry"
+      "id, user_id, email_address, access_token, refresh_token, token_scope, expires_at"
     )
     .order("updated_at", { ascending: false })
     .limit(1);
@@ -111,12 +111,12 @@ async function getGmailClient() {
     scope:
       acct.token_scope ||
       "https://www.googleapis.com/auth/gmail.readonly",
-    expiry_date: acct.token_expiry ? new Date(acct.token_expiry).getTime() : undefined,
+    expiry_date: acct.expires_at ? new Date(acct.expires_at).getTime() : undefined,
   });
   oauth2.on("tokens", async (tokens) => {
     const patch = {};
     if (tokens.access_token) patch.access_token = tokens.access_token;
-    if (tokens.expiry_date) patch.token_expiry = new Date(tokens.expiry_date).toISOString();
+    if (tokens.expiry_date) patch.expires_at = new Date(tokens.expiry_date).toISOString();
     if (Object.keys(patch).length) {
       await supabase.from("email_accounts").update(patch).eq("id", acct.id);
     }
