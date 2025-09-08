@@ -201,15 +201,21 @@ async function fetchAmazonProductName(productUrl) {
     
     const response = await fetch(fullUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
       }
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const html = await response.text();
+    console.log("Product page HTML length:", html.length);
     const $ = cheerio.load(html);
     
     // Look for the product title in various selectors Amazon uses
@@ -218,14 +224,31 @@ async function fetchAmazonProductName(productUrl) {
       'h1.a-size-large',
       'h1[data-automation-id="product-title"]',
       '.product-title',
+      'h1.a-size-base-plus',
+      'h1 span',
       'h1'
     ];
     
     for (const selector of titleSelectors) {
       const title = $(selector).first().text().trim();
-      if (title && title.length > 10) {
+      console.log(`Trying selector "${selector}":`, title);
+      if (title && title.length > 10 && !title.includes('Amazon.com')) {
         console.log("Found product title:", title);
         return title;
+      }
+    }
+    
+    // Fallback: look for any text that looks like a product title
+    const allH1s = $('h1').map((i, el) => $(el).text().trim()).get();
+    console.log("All H1 elements found:", allH1s);
+    
+    for (const h1Text of allH1s) {
+      if (h1Text && h1Text.length > 10 && 
+          !h1Text.includes('Amazon.com') && 
+          !h1Text.includes('Sign in') &&
+          !h1Text.includes('Your Account')) {
+        console.log("Found product title in H1 fallback:", h1Text);
+        return h1Text;
       }
     }
     
@@ -296,15 +319,21 @@ async function amazonCommon($, html, text) {
   // Try to get full product name from Amazon product page
   if (item && item.includes('...')) {
     console.log("Item name is truncated, attempting to fetch full name from product page...");
+    console.log("Current truncated item:", item);
     try {
       const productLink = $("a[href*='gp/product'], a[href*='dp/']").first().attr('href');
+      console.log("All product links found:", $("a[href*='gp/product'], a[href*='dp/']").map((i, el) => $(el).attr('href')).get());
       if (productLink) {
         console.log("Found product URL:", productLink);
         const fullName = await fetchAmazonProductName(productLink);
         if (fullName) {
           item = fullName;
           console.log("Got full product name from page:", item);
+        } else {
+          console.log("Failed to get full name from product page");
         }
+      } else {
+        console.log("No product link found in email");
       }
     } catch (error) {
       console.log("Failed to fetch full product name:", error.message);
@@ -352,26 +381,42 @@ async function amazonCommon($, html, text) {
 
   // Image extraction - look for product images
   let img = null;
+  console.log("Looking for product images...");
   $("img").each((_, el) => {
     const src = $(el).attr("src") || "";
     const alt = ($(el).attr("alt") || "").toLowerCase();
     const width = $(el).attr("width") || "";
     const height = $(el).attr("height") || "";
     
-    if (!/^https?:\/\//.test(src)) return;
-    if (/logo|amazon|prime|sprite|tracker|icon|button/i.test(src) || 
-        /logo|amazon|prime|icon|button/.test(alt)) return;
+    console.log("Checking image:", src, "alt:", alt, "width:", width, "height:", height);
     
-    // Look for product images (usually have dimensions or are in images.amazon.com)
+    if (!/^https?:\/\//.test(src)) return;
+    
+    // Skip obvious non-product images
+    if (/logo|amazon|prime|sprite|tracker|icon|button|social|facebook|twitter|instagram/i.test(src) || 
+        /logo|amazon|prime|icon|button|social|facebook|twitter|instagram/.test(alt)) {
+      console.log("Skipping non-product image:", src);
+      return;
+    }
+    
+    // Look for product images - be more permissive
     if (src.includes('images.amazon.com') || 
         src.includes('m.media-amazon.com') ||
-        (width && height && parseInt(width) > 50 && parseInt(height) > 50)) {
+        src.includes('amazon.com/images') ||
+        (width && height && parseInt(width) > 30 && parseInt(height) > 30) ||
+        (src.includes('amazon') && !src.includes('logo'))) {
       img = src;
       console.log("Found product image:", img);
       return false; // break
     }
   });
-  if (img) out.image_url = img;
+  
+  if (img) {
+    out.image_url = img;
+    console.log("Using product image:", img);
+  } else {
+    console.log("No product image found");
+  }
 
   console.log("Final parsed data:", out);
   console.log("=== END AMAZON PARSING DEBUG ===");
