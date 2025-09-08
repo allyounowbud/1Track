@@ -56,6 +56,40 @@ async function getAccount() {
   return data[0];
 }
 
+export async function handler(event) {
+  console.log("gmail-sync start", {
+    mode: event.queryStringParameters?.mode,
+    method: event.httpMethod
+  });
+
+  // Quick health check: /.netlify/functions/gmail-sync?health=1
+  if (event.queryStringParameters?.health === "1") {
+    const envOk = {
+      SUPABASE_URL: !!process.env.SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      GMAIL_OAUTH_CLIENT_ID: !!process.env.GMAIL_OAUTH_CLIENT_ID,
+      GMAIL_OAUTH_CLIENT_SECRET: !!process.env.GMAIL_OAUTH_CLIENT_SECRET
+    };
+    return {
+      statusCode: 200,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ok: true, envOk })
+    };
+  }
+
+  try {
+    // ... your existing code ...
+  } catch (err) {
+    console.error("gmail-sync error:", err);
+    return {
+      statusCode: 500,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ error: String(err?.message || err) })
+    };
+  }
+}
+
+
 async function getGmailClient() {
   const acct = await getAccount();
   oauth2.setCredentials({
