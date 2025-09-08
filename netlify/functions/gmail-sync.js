@@ -60,7 +60,7 @@ const RETAILERS = [
   // MACY'S — basic support
   {
     name: "Macy's",
-    senderMatch: (from) => /@macys\.com$/i.test(from),
+    senderMatch: (from) => /@macys\.com$/i.test(from) || /@oes\.macys\.com$/i.test(from),
     orderSubject: /order|shipped|delivered/i,
     shipSubject: /shipped|on the way/i,
     deliverSubject: /delivered|arrived/i,
@@ -73,6 +73,18 @@ const RETAILERS = [
   {
     name: "Domino's",
     senderMatch: (from) => /@dominos\.com$/i.test(from),
+    orderSubject: /order|shipped|delivered/i,
+    shipSubject: /shipped|on the way/i,
+    deliverSubject: /delivered|arrived/i,
+    cancelSubject: /cancel/i,
+    parseOrder: parseGenericOrder,
+    parseShipping: parseGenericShipping,
+    parseDelivered: parseGenericDelivered,
+  },
+  // NIKE — basic support
+  {
+    name: "Nike",
+    senderMatch: (from) => /@nike\.com$/i.test(from) || /@ship\.notifications\.nike\.com$/i.test(from),
     orderSubject: /order|shipped|delivered/i,
     shipSubject: /shipped|on the way/i,
     deliverSubject: /delivered|arrived/i,
@@ -498,6 +510,8 @@ function parseGenericOrder(html, text) {
   const bodyText = $("body").text();
   
   console.log("=== GENERIC PARSING DEBUG ===");
+  console.log("HTML length:", (html || "").length);
+  console.log("Text length:", (text || "").length);
   console.log("Body text length:", bodyText.length);
   console.log("First 500 chars:", bodyText.substring(0, 500));
   
@@ -511,8 +525,10 @@ function parseGenericOrder(html, text) {
     /([0-9]{10,})/, // long numbers that might be order IDs
   ];
   
+  console.log("Trying order ID patterns...");
   for (const pattern of orderIdPatterns) {
     const match = bodyText.match(pattern);
+    console.log(`Pattern ${pattern}:`, match);
     if (match && match[1]) {
       out.order_id = match[1];
       console.log("Found generic order ID:", out.order_id, "using pattern:", pattern);
