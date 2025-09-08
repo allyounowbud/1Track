@@ -1,4 +1,3 @@
-// netlify/functions/gmail-sync.mjs
 import { google } from "googleapis";
 import cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
@@ -22,7 +21,7 @@ const oauth2 = new google.auth.OAuth2(
   OAUTH_REDIRECT_URI
 );
 
-/* ============================ PARSERS FIRST ============================== */
+/* ============================ Helpers / Utils ============================ */
 function parseMoney(str = "") {
   const m = String(str).replace(/[,]/g, "").match(/\$?\s*([0-9]+(?:\.[0-9]{2})?)/);
   return m ? Math.round(parseFloat(m[1]) * 100) : null;
@@ -35,8 +34,24 @@ function pickCarrierByTracking(tn = "", html = "", text = "") {
   if (/amazon/i.test(s)) return "Amazon";
   return "";
 }
+function cleanText($, node) {
+  return $(node).text().replace(/\s+/g, " ").trim();
+}
+function firstNonLogoImg($) {
+  let img = null;
+  $("img").each((_, el) => {
+    const src = ($(el).attr("src") || "").trim();
+    const alt = ($(el).attr("alt") || "").toLowerCase();
+    if (!/^https?:\/\//i.test(src)) return;
+    if (/logo|sprite|prime|rating|nav|icon|badge/i.test(src)) return;
+    if (/amazon|logo|prime/i.test(alt)) return;
+    img = img || src;
+  });
+  return img;
+}
 
-/* Target */
+/* =============================== PARSERS ================================= */
+/* ---- Target ---- */
 function parseTargetOrder(html, text) {
   const $ = cheerio.load(html || "");
   const out = {};
@@ -83,13 +98,7 @@ function parseTargetOrder(html, text) {
     ($("body").text().match(/\$[0-9]+(?:\.[0-9]{2})?\s*\/\s*ea/i) || [])[0] || null;
   if (each) out.unit_price_cents = parseMoney(each);
 
-  let img = null;
-  $("img").each((_, el) => {
-    const src = $(el).attr("src") || "";
-    const alt = ($(el).attr("alt") || "").toLowerCase();
-    const bad = /(logo|target|icon)/i.test(src) || /(logo|target)/i.test(alt);
-    if (!bad && /^https?:\/\//i.test(src)) img = img || src;
-  });
+  const img = firstNonLogoImg($);
   if (img) out.image_url = img;
 
   return out;
@@ -104,68 +113,137 @@ function parseTargetShipping(html, text) {
   return { tracking_number: tracking || null, carrier, status: "in_transit" };
 }
 
-/* Amazon */
-function parseAmazonOrderEnhanced(html, text) {
-  const $ = cheerio.load(html || "");
-  const out = {};
-  out.order_id =
-    ($("body").text().match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1] ||
-    (text && (text.match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1]) ||
-    null;
+/* ---- Amazon (robust for Ordered/Shipped/Delivered) ---- */
+function extractAmazonOrderId(subject = "", bodyText = "") {
+  return (
+    (subject.match(/\b\d{3}-\d{7}-\d{7}\b/) || [])[0] ||
+    (bodyText.match(/\b\d{3}-\d{7}-\d{7}\b/) || [])[0] ||
+    // fallback "Order # 111-2222222-3333333"
+    (bodyText.match(/Order\s*#\s*(\d{3}-\d{7}-\d{7})/) || [])[1] ||
+    null
+  );
+}
 
-  let item = "";
-  $('img[alt]').each((_, el) => {
-    const alt = ($(el).attr("alt") || "").trim();
-    if (/amazon|logo|prime/i.test(alt)) return;
-    if (alt.length >= 12 && alt.length <= 160) item = item || alt;
+function extractAmazonItemBlock($) {
+  // Try the first product card that has "Quantity" nearby
+  const blocks = [];
+  $("*").each((_, el) => {
+    const t = cleanText($, el);
+    if (/Quantity:\s*\d+/i.test(t)) {
+      const blockText = cleanText($, $(el).parent());
+      blocks.push({ el, text: blockText, root: $(el).parent() });
+    }
   });
-  if (!item) {
-    const bodyText = $("body").text().replace(/\s+/g, " ").trim();
-    const candidates = bodyText
-      .split(/(?:(?:\$[0-9][0-9,]*(?:\.[0-9]{2})?)|Qty[: ]\d+)/i)
-      .map((s) => s.trim())
-      .filter((s) => s && !/amazon|order|total|arriving|delivery|hello/i.test(s));
-    candidates.sort((a, b) => b.length - a.length);
-    item = candidates.find((s) => s.length >= 12 && s.length <= 160) || null;
+  return blocks[0] || null;
+}
+
+function parseAmazonOrderEnhanced(html, text, subject = "") {
+  const $ = cheerio.load(html || "");
+  const bodyText = $("body").text().replace(/\s+/g, " ").trim();
+  const out = {};
+
+  // order id
+  out.order_id = extractAmazonOrderId(subject, bodyText) || extractAmazonOrderId("", text || "");
+
+  // product image
+  out.image_url = firstNonLogoImg($) || null;
+
+  // Try to use the "item block"
+  const blk = extractAmazonItemBlock($);
+  if (blk) {
+    // item name – longest link text inside the block
+    let title = "";
+    blk.root.find("a,span,div").each((_, n) => {
+      const t = cleanText($, n);
+      if (!t) return;
+      if (/Quantity:|Order #|Track package|Your Orders|Delivered|Shipped/i.test(t)) return;
+      if (t.length >= 8 && t.length <= 180 && t.length > (title?.length || 0)) title = t;
+    });
+    out.item_name = out.item_name || title || null;
+
+    // quantity
+    const q = (blk.text.match(/Quantity:\s*(\d+)/i) || [])[1];
+    if (q) out.quantity = parseInt(q, 10);
+
+    // unit price (just before "Quantity" usually)
+    const unitLine =
+      (blk.text.match(/\$[0-9][0-9,]*(?:\.[0-9]{2})?\s*(?:ea|each)?/i) || [])[0] || null;
+    if (unitLine) out.unit_price_cents = parseMoney(unitLine);
   }
-  if (item) out.item_name = item;
 
-  const qty =
-    ($("body").text().match(/Qty[: ]+(\d+)/i) || [])[1] ||
-    (text && (text.match(/Qty[: ]+(\d+)/i) || [])[1]) ||
-    null;
-  if (qty) out.quantity = parseInt(qty, 10);
+  // fallback item name candidates
+  if (!out.item_name) {
+    // 1) first non-logo image alt
+    const imgAlt = $("img[alt]")
+      .map((_, n) => ($(n).attr("alt") || "").trim())
+      .get()
+      .find((a) => a && !/amazon|logo|prime/i.test(a) && a.length > 8);
+    if (imgAlt) out.item_name = imgAlt;
+  }
+  if (!out.item_name) {
+    // 2) Subject quoted title
+    const q = (subject.match(/:\s*"?([^"]+?)"?\s*$/) || [])[1];
+    if (q && q.length > 8) out.item_name = q;
+  }
 
+  // totals
   const totalText =
-    ($("body").text().match(/Order total[: ]*\$[0-9,.]+/i) || [])[0] ||
-    ($("body").text().match(/Total[: ]*\$[0-9,.]+/i) || [])[0] ||
+    (bodyText.match(/Total:\s*\$[0-9,.]+/i) || [])[0] ||
+    (bodyText.match(/Order total:\s*\$[0-9,.]+/i) || [])[0] ||
+    (text && (text.match(/Total:\s*\$[0-9,.]+/i) || [])[0]) ||
     "";
   const totalCents = parseMoney(totalText);
   if (totalCents != null) out.total_cents = totalCents;
 
-  let img = null;
-  $("img").each((_, el) => {
-    const src = $(el).attr("src") || "";
-    if (/logo|prime|sprite/i.test(src)) return;
-    if (/^https?:\/\//i.test(src)) img = img || src;
-  });
-  if (img) out.image_url = img;
+  // qty fallback from whole page
+  if (!out.quantity) {
+    const q = (bodyText.match(/Quantity:\s*(\d+)/i) || [])[1];
+    if (q) out.quantity = parseInt(q, 10);
+  }
 
   return out;
 }
 
-/* Generic shipping/delivered */
-function parseGenericShipping(html, text) {
-  const content = (html || "") + " " + (text || "");
-  const tracking =
-    (content.match(/\b(1Z[0-9A-Z]{10,})\b/i) || [])[1] ||
-    (content.match(/\b([A-Z0-9]{10,25})\b/g) || []).find((x) => x.length >= 12) ||
+function parseAmazonShipping(html, text, subject = "") {
+  const $ = cheerio.load(html || "");
+  const bodyText = $("body").text().replace(/\s+/g, " ").trim();
+
+  // Amazon shipping emails often omit carrier tracking; grab any plausible token
+  const tn =
+    (bodyText.match(/\b1Z[0-9A-Z]{10,}\b/i) || [])[0] ||
+    (bodyText.match(/\b(92|94|95)\d{20,}\b/) || [])[0] ||
+    // Amazon internal tracking (long mixed token after "Tracking number")
+    (bodyText.match(/Tracking number\s*([A-Z0-9\-]{12,})/i) || [])[1] ||
     null;
-  const carrier = pickCarrierByTracking(tracking, html, text);
-  return { tracking_number: tracking || null, carrier, status: "in_transit" };
+
+  const carrier = pickCarrierByTracking(tn || "", html, text) || "Amazon";
+
+  // Extract order id too (sometimes needed to tie)
+  const order_id = extractAmazonOrderId(subject, bodyText) || null;
+
+  return {
+    tracking_number: tn || null,
+    carrier,
+    status: "in_transit",
+    order_id, // used by caller if missing
+  };
 }
-function parseGenericDelivered() {
-  return { status: "delivered" };
+
+function parseAmazonDelivered(html, text, subject = "") {
+  const $ = cheerio.load(html || "");
+  const bodyText = $("body").text().replace(/\s+/g, " ").trim();
+
+  // Same tracking heuristics
+  const tn =
+    (bodyText.match(/\b1Z[0-9A-Z]{10,}\b/i) || [])[0] ||
+    (bodyText.match(/\b(92|94|95)\d{20,}\b/) || [])[0] ||
+    (bodyText.match(/Tracking number\s*([A-Z0-9\-]{12,})/i) || [])[1] ||
+    null;
+
+  const carrier = pickCarrierByTracking(tn || "", html, text) || "Amazon";
+  const order_id = extractAmazonOrderId(subject, bodyText) || null;
+
+  return { status: "delivered", tracking_number: tn || null, carrier, order_id };
 }
 
 /* =============================== RETAILERS =============================== */
@@ -180,25 +258,27 @@ const RETAILERS = [
     cancelSubject: /(canceled|cancelled|order.*cancel)/i,
     parseOrder: parseTargetOrder,
     parseShipping: parseTargetShipping,
-    parseDelivered: parseGenericDelivered,
+    parseDelivered: () => ({ status: "delivered" }),
   },
   {
     name: "Amazon",
     senderMatch: (from) =>
       /@amazon\.(com|ca|co\.uk|de|fr|it|es|co\.jp)$/i.test(from) ||
       /order-update@amazon/i.test(from) ||
-      /shipment-tracking@amazon/i.test(from),
-    orderSubject: /(order\s*confirmation|order\s*placed)/i,
-    shipSubject: /(shipped|shipment confirmation|on (?:its|the) way)/i,
-    deliverSubject: /(delivered|has been delivered)/i,
+      /shipment-tracking@amazon/i.test(from) ||
+      /ship-confirm@amazon/i.test(from),
+    // These match your screenshots exactly:
+    orderSubject: /^(ordered:|your amazon\.com order)/i,
+    shipSubject: /^(shipped:|your package was shipped)/i,
+    deliverSubject: /^(delivered:|your package was delivered)/i,
     cancelSubject: /(canceled|cancelled)/i,
-    parseOrder: parseAmazonOrderEnhanced,
-    parseShipping: parseGenericShipping,
-    parseDelivered: parseGenericDelivered,
+    parseOrder: (html, text, subject) => parseAmazonOrderEnhanced(html, text, subject),
+    parseShipping: (html, text, subject) => parseAmazonShipping(html, text, subject),
+    parseDelivered: (html, text, subject) => parseAmazonDelivered(html, text, subject),
   },
 ];
 
-/* ========================== Gmail + helper utils ========================= */
+/* ========================== Gmail & payload utils ======================== */
 async function getAccount() {
   const { data, error } = await supabase
     .from("email_accounts")
@@ -240,12 +320,12 @@ async function getGmailClientWithAccount(acct) {
   return google.gmail({ version: "v1", auth: oauth2 });
 }
 
-/* Pull up to maxTotal (default 60) from last 90d */
 async function listCandidateMessageIds(gmail, maxTotal = 60) {
   const q = [
-    "newer_than:90d",
+    "newer_than:120d",
     "in:inbox",
-    '(subject:"order" OR subject:"thanks for your order" OR subject:"order placed" OR subject:"shipped" OR subject:"delivered" OR subject:"shipment" OR subject:"canceled" OR subject:"cancelled")',
+    // broad but focused
+    '(subject:"ordered:" OR subject:"shipped:" OR subject:"delivered:" OR subject:"order" OR subject:"shipped" OR subject:"delivered" OR subject:"shipment" OR subject:"canceled" OR subject:"cancelled")',
   ].join(" ");
 
   const ids = [];
@@ -265,14 +345,9 @@ async function listCandidateMessageIds(gmail, maxTotal = 60) {
 }
 
 async function getMessageFull(gmail, id) {
-  const res = await gmail.users.messages.get({
-    userId: "me",
-    id,
-    format: "full",
-  });
+  const res = await gmail.users.messages.get({ userId: "me", id, format: "full" });
   return res.data;
 }
-
 function headersToObj(headers = []) {
   const o = {};
   headers.forEach((h) => (o[h.name.toLowerCase()] = h.value || ""));
@@ -305,6 +380,8 @@ function extractBodyParts(payload) {
 /* =========================== Classify + DB utils ========================= */
 function classifyType(retailer, subject) {
   const s = (subject || "").toLowerCase();
+  // Amazon’s “Ordered: … / Shipped: … / Delivered: …” are handled explicitly in RETAILERS regexes,
+  // but we keep fallbacks here too:
   if (retailer.cancelSubject?.test(s)) return "canceled";
   if (retailer.deliverSubject?.test(s)) return "delivered";
   if (retailer.shipSubject?.test(s)) return "shipping";
@@ -332,7 +409,6 @@ async function orderExists(retailer, order_id, user_id) {
   if (error && error.code !== "PGRST116") throw error;
   return !!data;
 }
-
 async function upsertOrder(row, user_id_for_fallback) {
   const { data: existing, error: selErr } = await supabase
     .from("email_orders")
@@ -344,10 +420,7 @@ async function upsertOrder(row, user_id_for_fallback) {
   if (selErr && selErr.code !== "PGRST116") throw selErr;
 
   if (existing?.id) {
-    const { error: updErr } = await supabase
-      .from("email_orders")
-      .update(row)
-      .eq("id", existing.id);
+    const { error: updErr } = await supabase.from("email_orders").update(row).eq("id", existing.id);
     if (updErr) throw updErr;
     return existing.id;
   } else {
@@ -361,7 +434,6 @@ async function upsertOrder(row, user_id_for_fallback) {
     return ins?.id ?? null;
   }
 }
-
 async function upsertShipment(row, user_id_for_fallback) {
   if (!row.tracking_number) return null;
   const { data: existing, error: selErr } = await supabase
@@ -392,7 +464,6 @@ async function upsertShipment(row, user_id_for_fallback) {
     return ins?.id ?? null;
   }
 }
-
 function ymd(dateStr) {
   if (!dateStr) return null;
   const d = new Date(dateStr);
@@ -403,14 +474,13 @@ function ymd(dateStr) {
 /* ================================= SYNC ================================== */
 async function runSync(event) {
   const started = Date.now();
-  // leave ~3s headroom under Netlify timeout
-  const TIME_BUDGET_MS = (Number(process.env.FUNCTION_TIMEOUT_MS) || 22000);
+  const TIME_BUDGET_MS = Number(process.env.FUNCTION_TIMEOUT_MS) || 22000;
   const SOFT_DEADLINE = started + TIME_BUDGET_MS - 3000;
 
   const mode = (event.queryStringParameters?.mode || "").toLowerCase();
   const max = Math.max(
     20,
-    Math.min(500, Number(event.queryStringParameters?.max || 0) || 60) // default now 60
+    Math.min(500, Number(event.queryStringParameters?.max || 0) || 60)
   );
 
   const acct = await getAccount();
@@ -429,7 +499,6 @@ async function runSync(event) {
     if (Date.now() > SOFT_DEADLINE) break;
     const slice = ids.slice(i, i + BATCH);
 
-    // process sequentially (safer with DB + avoids event loop starvation)
     for (const id of slice) {
       if (Date.now() > SOFT_DEADLINE) break;
       try {
@@ -442,6 +511,7 @@ async function runSync(event) {
           ? new Date(dateHeader)
           : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
         const { html, text } = extractBodyParts(msg.payload || {});
+
         const retailer = classifyRetailer(from);
         if (!retailer) continue;
 
@@ -450,15 +520,16 @@ async function runSync(event) {
 
         if (mode === "preview" && type !== "order") continue;
 
+        // Parse
         let parsed = {};
-        if (type === "order" && retailer.parseOrder) parsed = retailer.parseOrder(html, text);
-        else if (type === "shipping" && retailer.parseShipping) parsed = retailer.parseShipping(html, text);
-        else if (type === "delivered" && retailer.parseDelivered) parsed = retailer.parseDelivered(html, text);
+        if (type === "order" && retailer.parseOrder) parsed = retailer.parseOrder(html, text, subject);
+        else if (type === "shipping" && retailer.parseShipping) parsed = retailer.parseShipping(html, text, subject);
+        else if (type === "delivered" && retailer.parseDelivered) parsed = retailer.parseDelivered(html, text, subject);
         else if (type === "canceled") parsed = { status: "canceled" };
 
-        const order_id =
+        let order_id =
           parsed.order_id ||
-          ((subject.match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1]) ||
+          ((subject.match(/\b\d{3}-\d{7}-\d{7}\b/) || [])[0]) ||
           ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
           null;
 
@@ -501,6 +572,9 @@ async function runSync(event) {
         }
 
         if (type === "shipping") {
+          // parsed may include order_id from body for Amazon
+          if (!order_id && parsed.order_id) order_id = parsed.order_id;
+
           const ship = {
             user_id,
             retailer: retailer.name,
@@ -523,9 +597,27 @@ async function runSync(event) {
         }
 
         if (type === "delivered") {
+          if (!order_id && parsed.order_id) order_id = parsed.order_id;
+
           if (order_id) {
             await upsertOrder(
               { retailer: retailer.name, order_id, delivered_at: messageDate.toISOString(), status: "delivered" },
+              user_id
+            );
+          }
+          // also store final tracking if present
+          if (parsed.tracking_number) {
+            await upsertShipment(
+              {
+                user_id,
+                retailer: retailer.name,
+                order_id: order_id || "Unknown",
+                tracking_number: parsed.tracking_number,
+                carrier: parsed.carrier || "",
+                status: "delivered",
+                shipped_at: null,
+                delivered_at: ymd(messageDate),
+              },
               user_id
             );
           }
@@ -543,7 +635,6 @@ async function runSync(event) {
         }
       } catch (e) {
         console.error("message sync error:", e?.message || e);
-        // keep going
       }
     }
   }
@@ -553,14 +644,14 @@ async function runSync(event) {
   return json({ imported, updated, skipped_existing }, 200, started);
 }
 
-/* ================================ UTIL =================================== */
+/* ================================ Utilities ============================== */
 function json(body, status = 200, startedTs) {
   const headers = { "content-type": "application/json" };
   if (startedTs) headers["x-duration-ms"] = String(Date.now() - startedTs);
   return { statusCode: status, headers, body: JSON.stringify(body) };
 }
 
-/* =============================== HANDLER ================================= */
+/* ================================= Handler =============================== */
 export async function handler(event) {
   if (event.queryStringParameters?.health === "1") {
     const envOk = {
