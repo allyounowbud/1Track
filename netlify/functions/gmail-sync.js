@@ -57,17 +57,17 @@ const RETAILERS = [
     parseShipping: parseTargetShipping,
     parseDelivered: parseTargetDelivered,
   },
-  // MACY'S — basic support
+  // MACY'S — enhanced HTML parsing
   {
     name: "Macy's",
     senderMatch: (from) => /@macys\.com$/i.test(from) || /@oes\.macys\.com$/i.test(from) || /@noreply\.macys\.com$/i.test(from),
-    orderSubject: /order|shipped|delivered/i,
-    shipSubject: /shipped|on the way/i,
+    orderSubject: /thanks for your order|order confirmation|order placed/i,
+    shipSubject: /shipped|on the way|shipment/i,
     deliverSubject: /delivered|arrived/i,
     cancelSubject: /cancel/i,
-    parseOrder: parseGenericOrder,
-    parseShipping: parseGenericShipping,
-    parseDelivered: parseGenericDelivered,
+    parseOrder: parseMacysOrder,
+    parseShipping: parseMacysShipping,
+    parseDelivered: parseMacysDelivered,
   },
   // NIKE — basic support
   {
@@ -624,9 +624,21 @@ function parseGenericOrder(html, text) {
   for (const pattern of itemPatterns) {
     const match = bodyText.match(pattern);
     if (match && match[1] && match[1].length > 10) {
-      out.item_name = match[1].trim();
-      console.log("Found generic item name:", out.item_name);
-      break;
+      const candidate = match[1].trim();
+      
+      // Filter out tracking cookies, JS variables, and other junk
+      if (!candidate.includes('_dTCookie') &&
+          !candidate.includes('_ga') &&
+          !candidate.includes('_gid') &&
+          !candidate.includes('utm_') &&
+          !candidate.includes('javascript:') &&
+          !candidate.includes('function') &&
+          !/^[0-9]+$/.test(candidate) && // Not just numbers
+          !/^[A-Z_]+$/.test(candidate)) { // Not just uppercase with underscores
+        out.item_name = candidate;
+        console.log("Found generic item name:", out.item_name);
+        break;
+      }
     }
   }
   
@@ -787,6 +799,203 @@ function parseTargetDelivered(html, text) {
   };
 }
 
+/* ------------------------------ Macy's-specific parsers ------------------------------ */
+function parseMacysOrder(html, text) {
+  const $ = cheerio.load(html || "");
+  const bodyText = $("body").text();
+  
+  console.log("=== MACY'S PARSING DEBUG ===");
+  console.log("HTML length:", (html || "").length);
+  console.log("Body text length:", bodyText.length);
+  console.log("First 1000 chars of body text:", bodyText.substring(0, 1000));
+  
+  const out = {};
+  
+  // Extract order ID from Macy's format - look for various patterns
+  const orderIdPatterns = [
+    /order\s*#\s*([0-9]+)/i,
+    /order\s*number\s*([0-9]+)/i,
+    /order\s*([0-9]{6,})/i,
+    /#\s*([0-9]{6,})/,
+    /([0-9]{8,})/ // Look for long numbers that might be order IDs
+  ];
+  
+  for (const pattern of orderIdPatterns) {
+    const match = bodyText.match(pattern);
+    if (match && match[1] && match[1] !== "000000") {
+      out.order_id = match[1];
+      console.log("Found Macy's order ID:", out.order_id, "using pattern:", pattern);
+      break;
+    }
+  }
+  
+  // Extract total price - look for various price patterns
+  const pricePatterns = [
+    /total\s*\$([0-9,]+\.?[0-9]*)/i,
+    /order\s*total\s*\$([0-9,]+\.?[0-9]*)/i,
+    /\$([0-9,]+\.?[0-9]*)\s*total/i,
+    /\$([0-9,]+\.?[0-9]*)/g
+  ];
+  
+  for (const pattern of pricePatterns) {
+    const matches = [...bodyText.matchAll(pattern)];
+    for (const match of matches) {
+      const price = parseFloat(match[1].replace(/,/g, ''));
+      if (price > 0 && price < 10000) { // Reasonable price range
+        out.total_cents = Math.round(price * 100);
+        console.log("Found Macy's total:", price, "cents:", out.total_cents);
+        break;
+      }
+    }
+    if (out.total_cents) break;
+  }
+  
+  // Extract item name - be very careful to avoid tracking cookies and JS variables
+  const itemNameSelectors = [
+    '.product-name',
+    '.item-name',
+    '.product-title',
+    '.item-title',
+    '[class*="product"]',
+    '[class*="item"]',
+    'h1', 'h2', 'h3',
+    'strong', 'b'
+  ];
+  
+  let itemName = null;
+  
+  // First try HTML selectors
+  for (const selector of itemNameSelectors) {
+    const elements = $(selector);
+    for (let i = 0; i < elements.length; i++) {
+      const element = $(elements[i]);
+      const text = element.text().trim();
+      
+      // Filter out tracking cookies, JS variables, and other junk
+      if (text && 
+          text.length > 5 && 
+          text.length < 200 &&
+          !text.includes('_dTCookie') &&
+          !text.includes('_ga') &&
+          !text.includes('_gid') &&
+          !text.includes('utm_') &&
+          !text.includes('Macy') &&
+          !text.includes('Order') &&
+          !text.includes('Total') &&
+          !text.includes('$') &&
+          !text.includes('javascript:') &&
+          !text.includes('function') &&
+          !/^[0-9]+$/.test(text) && // Not just numbers
+          !/^[A-Z_]+$/.test(text)) { // Not just uppercase with underscores
+        itemName = text;
+        console.log("Found Macy's item name from selector", selector, ":", itemName);
+        break;
+      }
+    }
+    if (itemName) break;
+  }
+  
+  // Fallback: look for quoted text or product descriptions
+  if (!itemName) {
+    const textPatterns = [
+      /"([^"]{10,100})"/g, // Quoted text
+      /([A-Za-z][^,]{10,100}),\s*[A-Za-z]/g, // Text with commas
+      /([A-Za-z][^:]{10,100}):\s*[A-Za-z]/g // Text with colons
+    ];
+    
+    for (const pattern of textPatterns) {
+      const matches = [...bodyText.matchAll(pattern)];
+      for (const match of matches) {
+        const candidate = match[1].trim();
+        if (candidate && 
+            candidate.length > 10 && 
+            candidate.length < 200 &&
+            !candidate.includes('_dTCookie') &&
+            !candidate.includes('Macy') &&
+            !candidate.includes('Order') &&
+            !candidate.includes('Total') &&
+            !candidate.includes('$') &&
+            !/^[0-9]+$/.test(candidate)) {
+          itemName = candidate;
+          console.log("Found Macy's item name from pattern:", itemName);
+          break;
+        }
+      }
+      if (itemName) break;
+    }
+  }
+  
+  if (itemName) {
+    out.item_name = itemName;
+  }
+  
+  // Extract quantity
+  const qtyPatterns = [
+    /qty[:\s]*([0-9]+)/i,
+    /quantity[:\s]*([0-9]+)/i,
+    /([0-9]+)\s*x\s*[A-Za-z]/i
+  ];
+  
+  for (const pattern of qtyPatterns) {
+    const match = bodyText.match(pattern);
+    if (match && match[1]) {
+      out.quantity = parseInt(match[1]);
+      console.log("Found Macy's quantity:", out.quantity);
+      break;
+    }
+  }
+  
+  // Extract product image from Macy's email
+  const imageSelectors = [
+    'img[src*="macys.com"]',
+    'img[src*="macy"]',
+    'img[alt*="product"]',
+    'img[alt*="item"]',
+    'img[src*="product"]',
+    'img[src*="item"]'
+  ];
+  
+  for (const selector of imageSelectors) {
+    const img = $(selector).first();
+    if (img.length) {
+      const src = img.attr('src');
+      const alt = img.attr('alt') || '';
+      if (src && 
+          !src.includes('logo') && 
+          !src.includes('macy') && 
+          !src.includes('tracking') &&
+          !src.includes('pixel') &&
+          !src.includes('cookie')) {
+        out.image_url = src;
+        console.log("Found Macy's product image:", src, "alt:", alt);
+        break;
+      }
+    }
+  }
+  
+  console.log("Final Macy's parsed data:", out);
+  console.log("=== END MACY'S PARSING DEBUG ===");
+  
+  return out;
+}
+
+function parseMacysShipping(html, text) {
+  const base = parseMacysOrder(html, text);
+  return {
+    ...base,
+    status: "in_transit",
+    carrier: "Macy's",
+  };
+}
+
+function parseMacysDelivered(html, text) {
+  const base = parseMacysOrder(html, text);
+  return {
+    ...base,
+    status: "delivered",
+  };
+}
+
 /* --------------------------- DB upsert helpers --------------------------- */
 async function upsertOrder(row) {
   const { data, error } = await supabase
@@ -894,6 +1103,27 @@ exports.handler = async (event) => {
       type,
       senderMatch: retailer.senderMatch ? retailer.senderMatch(from) : false
     });
+  }
+
+  // Test all retailers
+  if (event?.queryStringParameters?.test === "retailers") {
+    const testEmails = [
+      "auto-confirm@amazon.com",
+      "orders@oe1.target.com", 
+      "CustomerService@oes.macys.com",
+      "nike@ship.notifications.nike.com"
+    ];
+    
+    const results = testEmails.map(email => {
+      const retailer = classifyRetailer(email);
+      return {
+        email,
+        retailer: retailer.name,
+        senderMatch: retailer.senderMatch ? retailer.senderMatch(email) : false
+      };
+    });
+    
+    return json({ results });
   }
 
   try {
