@@ -141,6 +141,11 @@ export default function OrderBook() {
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [bulkActionsVisible, setBulkActionsVisible] = useState(false);
 
+  // Update bulk actions visibility when selection changes
+  useEffect(() => {
+    setBulkActionsVisible(selectedRows.size > 0);
+  }, [selectedRows]);
+
   /* bulk action functions */
   function toggleRowSelection(rowId) {
     const newSelected = new Set(selectedRows);
@@ -150,18 +155,15 @@ export default function OrderBook() {
       newSelected.add(rowId);
     }
     setSelectedRows(newSelected);
-    setBulkActionsVisible(newSelected.size > 0);
   }
 
   function toggleAllSelection() {
     if (selectedRows.size === filtered.length) {
       // Deselect all
       setSelectedRows(new Set());
-      setBulkActionsVisible(false);
     } else {
       // Select all
       setSelectedRows(new Set(filtered.map(row => row.id)));
-      setBulkActionsVisible(true);
     }
   }
 
@@ -185,7 +187,6 @@ export default function OrderBook() {
       
       // Clear selection
       setSelectedRows(new Set());
-      setBulkActionsVisible(false);
       refetch();
     } catch (e) {
       alert(`Failed to save orders: ${e.message}`);
@@ -207,7 +208,6 @@ export default function OrderBook() {
       
       // Clear selection and refresh
       setSelectedRows(new Set());
-      setBulkActionsVisible(false);
       refetch();
     } catch (e) {
       alert(`Failed to delete orders: ${e.message}`);
@@ -346,6 +346,7 @@ export default function OrderBook() {
               onDeleted={refetch}
               selectedRows={selectedRows}
               onToggleRowSelection={toggleRowSelection}
+              setSelectedRows={setSelectedRows}
             />
           ))}
           {!grouped.length && (
@@ -371,6 +372,7 @@ function DayCard({
   defaultOpen = false,
   selectedRows,
   onToggleRowSelection,
+  setSelectedRows,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [adding, setAdding] = useState(false);
@@ -435,12 +437,40 @@ function DayCard({
           </button>
         </div>
 
-        {/* Title (reserve space so it never overlaps controls) */}
+        {/* Title and Select All */}
         <div className="pr-36 sm:pr-40">
-          <h3 className="text-lg font-semibold leading-tight break-words">{title}</h3>
-          <p className="text-xs text-slate-400">
-            {count} order{count !== 1 ? "s" : ""}
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold leading-tight break-words">{title}</h3>
+              <p className="text-xs text-slate-400">
+                {count} order{count !== 1 ? "s" : ""}
+              </p>
+            </div>
+            {open && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={rows.every(row => selectedRows.has(row.id))}
+                  onChange={(e) => {
+                    const rowIds = rows.map(row => row.id);
+                    if (e.target.checked) {
+                      // Select all rows in this card
+                      const newSelected = new Set(selectedRows);
+                      rowIds.forEach(id => newSelected.add(id));
+                      setSelectedRows(newSelected);
+                    } else {
+                      // Deselect all rows in this card
+                      const newSelected = new Set(selectedRows);
+                      rowIds.forEach(id => newSelected.delete(id));
+                      setSelectedRows(newSelected);
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="text-xs text-slate-400">Select all</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -546,8 +576,10 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
   return (
     <div 
-      className={`${rowCard} transition cursor-pointer ${
-        isSelected ? 'border-indigo-500 bg-indigo-500/10' : 'hover:bg-slate-800/50'
+      className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
+        isSelected 
+          ? 'border-indigo-500 bg-indigo-500/10' 
+          : 'border-slate-800 hover:bg-slate-800/50'
       }`}
       onClick={onToggleSelection}
     >
