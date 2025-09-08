@@ -26,6 +26,7 @@ const timeAgo = (d) => {
 
 function trackingUrl(carrier, tn) {
   if (!tn) return null;
+  if (/^https?:\/\//i.test(tn)) return tn;
   const c = (carrier || "").toLowerCase();
   if (c === "ups") return `https://www.ups.com/track?tracknum=${encodeURIComponent(tn)}`;
   if (c === "usps")

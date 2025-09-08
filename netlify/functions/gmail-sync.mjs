@@ -1,11 +1,17 @@
-import { google } from "googleapis";
-import cheerio from "cheerio";
-import { createClient } from "@supabase/supabase-js";
+// netlify/functions/gmail-sync.js
+// CommonJS build (works on Netlify) – robust Amazon/Target parsers.
+
+const { google } = require("googleapis");
+const cheerio = require("cheerio");
+const { createClient } = require("@supabase/supabase-js");
 
 /* ----------------------------- Supabase init ----------------------------- */
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn("Missing SUPABASE env. Health check can still run.");
+}
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
@@ -21,319 +27,155 @@ const oauth2 = new google.auth.OAuth2(
   OAUTH_REDIRECT_URI
 );
 
-/* ============================ Helpers / Utils ============================ */
-const money = (s = "") => {
-  const m = String(s).replace(/,/g, "").match(/\$?\s*([0-9]+(?:\.[0-9]{2})?)/);
-  return m ? Math.round(parseFloat(m[1]) * 100) : null;
-};
-const carrierBy = (tn = "", html = "", text = "") => {
-  const s = (html || "") + " " + (text || "");
-  if (/1Z[0-9A-Z]{10,}/i.test(tn) || /UPS/i.test(s)) return "UPS";
-  if (/\b(92|94|95)\d{20,}\b/.test(tn) || /USPS/i.test(s)) return "USPS";
-  if (/\b(\d{12,14})\b/.test(tn) || /FedEx/i.test(s)) return "FedEx";
-  if (/amazon/i.test(s)) return "Amazon";
-  return "";
-};
-const clean = ($, n) => $(n).text().replace(/\s+/g, " ").trim();
-const firstImg = ($) => {
-  let img = null;
-  $("img").each((_, el) => {
-    const src = ($(el).attr("src") || "").trim();
-    const alt = ($(el).attr("alt") || "").toLowerCase();
-    if (!/^https?:\/\//i.test(src)) return;
-    if (/logo|sprite|prime|rating|icon|badge/i.test(src)) return;
-    if (/amazon|logo|prime/i.test(alt)) return;
-    img = img || src;
-  });
-  return img;
-};
-const ymd = (d) => {
-  if (!d) return null;
-  const x = new Date(d);
-  if (isNaN(x)) return null;
-  return x.toISOString().slice(0, 10);
-};
-
-/* =============================== PARSERS ================================= */
-/* ---- Target ---- */
-function parseTargetOrder(html, text) {
-  const $ = cheerio.load(html || "");
-  const out = {};
-  out.order_id =
-    ($("body").text().match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
-    (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
-    null;
-
-  // totals
-  const tNode = $('*:contains("Order total")')
-    .filter((_, el) => /Order total/i.test($(el).text()))
-    .first();
-  const totText = (tNode.next().text() || tNode.text() || "").trim();
-  const tot = money(totText);
-  if (tot != null) out.total_cents = tot;
-
-  // qty
-  const qty =
-    (($("body").text().match(/Qty:\s*([0-9]+)/i) || [])[1]) ||
-    (($('*:contains("Qty")').first().text().match(/Qty[:\s]+([0-9]+)/i) || [])[1]);
-  if (qty) out.quantity = parseInt(qty, 10);
-
-  // item
-  let item = "";
-  $('img[alt]').each((_, el) => {
-    const alt = ($(el).attr("alt") || "").trim();
-    if (/thanks|target|logo/i.test(alt)) return;
-    if (alt.length > 12 && alt.length < 160) item = item || alt;
-  });
-  if (!item && tNode.length) {
-    const near = tNode
-      .closest("table,div")
-      .text()
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    item = near.sort((a, b) => b.length - a.length)[0] || null;
-  }
-  if (item) out.item_name = item;
-
-  // unit each
-  const each =
-    ($("body").text().match(/\$[0-9]+(?:\.[0-9]{2})?\s*\/\s*ea/i) || [])[0] || null;
-  if (each) out.unit_price_cents = money(each);
-
-  const img = firstImg($);
-  if (img) out.image_url = img;
-
-  return out;
-}
-
-function parseTargetShipping(html, text) {
-  const content = (html || "") + " " + (text || "");
-  const tn =
-    (content.match(/\b(1Z[0-9A-Z]{10,})\b/i) || [])[1] ||
-    (content.match(/\b([A-Z0-9]{10,25})\b/g) || []).find((x) => x.length >= 12) ||
-    null;
-  const carrier = carrierBy(tn, html, text);
-  return { tracking_number: tn || null, carrier, status: "in_transit" };
-}
-
-/* ---- Amazon robust ---- */
-const amazonOrderId = (subject = "", body = "") =>
-  (subject.match(/\b\d{3}-\d{7}-\d{7}\b/) || [])[0] ||
-  (body.match(/\b\d{3}-\d{7}-\d{7}\b/) || [])[0] ||
-  (body.match(/Order\s*#\s*(\d{3}-\d{7}-\d{7})/) || [])[1] ||
-  null;
-
-const findAmazonItemBlock = ($) => {
-  const blocks = [];
-  $("*").each((_, el) => {
-    const t = clean($, el);
-    if (/Quantity:\s*\d+/i.test(t)) {
-      blocks.push({ el, text: t, root: $(el).parent() });
-    }
-  });
-  return blocks[0] || null;
-};
-
-function parseAmazonOrder(html, text, subject = "") {
-  const $ = cheerio.load(html || "");
-  const body = $("body").text().replace(/\s+/g, " ").trim();
-  const out = {};
-
-  out.order_id = amazonOrderId(subject, body) || amazonOrderId("", text || "");
-
-  // image
-  out.image_url = firstImg($) || null;
-
-  // HTML block first
-  const blk = findAmazonItemBlock($);
-  if (blk) {
-    // title: longest reasonable text excluding common UI words
-    let title = "";
-    blk.root.find("a,span,div").each((_, n) => {
-      const t = clean($, n);
-      if (!t) return;
-      if (/Quantity:|Order #|Track package|Your Orders|Delivered|Shipped|Ordered/i.test(t)) return;
-      if (t.length >= 8 && t.length <= 180 && t.length > (title?.length || 0)) title = t;
-    });
-    if (title) out.item_name = title;
-
-    const q = (blk.text.match(/Quantity:\s*(\d+)/i) || [])[1];
-    if (q) out.quantity = parseInt(q, 10);
-
-    const unitLine =
-      (blk.text.match(/\$[0-9][0-9,]*(?:\.[0-9]{2})?\s*(?:ea|each)?/i) || [])[0] || null;
-    if (unitLine) out.unit_price_cents = money(unitLine);
-  }
-
-  // Plain-text fallbacks
-  if (!out.item_name || !out.quantity) {
-    // pattern: product name on its own line before "Quantity: X"
-    const m = (text || body).match(/([\S ].{8,160}?)\s*[\r\n]+\s*Quantity:\s*(\d+)/i);
-    if (m) {
-      if (!out.item_name) out.item_name = m[1].trim();
-      if (!out.quantity) out.quantity = parseInt(m[2], 10);
-    }
-  }
-
-  // totals
-  const totText =
-    (body.match(/Total:\s*\$[0-9,.]+/i) || [])[0] ||
-    (body.match(/Order total:\s*\$[0-9,.]+/i) || [])[0] ||
-    (text && (text.match(/Total:\s*\$[0-9,.]+/i) || [])[0]) ||
-    "";
-  const tot = money(totText);
-  if (tot != null) out.total_cents = tot;
-
-  // qty fallback
-  if (!out.quantity) {
-    const q = (body.match(/Quantity:\s*(\d+)/i) || [])[1];
-    if (q) out.quantity = parseInt(q, 10);
-  }
-
-  return out;
-}
-
-function parseAmazonShipping(html, text, subject = "") {
-  const $ = cheerio.load(html || "");
-  const body = $("body").text().replace(/\s+/g, " ").trim();
-
-  const tn =
-    (body.match(/\b1Z[0-9A-Z]{10,}\b/i) || [])[0] ||
-    (body.match(/\b(92|94|95)\d{20,}\b/) || [])[0] ||
-    (body.match(/Tracking number\s*([A-Z0-9\-]{12,})/i) || [])[1] ||
-    null;
-
-  const carrier = carrierBy(tn || "", html, text) || "Amazon";
-  const order_id = amazonOrderId(subject, body) || null;
-
-  return { tracking_number: tn || null, carrier, status: "in_transit", order_id };
-}
-
-function parseAmazonDelivered(html, text, subject = "") {
-  const $ = cheerio.load(html || "");
-  const body = $("body").text().replace(/\s+/g, " ").trim();
-  const tn =
-    (body.match(/\b1Z[0-9A-Z]{10,}\b/i) || [])[0] ||
-    (body.match(/\b(92|94|95)\d{20,}\b/) || [])[0] ||
-    (body.match(/Tracking number\s*([A-Z0-9\-]{12,})/i) || [])[1] ||
-    null;
-  const carrier = carrierBy(tn || "", html, text) || "Amazon";
-  const order_id = amazonOrderId(subject, body) || null;
-  return { status: "delivered", tracking_number: tn || null, carrier, order_id };
-}
-
-/* =============================== RETAILERS =============================== */
+/* ------------------------------ Retailer map ----------------------------- */
+/** Classification + retailer-specific parse hooks */
 const RETAILERS = [
+  /* ----------------------------- TARGET ----------------------------- */
   {
     name: "Target",
     senderMatch: (from) =>
-      /@target\.com$/i.test(from) || /order\.target\.com$/i.test(from),
-    orderSubject: /(thanks for your order|order\s*#\s*\d+)/i,
-    shipSubject: /(on the way|has shipped|shipping confirmation)/i,
+      /(^|<)\s*.*@target\.com\s*(>|$)/i.test(from) ||
+      /(^|<)\s*order.*@target\.com\s*(>|$)/i.test(from),
+    orderSubject: /(thanks for your order|order\s*#)/i,
+    shipSubject: /(on the way|has shipped|shipping confirmation|your order has shipped)/i,
     deliverSubject: /(delivered|was delivered|delivered successfully)/i,
     cancelSubject: /(canceled|cancelled|order.*cancel)/i,
     parseOrder: parseTargetOrder,
     parseShipping: parseTargetShipping,
     parseDelivered: () => ({ status: "delivered" }),
   },
+
+  /* ----------------------------- AMAZON ----------------------------- */
   {
     name: "Amazon",
     senderMatch: (from) =>
-      /@amazon\.(com|ca|co\.uk|de|fr|it|es|co\.jp)$/i.test(from) ||
-      /order-update@amazon/i.test(from) ||
-      /ship-confirm@amazon/i.test(from) ||
-      /shipment-tracking@amazon/i.test(from),
-    orderSubject: /^(ordered:|your amazon\.com order)/i,
-    shipSubject: /^(shipped:|your package was shipped)/i,
+      /(^|<)\s*.*@amazon\.(com|ca|co\.uk|de|fr|it|es|co\.jp)\s*(>|$)/i.test(from),
+    // These match the exact subjects on your screenshots
+    orderSubject: /^(ordered:|your order|thanks for your order)/i,
+    shipSubject: /^(shipped:|your package was shipped|has shipped)/i,
     deliverSubject: /^(delivered:|your package was delivered)/i,
-    cancelSubject: /(canceled|cancelled)/i,
-    parseOrder: (h, t, s) => parseAmazonOrder(h, t, s),
-    parseShipping: (h, t, s) => parseAmazonShipping(h, t, s),
-    parseDelivered: (h, t, s) => parseAmazonDelivered(h, t, s),
+    cancelSubject: /(order.*(canceled|cancelled))/i,
+    parseOrder: parseAmazonOrder,
+    parseShipping: parseAmazonShipping,
+    parseDelivered: parseAmazonDelivered,
   },
 ];
 
-/* ========================== Gmail & payload utils ======================== */
+/* --------------------------- Small helpers --------------------------- */
+const json = (body, status = 200) => ({
+  statusCode: status,
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+const ymd = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return isNaN(d) ? null : d.toISOString().slice(0, 10);
+};
+
+const headersToObj = (headers = []) => {
+  const o = {};
+  headers.forEach((h) => (o[(h.name || "").toLowerCase()] = h.value || ""));
+  return o;
+};
+
+const decodeB64url = (str) =>
+  !str
+    ? ""
+    : Buffer.from(str.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString(
+        "utf8"
+      );
+
+function extractBodyParts(payload) {
+  let html = null;
+  let text = null;
+  const walk = (p) => {
+    if (!p) return;
+    if (p.mimeType === "text/html" && p.body?.data) html = decodeB64url(p.body.data);
+    if (p.mimeType === "text/plain" && p.body?.data) text = decodeB64url(p.body.data);
+    (p.parts || []).forEach(walk);
+  };
+  walk(payload);
+  if (!html && /html/i.test(payload?.mimeType || "") && payload?.body?.data)
+    html = decodeB64url(payload.body.data);
+  if (!text && /plain/i.test(payload?.mimeType || "") && payload?.body?.data)
+    text = decodeB64url(payload.body.data);
+  return { html, text };
+}
+
+function parseMoney(str = "") {
+  const m = String(str).replace(/,/g, "").match(/\$?\s*([0-9]+(?:\.[0-9]{2})?)/);
+  return m ? Math.round(parseFloat(m[1]) * 100) : null;
+}
+
+function classifyRetailer(from) {
+  const f = (from || "").toLowerCase();
+  return RETAILERS.find((r) => r.senderMatch(f)) || null;
+}
+function classifyType(retailer, subject) {
+  const s = (subject || "").toLowerCase();
+  if (retailer.orderSubject?.test(s)) return "order";
+  if (retailer.shipSubject?.test(s)) return "shipping";
+  if (retailer.deliverSubject?.test(s)) return "delivered";
+  if (retailer.cancelSubject?.test(s)) return "canceled";
+  return null;
+}
+
+/* -------------------------- Gmail client helpers ------------------------- */
 async function getAccount() {
   const { data, error } = await supabase
     .from("email_accounts")
-    .select("id, user_id, email_address, access_token, refresh_token, updated_at")
+    .select("id, user_id, email_address, access_token, refresh_token")
     .order("updated_at", { ascending: false })
     .limit(1);
   if (error) throw error;
-  if (!data?.length)
-    throw new Error("No connected Gmail account in email_accounts");
+  if (!data?.length) throw new Error("No connected Gmail account");
   return data[0];
 }
 
-async function getGmailClientWithAccount(acct) {
+async function getGmailClient() {
+  const acct = await getAccount();
   oauth2.setCredentials({
     access_token: acct.access_token,
     refresh_token: acct.refresh_token,
     scope: "https://www.googleapis.com/auth/gmail.readonly",
   });
-
-  oauth2.on("tokens", async (tokens) => {
-    if (tokens.access_token) {
-      await supabase
-        .from("email_accounts")
-        .update({ access_token: tokens.access_token })
-        .eq("id", acct.id);
-    }
-  });
-
   try {
     await oauth2.getAccessToken();
   } catch (e) {
     if (acct.refresh_token) {
       const { credentials } = await oauth2.refreshAccessToken();
       oauth2.setCredentials(credentials);
-      if (credentials?.access_token) {
-        await supabase
-          .from("email_accounts")
-          .update({ access_token: credentials.access_token })
-          .eq("id", acct.id);
-      }
     } else {
       throw new Error("Gmail token expired and no refresh token available");
     }
   }
-  return google.gmail({ version: "v1", auth: oauth2 });
+  return { gmail: google.gmail({ version: "v1", auth: oauth2 }), acctUserId: acct.user_id };
 }
 
-async function listCandidateMessageIds(gmail, maxTotal = 150) {
-  // Focus on Amazon + Target, include Inbox + Promotions, last 120d
-  const q = [
-    "newer_than:120d",
-    "(in:inbox OR category:promotions)",
-    "(" +
-      [
-        "from:amazon.com",
-        "from:order-update@amazon.com",
-        "from:ship-confirm@amazon.com",
-        "from:shipment-tracking@amazon.com",
-        "from:target.com",
-      ].join(" OR ") +
-      ")",
-    // we still keep subject keywords for safety
-    '(subject:"ordered:" OR subject:"shipped:" OR subject:"delivered:" OR subject:"order" OR subject:"shipped" OR subject:"delivered" OR subject:"shipment" OR subject:"canceled" OR subject:"cancelled")',
-  ].join(" ");
-
-  const ids = [];
-  let pageToken;
-  while (ids.length < maxTotal) {
-    const res = await gmail.users.messages.list({
-      userId: "me",
-      q,
-      maxResults: Math.min(50, maxTotal - ids.length),
-      pageToken,
-    });
-    (res.data.messages || []).forEach((m) => ids.push(m.id));
-    pageToken = res.data.nextPageToken;
-    if (!pageToken) break;
+async function listCandidateMessageIds(gmail) {
+  // Amazon & Target, last 90 days, in:inbox, only the 3 life-cycle subjects
+  const queries = [
+    '(from:amazon.com OR from:"@amazon.") (subject:ordered OR subject:shipped OR subject:delivered) newer_than:90d in:inbox',
+    '(from:target.com) (subject:order OR subject:shipped OR subject:delivered OR subject:cancel) newer_than:90d in:inbox',
+  ];
+  const ids = new Set();
+  for (const q of queries) {
+    let pageToken;
+    for (let i = 0; i < 6; i++) {
+      const res = await gmail.users.messages.list({
+        userId: "me",
+        q,
+        maxResults: 50,
+        pageToken,
+      });
+      (res.data.messages || []).forEach((m) => ids.add(m.id));
+      pageToken = res.data.nextPageToken;
+      if (!pageToken) break;
+    }
   }
-  return Array.from(new Set(ids));
+  return Array.from(ids);
 }
 
 async function getMessageFull(gmail, id) {
@@ -344,53 +186,209 @@ async function getMessageFull(gmail, id) {
   });
   return res.data;
 }
-const headersToObj = (headers = []) => {
-  const o = {};
-  headers.forEach((h) => (o[h.name.toLowerCase()] = h.value || ""));
-  return o;
-};
-const b64url = (s) =>
-  !s
-    ? ""
-    : Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString(
-        "utf8"
-      );
-function extractBodyParts(payload) {
-  let html = null;
-  let text = null;
-  function walk(p) {
-    if (!p) return;
-    if (p.mimeType === "text/html" && p.body?.data) html = b64url(p.body.data);
-    if (p.mimeType === "text/plain" && p.body?.data) text = b64url(p.body.data);
-    (p.parts || []).forEach(walk);
+
+/* ------------------------------ TARGET parsers --------------------------- */
+function parseTargetOrder(html, text) {
+  const $ = cheerio.load(html || "");
+  const out = {};
+  out.order_id =
+    ($("body").text().match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
+    (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
+    null;
+
+  // Total
+  const totalNode = $('*:contains("Order total")')
+    .filter((_, el) => /Order total/i.test($(el).text()))
+    .first();
+  const totalText = (totalNode.next().text() || totalNode.text() || "").trim();
+  const totalCents = parseMoney(totalText);
+  if (totalCents != null) out.total_cents = totalCents;
+
+  // Quantity
+  const qty =
+    (($("body").text().match(/Qty:\s*([0-9]+)/i) || [])[1]) ||
+    (($('*:contains("Qty")').first().text().match(/Qty[:\s]+([0-9]+)/i) || [])[1]);
+  if (qty) out.quantity = parseInt(qty, 10);
+
+  // Item name
+  let item = "";
+  $('img[alt]').each((_, el) => {
+    const alt = ($(el).attr("alt") || "").trim();
+    if (/logo|target|thanks/i.test(alt)) return;
+    if (alt.length > 12 && alt.length < 180) item = item || alt;
+  });
+  if (!item) {
+    const near = totalNode
+      .closest("table,div")
+      .text()
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    item = near.sort((a, b) => b.length - a.length)[0] || null;
   }
-  walk(payload);
-  if (!html && payload?.body?.data && /html/i.test(payload.mimeType || ""))
-    html = b64url(payload.body.data);
-  if (!text && payload?.body?.data && /plain/i.test(payload.mimeType || ""))
-    text = b64url(payload.body.data);
-  return { html, text };
+  if (item) out.item_name = item;
+
+  // Unit price
+  const each =
+    (($("body").text().match(/\$[0-9]+(?:\.[0-9]{2})?\s*\/\s*ea/i) || [])[0]) ||
+    null;
+  if (each) out.unit_price_cents = parseMoney(each);
+
+  // Image
+  let img = null;
+  $("img").each((_, el) => {
+    const src = $(el).attr("src") || "";
+    const alt = ($(el).attr("alt") || "").toLowerCase();
+    const bad = /(logo|target|icon)/i.test(src) || /(logo|target)/i.test(alt);
+    if (!bad && /^https?:\/\//i.test(src)) img = img || src;
+  });
+  if (img) out.image_url = img;
+
+  return out;
 }
 
-/* =========================== Classify + DB utils ========================= */
-function classifyRetailer(from) {
-  const f = (from || "").toLowerCase();
-  return RETAILERS.find((r) => r.senderMatch(f)) || null;
-}
-function classifyType(retailer, subject) {
-  const s = (subject || "").toLowerCase();
-  if (retailer.cancelSubject?.test(s)) return "canceled";
-  if (retailer.deliverSubject?.test(s)) return "delivered";
-  if (retailer.shipSubject?.test(s)) return "shipping";
-  if (retailer.orderSubject?.test(s)) return "order";
-  if (/\b(cancel|cancelled)\b/i.test(s)) return "canceled";
-  if (/\b(delivered|has been delivered)\b/i.test(s)) return "delivered";
-  if (/\b(shipped|on the way|label created|tracking)\b/i.test(s)) return "shipping";
-  if (/\b(order|confirmation|thanks for your order|we got your order)\b/i.test(s)) return "order";
-  return null;
+function parseTargetShipping(html, text) {
+  const content = (html || "") + " " + (text || "");
+  const tracking =
+    (content.match(/\b(1Z[0-9A-Z]{10,})\b/i) || [])[1] ||
+    (content.match(/\b([A-Z0-9]{10,25})\b/g) || []).find((x) => x.length >= 12) ||
+    null;
+  const carrier =
+    /UPS/i.test(content) ? "UPS" : /USPS/i.test(content) ? "USPS" : /FedEx/i.test(content) ? "FedEx" : "";
+  return { tracking_number: tracking || null, carrier, status: "in_transit" };
 }
 
-async function orderExists(retailer, order_id, user_id) {
+/* ------------------------------ AMAZON parsers --------------------------- */
+/** Amazon ORDERED (see your screenshots) */
+function parseAmazonOrder(html, text) {
+  const $ = cheerio.load(html || "");
+  const out = {};
+
+  // Order ID always shows as "Order # 114-xxxx-xxxxx"
+  out.order_id =
+    ($("body").text().match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
+    (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
+    null;
+
+  // Product block heuristic: find the block with “Quantity:”
+  const qtyEl = $('*:contains("Quantity:")').filter((_, el) =>
+    /Quantity:/i.test($(el).text())
+  ).first();
+
+  // Item name is usually an <a> just above the quantity block
+  let item = "";
+  if (qtyEl.length) {
+    const titleAnchor = qtyEl
+      .closest("tr,td,div,table")
+      .find("a")
+      .filter((_, a) => {
+        const t = ($(a).text() || "").trim();
+        return t.length > 8 && !/Your Orders|Your Account|Buy Again/i.test(t);
+      })
+      .first();
+    item = (titleAnchor.text() || "").trim();
+  }
+  if (!item) {
+    // Fallback: pick the longest meaningful anchor text on the page
+    const candidates = [];
+    $("a").each((_, a) => {
+      const t = ($(a).text() || "").trim();
+      if (t.length > 8 && t.length < 160 && !/Your Orders|Your Account|Buy Again/i.test(t)) {
+        candidates.push(t);
+      }
+    });
+    item = candidates.sort((a, b) => b.length - a.length)[0] || "";
+  }
+  if (item) out.item_name = item;
+
+  // Quantity:
+  const qty =
+    (($("body").text().match(/Quantity:\s*([0-9]+)/i) || [])[1]) || null;
+  if (qty) out.quantity = parseInt(qty, 10);
+
+  // Unit price: the small price near the product; if not, just skip
+  const afterQty = qtyEl.length ? qtyEl.closest("tr,td,div,table").text() : $("body").text();
+  const unitPriceCents = parseMoney(
+    (afterQty.match(/\$[0-9]+\.[0-9]{2}\s*(?=\/?ea)?/i) || [])[0] || ""
+  );
+  if (unitPriceCents != null) out.unit_price_cents = unitPriceCents;
+
+  // Order total
+  const totalLine =
+    ($("body").text().match(/Total\s*\$[0-9,.]+/i) || [])[0] || "";
+  const totalCents = parseMoney(totalLine);
+  if (totalCents != null) out.total_cents = totalCents;
+
+  // Image – first product-looking image (not logo)
+  let img = null;
+  $("img").each((_, el) => {
+    const src = $(el).attr("src") || "";
+    const alt = ($(el).attr("alt") || "").toLowerCase();
+    const looksLogo = /logo|amazon|icon|smile|sprite/i.test(src) || /amazon|logo|icon/i.test(alt);
+    if (!looksLogo && /^https?:/i.test(src)) img = img || src;
+  });
+  if (img) out.image_url = img;
+
+  return out;
+}
+
+/** Amazon SHIPPED – capture “Track package” link as tracking_number and mark carrier Amazon */
+function parseAmazonShipping(html, text) {
+  const $ = cheerio.load(html || "");
+  let trackUrl = null;
+
+  // Anchor literally says "Track package" in your screenshots
+  const a = $('a:contains("Track package")').first();
+  if (a.length) {
+    const href = a.attr("href");
+    if (href && /^https?:/i.test(href)) trackUrl = href;
+  }
+
+  // Fallback: any link ending in /progress-tracker/ or gp/your-account/order-details
+  if (!trackUrl) {
+    $("a").each((_, el) => {
+      const href = ($(el).attr("href") || "").trim();
+      if (/https?:\/\/.*amazon\.[^/]+\/.*(progress|track|trackpackage)/i.test(href))
+        trackUrl = trackUrl || href;
+    });
+  }
+
+  return {
+    tracking_number: trackUrl || null, // we store the URL; UI will open it (see note below)
+    carrier: "Amazon",
+    status: "in_transit",
+  };
+}
+
+/** Amazon DELIVERED – just mark delivered  */
+function parseAmazonDelivered() {
+  return { status: "delivered" };
+}
+
+/* --------------------------- DB upsert helpers --------------------------- */
+async function upsertOrder(row) {
+  // expects retailer, user_id, order_id...
+  const { data, error } = await supabase
+    .from("email_orders")
+    .upsert(row, { onConflict: "retailer,order_id,user_id" })
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id || null;
+}
+
+async function upsertShipment(row) {
+  if (!row.tracking_number && !row.status) return null;
+  const { data, error } = await supabase
+    .from("email_shipments")
+    .upsert(row, { onConflict: "retailer,order_id,tracking_number,user_id" })
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id || null;
+}
+
+async function orderExists(user_id, retailer, order_id) {
   if (!order_id) return false;
   const { data, error } = await supabase
     .from("email_orders")
@@ -402,277 +400,10 @@ async function orderExists(retailer, order_id, user_id) {
   if (error && error.code !== "PGRST116") throw error;
   return !!data;
 }
-async function upsertOrder(row, user_id_fallback) {
-  const { data: existing, error: selErr } = await supabase
-    .from("email_orders")
-    .select("id")
-    .eq("user_id", row.user_id ?? user_id_fallback)
-    .eq("retailer", row.retailer)
-    .eq("order_id", row.order_id)
-    .maybeSingle();
-  if (selErr && selErr.code !== "PGRST116") throw selErr;
 
-  if (existing?.id) {
-    const { error: updErr } = await supabase
-      .from("email_orders")
-      .update(row)
-      .eq("id", existing.id);
-    if (updErr) throw updErr;
-    return existing.id;
-  } else {
-    const insertRow = { user_id: user_id_fallback, ...row };
-    const { data: ins, error: insErr } = await supabase
-      .from("email_orders")
-      .insert(insertRow)
-      .select("id")
-      .maybeSingle();
-    if (insErr) throw insErr;
-    return ins?.id ?? null;
-  }
-}
-async function upsertShipment(row, user_id_fallback) {
-  if (!row.tracking_number) return null;
-  const { data: existing, error: selErr } = await supabase
-    .from("email_shipments")
-    .select("id")
-    .eq("user_id", row.user_id ?? user_id_fallback)
-    .eq("retailer", row.retailer)
-    .eq("order_id", row.order_id)
-    .eq("tracking_number", row.tracking_number)
-    .maybeSingle();
-  if (selErr && selErr.code !== "PGRST116") throw selErr;
-
-  if (existing?.id) {
-    const { error: updErr } = await supabase
-      .from("email_shipments")
-      .update(row)
-      .eq("id", existing.id);
-    if (updErr) throw updErr;
-    return existing.id;
-  } else {
-    const insertRow = { user_id: user_id_fallback, ...row };
-    const { data: ins, error: insErr } = await supabase
-      .from("email_shipments")
-      .insert(insertRow)
-      .select("id")
-      .maybeSingle();
-    if (insErr) throw insErr;
-    return ins?.id ?? null;
-  }
-}
-
-/* ================================= SYNC ================================== */
-async function runSync(event) {
-  const started = Date.now();
-  const TIME_BUDGET_MS = Number(process.env.FUNCTION_TIMEOUT_MS) || 22000;
-  const deadline = started + TIME_BUDGET_MS - 2500;
-
-  const mode = (event.queryStringParameters?.mode || "").toLowerCase();
-  const debug = event.queryStringParameters?.debug === "1";
-  const max = Math.max(
-    20,
-    Math.min(500, Number(event.queryStringParameters?.max || 0) || 150)
-  );
-
-  const acct = await getAccount();
-  const gmail = await getGmailClientWithAccount(acct);
-  const user_id = acct.user_id;
-
-  const ids = await listCandidateMessageIds(gmail, max);
-
-  const proposed = [];
-  const samples = [];
-  let imported = 0;
-  let updated = 0;
-  let skipped_existing = 0;
-
-  const BATCH = 25;
-  for (let i = 0; i < ids.length; i += BATCH) {
-    if (Date.now() > deadline) break;
-    const slice = ids.slice(i, i + BATCH);
-
-    for (const id of slice) {
-      if (Date.now() > deadline) break;
-
-      try {
-        const msg = await getMessageFull(gmail, id);
-        const h = headersToObj(msg.payload?.headers || []);
-        const subject = h["subject"] || "";
-        const from = h["from"] || "";
-        const dateHeader = h["date"] || "";
-        const messageDate = dateHeader
-          ? new Date(dateHeader)
-          : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
-        const { html, text } = extractBodyParts(msg.payload || {});
-
-        const retailer = classifyRetailer(from);
-        if (!retailer) continue;
-
-        const type = classifyType(retailer, subject);
-        if (!type) continue;
-
-        let parsed = {};
-        if (type === "order") parsed = retailer.parseOrder(html, text, subject);
-        else if (type === "shipping") parsed = retailer.parseShipping(html, text, subject);
-        else if (type === "delivered") parsed = retailer.parseDelivered(html, text, subject);
-        else if (type === "canceled") parsed = { status: "canceled" };
-
-        let order_id =
-          parsed.order_id ||
-          ((subject.match(/\b\d{3}-\d{7}-\d{7}\b/) || [])[0]) ||
-          ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
-          null;
-
-        if (debug && samples.length < 8) {
-          samples.push({
-            from,
-            subject,
-            type,
-            parsed: {
-              order_id: order_id || null,
-              item_name: parsed.item_name || null,
-              quantity: parsed.quantity || null,
-              unit_price_cents: parsed.unit_price_cents || null,
-              total_cents: parsed.total_cents || null,
-              tracking_number: parsed.tracking_number || null,
-              carrier: parsed.carrier || null,
-            },
-          });
-        }
-
-        if (mode === "preview") {
-          const exists = await orderExists(retailer.name, order_id, user_id);
-          if (!exists) {
-            proposed.push({
-              retailer: retailer.name,
-              order_id: order_id || "—",
-              order_date: ymd(messageDate),
-              item_name: parsed.item_name || null,
-              quantity: parsed.quantity || null,
-              unit_price_cents: parsed.unit_price_cents || null,
-              total_cents: parsed.total_cents || null,
-              image_url: parsed.image_url || null,
-            });
-          }
-          continue;
-        }
-
-        if (type === "order") {
-          const exists = await orderExists(retailer.name, order_id, user_id);
-          const row = {
-            user_id,
-            retailer: retailer.name,
-            order_id: order_id || `unknown-${msg.id}`,
-            order_date: ymd(messageDate),
-            item_name: parsed.item_name || null,
-            quantity: parsed.quantity || null,
-            unit_price_cents: parsed.unit_price_cents || null,
-            total_cents: parsed.total_cents || null,
-            image_url: parsed.image_url || null,
-            shipped_at: null,
-            delivered_at: null,
-            status: "ordered",
-            source_message_id: msg.id,
-          };
-          await upsertOrder(row, user_id);
-          if (exists) skipped_existing++; else imported++;
-        }
-
-        if (type === "shipping") {
-          if (!order_id && parsed.order_id) order_id = parsed.order_id;
-          const ship = {
-            user_id,
-            retailer: retailer.name,
-            order_id: order_id || "Unknown",
-            tracking_number: parsed.tracking_number || null,
-            carrier: parsed.carrier || "",
-            status: parsed.status || "in_transit",
-            shipped_at: ymd(messageDate),
-            delivered_at: null,
-          };
-          await upsertShipment(ship, user_id);
-          if (order_id) {
-            await upsertOrder(
-              {
-                retailer: retailer.name,
-                order_id,
-                shipped_at: messageDate.toISOString(),
-                status: "in_transit",
-              },
-              user_id
-            );
-          }
-          updated++;
-        }
-
-        if (type === "delivered") {
-          if (!order_id && parsed.order_id) order_id = parsed.order_id;
-          if (order_id) {
-            await upsertOrder(
-              {
-                retailer: retailer.name,
-                order_id,
-                delivered_at: messageDate.toISOString(),
-                status: "delivered",
-              },
-              user_id
-            );
-          }
-          if (parsed.tracking_number) {
-            await upsertShipment(
-              {
-                user_id,
-                retailer: retailer.name,
-                order_id: order_id || "Unknown",
-                tracking_number: parsed.tracking_number,
-                carrier: parsed.carrier || "",
-                status: "delivered",
-                shipped_at: null,
-                delivered_at: ymd(messageDate),
-              },
-              user_id
-            );
-          }
-          updated++;
-        }
-
-        if (type === "canceled") {
-          if (order_id) {
-            await upsertOrder(
-              {
-                retailer: retailer.name,
-                order_id,
-                order_date: ymd(messageDate),
-                status: "canceled",
-              },
-              user_id
-            );
-          }
-          updated++;
-        }
-      } catch (e) {
-        console.error("message sync error:", e?.message || e);
-      }
-    }
-  }
-
-  const body = { imported, updated, skipped_existing };
-  if (mode === "preview") return json({ proposed });
-  if (debug) body.samples = samples;
-  return json(body);
-}
-
-/* ================================ Utilities ============================== */
-function json(body, status = 200) {
-  return {
-    statusCode: status,
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  };
-}
-
-/* ================================= Handler =============================== */
-export async function handler(event) {
+/* -------------------------------- Handler -------------------------------- */
+module.exports.handler = async (event) => {
+  // Health check
   if (event.queryStringParameters?.health === "1") {
     const envOk = {
       SUPABASE_URL: !!process.env.SUPABASE_URL,
@@ -682,10 +413,138 @@ export async function handler(event) {
     };
     return json({ ok: true, envOk });
   }
+
   try {
-    return await runSync(event);
+    const mode = (event.queryStringParameters?.mode || "").toLowerCase();
+
+    const { gmail, acctUserId } = await getGmailClient();
+    const ids = await listCandidateMessageIds(gmail);
+
+    const proposed = [];
+    let imported = 0;
+    let updated = 0;
+    let skipped_existing = 0;
+
+    for (const id of ids) {
+      const msg = await getMessageFull(gmail, id);
+      const h = headersToObj(msg.payload?.headers || []);
+      const subject = h["subject"] || "";
+      const from = h["from"] || "";
+      const dateHeader = h["date"] || "";
+      const messageDate = dateHeader
+        ? new Date(dateHeader)
+        : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
+      const { html, text } = extractBodyParts(msg.payload || {});
+      const retailer = classifyRetailer(from);
+
+      if (!retailer) continue; // “Undefined” not saved — only Amazon/Target for now
+      const type = classifyType(retailer, subject);
+      if (!type) continue;
+
+      // Parse by type
+      let parsed = {};
+      if (type === "order") parsed = retailer.parseOrder(html, text) || {};
+      else if (type === "shipping") parsed = retailer.parseShipping(html, text) || {};
+      else if (type === "delivered") parsed = retailer.parseDelivered(html, text) || {};
+      else if (type === "canceled") parsed = { status: "canceled" };
+
+      const order_id =
+        parsed.order_id ||
+        ((subject.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
+        null;
+
+      if (mode === "preview") {
+        if (!(await orderExists(acctUserId, retailer.name, order_id))) {
+          proposed.push({
+            retailer: retailer.name,
+            order_id: order_id || "—",
+            order_date: ymd(messageDate),
+            item_name: parsed.item_name || null,
+            quantity: parsed.quantity || null,
+            unit_price_cents: parsed.unit_price_cents || null,
+            total_cents: parsed.total_cents || null,
+            image_url: parsed.image_url || null,
+          });
+        }
+        continue;
+      }
+
+      /* -------------------------- normal sync -------------------------- */
+      if (type === "order") {
+        const exists = await orderExists(acctUserId, retailer.name, order_id);
+        await upsertOrder({
+          user_id: acctUserId,
+          retailer: retailer.name,
+          order_id: order_id || `unknown-${msg.id}`,
+          order_date: ymd(messageDate),
+          item_name: parsed.item_name || null,
+          quantity: parsed.quantity || null,
+          unit_price_cents: parsed.unit_price_cents || null,
+          total_cents: parsed.total_cents || null,
+          image_url: parsed.image_url || null,
+          shipped_at: null,
+          delivered_at: null,
+          status: "ordered",
+          source_message_id: msg.id,
+        });
+        if (exists) skipped_existing++;
+        else imported++;
+      }
+
+      if (type === "shipping") {
+        await upsertShipment({
+          user_id: acctUserId,
+          retailer: retailer.name,
+          order_id: order_id || "Unknown",
+          tracking_number: parsed.tracking_number || null, // for Amazon: this is the “Track package” URL
+          carrier: parsed.carrier || "",
+          status: parsed.status || "in_transit",
+          shipped_at: ymd(messageDate),
+          delivered_at: null,
+        });
+
+        if (order_id) {
+          await upsertOrder({
+            user_id: acctUserId,
+            retailer: retailer.name,
+            order_id,
+            shipped_at: messageDate.toISOString(),
+            status: "in_transit",
+          });
+        }
+        updated++;
+      }
+
+      if (type === "delivered") {
+        if (order_id) {
+          await upsertOrder({
+            user_id: acctUserId,
+            retailer: retailer.name,
+            order_id,
+            delivered_at: messageDate.toISOString(),
+            status: "delivered",
+          });
+        }
+        updated++;
+      }
+
+      if (type === "canceled") {
+        if (order_id) {
+          await upsertOrder({
+            user_id: acctUserId,
+            retailer: retailer.name,
+            order_id,
+            status: "canceled",
+          });
+        }
+        updated++;
+      }
+    }
+
+    if (mode === "preview") return json({ proposed });
+    return json({ imported, updated, skipped_existing });
   } catch (err) {
     console.error("gmail-sync error:", err);
     return json({ error: String(err?.message || err) }, 500);
   }
-}
+};

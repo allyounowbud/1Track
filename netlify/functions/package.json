@@ -1,6 +1,7 @@
 {
-  "name": "onetrack-functions",
+  "name": "emails-functions",
   "private": true,
+  "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.57.2",
     "googleapis": "^159.0.0",
