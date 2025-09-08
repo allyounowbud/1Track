@@ -290,23 +290,33 @@ export default function OrderBook() {
         </div>
 
         {/* Bulk Actions */}
-        {bulkActionsVisible && (
-          <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-4 mb-6">
+        <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-4 mb-6">
             <div className="flex items-center justify-between">
               {/* Selection Info */}
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                  <span className="text-sm font-semibold text-slate-200">
-                    {selectedRows.size} Selected
-                  </span>
-                </div>
-                <button
-                  onClick={toggleAllSelection}
-                  className="text-xs text-slate-400 hover:text-indigo-400 transition-colors"
-                >
-                  {selectedRows.size === filtered.length ? "Deselect All" : "Select All"}
-                </button>
+                {selectedRows.size > 0 ? (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+                      <span className="text-sm font-semibold text-slate-200">
+                        {selectedRows.size} Selected
+                      </span>
+                    </div>
+                    <button
+                      onClick={toggleAllSelection}
+                      className="text-xs text-slate-400 hover:text-indigo-400 transition-colors"
+                    >
+                      {selectedRows.size === filtered.length ? "Deselect All" : "Select All"}
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-slate-600 rounded-full"></div>
+                    <span className="text-sm font-semibold text-slate-400">
+                      No rows selected
+                    </span>
+                  </div>
+                )}
               </div>
               
               {/* Action Buttons */}
@@ -314,10 +324,15 @@ export default function OrderBook() {
                 {/* Save Button */}
                 <button
                   onClick={bulkSaveSelected}
-                  className="w-10 h-10 rounded-full border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                  title="Save Selected Orders"
+                  disabled={selectedRows.size === 0}
+                  className={`w-10 h-10 rounded-full border transition-all duration-200 flex items-center justify-center group ${
+                    selectedRows.size > 0
+                      ? 'border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200'
+                      : 'border-slate-700 bg-slate-800/30 text-slate-500 cursor-not-allowed'
+                  }`}
+                  title={selectedRows.size > 0 ? "Save Selected Orders" : "No orders selected"}
                 >
-                  <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-4 h-4 transition-transform ${selectedRows.size > 0 ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                   </svg>
                 </button>
@@ -325,17 +340,21 @@ export default function OrderBook() {
                 {/* Delete Button */}
                 <button
                   onClick={bulkDeleteSelected}
-                  className="w-10 h-10 rounded-full border border-red-600/50 bg-red-900/30 hover:bg-red-800/50 hover:border-red-500 text-red-200 transition-all duration-200 flex items-center justify-center group"
-                  title="Delete Selected Orders"
+                  disabled={selectedRows.size === 0}
+                  className={`w-10 h-10 rounded-full border transition-all duration-200 flex items-center justify-center group ${
+                    selectedRows.size > 0
+                      ? 'border-red-600/50 bg-red-900/30 hover:bg-red-800/50 hover:border-red-500 text-red-200'
+                      : 'border-slate-700 bg-slate-800/30 text-slate-500 cursor-not-allowed'
+                  }`}
+                  title={selectedRows.size > 0 ? "Delete Selected Orders" : "No orders selected"}
                 >
-                  <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-4 h-4 transition-transform ${selectedRows.size > 0 ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
               </div>
             </div>
           </div>
-        )}
 
         {/* Day cards */}
         {isLoading && <div className="text-slate-400">Loading…</div>}
@@ -457,30 +476,6 @@ function DayCard({
                 {count} order{count !== 1 ? "s" : ""}
               </p>
             </div>
-            {open && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={rows.every(row => selectedRows.has(row.id))}
-                  onChange={(e) => {
-                    const rowIds = rows.map(row => row.id);
-                    if (e.target.checked) {
-                      // Select all rows in this card
-                      const newSelected = new Set(selectedRows);
-                      rowIds.forEach(id => newSelected.add(id));
-                      setSelectedRows(newSelected);
-                    } else {
-                      // Deselect all rows in this card
-                      const newSelected = new Set(selectedRows);
-                      rowIds.forEach(id => newSelected.delete(id));
-                      setSelectedRows(newSelected);
-                    }
-                  }}
-                  className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                />
-                <span className="text-xs text-slate-400">Select all</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -489,17 +484,37 @@ function DayCard({
       <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 1000 : 0 }}>
         <div className="pt-5">
           {/* Header labels per group (desktop) */}
-          <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2">
-            <div className="w-6"></div>
-            <div className="w-40">Order date</div>
-            <div className="min-w-[200px] flex-1">Item</div>
-            <div className="w-24">Profile</div>
-            <div className="w-30">Retailer</div>
-            <div className="w-22">Buy $</div>
-            <div className="w-22">Sale $</div>
-            <div className="w-36">Sale date</div>
-            <div className="w-32">Marketplace</div>
-            <div className="w-20">Ship $</div>
+          <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2 items-center">
+            <div className="w-6 flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={rows.every(row => selectedRows.has(row.id))}
+                onChange={(e) => {
+                  const rowIds = rows.map(row => row.id);
+                  if (e.target.checked) {
+                    // Select all rows in this card
+                    const newSelected = new Set(selectedRows);
+                    rowIds.forEach(id => newSelected.add(id));
+                    setSelectedRows(newSelected);
+                  } else {
+                    // Deselect all rows in this card
+                    const newSelected = new Set(selectedRows);
+                    rowIds.forEach(id => newSelected.delete(id));
+                    setSelectedRows(newSelected);
+                  }
+                }}
+                className="h-3 w-3 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-1"
+              />
+            </div>
+            <div className="w-24 lg:w-28">Order date</div>
+            <div className="min-w-[120px] lg:min-w-[180px] flex-1">Item</div>
+            <div className="w-20 lg:w-24">Profile</div>
+            <div className="w-20 lg:w-24">Retailer</div>
+            <div className="w-16 lg:w-20">Buy $</div>
+            <div className="w-16 lg:w-20">Sale $</div>
+            <div className="w-24 lg:w-28">Sale date</div>
+            <div className="w-20 lg:w-24">Marketplace</div>
+            <div className="w-16 lg:w-20">Ship $</div>
           </div>
 
           <div className="space-y-3">
