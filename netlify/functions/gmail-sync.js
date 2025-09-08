@@ -260,12 +260,25 @@ function amazonCommon($, html, text) {
       .map(m => parseFloat(m.replace(/[$,]/g, '')))
       .filter(p => p > 0 && p < 10000) // reasonable price range
       .filter(p => p !== 494) // filter out order numbers that look like prices
-      .sort((a, b) => b - a); // sort descending
+      .filter(p => p < 5000); // filter out unreasonably high prices like $8999
     
     console.log("Filtered prices:", prices);
-    if (prices.length > 0) {
-      out.total_cents = Math.round(prices[0] * 100); // use highest price as total
-      console.log("Using total price:", prices[0], "cents:", out.total_cents);
+    
+    // Look for "Total" or "Order Total" specifically first
+    const totalMatch = bodyText.match(/(?:Total|Order\s*Total)[:\s]*\$([0-9,]+\.?[0-9]*)/i);
+    if (totalMatch) {
+      const totalPrice = parseFloat(totalMatch[1].replace(/[$,]/g, ''));
+      if (totalPrice > 0 && totalPrice < 5000) {
+        out.total_cents = Math.round(totalPrice * 100);
+        console.log("Found explicit total:", totalPrice, "cents:", out.total_cents);
+      }
+    }
+    
+    // If no explicit total found, use the highest reasonable price
+    if (!out.total_cents && prices.length > 0) {
+      const sortedPrices = prices.sort((a, b) => b - a);
+      out.total_cents = Math.round(sortedPrices[0] * 100);
+      console.log("Using highest price as total:", sortedPrices[0], "cents:", out.total_cents);
     }
   }
 
