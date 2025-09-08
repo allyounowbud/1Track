@@ -294,29 +294,32 @@ export default function OrderBook() {
           <div className={`${pageCard} mb-6 border-indigo-500 bg-indigo-500/10`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="text-indigo-300 font-medium">
-                  {selectedRows.size} of {filtered.length} rows selected
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-indigo-500"></div>
+                  <span className="text-indigo-300 font-medium">
+                    {selectedRows.size} selected
+                  </span>
                 </div>
                 <button
                   onClick={toggleAllSelection}
-                  className="text-sm text-indigo-400 hover:text-indigo-300 underline"
+                  className="text-sm text-slate-400 hover:text-slate-300 transition"
                 >
                   {selectedRows.size === filtered.length ? "Deselect All" : "Select All"}
                 </button>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={bulkSaveSelected}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition"
+                  className="h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-100 transition"
                 >
-                  Save {selectedRows.size} Row{selectedRows.size !== 1 ? 's' : ''}
+                  Save
                 </button>
                 <button
                   onClick={bulkDeleteSelected}
-                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+                  className="h-9 px-4 rounded-xl border border-red-800 bg-red-900/60 hover:bg-red-800 text-red-100 transition"
                 >
-                  Delete {selectedRows.size} Row{selectedRows.size !== 1 ? 's' : ''}
+                  Delete
                 </button>
               </div>
             </div>
@@ -542,13 +545,21 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
   }
 
   return (
-    <div className={`${rowCard} ${isSelected ? 'border-indigo-500 bg-indigo-500/10' : ''}`}>
+    <div 
+      className={`${rowCard} transition cursor-pointer ${
+        isSelected ? 'border-indigo-500 bg-indigo-500/10' : 'hover:bg-slate-800/50'
+      }`}
+      onClick={onToggleSelection}
+    >
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
         {/* Selection checkbox */}
         <input
           type="checkbox"
           checked={isSelected}
-          onChange={onToggleSelection}
+          onChange={(e) => {
+            e.stopPropagation(); // Prevent row click when clicking checkbox
+            onToggleSelection();
+          }}
           className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
         />
         {/* order date */}
@@ -556,6 +567,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           type="date"
           value={order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
           className={`tw-date ${inputSm} w-36`}
         />
 
@@ -563,6 +575,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         <select
           value={item || ""}
           onChange={(e) => setItem(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
           className={`${inputSm} min-w-[240px] flex-1`}
         >
           <option value=""></option>
@@ -577,6 +590,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         <input
           value={profile_name}
           onChange={(e) => setProfile(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
           placeholder="Profile"
           className={`${inputSm} w-28`}
         />
@@ -585,6 +599,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         <select
           value={retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
           className={`${inputSm} w-28`}
         >
           <option value=""></option>
@@ -599,12 +614,14 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         <input
           value={buyPrice}
           onChange={(e) => setBuyPrice(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
           placeholder="Buy"
           className={`${inputSm} w-24`}
         />
         <input
           value={salePrice}
           onChange={(e) => setSalePrice(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
           placeholder="Sale"
           className={`${inputSm} w-24`}
         />
@@ -614,6 +631,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           type="date"
           value={sale_date || ""}
           onChange={(e) => setSaleDate(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
           className={`tw-date ${inputSm} w-36`}
         />
 
@@ -621,6 +639,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         <select
           value={marketplace || ""}
           onChange={(e) => handleMarketplaceChange(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
           className={`${inputSm} w-32`}
         >
           <option value=""></option>
@@ -635,6 +654,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         <input
           value={shipping}
           onChange={(e) => setShipping(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
           placeholder="Ship"
           className={`${inputSm} w-24`}
         />
