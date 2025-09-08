@@ -188,7 +188,57 @@ function classifyType(retailer, subject) {
 /* ----------------------------- Amazon parsers ----------------------------- */
 // These are tailored to the screenshots you sent (responsive HTML Amazon uses).
 
-function amazonCommon($, html, text) {
+// Function to fetch full product name from Amazon product page
+async function fetchAmazonProductName(productUrl) {
+  try {
+    // Ensure we have a full URL
+    let fullUrl = productUrl;
+    if (productUrl.startsWith('/')) {
+      fullUrl = 'https://www.amazon.com' + productUrl;
+    }
+    
+    console.log("Fetching product page:", fullUrl);
+    
+    const response = await fetch(fullUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    
+    // Look for the product title in various selectors Amazon uses
+    const titleSelectors = [
+      '#productTitle',
+      'h1.a-size-large',
+      'h1[data-automation-id="product-title"]',
+      '.product-title',
+      'h1'
+    ];
+    
+    for (const selector of titleSelectors) {
+      const title = $(selector).first().text().trim();
+      if (title && title.length > 10) {
+        console.log("Found product title:", title);
+        return title;
+      }
+    }
+    
+    console.log("No product title found on page");
+    return null;
+    
+  } catch (error) {
+    console.log("Error fetching product page:", error.message);
+    return null;
+  }
+}
+
+async function amazonCommon($, html, text) {
   const out = {};
   const bodyText = $("body").text();
   
@@ -234,12 +284,30 @@ function amazonCommon($, html, text) {
     }
   }
   
-  // Look for product links
+  // Look for product links and try to get full name from product page
   if (!item) {
     const prodLink = $("a[href*='gp/product'], a[href*='dp/']").first().text().trim();
     if (prodLink && prodLink.length > 5) {
       item = prodLink;
-      console.log("Found product link:", item);
+      console.log("Found product link text:", item);
+    }
+  }
+  
+  // Try to get full product name from Amazon product page
+  if (item && item.includes('...')) {
+    console.log("Item name is truncated, attempting to fetch full name from product page...");
+    try {
+      const productLink = $("a[href*='gp/product'], a[href*='dp/']").first().attr('href');
+      if (productLink) {
+        console.log("Found product URL:", productLink);
+        const fullName = await fetchAmazonProductName(productLink);
+        if (fullName) {
+          item = fullName;
+          console.log("Got full product name from page:", item);
+        }
+      }
+    } catch (error) {
+      console.log("Failed to fetch full product name:", error.message);
     }
   }
   
@@ -311,11 +379,11 @@ function amazonCommon($, html, text) {
   return out;
 }
 
-function parseAmazonOrder(html, text) {
+async function parseAmazonOrder(html, text) {
   const $ = cheerio.load(html || "");
-  return amazonCommon($, html, text);
+  return await amazonCommon($, html, text);
 }
-function parseAmazonShipping(html, text) {
+async function parseAmazonShipping(html, text) {
   const $ = cheerio.load(html || "");
 
   // single "Track package" URL (prefer the first one)
@@ -324,7 +392,7 @@ function parseAmazonShipping(html, text) {
       .first()
       .attr("href") || null;
 
-  const base = amazonCommon($, html, text);
+  const base = await amazonCommon($, html, text);
   return {
     ...base,
     tracking_number: trackHref || null, // we store the URL for Amazon carrier
@@ -332,9 +400,10 @@ function parseAmazonShipping(html, text) {
     status: "in_transit",
   };
 }
-function parseAmazonDelivered(html, text) {
+async function parseAmazonDelivered(html, text) {
   const $ = cheerio.load(html || "");
-  return { ...amazonCommon($, html, text), status: "delivered" };
+  const base = await amazonCommon($, html, text);
+  return { ...base, status: "delivered" };
 }
 
 /* --------------------------- DB upsert helpers --------------------------- */
@@ -437,7 +506,7 @@ exports.handler = async (event) => {
         console.log(`Processing order confirmation: ${subject}`);
         
         // Parse order confirmation
-        const parsed = retailer.parseOrder ? retailer.parseOrder(html, text) : {};
+        const parsed = retailer.parseOrder ? await retailer.parseOrder(html, text) : {};
         console.log(`Parsed order data:`, JSON.stringify(parsed, null, 2));
 
         // Extract order ID with better fallbacks
@@ -532,7 +601,7 @@ exports.handler = async (event) => {
         console.log(`Processing shipping update: ${subject}`);
         
         // Parse shipping update
-        const parsed = retailer.parseShipping ? retailer.parseShipping(html, text) : {};
+        const parsed = retailer.parseShipping ? await retailer.parseShipping(html, text) : {};
         
         // Extract order ID
         const order_id = 
