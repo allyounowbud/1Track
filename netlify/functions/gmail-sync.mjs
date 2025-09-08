@@ -55,12 +55,10 @@ const RETAILERS = [
 
 /* -------------------------- Gmail + account utils ------------------------ */
 async function getAccount() {
-  // Include user_id so we can stamp it on inserts
+  // Only select columns you actually have
   const { data, error } = await supabase
     .from("email_accounts")
-    .select(
-      "id, user_id, email_address, access_token, refresh_token, token_expiry, updated_at"
-    )
+    .select("id, user_id, email_address, access_token, refresh_token, updated_at")
     .order("updated_at", { ascending: false })
     .limit(1);
 
@@ -75,28 +73,33 @@ async function getGmailClientWithAccount(acct) {
     access_token: acct.access_token,
     refresh_token: acct.refresh_token,
     scope: "https://www.googleapis.com/auth/gmail.readonly",
-    expiry_date: acct.token_expiry
-      ? new Date(acct.token_expiry).getTime()
-      : undefined,
+    // no expiry_date; we’ll rely on refresh_token when needed
   });
 
-  // Persist refreshed tokens
+  // Persist refreshed access token if Google gives us one
   oauth2.on("tokens", async (tokens) => {
     const patch = {};
     if (tokens.access_token) patch.access_token = tokens.access_token;
-    if (tokens.expiry_date)
-      patch.token_expiry = new Date(tokens.expiry_date).toISOString();
     if (Object.keys(patch).length) {
       await supabase.from("email_accounts").update(patch).eq("id", acct.id);
     }
   });
 
   try {
+    // Probe the token
     await oauth2.getAccessToken();
   } catch (e) {
+    // last-ditch attempt to refresh
     if (acct.refresh_token) {
       const { credentials } = await oauth2.refreshAccessToken();
       oauth2.setCredentials(credentials);
+      // store new access_token if present
+      if (credentials?.access_token) {
+        await supabase
+          .from("email_accounts")
+          .update({ access_token: credentials.access_token })
+          .eq("id", acct.id);
+      }
     } else {
       throw new Error("Gmail token expired and no refresh token available");
     }
@@ -186,17 +189,11 @@ function classifyType(retailer, subject) {
   const s = (subject || "").toLowerCase();
   if (retailer.orderSubject && retailer.orderSubject.test(s)) return "order";
   if (retailer.shipSubject && retailer.shipSubject.test(s)) return "shipping";
-  if (retailer.deliverSubject && retailer.deliverSubject.test(s))
-    return "delivered";
-  if (retailer.cancelSubject && retailer.cancelSubject.test(s))
-    return "canceled";
+  if (retailer.deliverSubject && retailer.deliverSubject.test(s)) return "delivered";
+  if (retailer.cancelSubject && retailer.cancelSubject.test(s)) return "canceled";
   // fallback heuristics:
-  if (
-    /\b(order|confirmation|thanks for your order|we got your order)\b/i.test(s)
-  )
-    return "order";
-  if (/\b(shipped|on the way|label created|tracking)\b/i.test(s))
-    return "shipping";
+  if (/\b(order|confirmation|thanks for your order|we got your order)\b/i.test(s)) return "order";
+  if (/\b(shipped|on the way|label created|tracking)\b/i.test(s)) return "shipping";
   if (/\b(delivered|has been delivered)\b/i.test(s)) return "delivered";
   if (/\b(cancel|cancelled)\b/i.test(s)) return "canceled";
   return null;
@@ -204,9 +201,7 @@ function classifyType(retailer, subject) {
 
 /* -------------------------------- Parsers -------------------------------- */
 function parseMoney(str = "") {
-  const m = String(str)
-    .replace(/[,]/g, "")
-    .match(/\$?\s*([0-9]+(?:\.[0-9]{2})?)/);
+  const m = String(str).replace(/[,]/g, "").match(/\$?\s*([0-9]+(?:\.[0-9]{2})?)/);
   return m ? Math.round(parseFloat(m[1]) * 100) : null;
 }
 function pickCarrierByTracking(tn = "", html = "", text = "") {
@@ -223,13 +218,11 @@ function parseTargetOrder(html, text) {
   const $ = cheerio.load(html || "");
   const out = {};
 
-  // order id
   out.order_id =
     ($("body").text().match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
     (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
     null;
 
-  // total ("Order total $48.28")
   const totalNode = $('*:contains("Order total")')
     .filter((_, el) => /Order total/i.test($(el).text()))
     .first();
@@ -237,13 +230,11 @@ function parseTargetOrder(html, text) {
   const totalCents = parseMoney(totalText);
   if (totalCents != null) out.total_cents = totalCents;
 
-  // quantity (Qty: 2)
   const qty =
     (($("body").text().match(/Qty:\s*([0-9]+)/i) || [])[1]) ||
     (($('*:contains("Qty")').first().text().match(/Qty[:\s]+([0-9]+)/i) || [])[1]);
   if (qty) out.quantity = parseInt(qty, 10);
 
-  // item name (alt text or near qty)
   let item = "";
   $('img[alt]').each((_, el) => {
     const alt = ($(el).attr("alt") || "").trim();
@@ -266,13 +257,10 @@ function parseTargetOrder(html, text) {
   }
   if (item) out.item_name = item;
 
-  // unit price (e.g., $21.99 / ea)
   const each =
-    ($("body").text().match(/\$[0-9]+(?:\.[0-9]{2})?\s*\/\s*ea/i) || [])[0] ||
-    null;
+    ($("body").text().match(/\$[0-9]+(?:\.[0-9]{2})?\s*\/\s*ea/i) || [])[0] || null;
   if (each) out.unit_price_cents = parseMoney(each);
 
-  // image url – first non-logo product image
   let img = null;
   $("img").each((_, el) => {
     const src = $(el).attr("src") || "";
@@ -309,7 +297,6 @@ function parseAmazonOrderBasic(html, text) {
     (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
     null;
 
-  // Item (try alt text)
   let item = "";
   $('img[alt]').each((_, el) => {
     const alt = ($(el).attr("alt") || "").trim();
@@ -318,17 +305,13 @@ function parseAmazonOrderBasic(html, text) {
   });
   if (item) out.item_name = item;
 
-  // Totals
-  const totalText =
-    ($("body").text().match(/Total:\s*\$[0-9,.]+/i) || [])[0] || "";
+  const totalText = ($("body").text().match(/Total:\s*\$[0-9,.]+/i) || [])[0] || "";
   const totalCents = parseMoney(totalText);
   if (totalCents != null) out.total_cents = totalCents;
 
-  // Qty
   const qty = (($("body").text().match(/Qty:\s*([0-9]+)/i) || [])[1]) || null;
   if (qty) out.quantity = parseInt(qty, 10);
 
-  // Image
   let img = null;
   $("img").each((_, el) => {
     const src = $(el).attr("src") || "";
@@ -374,7 +357,6 @@ async function orderExists(retailer, order_id, user_id) {
 }
 
 async function upsertOrder(row, user_id_for_fallback) {
-  // Scope by user_id
   const { data: existing, error: selErr } = await supabase
     .from("email_orders")
     .select("id")
@@ -466,7 +448,7 @@ async function runSync(event) {
     const subject = h["subject"] || "";
     const from = h["from"] || "";
     const dateHeader = h["date"] || "";
-    const messageDate = dateHeader
+       const messageDate = dateHeader
       ? new Date(dateHeader)
       : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
     const { html, text } = extractBodyParts(msg.payload || {});
@@ -492,7 +474,6 @@ async function runSync(event) {
 
     const order_id =
       parsed.order_id ||
-      // sometimes included in subject
       ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
       null;
 
@@ -537,9 +518,8 @@ async function runSync(event) {
     }
 
     if (type === "shipping") {
-      // Always include user_id
       const ship = {
-        user_id,
+        user_id, // ensure shipments always have user_id
         retailer: retailer.name,
         order_id: order_id || "Unknown",
         tracking_number: parsed.tracking_number || null,
@@ -550,7 +530,6 @@ async function runSync(event) {
       };
       await upsertShipment(ship, user_id);
 
-      // Update or create bare order row with status progression
       if (order_id) {
         await upsertOrder(
           {
