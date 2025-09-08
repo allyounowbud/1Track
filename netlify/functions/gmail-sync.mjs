@@ -1,5 +1,5 @@
 // netlify/functions/gmail-sync.mjs
-// Full sync + preview for order/shipment/delivery via Gmail (user-scoped)
+// Gmail → Orders/Shipments sync (user-scoped) with preview/commit
 
 import { google } from "googleapis";
 import cheerio from "cheerio";
@@ -8,7 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 /* ----------------------------- Supabase init ----------------------------- */
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY; // SRK preferred
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
@@ -24,7 +24,158 @@ const oauth2 = new google.auth.OAuth2(
   OAUTH_REDIRECT_URI
 );
 
-/* ------------------------------ Retailer map ----------------------------- */
+/* ============================ PARSERS FIRST ============================== */
+/* Common helpers */
+function parseMoney(str = "") {
+  const m = String(str).replace(/[,]/g, "").match(/\$?\s*([0-9]+(?:\.[0-9]{2})?)/);
+  return m ? Math.round(parseFloat(m[1]) * 100) : null;
+}
+function pickCarrierByTracking(tn = "", html = "", text = "") {
+  const s = (html || "") + " " + (text || "");
+  if (/1Z[0-9A-Z]{10,}/i.test(tn) || /UPS/i.test(s)) return "UPS";
+  if (/\b(92|94|95)\d{20,}\b/.test(tn) || /USPS/i.test(s)) return "USPS";
+  if (/\b(\d{12,14})\b/.test(tn) || /FedEx/i.test(s)) return "FedEx";
+  if (/amazon/i.test(s)) return "Amazon";
+  return "";
+}
+
+/* Target - order confirmation */
+function parseTargetOrder(html, text) {
+  const $ = cheerio.load(html || "");
+  const out = {};
+
+  out.order_id =
+    ($("body").text().match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
+    (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
+    null;
+
+  const totalNode = $('*:contains("Order total")')
+    .filter((_, el) => /Order total/i.test($(el).text()))
+    .first();
+  const totalText = (totalNode.next().text() || totalNode.text() || "").trim();
+  const totalCents = parseMoney(totalText);
+  if (totalCents != null) out.total_cents = totalCents;
+
+  const qty =
+    (($("body").text().match(/Qty:\s*([0-9]+)/i) || [])[1]) ||
+    (($('*:contains("Qty")').first().text().match(/Qty[:\s]+([0-9]+)/i) || [])[1]);
+  if (qty) out.quantity = parseInt(qty, 10);
+
+  let item = "";
+  $('img[alt]').each((_, el) => {
+    const alt = ($(el).attr("alt") || "").trim();
+    if (/thanks|target|logo/i.test(alt)) return;
+    if (alt.length > 12 && alt.length < 160) item = item || alt;
+  });
+  if (!item) {
+    const qtyBlock = $('*:contains("Qty:")').first().parent();
+    const candidate = qtyBlock.prev().text().trim();
+    if (candidate.length > 8) item = candidate;
+  }
+  if (!item) {
+    const near = totalNode
+      .closest("table,div")
+      .text()
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    item = near.sort((a, b) => b.length - a.length)[0] || null;
+  }
+  if (item) out.item_name = item;
+
+  const each =
+    ($("body").text().match(/\$[0-9]+(?:\.[0-9]{2})?\s*\/\s*ea/i) || [])[0] || null;
+  if (each) out.unit_price_cents = parseMoney(each);
+
+  let img = null;
+  $("img").each((_, el) => {
+    const src = $(el).attr("src") || "";
+    const alt = ($(el).attr("alt") || "").toLowerCase();
+    const bad = /(logo|target|icon)/i.test(src) || /(logo|target)/i.test(alt);
+    if (!bad && /^https?:\/\//i.test(src)) img = img || src;
+  });
+  if (img) out.image_url = img;
+
+  return out;
+}
+
+/* Target - shipping */
+function parseTargetShipping(html, text) {
+  const content = (html || "") + " " + (text || "");
+  const tracking =
+    (content.match(/\b(1Z[0-9A-Z]{10,})\b/i) || [])[1] ||
+    (content.match(/\b([A-Z0-9]{10,25})\b/g) || []).find((x) => x.length >= 12) ||
+    null;
+  const carrier = pickCarrierByTracking(tracking, html, text);
+  return { tracking_number: tracking || null, carrier, status: "in_transit" };
+}
+
+/* Amazon - enhanced order parser */
+function parseAmazonOrderEnhanced(html, text) {
+  const $ = cheerio.load(html || "");
+  const out = {};
+
+  out.order_id =
+    ($("body").text().match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1] ||
+    (text && (text.match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1]) ||
+    null;
+
+  let item = "";
+  $('img[alt]').each((_, el) => {
+    const alt = ($(el).attr("alt") || "").trim();
+    if (/amazon|logo|prime/i.test(alt)) return;
+    if (alt.length >= 12 && alt.length <= 160) item = item || alt;
+  });
+  if (!item) {
+    const bodyText = $("body").text().replace(/\s+/g, " ").trim();
+    const candidates = bodyText
+      .split(/(?:(?:\$[0-9][0-9,]*(?:\.[0-9]{2})?)|Qty[: ]\d+)/i)
+      .map((s) => s.trim())
+      .filter((s) => s && !/amazon|order|total|arriving|delivery|hello/i.test(s));
+    candidates.sort((a, b) => b.length - a.length);
+    item = candidates.find((s) => s.length >= 12 && s.length <= 160) || null;
+  }
+  if (item) out.item_name = item;
+
+  const qty =
+    ($("body").text().match(/Qty[: ]+(\d+)/i) || [])[1] ||
+    (text && (text.match(/Qty[: ]+(\d+)/i) || [])[1]) ||
+    null;
+  if (qty) out.quantity = parseInt(qty, 10);
+
+  const totalText =
+    ($("body").text().match(/Order total[: ]*\$[0-9,.]+/i) || [])[0] ||
+    ($("body").text().match(/Total[: ]*\$[0-9,.]+/i) || [])[0] ||
+    "";
+  const totalCents = parseMoney(totalText);
+  if (totalCents != null) out.total_cents = totalCents;
+
+  let img = null;
+  $("img").each((_, el) => {
+    const src = $(el).attr("src") || "";
+    if (/logo|prime|sprite/i.test(src)) return;
+    if (/^https?:\/\//i.test(src)) img = img || src;
+  });
+  if (img) out.image_url = img;
+
+  return out;
+}
+
+/* Generic shipping & delivered */
+function parseGenericShipping(html, text) {
+  const content = (html || "") + " " + (text || "");
+  const tracking =
+    (content.match(/\b(1Z[0-9A-Z]{10,})\b/i) || [])[1] ||
+    (content.match(/\b([A-Z0-9]{10,25})\b/g) || []).find((x) => x.length >= 12) ||
+    null;
+  const carrier = pickCarrierByTracking(tracking, html, text);
+  return { tracking_number: tracking || null, carrier, status: "in_transit" };
+}
+function parseGenericDelivered() {
+  return { status: "delivered" };
+}
+
+/* ============================ RETAILER MAP =============================== */
 const RETAILERS = [
   {
     name: "Target",
@@ -54,7 +205,7 @@ const RETAILERS = [
   },
 ];
 
-/* -------------------------- Gmail + account utils ------------------------ */
+/* ========================== Gmail + helper utils ========================= */
 async function getAccount() {
   const { data, error } = await supabase
     .from("email_accounts")
@@ -74,10 +225,11 @@ async function getGmailClientWithAccount(acct) {
   });
 
   oauth2.on("tokens", async (tokens) => {
-    const patch = {};
-    if (tokens.access_token) patch.access_token = tokens.access_token;
-    if (Object.keys(patch).length) {
-      await supabase.from("email_accounts").update(patch).eq("id", acct.id);
+    if (tokens.access_token) {
+      await supabase
+        .from("email_accounts")
+        .update({ access_token: tokens.access_token })
+        .eq("id", acct.id);
     }
   });
 
@@ -101,8 +253,7 @@ async function getGmailClientWithAccount(acct) {
   return google.gmail({ version: "v1", auth: oauth2 });
 }
 
-// Query up to ~N messages from last ~90 days.
-// You can override with ?max=120
+// Pull up to maxTotal messages (default 200) from last 90d
 async function listCandidateMessageIds(gmail, maxTotal = 200) {
   const q = [
     "newer_than:90d",
@@ -166,173 +317,25 @@ function extractBodyParts(payload) {
   return { html, text };
 }
 
-/* ------------------------------ Classifier ------------------------------- */
-// IMPORTANT: check "canceled" BEFORE "order" because cancel subjects contain "order".
+/* =========================== Classify + DB utils ========================= */
+// Priority: canceled > delivered > shipping > order
 function classifyType(retailer, subject) {
   const s = (subject || "").toLowerCase();
   if (retailer.cancelSubject && retailer.cancelSubject.test(s)) return "canceled";
   if (retailer.deliverSubject && retailer.deliverSubject.test(s)) return "delivered";
   if (retailer.shipSubject && retailer.shipSubject.test(s)) return "shipping";
   if (retailer.orderSubject && retailer.orderSubject.test(s)) return "order";
-
-  // fallback heuristics (same priority: cancel > delivered > shipping > order)
   if (/\b(cancel|cancelled)\b/i.test(s)) return "canceled";
   if (/\b(delivered|has been delivered)\b/i.test(s)) return "delivered";
   if (/\b(shipped|on the way|label created|tracking)\b/i.test(s)) return "shipping";
   if (/\b(order|confirmation|thanks for your order|we got your order)\b/i.test(s)) return "order";
   return null;
 }
-
 function classifyRetailer(from) {
   const f = (from || "").toLowerCase();
   return RETAILERS.find((r) => r.senderMatch(f)) || null;
 }
 
-/* -------------------------------- Parsers -------------------------------- */
-function parseMoney(str = "") {
-  const m = String(str).replace(/[,]/g, "").match(/\$?\s*([0-9]+(?:\.[0-9]{2})?)/);
-  return m ? Math.round(parseFloat(m[1]) * 100) : null;
-}
-function pickCarrierByTracking(tn = "", html = "", text = "") {
-  const s = (html || "") + " " + (text || "");
-  if (/1Z[0-9A-Z]{10,}/i.test(tn) || /UPS/i.test(s)) return "UPS";
-  if (/\b(92|94|95)\d{20,}\b/.test(tn) || /USPS/i.test(s)) return "USPS";
-  if (/\b(\d{12,14})\b/.test(tn) || /FedEx/i.test(s)) return "FedEx";
-  if (/amazon/i.test(s)) return "Amazon";
-  return "";
-}
-
-/* ---- Target: order confirmation ---- */
-function parseTargetOrder(html, text) {
-  const $ = cheerio.load(html || "");
-  const out = {};
-
-  out.order_id =
-    ($("body").text().match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
-    (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
-    null;
-
-  const totalNode = $('*:contains("Order total")')
-    .filter((_, el) => /Order total/i.test($(el).text()))
-    .first();
-  const totalText = (totalNode.next().text() || totalNode.text() || "").trim();
-  const totalCents = parseMoney(totalText);
-  if (totalCents != null) out.total_cents = totalCents;
-
-  const qty =
-    (($("body").text().match(/Qty:\s*([0-9]+)/i) || [])[1]) ||
-    (($('*:contains("Qty")').first().text().match(/Qty[:\s]+([0-9]+)/i) || [])[1]);
-  if (qty) out.quantity = parseInt(qty, 10);
-
-  let item = "";
-  $('img[alt]').each((_, el) => {
-    const alt = ($(el).attr("alt") || "").trim();
-    if (/thanks|target|logo/i.test(alt)) return;
-    if (alt.length > 12 && alt.length < 160) item = item || alt;
-  });
-  if (!item) {
-    const qtyBlock = $('*:contains("Qty:")').first().parent();
-    const candidate = qtyBlock.prev().text().trim();
-    if (candidate.length > 8) item = candidate;
-  }
-  if (!item) {
-    const near = totalNode
-      .closest("table,div")
-      .text()
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    item = near.sort((a, b) => b.length - a.length)[0] || null;
-  }
-  if (item) out.item_name = item;
-
-  const each =
-    ($("body").text().match(/\$[0-9]+(?:\.[0-9]{2})?\s*\/\s*ea/i) || [])[0] || null;
-  if (each) out.unit_price_cents = parseMoney(each);
-
-  let img = null;
-  $("img").each((_, el) => {
-    const src = $(el).attr("src") || "";
-    const alt = ($(el).attr("alt") || "").toLowerCase();
-    const bad = /(logo|target|icon)/i.test(src) || /(logo|target)/i.test(alt);
-    if (!bad && /^https?:\/\//i.test(src)) img = img || src;
-  });
-  if (img) out.image_url = img;
-
-  return out;
-}
-
-/* ---- Amazon: enhanced order parser ---- */
-function parseAmazonOrderEnhanced(html, text) {
-  const $ = cheerio.load(html || "");
-  const out = {};
-
-  // order id (Amazon format 111-2222222-3333333)
-  out.order_id =
-    ($("body").text().match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1] ||
-    (text && (text.match(/\b(\d{3}-\d{7}-\d{7})\b/) || [])[1]) ||
-    null;
-
-  // item name: prefer product <img alt>, else longest human-ish text near a price
-  let item = "";
-  $('img[alt]').each((_, el) => {
-    const alt = ($(el).attr("alt") || "").trim();
-    if (/amazon|logo|prime/i.test(alt)) return;
-    if (alt.length >= 12 && alt.length <= 160) { item = item || alt; }
-  });
-  if (!item) {
-    const bodyText = $("body").text().replace(/\s+/g, " ").trim();
-    const candidates = bodyText
-      .split(/(?:(?:\$[0-9][0-9,]*(?:\.[0-9]{2})?)|Qty[: ]\d+)/i)
-      .map(s => s.trim())
-      .filter(s => s && !/amazon|order|total|arriving|delivery|hello/i.test(s));
-    candidates.sort((a,b)=>b.length-a.length);
-    item = candidates.find(s => s.length >= 12 && s.length <= 160) || null;
-  }
-  if (item) out.item_name = item;
-
-  // quantity
-  const qty =
-    ($("body").text().match(/Qty[: ]+(\d+)/i) || [])[1] ||
-    (text && (text.match(/Qty[: ]+(\d+)/i) || [])[1]) ||
-    null;
-  if (qty) out.quantity = parseInt(qty, 10);
-
-  // totals
-  const totalText =
-    ($("body").text().match(/Order total[: ]*\$[0-9,.]+/i) || [])[0] ||
-    ($("body").text().match(/Total[: ]*\$[0-9,.]+/i) || [])[0] ||
-    "";
-  const totalCents = parseMoney(totalText);
-  if (totalCents != null) out.total_cents = totalCents;
-
-  // image
-  let img = null;
-  $("img").each((_, el) => {
-    const src = $(el).attr("src") || "";
-    if (/logo|prime|sprite/i.test(src)) return;
-    if (/^https?:\/\//i.test(src)) { img = img || src; }
-  });
-  if (img) out.image_url = img;
-
-  return out;
-}
-
-/* ---- Generic shipping / delivered ---- */
-function parseGenericShipping(html, text) {
-  const content = (html || "") + " " + (text || "");
-  const tracking =
-    (content.match(/\b(1Z[0-9A-Z]{10,})\b/i) || [])[1] ||
-    (content.match(/\b([A-Z0-9]{10,25})\b/g) || []).find((x) => x.length >= 12) ||
-    null;
-  const carrier = pickCarrierByTracking(tracking, html, text);
-  return { tracking_number: tracking || null, carrier, status: "in_transit" };
-}
-function parseGenericDelivered() {
-  return { status: "delivered" };
-}
-
-/* --------------------------- DB helpers (user-scoped) -------------------- */
 async function orderExists(retailer, order_id, user_id) {
   if (!order_id) return false;
   const { data, error } = await supabase
@@ -413,10 +416,13 @@ function ymd(dateStr) {
   return d.toISOString().slice(0, 10);
 }
 
-/* --------------------------------- Sync ---------------------------------- */
+/* ================================= SYNC ================================== */
 async function runSync(event) {
   const mode = (event.queryStringParameters?.mode || "").toLowerCase();
-  const max = Math.max(20, Math.min(500, Number(event.queryStringParameters?.max || 0) || 200));
+  const max = Math.max(
+    20,
+    Math.min(500, Number(event.queryStringParameters?.max || 0) || 200)
+  );
 
   const acct = await getAccount();
   const gmail = await getGmailClientWithAccount(acct);
@@ -477,7 +483,7 @@ async function runSync(event) {
       continue;
     }
 
-    // --- Normal sync ---
+    // Normal sync
     if (type === "order") {
       const exists = await orderExists(retailer.name, order_id, user_id);
       const row = {
@@ -532,16 +538,9 @@ async function runSync(event) {
     }
 
     if (type === "canceled") {
-      // Create/update the order row as canceled (even if no previous order email)
       if (order_id) {
         await upsertOrder(
-          {
-            retailer: retailer.name,
-            order_id,
-            order_date: ymd(messageDate),
-            status: "canceled",
-            // keep any existing item/total if already present — update() only overwrites provided fields
-          },
+          { retailer: retailer.name, order_id, order_date: ymd(messageDate), status: "canceled" },
           user_id
         );
       }
@@ -554,7 +553,7 @@ async function runSync(event) {
   return json({ imported, updated, skipped_existing });
 }
 
-/* ------------------------------- Utilities ------------------------------- */
+/* ================================ UTIL =================================== */
 function json(body, status = 200) {
   return {
     statusCode: status,
@@ -563,7 +562,7 @@ function json(body, status = 200) {
   };
 }
 
-/* ------------------------------- Single handler -------------------------- */
+/* =============================== HANDLER ================================= */
 export async function handler(event) {
   if (event.queryStringParameters?.health === "1") {
     const envOk = {
@@ -574,7 +573,6 @@ export async function handler(event) {
     };
     return json({ ok: true, envOk });
   }
-
   try {
     return await runSync(event);
   } catch (err) {
