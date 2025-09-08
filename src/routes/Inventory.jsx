@@ -3,21 +3,8 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
-
-/* ---------- UI tokens (kept consistent with app) ---------- */
-const pageCard =
-  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
-const rowCard =
-  "rounded-xl border border-slate-800 bg-slate-900/60 p-3 overflow-hidden";
-const inputSm =
-  "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
-
-/* ---------- helpers ---------- */
-const centsToStr = (c) =>
-  (Number(c || 0) / 100).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+import { centsToStr } from "../utils/money.js";
+import { pageCard, rowCard, inputSm } from "../utils/ui.js";
 
 /* ---------- data ---------- */
 async function getOrders(limit = 2000) {

@@ -107,6 +107,9 @@ export default function HeaderWithTabs({ active = "", showTabs = true }) {
           <NavLink to="/settings" end className={tabClass("settings")}>
             Database
           </NavLink>
+          <NavLink to="/emails" end className={tabClass("emails")}>
+            Emails
+          </NavLink>
         </div>
       )}
     </>

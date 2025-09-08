@@ -3,16 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
-
-/* ---------- tokens ---------- */
-const card =
-  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden";
-const inputBase =
-  "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500";
-const pill = "inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-xs font-medium";
-
-/* ---------- helpers ---------- */
-const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
+import { centsToStr } from "../utils/money.js";
+import { card, inputBase, pill } from "../utils/ui.js";
 const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 
 function trackingUrl(carrier, tn) {
@@ -153,29 +145,6 @@ async function getEmailAccounts() {
 
 /* --------------------------------- page --------------------------------- */
 export default function Emails() {
-  const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    }
-    loadUser();
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      const user = session?.user;
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
 
   const { data: accounts = [] } = useQuery({ queryKey: ["email-accounts"], queryFn: getEmailAccounts });
   const { data: orders = [], refetch: refetchOrders, isLoading: lo1 } = useQuery({ queryKey: ["email-orders"], queryFn: getOrders });

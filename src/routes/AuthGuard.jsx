@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 
-export default function App() {
+export default function AuthGuard() {
   const nav = useNavigate()
   const [loading, setLoading] = useState(true)
 

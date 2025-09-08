@@ -49,10 +49,6 @@ export default function Automation() {
     loadEmailAcct();
   }, []);
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
-  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">

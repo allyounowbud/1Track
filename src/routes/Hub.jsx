@@ -1,38 +1,14 @@
-import { useEffect, useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../hooks/useAuth.js";
+import { card } from "../utils/ui.js";
 
-const card =
-  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
 const tile =
   "group rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 transition p-5 flex items-start gap-4";
 
 export default function Hub() {
-  const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "", email: "" });
-
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return setUserInfo({ avatar_url: "", username: "", email: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username, email: user.email || "" });
-    }
-    loadUser();
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      const user = session?.user;
-      if (!user) return setUserInfo({ avatar_url: "", username: "", email: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username, email: user.email || "" });
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
+  const userInfo = useAuth();
 
   async function signOut() {
     await supabase.auth.signOut();

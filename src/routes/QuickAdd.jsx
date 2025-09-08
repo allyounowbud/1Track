@@ -4,29 +4,8 @@ import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
-
-/* ----------------------------- UI tokens ----------------------------- */
-const card =
-  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden";
-const inputBase =
-  "w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500";
-const dateFix = "w-full max-w-full min-w-0 box-border [field-sizing:content]"; // iOS/Safari sizing helper
-const disabledInput =
-  "opacity-40 cursor-not-allowed disabled:pointer-events-none bg-slate-900/30 border-slate-800/50 text-slate-400 placeholder-slate-500";
-
-/* ----------------------------- helpers ----------------------------- */
-const parseMoney = (v) => {
-  const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
-  return isNaN(n) ? 0 : n;
-};
-const moneyToCents = (v) => Math.round(parseMoney(v) * 100);
-const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
-const parsePct = (v) => {
-  if (v === "" || v == null) return 0;
-  const n = Number(String(v).replace("%", ""));
-  if (isNaN(n)) return 0;
-  return n > 1 ? n / 100 : n;
-};
+import { moneyToCents, parsePct } from "../utils/money.js";
+import { card, inputBase, dateFix, disabledInput } from "../utils/ui.js";
 
 /* ------------------------------ queries ----------------------------- */
 async function getItems() {
@@ -266,30 +245,6 @@ export default function QuickAdd() {
     queryFn: getMarketplaces,
   });
 
-  // header user (unchanged)
-  const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    }
-    loadUser();
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      const user = session?.user;
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
 
   /* ------------------------------ form state ------------------------------ */
   const today = new Date().toISOString().slice(0, 10);

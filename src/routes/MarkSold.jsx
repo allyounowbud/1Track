@@ -3,21 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Link } from 'react-router-dom';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
-import HeaderWithTabs from "../components/HeaderWithTabs.jsx"; // <-- ADDED
-
-/* ---------- helpers (same as other pages) ---------- */
-const parseMoney = (v) => {
-  const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
-  return isNaN(n) ? 0 : n;
-};
-const moneyToCents = (v) => Math.round(parseMoney(v) * 100);
-const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
-const parsePct = (v) => {
-  if (v === "" || v == null) return 0;
-  const n = Number(String(v).replace("%", ""));
-  if (isNaN(n)) return 0;
-  return n > 1 ? n / 100 : n;
-};
+import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
+import { moneyToCents, centsToStr, parsePct } from "../utils/money.js";
 
 /* ---------- queries ---------- */
 async function getUnsoldOrders() {
@@ -41,37 +28,8 @@ async function getMarketplaces() {
   return data || [];
 }
 
-/* ---------- auth ---------- */
-async function signOut() {
-  await supabase.auth.signOut();
-  window.location.href = "/login";
-}
 
 export default function MarkSold() {
-  // current user (avatar/name in header)
-  const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    }
-    loadUser();
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
-      const user = session?.user;
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name || m.preferred_username || m.full_name || m.name || user.email || "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
 
   const { data: openOrders = [], refetch: refetchOpen } = useQuery({
     queryKey: ["openOrders"],
@@ -181,10 +139,6 @@ export default function MarkSold() {
     }
   }
 
-  // ---------- shared tab styles ----------
-  const tabBase =
-    "inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition";
-  const tabActive = "bg-indigo-600 text-white border-indigo-600 shadow hover:bg-indigo-600";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">

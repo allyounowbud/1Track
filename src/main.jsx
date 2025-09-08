@@ -16,6 +16,7 @@ import Stats from "./routes/Stats.jsx";
 import OrderBook from "./routes/OrderBook.jsx";
 import Automation from "./routes/Automation.jsx";
 import Emails from "./routes/Emails.jsx";           // <-- NEW
+import AuthGuard from "./routes/AuthGuard.jsx";     // <-- RENAMED
 
 const router = createBrowserRouter([
   { path: "/", element: <Hub /> },                 // Hub is now the root

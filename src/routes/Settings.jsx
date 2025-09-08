@@ -1,38 +1,10 @@
 // src/routes/Settings.jsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
-
-/* ---------- UI tokens (match Order Book) ---------- */
-const pageCard =
-  "rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)]";
-const rowCard =
-  "rounded-xl border border-slate-800 bg-slate-900/60 p-3 overflow-hidden";
-const inputSm =
-  "h-10 text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500";
-
-/* header buttons (same as Order Book) */
-const headerIconBtn =
-  "h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100";
-const headerGhostBtn =
-  "h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100";
-
-/* small icon buttons used in rows (same as Order Book) */
-const iconSave =
-  "inline-flex items-center justify-center h-9 w-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500";
-const iconSaveBusy =
-  "inline-flex items-center justify-center h-9 w-9 rounded-lg bg-slate-700 text-slate-300 cursor-not-allowed border border-slate-800";
-const iconDelete =
-  "inline-flex items-center justify-center h-9 w-9 rounded-lg bg-rose-600 hover:bg-rose-500 text-white border border-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500";
-
-/* ---------- money helpers ---------- */
-const parseMoney = (v) => {
-  const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
-  return isNaN(n) ? 0 : n;
-};
-const moneyToCents = (v) => Math.round(parseMoney(v) * 100);
-const centsToStr = (c) => (Number(c || 0) / 100).toString();
+import { moneyToCents, centsToStr } from "../utils/money.js";
+import { pageCard, rowCard, inputSm, headerIconBtn, headerGhostBtn, iconSave, iconSaveBusy, iconDelete } from "../utils/ui.js";
 
 /* ---------- queries ---------- */
 async function getItems() {
@@ -74,42 +46,6 @@ export default function Settings() {
     queryFn: getMarkets,
   });
 
-  // current user (avatar/name)
-  const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
-  useEffect(() => {
-    async function loadUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name ||
-        m.preferred_username ||
-        m.full_name ||
-        m.name ||
-        user.email ||
-        "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    }
-    loadUser();
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      const user = session?.user;
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name ||
-        m.preferred_username ||
-        m.full_name ||
-        m.name ||
-        user.email ||
-        "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
 
   // collapsed by default
   const [openItems, setOpenItems] = useState(false);
