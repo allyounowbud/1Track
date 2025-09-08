@@ -1,4 +1,4 @@
-// netlify/functions/gmail-sync.(js|mjs)
+// netlify/functions/gmail-sync.(mjs|js)
 // Full sync + preview for order/shipment/delivery via Gmail
 
 import { google } from "googleapis";
@@ -53,13 +53,13 @@ const RETAILERS = [
   },
 ];
 
-/* -------------------------- Helpers (Gmail utils) ------------------------ */
+/* -------------------------- Gmail + account utils ------------------------ */
 async function getAccount() {
-  // IMPORTANT: include user_id so we can stamp it on inserts
+  // Include user_id so we can stamp it on inserts
   const { data, error } = await supabase
     .from("email_accounts")
     .select(
-      "id, user_id, email_address, access_token, refresh_token, updated_at"
+      "id, user_id, email_address, access_token, refresh_token, token_expiry, updated_at"
     )
     .order("updated_at", { ascending: false })
     .limit(1);
@@ -80,7 +80,7 @@ async function getGmailClientWithAccount(acct) {
       : undefined,
   });
 
-  // Ensure fresh token; if refreshed, persist
+  // Persist refreshed tokens
   oauth2.on("tokens", async (tokens) => {
     const patch = {};
     if (tokens.access_token) patch.access_token = tokens.access_token;
@@ -116,6 +116,7 @@ async function listCandidateMessageIds(gmail) {
 
   const ids = [];
   let pageToken = undefined;
+  // cap to ~300–400 per sync
   for (let i = 0; i < 8; i++) {
     const res = await gmail.users.messages.list({
       userId: "me",
@@ -189,6 +190,7 @@ function classifyType(retailer, subject) {
     return "delivered";
   if (retailer.cancelSubject && retailer.cancelSubject.test(s))
     return "canceled";
+  // fallback heuristics:
   if (
     /\b(order|confirmation|thanks for your order|we got your order)\b/i.test(s)
   )
@@ -200,7 +202,7 @@ function classifyType(retailer, subject) {
   return null;
 }
 
-/* ------------------------------- Parsers --------------------------------- */
+/* -------------------------------- Parsers -------------------------------- */
 function parseMoney(str = "") {
   const m = String(str)
     .replace(/[,]/g, "")
@@ -221,11 +223,13 @@ function parseTargetOrder(html, text) {
   const $ = cheerio.load(html || "");
   const out = {};
 
+  // order id
   out.order_id =
     ($("body").text().match(/Order\s*#\s*([0-9\-]+)/i) || [])[1] ||
     (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
     null;
 
+  // total ("Order total $48.28")
   const totalNode = $('*:contains("Order total")')
     .filter((_, el) => /Order total/i.test($(el).text()))
     .first();
@@ -233,11 +237,13 @@ function parseTargetOrder(html, text) {
   const totalCents = parseMoney(totalText);
   if (totalCents != null) out.total_cents = totalCents;
 
+  // quantity (Qty: 2)
   const qty =
     (($("body").text().match(/Qty:\s*([0-9]+)/i) || [])[1]) ||
     (($('*:contains("Qty")').first().text().match(/Qty[:\s]+([0-9]+)/i) || [])[1]);
   if (qty) out.quantity = parseInt(qty, 10);
 
+  // item name (alt text or near qty)
   let item = "";
   $('img[alt]').each((_, el) => {
     const alt = ($(el).attr("alt") || "").trim();
@@ -260,11 +266,13 @@ function parseTargetOrder(html, text) {
   }
   if (item) out.item_name = item;
 
+  // unit price (e.g., $21.99 / ea)
   const each =
     ($("body").text().match(/\$[0-9]+(?:\.[0-9]{2})?\s*\/\s*ea/i) || [])[0] ||
     null;
   if (each) out.unit_price_cents = parseMoney(each);
 
+  // image url – first non-logo product image
   let img = null;
   $("img").each((_, el) => {
     const src = $(el).attr("src") || "";
@@ -301,6 +309,7 @@ function parseAmazonOrderBasic(html, text) {
     (text && (text.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
     null;
 
+  // Item (try alt text)
   let item = "";
   $('img[alt]').each((_, el) => {
     const alt = ($(el).attr("alt") || "").trim();
@@ -309,14 +318,17 @@ function parseAmazonOrderBasic(html, text) {
   });
   if (item) out.item_name = item;
 
+  // Totals
   const totalText =
     ($("body").text().match(/Total:\s*\$[0-9,.]+/i) || [])[0] || "";
   const totalCents = parseMoney(totalText);
   if (totalCents != null) out.total_cents = totalCents;
 
+  // Qty
   const qty = (($("body").text().match(/Qty:\s*([0-9]+)/i) || [])[1]) || null;
   if (qty) out.quantity = parseInt(qty, 10);
 
+  // Image
   let img = null;
   $("img").each((_, el) => {
     const src = $(el).attr("src") || "";
@@ -346,28 +358,27 @@ function parseGenericDelivered(_html, _text) {
   return { status: "delivered" };
 }
 
-
-
-   /* --------------------------- DB helpers --------------------------- */
-async function orderExists(retailer, order_id) {
+/* --------------------------- DB helpers (user-scoped) -------------------- */
+async function orderExists(retailer, order_id, user_id) {
   if (!order_id) return false;
   const { data, error } = await supabase
     .from("email_orders")
     .select("id")
+    .eq("user_id", user_id)
     .eq("retailer", retailer)
     .eq("order_id", order_id)
     .maybeSingle();
 
-  // ignore "no rows found" error
   if (error && error.code !== "PGRST116") throw error;
   return !!data;
 }
 
-
-async function upsertOrder(row) {
+async function upsertOrder(row, user_id_for_fallback) {
+  // Scope by user_id
   const { data: existing, error: selErr } = await supabase
     .from("email_orders")
     .select("id")
+    .eq("user_id", row.user_id ?? user_id_for_fallback)
     .eq("retailer", row.retailer)
     .eq("order_id", row.order_id)
     .maybeSingle();
@@ -382,9 +393,10 @@ async function upsertOrder(row) {
     if (updErr) throw updErr;
     return existing.id;
   } else {
+    const insertRow = { user_id: user_id_for_fallback, ...row };
     const { data: ins, error: insErr } = await supabase
       .from("email_orders")
-      .insert(row)
+      .insert(insertRow)
       .select("id")
       .maybeSingle();
     if (insErr) throw insErr;
@@ -392,12 +404,13 @@ async function upsertOrder(row) {
   }
 }
 
-async function upsertShipment(row) {
+async function upsertShipment(row, user_id_for_fallback) {
   if (!row.tracking_number) return null;
 
   const { data: existing, error: selErr } = await supabase
     .from("email_shipments")
     .select("id")
+    .eq("user_id", row.user_id ?? user_id_for_fallback)
     .eq("retailer", row.retailer)
     .eq("order_id", row.order_id)
     .eq("tracking_number", row.tracking_number)
@@ -413,9 +426,10 @@ async function upsertShipment(row) {
     if (updErr) throw updErr;
     return existing.id;
   } else {
+    const insertRow = { user_id: user_id_for_fallback, ...row };
     const { data: ins, error: insErr } = await supabase
       .from("email_shipments")
-      .insert(row)
+      .insert(insertRow)
       .select("id")
       .maybeSingle();
     if (insErr) throw insErr;
@@ -430,14 +444,14 @@ function ymd(dateStr) {
   return d.toISOString().slice(0, 10);
 }
 
-/* ------------------------------- Core logic ------------------------------ */
+/* --------------------------------- Sync ---------------------------------- */
 async function runSync(event) {
   const mode = (event.queryStringParameters?.mode || "").toLowerCase();
 
-  // Get the connected account FIRST so we have user_id
+  // Get account first (for user_id)
   const acct = await getAccount();
   const gmail = await getGmailClientWithAccount(acct);
-  const user_id = acct.user_id; // <<<<<< used in inserts
+  const user_id = acct.user_id;
 
   const ids = await listCandidateMessageIds(gmail);
 
@@ -466,6 +480,7 @@ async function runSync(event) {
       continue;
     }
 
+    // Parse payload
     let parsed = {};
     if (type === "order" && retailer.parseOrder)
       parsed = retailer.parseOrder(html, text);
@@ -477,11 +492,12 @@ async function runSync(event) {
 
     const order_id =
       parsed.order_id ||
+      // sometimes included in subject
       ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
       null;
 
     if (mode === "preview") {
-      const exists = await orderExists(retailer.name, order_id);
+      const exists = await orderExists(retailer.name, order_id, user_id);
       if (!exists) {
         proposed.push({
           retailer: retailer.name,
@@ -497,10 +513,11 @@ async function runSync(event) {
       continue;
     }
 
+    // --- Normal sync (create/update) ---
     if (type === "order") {
-      const exists = await orderExists(retailer.name, order_id);
+      const exists = await orderExists(retailer.name, order_id, user_id);
       const row = {
-        user_id, // <<<<<< REQUIRED
+        user_id, // required
         retailer: retailer.name,
         order_id: order_id || `unknown-${msg.id}`,
         order_date: ymd(messageDate),
@@ -514,14 +531,15 @@ async function runSync(event) {
         status: "ordered",
         source_message_id: msg.id,
       };
-      await upsertOrder(row);
+      await upsertOrder(row, user_id);
       if (exists) skipped_existing++;
       else imported++;
     }
 
     if (type === "shipping") {
+      // Always include user_id
       const ship = {
-        user_id, // <<<<<< REQUIRED
+        user_id,
         retailer: retailer.name,
         order_id: order_id || "Unknown",
         tracking_number: parsed.tracking_number || null,
@@ -530,38 +548,48 @@ async function runSync(event) {
         shipped_at: ymd(messageDate),
         delivered_at: null,
       };
-      await upsertShipment(ship);
+      await upsertShipment(ship, user_id);
 
+      // Update or create bare order row with status progression
       if (order_id) {
-        await upsertOrder({
-          retailer: retailer.name,
-          order_id,
-          shipped_at: messageDate.toISOString(),
-          status: "in_transit",
-        });
+        await upsertOrder(
+          {
+            retailer: retailer.name,
+            order_id,
+            shipped_at: messageDate.toISOString(),
+            status: "in_transit",
+          },
+          user_id
+        );
       }
       updated++;
     }
 
     if (type === "delivered") {
       if (order_id) {
-        await upsertOrder({
-          retailer: retailer.name,
-          order_id,
-          delivered_at: messageDate.toISOString(),
-          status: "delivered",
-        });
+        await upsertOrder(
+          {
+            retailer: retailer.name,
+            order_id,
+            delivered_at: messageDate.toISOString(),
+            status: "delivered",
+          },
+          user_id
+        );
       }
       updated++;
     }
 
     if (type === "canceled") {
       if (order_id) {
-        await upsertOrder({
-          retailer: retailer.name,
-          order_id,
-          status: "canceled",
-        });
+        await upsertOrder(
+          {
+            retailer: retailer.name,
+            order_id,
+            status: "canceled",
+          },
+          user_id
+        );
       }
       updated++;
     }
@@ -588,6 +616,7 @@ export async function handler(event) {
     method: event.httpMethod,
   });
 
+  // Health check: /.netlify/functions/gmail-sync?health=1
   if (event.queryStringParameters?.health === "1") {
     const envOk = {
       SUPABASE_URL: !!process.env.SUPABASE_URL,
