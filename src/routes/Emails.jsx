@@ -146,7 +146,7 @@ async function getEmailAccounts() {
 /* --------------------------------- page --------------------------------- */
 export default function Emails() {
 
-  const { data: accounts = [] } = useQuery({ queryKey: ["email-accounts"], queryFn: getEmailAccounts });
+  const { data: accounts = [], refetch: refetchAccounts } = useQuery({ queryKey: ["email-accounts"], queryFn: getEmailAccounts });
   const { data: orders = [], refetch: refetchOrders, isLoading: lo1 } = useQuery({ queryKey: ["email-orders"], queryFn: getOrders });
   const { data: ships = [], refetch: refetchShips, isLoading: lo2 } = useQuery({ queryKey: ["email-shipments"], queryFn: getShipments });
 
@@ -193,6 +193,27 @@ export default function Emails() {
 
   function connectGmail() {
     window.location.href = "/.netlify/functions/gmail-auth-start";
+  }
+
+  async function disconnectGmail() {
+    if (!confirm("Are you sure you want to disconnect your Gmail account? This will stop automatic email syncing.")) {
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from("email_accounts")
+        .delete()
+        .eq("provider", "gmail");
+      
+      if (error) throw error;
+      
+      // Refresh the accounts data to update the UI
+      await refetchAccounts();
+      setSyncMsg("Gmail account disconnected successfully");
+    } catch (e) {
+      setSyncMsg(`Failed to disconnect: ${e.message}`);
+    }
   }
 
   async function syncNow({ silent = false, label } = {}) {
@@ -277,6 +298,9 @@ export default function Emails() {
                   </button>
                   <button onClick={() => syncNow()} disabled={syncing} className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium">
                     {syncing ? "Syncing…" : "Sync now"}
+                  </button>
+                  <button onClick={disconnectGmail} className="h-11 px-5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-medium">
+                    Disconnect
                   </button>
                 </>
               )}
