@@ -222,12 +222,20 @@ async function getMessageFull(gmail, id) {
 
 /* ------------------------------ Classifier ------------------------------ */
 function classifyRetailer(from) {
-  const f = (from || "").toLowerCase();
-  console.log("Classifying retailer for email:", f);
+  const fullFrom = (from || "").toLowerCase();
+  console.log("Classifying retailer for full 'from' string:", fullFrom);
+  
+  // Extract email address from the "from" string
+  let emailAddress = fullFrom;
+  const emailMatch = /<([^>]+)>/.exec(fullFrom);
+  if (emailMatch && emailMatch[1]) {
+    emailAddress = emailMatch[1];
+  }
+  console.log("Extracted email address for classification:", emailAddress);
   
   for (const retailer of RETAILERS) {
-    const matches = retailer.senderMatch(f);
-    console.log(`Testing ${retailer.name}: ${matches}`);
+    const matches = retailer.senderMatch(emailAddress);
+    console.log(`Testing ${retailer.name} with ${emailAddress}: ${matches}`);
     if (matches) {
       console.log(`Matched retailer: ${retailer.name}`);
       return retailer;
