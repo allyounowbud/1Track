@@ -45,17 +45,17 @@ const RETAILERS = [
     parseShipping: parseAmazonShipping,
     parseDelivered: parseAmazonDelivered,
   },
-  // TARGET — basic support
+  // TARGET — enhanced HTML parsing
   {
     name: "Target",
     senderMatch: (from) => /@target\.com$/i.test(from) || /@oe\.target\.com$/i.test(from) || /@oe1\.target\.com$/i.test(from),
-    orderSubject: /order|shipped|delivered/i,
-    shipSubject: /shipped|on the way/i,
+    orderSubject: /thanks for your order|order confirmation|order placed/i,
+    shipSubject: /shipped|on the way|shipment/i,
     deliverSubject: /delivered|arrived/i,
     cancelSubject: /cancel/i,
-    parseOrder: parseGenericOrder,
-    parseShipping: parseGenericShipping,
-    parseDelivered: parseGenericDelivered,
+    parseOrder: parseTargetOrder,
+    parseShipping: parseTargetShipping,
+    parseDelivered: parseTargetDelivered,
   },
   // MACY'S — basic support
   {
@@ -69,34 +69,10 @@ const RETAILERS = [
     parseShipping: parseGenericShipping,
     parseDelivered: parseGenericDelivered,
   },
-  // DOMINO'S — basic support
-  {
-    name: "Domino's",
-    senderMatch: (from) => /@dominos\.com$/i.test(from) || /@e-confirmation\.dominos\.com$/i.test(from),
-    orderSubject: /order|shipped|delivered/i,
-    shipSubject: /shipped|on the way/i,
-    deliverSubject: /delivered|arrived/i,
-    cancelSubject: /cancel/i,
-    parseOrder: parseGenericOrder,
-    parseShipping: parseGenericShipping,
-    parseDelivered: parseGenericDelivered,
-  },
   // NIKE — basic support
   {
     name: "Nike",
     senderMatch: (from) => /@nike\.com$/i.test(from) || /@ship\.notifications\.nike\.com$/i.test(from),
-    orderSubject: /order|shipped|delivered/i,
-    shipSubject: /shipped|on the way/i,
-    deliverSubject: /delivered|arrived/i,
-    cancelSubject: /cancel/i,
-    parseOrder: parseGenericOrder,
-    parseShipping: parseGenericShipping,
-    parseDelivered: parseGenericDelivered,
-  },
-  // MCDONALD'S — basic support
-  {
-    name: "McDonald's",
-    senderMatch: (from) => /@mcdonalds\.com$/i.test(from) || /@us\.mcdonalds\.com$/i.test(from),
     orderSubject: /order|shipped|delivered/i,
     shipSubject: /shipped|on the way/i,
     deliverSubject: /delivered|arrived/i,
@@ -677,6 +653,140 @@ function parseGenericDelivered(html, text) {
   };
 }
 
+/* ------------------------------ Target-specific parsers ------------------------------ */
+function parseTargetOrder(html, text) {
+  const $ = cheerio.load(html || "");
+  const bodyText = $("body").text();
+  
+  console.log("=== TARGET PARSING DEBUG ===");
+  console.log("HTML length:", (html || "").length);
+  console.log("Body text length:", bodyText.length);
+  
+  const out = {};
+  
+  // Extract order ID from Target format: "Order #102002814872430"
+  const orderIdMatch = bodyText.match(/order\s*#\s*([0-9]+)/i);
+  if (orderIdMatch && orderIdMatch[1]) {
+    out.order_id = orderIdMatch[1];
+    console.log("Found Target order ID:", out.order_id);
+  }
+  
+  // Extract total price - look for "Total $48.28" pattern
+  const totalMatch = bodyText.match(/total\s*\$([0-9,]+\.?[0-9]*)/i);
+  if (totalMatch && totalMatch[1]) {
+    out.total_cents = Math.round(parseFloat(totalMatch[1].replace(/,/g, '')) * 100);
+    console.log("Found Target total:", totalMatch[1], "cents:", out.total_cents);
+  }
+  
+  // Extract item name from HTML - look for product names in the email
+  const itemNameSelectors = [
+    'img[alt*="Pokémon"]', // Look for images with product names in alt text
+    'img[alt*="Trading Card"]',
+    'img[alt*="Box"]',
+    '.product-name',
+    '.item-name',
+    '[class*="product"]',
+    '[class*="item"]'
+  ];
+  
+  let itemName = null;
+  for (const selector of itemNameSelectors) {
+    const element = $(selector).first();
+    if (element.length) {
+      const altText = element.attr('alt') || '';
+      const textContent = element.text() || '';
+      if (altText && altText.length > 10 && !altText.includes('Target') && !altText.includes('logo')) {
+        itemName = altText.trim();
+        console.log("Found Target item name from alt text:", itemName);
+        break;
+      }
+      if (textContent && textContent.length > 10 && !textContent.includes('Target')) {
+        itemName = textContent.trim();
+        console.log("Found Target item name from text:", itemName);
+        break;
+      }
+    }
+  }
+  
+  // Fallback: look for product names in the body text
+  if (!itemName) {
+    const productPatterns = [
+      /([A-Za-z][^:]{10,50}):\s*([A-Za-z][^:]{10,50})/g, // "Pokémon Trading Card Game:Mega Latias ex Box"
+      /([A-Za-z][^,]{10,50}),\s*([A-Za-z][^,]{10,50})/g,
+    ];
+    
+    for (const pattern of productPatterns) {
+      const matches = [...bodyText.matchAll(pattern)];
+      for (const match of matches) {
+        const candidate = match[0].trim();
+        if (candidate.length > 10 && !candidate.includes('Target') && !candidate.includes('Order')) {
+          itemName = candidate;
+          console.log("Found Target item name from pattern:", itemName);
+          break;
+        }
+      }
+      if (itemName) break;
+    }
+  }
+  
+  if (itemName) {
+    out.item_name = itemName;
+  }
+  
+  // Extract quantity
+  const qtyMatch = bodyText.match(/qty[:\s]*([0-9]+)/i);
+  if (qtyMatch && qtyMatch[1]) {
+    out.quantity = parseInt(qtyMatch[1]);
+    console.log("Found Target quantity:", out.quantity);
+  }
+  
+  // Extract product image from Target email
+  const imageSelectors = [
+    'img[src*="target.com"]',
+    'img[src*="target"]',
+    'img[alt*="Pokémon"]',
+    'img[alt*="Trading Card"]',
+    'img[alt*="Box"]',
+    'img[src*="product"]',
+    'img[src*="item"]'
+  ];
+  
+  for (const selector of imageSelectors) {
+    const img = $(selector).first();
+    if (img.length) {
+      const src = img.attr('src');
+      const alt = img.attr('alt') || '';
+      if (src && !src.includes('logo') && !src.includes('bullseye') && !src.includes('target.com/static')) {
+        out.image_url = src;
+        console.log("Found Target product image:", src, "alt:", alt);
+        break;
+      }
+    }
+  }
+  
+  console.log("Final Target parsed data:", out);
+  console.log("=== END TARGET PARSING DEBUG ===");
+  
+  return out;
+}
+
+function parseTargetShipping(html, text) {
+  const base = parseTargetOrder(html, text);
+  return {
+    ...base,
+    status: "in_transit",
+    carrier: "Target",
+  };
+}
+
+function parseTargetDelivered(html, text) {
+  const base = parseTargetOrder(html, text);
+  return {
+    ...base,
+    status: "delivered",
+  };
+}
+
 /* --------------------------- DB upsert helpers --------------------------- */
 async function upsertOrder(row) {
   const { data, error } = await supabase
@@ -763,6 +873,27 @@ exports.handler = async (event) => {
         success: false 
       }, 500);
     }
+  }
+
+  // Test retailer classification
+  if (event?.queryStringParameters?.test === "classify") {
+    const from = event.queryStringParameters?.from;
+    const subject = event.queryStringParameters?.subject;
+    
+    if (!from || !subject) {
+      return json({ error: "Missing from or subject parameter" }, 400);
+    }
+    
+    const retailer = classifyRetailer(from);
+    const type = classifyType(retailer, subject);
+    
+    return json({ 
+      from, 
+      subject, 
+      retailer: retailer.name, 
+      type,
+      senderMatch: retailer.senderMatch ? retailer.senderMatch(from) : false
+    });
   }
 
   try {
