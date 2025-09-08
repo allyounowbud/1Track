@@ -48,7 +48,7 @@ const RETAILERS = [
   // TARGET — basic support
   {
     name: "Target",
-    senderMatch: (from) => /@target\.com$/i.test(from),
+    senderMatch: (from) => /@target\.com$/i.test(from) || /@oe\.target\.com$/i.test(from) || /@oe1\.target\.com$/i.test(from),
     orderSubject: /order|shipped|delivered/i,
     shipSubject: /shipped|on the way/i,
     deliverSubject: /delivered|arrived/i,
@@ -60,7 +60,7 @@ const RETAILERS = [
   // MACY'S — basic support
   {
     name: "Macy's",
-    senderMatch: (from) => /@macys\.com$/i.test(from) || /@oes\.macys\.com$/i.test(from),
+    senderMatch: (from) => /@macys\.com$/i.test(from) || /@oes\.macys\.com$/i.test(from) || /@noreply\.macys\.com$/i.test(from),
     orderSubject: /order|shipped|delivered/i,
     shipSubject: /shipped|on the way/i,
     deliverSubject: /delivered|arrived/i,
@@ -72,7 +72,7 @@ const RETAILERS = [
   // DOMINO'S — basic support
   {
     name: "Domino's",
-    senderMatch: (from) => /@dominos\.com$/i.test(from),
+    senderMatch: (from) => /@dominos\.com$/i.test(from) || /@e-confirmation\.dominos\.com$/i.test(from),
     orderSubject: /order|shipped|delivered/i,
     shipSubject: /shipped|on the way/i,
     deliverSubject: /delivered|arrived/i,
@@ -85,6 +85,18 @@ const RETAILERS = [
   {
     name: "Nike",
     senderMatch: (from) => /@nike\.com$/i.test(from) || /@ship\.notifications\.nike\.com$/i.test(from),
+    orderSubject: /order|shipped|delivered/i,
+    shipSubject: /shipped|on the way/i,
+    deliverSubject: /delivered|arrived/i,
+    cancelSubject: /cancel/i,
+    parseOrder: parseGenericOrder,
+    parseShipping: parseGenericShipping,
+    parseDelivered: parseGenericDelivered,
+  },
+  // MCDONALD'S — basic support
+  {
+    name: "McDonald's",
+    senderMatch: (from) => /@mcdonalds\.com$/i.test(from) || /@us\.mcdonalds\.com$/i.test(from),
     orderSubject: /order|shipped|delivered/i,
     shipSubject: /shipped|on the way/i,
     deliverSubject: /delivered|arrived/i,
@@ -454,6 +466,7 @@ async function amazonCommon($, html, text) {
     if (src.includes('images.amazon.com') || 
         src.includes('m.media-amazon.com') ||
         src.includes('amazon.com/images') ||
+        src.includes('googleusercontent.com') || // Google proxy images
         (width && height && parseInt(width) > 30 && parseInt(height) > 30) ||
         (src.includes('amazon') && !src.includes('logo'))) {
       img = src;
@@ -461,6 +474,24 @@ async function amazonCommon($, html, text) {
       return false; // break
     }
   });
+  
+  // Also check for images in the HTML source that might not be in img tags
+  if (!img) {
+    const htmlSrc = html || "";
+    const imageMatches = htmlSrc.match(/https:\/\/[^"'\s]+\.(jpg|jpeg|png|gif|webp)/gi);
+    if (imageMatches) {
+      console.log("Found images in HTML source:", imageMatches);
+      for (const imageUrl of imageMatches) {
+        if (imageUrl.includes('m.media-amazon.com') || 
+            imageUrl.includes('images.amazon.com') ||
+            imageUrl.includes('googleusercontent.com')) {
+          img = imageUrl;
+          console.log("Using image from HTML source:", img);
+          break;
+        }
+      }
+    }
+  }
   
   if (img) {
     out.image_url = img;
