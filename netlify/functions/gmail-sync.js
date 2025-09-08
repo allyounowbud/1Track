@@ -285,13 +285,16 @@ async function fetchAmazonProductName(productUrl) {
       '.product-title',
       'h1.a-size-base-plus',
       'h1 span',
-      'h1'
+      'h1',
+      'h1.a-size-large.a-color-base',
+      '.a-size-large.a-color-base',
+      'h1.a-size-large.a-color-base.a-text-normal'
     ];
     
     for (const selector of titleSelectors) {
       const title = $(selector).first().text().trim();
       console.log(`Trying selector "${selector}":`, title);
-      if (title && title.length > 10 && !title.includes('Amazon.com')) {
+      if (title && title.length > 10 && !title.includes('Amazon.com') && !title.includes('Sign in')) {
         console.log("Found product title:", title);
         return title;
       }
@@ -384,11 +387,38 @@ async function amazonCommon($, html, text) {
     console.log("Item name is truncated, attempting to fetch full name from product page...");
     console.log("Current truncated item:", item);
     try {
+      // First try to find product links in the DOM
       const productLink = $("a[href*='gp/product'], a[href*='dp/']").first().attr('href');
-      console.log("All product links found:", $("a[href*='gp/product'], a[href*='dp/']").map((i, el) => $(el).attr('href')).get());
+      console.log("All product links found in DOM:", $("a[href*='gp/product'], a[href*='dp/']").map((i, el) => $(el).attr('href')).get());
+      
+      let finalProductLink = null;
+      
       if (productLink) {
-        console.log("Found product URL:", productLink);
-        const fullName = await fetchAmazonProductName(productLink);
+        finalProductLink = productLink;
+        console.log("Found product URL in DOM:", finalProductLink);
+      } else {
+        console.log("No product link found in DOM, searching HTML source...");
+        // Try to find product links in the HTML source with more patterns
+        const htmlSrc = html || "";
+        const productLinkPatterns = [
+          /https:\/\/[^"'\s]*\/gp\/product\/[A-Z0-9]+/gi,
+          /https:\/\/[^"'\s]*\/dp\/[A-Z0-9]+/gi,
+          /https:\/\/[^"'\s]*amazon\.com[^"'\s]*\/dp\/[A-Z0-9]+/gi
+        ];
+        
+        for (const pattern of productLinkPatterns) {
+          const matches = htmlSrc.match(pattern);
+          if (matches && matches.length > 0) {
+            console.log(`Found product links with pattern ${pattern}:`, matches);
+            finalProductLink = matches[0];
+            break;
+          }
+        }
+      }
+      
+      if (finalProductLink) {
+        console.log("Using product URL:", finalProductLink);
+        const fullName = await fetchAmazonProductName(finalProductLink);
         if (fullName) {
           item = fullName;
           console.log("Got full product name from page:", item);
@@ -396,18 +426,7 @@ async function amazonCommon($, html, text) {
           console.log("Failed to get full name from product page");
         }
       } else {
-        console.log("No product link found in email");
-        // Try to find product links in the HTML source
-        const htmlSrc = html || "";
-        const productLinkMatches = htmlSrc.match(/https:\/\/[^"'\s]*\/gp\/product\/[A-Z0-9]+/gi);
-        if (productLinkMatches && productLinkMatches.length > 0) {
-          console.log("Found product links in HTML source:", productLinkMatches);
-          const fullName = await fetchAmazonProductName(productLinkMatches[0]);
-          if (fullName) {
-            item = fullName;
-            console.log("Got full product name from HTML source link:", item);
-          }
-        }
+        console.log("No product link found anywhere in email");
       }
     } catch (error) {
       console.log("Failed to fetch full product name:", error.message);
@@ -696,6 +715,26 @@ exports.handler = async (event) => {
         url: testUrl, 
         result: result,
         success: !!result 
+      });
+    } catch (error) {
+      return json({ 
+        url: testUrl, 
+        error: error.message,
+        success: false 
+      }, 500);
+    }
+  }
+
+  // Test with the specific Magic: The Gathering product
+  if (event?.queryStringParameters?.test === "magic") {
+    const testUrl = "https://www.amazon.com/dp/B0DV1VCPQF?ref_=pe_125775000_1044873430_t_fed_asin_title";
+    try {
+      const result = await fetchAmazonProductName(testUrl);
+      return json({ 
+        url: testUrl, 
+        result: result,
+        success: !!result,
+        expected: "Magic: The Gathering | Marvel's Spider-Man - Bundle: Gift Edition"
       });
     } catch (error) {
       return json({ 
