@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { Select } from "../components/Select.jsx";
+import { SearchDropdown } from "../components/SearchDropdown.jsx";
 
 /* ---------- queries ---------- */
 async function getUnsoldOrders() {
@@ -44,8 +45,6 @@ export default function MarkSold() {
   // ---------- form state ----------
   const today = new Date().toISOString().slice(0, 10);
 
-  const [search, setSearch] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selected, setSelected] = useState(null); // order object
 
   const [salePrice, setSalePrice] = useState("");
@@ -60,39 +59,12 @@ export default function MarkSold() {
   const [msg, setMsg] = useState("");
 
   // ---------- searchable dropdown (mobile-safe) ----------
-  const boxRef = useRef(null);
-  useEffect(() => {
-    const onClick = (e) => {
-      if (!boxRef.current) return;
-      if (!boxRef.current.contains(e.target)) setDropdownOpen(false);
-    };
-    window.addEventListener("click", onClick, { passive: true });
-    return () => window.removeEventListener("click", onClick);
-  }, []);
 
   const label = (o) =>
     `${o.item ?? "—"} • ${o.retailer ?? "—"} • ${o.order_date} • Buy $${centsToStr(
       o.buy_price_cents
     )}`;
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return openOrders.slice(0, 50);
-    
-    // Split search query into individual words
-    const searchWords = q.split(/\s+/).filter(word => word.length > 0);
-    
-    return openOrders.filter((o) => {
-      // Create searchable text from item name, retailer, and order date
-      const searchableText = [o.item, o.retailer, o.order_date]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      
-      // Check if ALL search words are found in the searchable text
-      return searchWords.every(word => searchableText.includes(word));
-    });
-  }, [openOrders, search]);
 
   // ---------- marketplace -> autofill fee ----------
   function onMarketChange(id) {
@@ -164,42 +136,24 @@ export default function MarkSold() {
           className="relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden space-y-5"
         >
           {/* Open purchase (searchable) */}
-          <div className="min-w-0">
-            <label className="text-slate-300 mb-1 block text-sm">Select Open Purchase</label>
-            <div ref={boxRef} className="relative">
-              <input
-                value={selected ? label(selected) : search}
-                onChange={(e) => {
-                  setSelected(null);
-                  setSearch(e.target.value);
-                }}
-                onFocus={() => setDropdownOpen(true)}
-                placeholder="Type to search…"
-                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              {dropdownOpen && (
-                <div className="absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
-                  {filtered.length === 0 && (
-                    <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
-                  )}
-                  {filtered.map((o) => (
-                    <button
-                      type="button"
-                      key={o.id}
-                      onClick={() => {
-                        setSelected(o);
-                        setSearch("");
-                        setDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 hover:bg-slate-800/70"
-                    >
-                      {label(o)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <SearchDropdown
+            value={selected ? selected.id : ""}
+            onChange={(value) => {
+              const order = orders.find(o => o.id === value);
+              setSelected(order || null);
+            }}
+            options={orders}
+            placeholder="Type to search…"
+            label="Select Open Purchase"
+            getOptionLabel={(order) => label(order)}
+            getOptionValue={(order) => order.id}
+            filterOptions={(orders, search) => {
+              if (!search.trim()) return orders.slice(0, 20);
+              return orders.filter(order => 
+                label(order).toLowerCase().includes(search.toLowerCase())
+              ).slice(0, 20);
+            }}
+          />
 
           {/* Grid of inputs (stacks on mobile) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">

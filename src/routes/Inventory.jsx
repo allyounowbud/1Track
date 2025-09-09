@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
+import { SearchDropdown } from "../components/SearchDropdown.jsx";
 
 /* ---------- data ---------- */
 async function getOrders(limit = 2000) {
@@ -143,29 +144,6 @@ export default function Inventory() {
   );
 
   const [itemFilter, setItemFilter] = useState(""); // text OR exact match
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const boxRef = useRef(null);
-
-  // Filtered items for dropdown
-  const filteredDropdownItems = useMemo(() => {
-    const t = itemFilter.trim().toLowerCase();
-    if (!t) return onHandNames.slice(0, 20); // Show first 20 when no search
-    return onHandNames.filter(name => 
-      name.toLowerCase().includes(t)
-    ).slice(0, 20); // Limit to 20 results
-  }, [itemFilter, onHandNames]);
-
-  // Click outside to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (boxRef.current && !boxRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // rows to show (by text contains OR exact match)
   const filteredRows = useMemo(() => {
@@ -258,42 +236,13 @@ export default function Inventory() {
 
         {/* Search */}
         <div className={`${pageCard} mb-6`}>
-          <div className="min-w-0">
-            <label className="text-slate-300 mb-1 block text-sm">Search Inventory</label>
-            <div ref={boxRef} className="relative">
-              <input
-                value={selectedItem ? selectedItem : itemFilter}
-                onChange={(e) => {
-                  setSelectedItem(null);
-                  setItemFilter(e.target.value);
-                }}
-                onFocus={() => setDropdownOpen(true)}
-                placeholder="Type to search…"
-                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              {dropdownOpen && (
-                <div className="absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
-                  {filteredDropdownItems.length === 0 && (
-                    <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
-                  )}
-                  {filteredDropdownItems.map((itemName) => (
-                    <button
-                      type="button"
-                      key={itemName}
-                      onClick={() => {
-                        setSelectedItem(itemName);
-                        setItemFilter(itemName);
-                        setDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 hover:bg-slate-800/70"
-                    >
-                      {itemName}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <SearchDropdown
+            value={itemFilter}
+            onChange={setItemFilter}
+            options={onHandNames.map(name => ({ value: name, label: name }))}
+            placeholder="Type to search…"
+            label="Search Inventory"
+          />
         </div>
 
         {/* KPI pills (8) */}
