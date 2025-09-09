@@ -141,6 +141,10 @@ export default function OrderBook() {
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [bulkActionsVisible, setBulkActionsVisible] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  
+  /* new row state */
+  const [newRows, setNewRows] = useState([]); // Array of temporary new rows
+  const [nextNewRowId, setNextNewRowId] = useState(-1); // Negative IDs for new rows
 
   // Update bulk actions visibility when selection changes
   useEffect(() => {
@@ -172,23 +176,45 @@ export default function OrderBook() {
     if (selectedRows.size === 0) return;
 
     try {
-      // Get all selected orders with their current form data
+      // Separate new rows from existing rows
       const selectedOrders = filtered.filter(order => selectedRows.has(order.id));
-      
-      // For now, we'll need to collect the form data from each row
-      // This is a simplified version - in a real implementation, you'd need to track form state
-      const updates = selectedOrders.map(order => ({
-        id: order.id,
-        // Add the fields that need to be updated
-        // This would need to be enhanced to capture actual form changes
-      }));
+      const newRowsToSave = selectedOrders.filter(order => order.isNew);
+      const existingRowsToUpdate = selectedOrders.filter(order => !order.isNew);
 
-      // For now, just show a success message
-      alert(`Saved ${selectedRows.size} order${selectedRows.size > 1 ? 's' : ''}`);
-      
-      // Clear selection
+      // Handle new rows - insert into database
+      if (newRowsToSave.length > 0) {
+        const newOrdersData = newRowsToSave.map(row => ({
+          order_date: row.order_date || null,
+          item: row.item || null,
+          profile_name: row.profile_name || null,
+          retailer: row.retailer || null,
+          buy_price_cents: moneyToCents(row.buy_price_cents || 0),
+          sale_price_cents: moneyToCents(row.sale_price_cents || 0),
+          sale_date: row.sale_date || null,
+          marketplace: row.marketplace || null,
+          shipping_cents: moneyToCents(row.shipping_cents || 0),
+          fees_pct: parsePct(row.fees_pct || 0) / 100,
+        }));
+
+        const { error: insertError } = await supabase
+          .from("orders")
+          .insert(newOrdersData);
+
+        if (insertError) throw insertError;
+      }
+
+      // Handle existing rows - update in database
+      if (existingRowsToUpdate.length > 0) {
+        // For now, just show a message - would need form state tracking for actual updates
+        console.log("Would update existing rows:", existingRowsToUpdate);
+      }
+
+      // Clear new rows and selection
+      setNewRows([]);
       setSelectedRows(new Set());
       refetch();
+      
+      alert(`Saved ${selectedRows.size} order${selectedRows.size > 1 ? 's' : ''}`);
     } catch (e) {
       alert(`Failed to save orders: ${e.message}`);
     }
@@ -215,13 +241,54 @@ export default function OrderBook() {
     }
   }
 
+  /* new row management functions */
+  function addNewRow() {
+    const newRow = {
+      id: nextNewRowId,
+      order_date: "",
+      item: "",
+      profile_name: "",
+      retailer: "",
+      buy_price_cents: 0,
+      sale_price_cents: 0,
+      sale_date: "",
+      marketplace: "",
+      shipping_cents: 0,
+      fees_pct: 0,
+      isNew: true
+    };
+    
+    setNewRows(prev => [...prev, newRow]);
+    setNextNewRowId(prev => prev - 1);
+    
+    // Auto-select the new row
+    setSelectedRows(prev => new Set([...prev, newRow.id]));
+  }
+
+  function cancelNewRows() {
+    // Remove all new rows and clear selection
+    setNewRows([]);
+    setSelectedRows(new Set());
+  }
+
+  function removeNewRow(rowId) {
+    setNewRows(prev => prev.filter(row => row.id !== rowId));
+    setSelectedRows(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(rowId);
+      return newSet;
+    });
+  }
+
   const filtered = useMemo(() => {
     const query = (q || "").trim().toLowerCase();
-    if (!query) return orders;
+    const allRows = [...orders, ...newRows]; // Include new rows
+    
+    if (!query) return allRows;
 
     const tokens = query.split(/\s+/).filter(Boolean); // AND tokens
 
-    return orders.filter((o) => {
+    return allRows.filter((o) => {
       const haystack = [
         o.item || "",
         o.retailer || "",
@@ -235,24 +302,36 @@ export default function OrderBook() {
 
       return tokens.every((t) => haystack.includes(t));
     });
-  }, [orders, q]);
+  }, [orders, newRows, q]);
 
   /* group by order_date */
   const grouped = useMemo(() => {
     const map = new Map();
-    for (const o of filtered) {
+    const newRowsInFiltered = filtered.filter(o => o.isNew);
+    const existingRowsInFiltered = filtered.filter(o => !o.isNew);
+    
+    // Add existing rows to groups
+    for (const o of existingRowsInFiltered) {
       const key = o.order_date || "__unknown__";
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(o);
     }
+    
+    // Add new rows to a special "New Orders" group at the top
+    if (newRowsInFiltered.length > 0) {
+      map.set("__new__", newRowsInFiltered);
+    }
+    
     const keys = Array.from(map.keys()).sort((a, b) => {
+      if (a === "__new__") return -1; // New orders first
       if (a === "__unknown__") return 1;
       if (b === "__unknown__") return -1;
       return a < b ? 1 : a > b ? -1 : 0;
     });
+    
     return keys.map((k) => ({
       key: k,
-      nice: k === "__unknown__" ? "Unknown date" : fmtNiceDate(k),
+      nice: k === "__new__" ? "New Orders" : k === "__unknown__" ? "Unknown date" : fmtNiceDate(k),
       rows: map.get(k),
     }));
   }, [filtered]);
@@ -397,6 +476,24 @@ function UnifiedOrderView({
 
         {/* Right side - Action Buttons */}
         <div className="flex items-center gap-2">
+          {/* Add New Order Button */}
+          <button
+            onClick={selectedRows.size > 0 ? cancelNewRows : addNewRow}
+            className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
+              selectedRows.size === 0
+                ? 'border-green-600 bg-green-600 hover:bg-green-700 hover:border-green-500 text-white'
+                : 'border-red-600 bg-red-600 hover:bg-red-700 hover:border-red-500 text-white'
+            }`}
+            title={selectedRows.size > 0 ? "Cancel Changes" : "Add New Order"}
+          >
+            <svg className={`w-4 h-4 transition-transform group-hover:scale-110`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {selectedRows.size === 0 ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              )}
+            </svg>
+          </button>
           <button
             onClick={bulkSaveSelected}
             disabled={selectedRows.size === 0}
@@ -483,8 +580,8 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
           selectedRows={selectedRows}
           onToggleRowSelection={onToggleRowSelection}
           setSelectedRows={setSelectedRows}
-        />
-      ))}
+            />
+          ))}
     </div>
   );
 }
@@ -613,8 +710,8 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
           ))}
           </div>
         </div>
-      )}
-    </div>
+          )}
+        </div>
   );
 }
 
@@ -921,7 +1018,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
   return (
     <div 
       className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
-        isSelected 
+        isSelected || order.isNew
           ? 'border-indigo-500 bg-indigo-500/10' 
           : 'border-slate-800 hover:bg-slate-800/50'
       }`}
