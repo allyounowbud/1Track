@@ -139,10 +139,10 @@ export default function MarkSold() {
           <SearchDropdown
             value={selected ? selected.id : ""}
             onChange={(value) => {
-              const order = orders.find(o => o.id === value);
+              const order = openOrders.find(o => o.id === value);
               setSelected(order || null);
             }}
-            options={orders}
+            options={openOrders}
             placeholder="Type to search…"
             label="Select Open Purchase"
             getOptionLabel={(order) => label(order)}
