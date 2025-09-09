@@ -21,7 +21,7 @@ async function getOrders(limit = 2000) {
 async function getItems() {
   const { data, error } = await supabase
     .from("items")
-    .select("id, name, market_value_cents")
+    .select("id, name")
     .order("name", { ascending: true });
   if (error) throw error;
   return data ?? [];
@@ -38,12 +38,7 @@ export default function Inventory() {
     queryFn: getItems,
   });
 
-  // Market value lookup by name
-  const mvByName = useMemo(() => {
-    const m = new Map();
-    for (const it of items) m.set(it.name, Number(it.market_value_cents || 0));
-    return m;
-  }, [items]);
+  // Market value lookup by name - removed
 
   // Aggregate orders into inventory rows by item
   const byItem = useMemo(() => {
@@ -64,7 +59,7 @@ export default function Inventory() {
           holdDays: [],
           maxHold: 0,
 
-          marketValueCents: Number(mvByName.get(name) || 0),
+          marketValueCents: 0,
           estValueCents: 0,
         });
       return map.get(name);
@@ -110,7 +105,7 @@ export default function Inventory() {
     for (const r of map.values()) {
       r.onHandAvgCostCents =
         r.onHandQty > 0 ? Math.round(r.onHandCostCents / r.onHandQty) : 0;
-      r.estValueCents = r.marketValueCents * r.onHandQty;
+      r.estValueCents = r.onHandCostCents;
       r.avgProfitCents =
         r.soldQty > 0 ? Math.round(r.totalProfitCents / r.soldQty) : 0;
       r.roi =
@@ -295,7 +290,7 @@ export default function Inventory() {
 
         <div className={`${pageCard} overflow-hidden`}>
           {/* Header */}
-          <div className="grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 border-b border-slate-800 bg-slate-900/40 text-xs text-slate-400 font-medium">
+          <div className="grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 border-b border-slate-800 bg-slate-900/40 text-xs text-slate-400 font-medium">
             <button
               onClick={() => toggleSort("name")}
               className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
@@ -357,21 +352,6 @@ export default function Inventory() {
               )}
             </button>
             <button
-              onClick={() => toggleSort("marketValueCents")}
-              className="hidden lg:flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
-            >
-              Mkt value
-              {sortKey === "marketValueCents" && (
-                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-                  {sortDir === "asc" ? (
-                    <path d="M10 6l-5 6h10L10 6z" />
-                  ) : (
-                    <path d="M10 14l5-6H5l5 6z" />
-                  )}
-                </svg>
-              )}
-            </button>
-            <button
               onClick={() => toggleSort("estValueCents")}
               className="hidden lg:flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
             >
@@ -393,7 +373,7 @@ export default function Inventory() {
             {sortedRows.map((r, index) => (
               <div
                 key={r.name}
-                className={`grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 border-b border-slate-800/50 hover:bg-slate-900/20 transition-colors ${
+                className={`grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 border-b border-slate-800/50 hover:bg-slate-900/20 transition-colors ${
                   index % 2 === 0 ? "bg-slate-900/10" : "bg-slate-900/5"
                 }`}
               >
@@ -401,7 +381,6 @@ export default function Inventory() {
                 <div className="text-slate-200">{r.onHandQty}</div>
                 <div className="text-slate-200">${centsToStr(r.onHandAvgCostCents)}</div>
                 <div className="hidden lg:block text-slate-200">${centsToStr(r.onHandCostCents)}</div>
-                <div className="hidden lg:block text-slate-200">${centsToStr(r.marketValueCents)}</div>
                 <div className="hidden lg:block text-slate-100 font-semibold">${centsToStr(r.estValueCents)}</div>
               </div>
             ))}
