@@ -395,7 +395,7 @@ export default function Emails() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="emails" showTabs />
+        <HeaderWithTabs active="emails" showTabs section="automations" />
 
         {/* Connect / Sync */}
         <div className={`${card} mb-6`}>

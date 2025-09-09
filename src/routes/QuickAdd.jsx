@@ -398,7 +398,7 @@ export default function QuickAdd() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="add" showTabs />
+        <HeaderWithTabs active="add" showTabs section="orderbook" />
 
         <form onSubmit={onSave} className={`${card} space-y-6`}>
           {/* ORDER */}

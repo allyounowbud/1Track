@@ -5,10 +5,11 @@ import { supabase } from "../lib/supabaseClient";
 
 /**
  * Props:
- * - active: "orders" | "add" | "sold" | "stats" | "settings"
+ * - active: "orders" | "add" | "sold" | "stats" | "settings" | "emails"
  * - showTabs: boolean (default true)
+ * - section: "orderbook" | "automations" (default "orderbook")
  */
-export default function HeaderWithTabs({ active = "", showTabs = true }) {
+export default function HeaderWithTabs({ active = "", showTabs = true, section = "orderbook" }) {
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
 
   useEffect(() => {
@@ -89,27 +90,34 @@ export default function HeaderWithTabs({ active = "", showTabs = true }) {
       {/* Tabs */}
       {showTabs && (
         <div className="relative z-20 flex flex-wrap items-center gap-2 mb-6">
-          <NavLink to="/add" end className={tabClass("add")}>
-            Quick Add
-          </NavLink>
-          <NavLink to="/sold" end className={tabClass("sold")}>
-            Mark as Sold
-          </NavLink>
-          <NavLink to="/orders" end className={tabClass("orders")}>
-            Order Book
-          </NavLink>
-          <NavLink to="/inventory" end className={tabClass("inventory")}>
-            Inventory
-          </NavLink>
-          <NavLink to="/stats" end className={tabClass("stats")}>
-            Stats
-          </NavLink>
-          <NavLink to="/settings" end className={tabClass("settings")}>
-            Database
-          </NavLink>
-          <NavLink to="/emails" end className={tabClass("emails")}>
-            Emails
-          </NavLink>
+          {section === "orderbook" ? (
+            <>
+              <NavLink to="/add" end className={tabClass("add")}>
+                Quick Add
+              </NavLink>
+              <NavLink to="/sold" end className={tabClass("sold")}>
+                Mark as Sold
+              </NavLink>
+              <NavLink to="/orders" end className={tabClass("orders")}>
+                Order Book
+              </NavLink>
+              <NavLink to="/inventory" end className={tabClass("inventory")}>
+                Inventory
+              </NavLink>
+              <NavLink to="/stats" end className={tabClass("stats")}>
+                Stats
+              </NavLink>
+              <NavLink to="/settings" end className={tabClass("settings")}>
+                Database
+              </NavLink>
+            </>
+          ) : (
+            <>
+              <NavLink to="/emails" end className={tabClass("emails")}>
+                Emails
+              </NavLink>
+            </>
+          )}
         </div>
       )}
     </>

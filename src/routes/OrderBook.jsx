@@ -421,7 +421,7 @@ export default function OrderBook() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        <HeaderWithTabs />
+        <HeaderWithTabs active="orders" section="orderbook" />
 
         {/* Search + meta */}
         <div className={`${pageCard} mb-6`}>
