@@ -352,28 +352,41 @@ function UnifiedOrderView({
     <div className={`${pageCard}`}>
       {/* Header with View Toggle and Actions */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
-        {/* Left side - View Toggle */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-              viewMode === 'grid'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            Grid
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-              viewMode === 'list'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            List
-          </button>
+        {/* Left side - View Toggle and Selection Count */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                viewMode === 'grid'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Grid
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                viewMode === 'list'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              List
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={selectedRows.size === filtered.length && filtered.length > 0}
+              onChange={toggleAllSelection}
+              className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+            />
+            <span className="text-sm font-semibold text-slate-400">
+              {selectedRows.size}/{filtered.length} Selected
+            </span>
+          </div>
         </div>
 
         {/* Right side - Action Buttons */}
@@ -409,20 +422,6 @@ function UnifiedOrderView({
         </div>
       </div>
 
-      {/* Selection Info */}
-      <div className="mb-3">
-        <div className="flex items-center gap-3 px-4 sm:px-6">
-          <input
-            type="checkbox"
-            checked={selectedRows.size === filtered.length && filtered.length > 0}
-            onChange={toggleAllSelection}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-          />
-          <span className="text-sm font-semibold text-slate-400">
-            {selectedRows.size}/{filtered.length} Selected
-          </span>
-        </div>
-      </div>
 
       {/* Content Area */}
       {viewMode === 'grid' ? (
@@ -493,21 +492,8 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
   return (
     <>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
-        <div className="w-6 flex items-center justify-center">
-          <input
-            type="checkbox"
-            checked={selectedRows.size === orders.length && orders.length > 0}
-            onChange={() => {
-              if (selectedRows.size === orders.length) {
-                setSelectedRows(new Set());
-              } else {
-                setSelectedRows(new Set(orders.map(o => o.id)));
-              }
-            }}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-          />
-        </div>
+      <div className="hidden lg:grid grid-cols-[1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
+        <div className="w-6"></div>
         <div className="text-xs text-slate-300 font-medium">Order date</div>
         <div className="text-xs text-slate-300 font-medium">Item</div>
         <div className="text-xs text-slate-300 font-medium">Profile</div>
@@ -663,22 +649,8 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
 
       {/* Mobile Header - Show on small screens */}
       <div className="lg:hidden flex items-center justify-between mb-4 pb-3 border-b border-slate-700">
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={selectedRows.size === orders.length && orders.length > 0}
-            onChange={() => {
-              if (selectedRows.size === orders.length) {
-                setSelectedRows(new Set());
-              } else {
-                setSelectedRows(new Set(orders.map(o => o.id)));
-              }
-            }}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-          />
-          <span className="text-sm font-semibold text-slate-400">
-            {selectedRows.size}/{orders.length} Selected
-          </span>
+        <div className="text-sm font-semibold text-slate-400">
+          Orders ({orders.length})
         </div>
       </div>
 
