@@ -257,7 +257,7 @@ export default function Settings() {
               {openItems && !addingItem && (
                 <button
                   onClick={() => setAddingItem(true)}
-                  className={headerIconBtn}
+                  className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                   aria-label="Add item"
                   title="Add item"
                 >
@@ -276,7 +276,7 @@ export default function Settings() {
               )}
               <button
                 onClick={() => toggleCard('items')}
-                className={headerGhostBtn}
+                className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                 aria-label={openItems ? "Collapse" : "Expand"}
               >
                 <ChevronDown className={`h-5 w-5 transition-transform ${openItems ? "rotate-180" : ""}`} />
@@ -285,15 +285,32 @@ export default function Settings() {
           </div>
 
           {/* content */}
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openItems ? 1000 : 0 }}>
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openItems ? 'none' : 0 }}>
             <div className="pt-5">
               <div className="hidden sm:grid sm:grid-cols-[1fr_160px_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
-                <div>Item</div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={items.length > 0 && selectedItems.size === items.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        // Select all items
+                        const allItemIds = items.map(item => item.id);
+                        setSelectedItems(new Set(allItemIds));
+                      } else {
+                        // Deselect all items
+                        setSelectedItems(new Set());
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  />
+                  <span>Item</span>
+                </div>
                 <div>Market value ($)</div>
                 <div className="text-right">Actions</div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {addingItem && (
                   <ItemRow
                     isNew
@@ -373,7 +390,7 @@ export default function Settings() {
               {openRetailers && !addingRetailer && (
                 <button
                   onClick={() => setAddingRetailer(true)}
-                  className={headerIconBtn}
+                  className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                   aria-label="Add retailer"
                   title="Add retailer"
                 >
@@ -392,7 +409,7 @@ export default function Settings() {
               )}
               <button
                 onClick={() => toggleCard('retailers')}
-                className={headerGhostBtn}
+                className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                 aria-label={openRetailers ? "Collapse" : "Expand"}
               >
                 <ChevronDown className={`h-5 w-5 transition-transform ${openRetailers ? "rotate-180" : ""}`} />
@@ -401,14 +418,31 @@ export default function Settings() {
           </div>
 
           {/* content */}
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openRetailers ? 1000 : 0 }}>
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openRetailers ? 'none' : 0 }}>
             <div className="pt-5">
               <div className="hidden sm:grid sm:grid-cols-[1fr_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
-                <div>Retailer</div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={retailers.length > 0 && selectedRetailers.size === retailers.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        // Select all retailers
+                        const allRetailerIds = retailers.map(retailer => retailer.id);
+                        setSelectedRetailers(new Set(allRetailerIds));
+                      } else {
+                        // Deselect all retailers
+                        setSelectedRetailers(new Set());
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  />
+                  <span>Retailer</span>
+                </div>
                 <div className="text-right">Actions</div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {addingRetailer && (
                   <RetailerRow
                     isNew
@@ -488,7 +522,7 @@ export default function Settings() {
               {openMarkets && !addingMarket && (
                 <button
                   onClick={() => setAddingMarket(true)}
-                  className={headerIconBtn}
+                  className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                   aria-label="Add marketplace"
                   title="Add marketplace"
                 >
@@ -507,7 +541,7 @@ export default function Settings() {
               )}
               <button
                 onClick={() => toggleCard('markets')}
-                className={headerGhostBtn}
+                className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                 aria-label={openMarkets ? "Collapse" : "Expand"}
               >
                 <ChevronDown className={`h-5 w-5 transition-transform ${openMarkets ? "rotate-180" : ""}`} />
@@ -516,15 +550,32 @@ export default function Settings() {
           </div>
 
           {/* content */}
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openMarkets ? 1000 : 0 }}>
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openMarkets ? 'none' : 0 }}>
             <div className="pt-5">
               <div className="hidden sm:grid sm:grid-cols-[1fr_140px_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
-                <div>Marketplace</div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={markets.length > 0 && selectedMarkets.size === markets.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        // Select all markets
+                        const allMarketIds = markets.map(market => market.id);
+                        setSelectedMarkets(new Set(allMarketIds));
+                      } else {
+                        // Deselect all markets
+                        setSelectedMarkets(new Set());
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  />
+                  <span>Marketplace</span>
+                </div>
                 <div>Fee %</div>
                 <div className="text-right">Actions</div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {addingMarket && (
                   <MarketRow
                     isNew
@@ -603,16 +654,27 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onS
       onClick={onToggleSelection}
     >
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_auto] gap-2 items-center min-w-0">
-        <input
-          className={inputSm}
-          value={name}
-          onChange={(e) => {
-            e.stopPropagation();
-            setName(e.target.value);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Item name…"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              onToggleSelection();
+            }}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          />
+          <input
+            className={inputSm}
+            value={name}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Item name…"
+          />
+        </div>
         <input
           className={`${inputSm} sm:w-[160px]`}
           value={mv}
@@ -728,16 +790,27 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
       onClick={onToggleSelection}
     >
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center min-w-0">
-        <input
-          className={inputSm}
-          value={name}
-          onChange={(e) => {
-            e.stopPropagation();
-            setName(e.target.value);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Retailer name…"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              onToggleSelection();
+            }}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          />
+          <input
+            className={inputSm}
+            value={name}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Retailer name…"
+          />
+        </div>
         <div className="flex justify-end gap-2">
           <button
             onClick={(e) => {
@@ -843,16 +916,27 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
       onClick={onToggleSelection}
     >
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_auto] gap-2 items-center min-w-0">
-        <input
-          className={inputSm}
-          value={name}
-          onChange={(e) => {
-            e.stopPropagation();
-            setName(e.target.value);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Marketplace name…"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              onToggleSelection();
+            }}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          />
+          <input
+            className={inputSm}
+            value={name}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Marketplace name…"
+          />
+        </div>
         <input
           className={`${inputSm} sm:w-[140px]`}
           value={fee}
