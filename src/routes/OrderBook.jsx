@@ -303,131 +303,322 @@ export default function OrderBook() {
           </div>
         </div>
 
-        {/* View Toggle */}
-        <div className={`${pageCard} mb-6`}>
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-slate-400">View Mode</div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                  viewMode === 'grid'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                Grid
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                  viewMode === 'list'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                List
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Bulk Actions */}
-        <div className={`${pageCard} mb-6`}>
-            <div className="flex items-center justify-between">
-              {/* Selection Info */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.size === filtered.length && filtered.length > 0}
-                    onChange={toggleAllSelection}
-                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                  />
-                  <span className="text-sm font-semibold text-slate-400">
-                    {selectedRows.size}/{filtered.length} Selected
-                  </span>
-                </div>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                {/* Save Button */}
-                <button
-                  onClick={bulkSaveSelected}
-                  disabled={selectedRows.size === 0}
-                  className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
-                    selectedRows.size > 0
-                      ? 'border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200'
-                      : 'border-slate-700 bg-slate-800/30 text-slate-500 cursor-not-allowed'
-                  }`}
-                  title={selectedRows.size > 0 ? "Save Selected Orders" : "No orders selected"}
-                >
-                  <svg className={`w-4 h-4 transition-transform ${selectedRows.size > 0 ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                  </svg>
-                </button>
-                
-                {/* Delete Button */}
-                <button
-                  onClick={bulkDeleteSelected}
-                  disabled={selectedRows.size === 0}
-                  className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
-                    selectedRows.size > 0
-                      ? 'border-red-600/50 bg-red-900/30 hover:bg-red-800/50 hover:border-red-500 text-red-200'
-                      : 'border-slate-700 bg-slate-800/30 text-slate-500 cursor-not-allowed'
-                  }`}
-                  title={selectedRows.size > 0 ? "Delete Selected Orders" : "No orders selected"}
-                >
-                  <svg className={`w-4 h-4 transition-transform ${selectedRows.size > 0 ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
 
         {/* Day cards */}
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
-        {viewMode === 'grid' ? (
-          <div className="space-y-5">
-            {grouped.map((g) => (
-              <DayCard
-                key={g.key}
-                title={g.nice}
-                dateKey={g.key}
-                count={g.rows.length}
-                defaultOpen={false}       // collapsed by default
-                rows={g.rows}
-                items={items}
-                retailers={retailers}
-                markets={markets}
-                onSaved={refetch}
-                onDeleted={refetch}
-                selectedRows={selectedRows}
-                onToggleRowSelection={toggleRowSelection}
-                setSelectedRows={setSelectedRows}
-              />
-            ))}
-            {!grouped.length && (
-              <div className={`${pageCard} text-slate-400`}>No orders found.</div>
-            )}
+        <UnifiedOrderView
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          grouped={grouped}
+          filtered={filtered}
+          items={items}
+          retailers={retailers}
+          markets={markets}
+          onSaved={refetch}
+          onDeleted={refetch}
+          selectedRows={selectedRows}
+          onToggleRowSelection={toggleRowSelection}
+          setSelectedRows={setSelectedRows}
+          toggleAllSelection={toggleAllSelection}
+          bulkSaveSelected={bulkSaveSelected}
+          bulkDeleteSelected={bulkDeleteSelected}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Unified Order View Component ---------- */
+function UnifiedOrderView({ 
+  viewMode, 
+  setViewMode, 
+  grouped, 
+  filtered, 
+  items, 
+  retailers, 
+  markets, 
+  onSaved, 
+  onDeleted, 
+  selectedRows, 
+  onToggleRowSelection, 
+  setSelectedRows, 
+  toggleAllSelection, 
+  bulkSaveSelected, 
+  bulkDeleteSelected 
+}) {
+  return (
+    <div className={`${pageCard}`}>
+      {/* Header with View Toggle, Selection, and Actions */}
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700">
+        {/* Left side - View Toggle */}
+        <div className="flex items-center gap-4">
+          <div className="text-sm font-semibold text-slate-400">View Mode</div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                viewMode === 'grid'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Grid
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                viewMode === 'list'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              List
+            </button>
           </div>
-        ) : (
-          <ListView
-            orders={filtered}
+        </div>
+
+        {/* Center - Selection Info */}
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={selectedRows.size === filtered.length && filtered.length > 0}
+            onChange={toggleAllSelection}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          />
+          <span className="text-sm font-semibold text-slate-400">
+            {selectedRows.size}/{filtered.length} Selected
+          </span>
+        </div>
+
+        {/* Right side - Action Buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={bulkSaveSelected}
+            disabled={selectedRows.size === 0}
+            className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
+              selectedRows.size > 0
+                ? 'border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200'
+                : 'border-slate-700 bg-slate-800/30 text-slate-500 cursor-not-allowed'
+            }`}
+            title={selectedRows.size > 0 ? "Save Selected Orders" : "No orders selected"}
+          >
+            <svg className={`w-4 h-4 transition-transform ${selectedRows.size > 0 ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+          </button>
+          <button
+            onClick={bulkDeleteSelected}
+            disabled={selectedRows.size === 0}
+            className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
+              selectedRows.size > 0
+                ? 'border-red-600/50 bg-red-900/30 hover:bg-red-800/50 hover:border-red-500 text-red-200'
+                : 'border-slate-700 bg-slate-800/30 text-slate-500 cursor-not-allowed'
+            }`}
+            title={selectedRows.size > 0 ? "Delete Selected Orders" : "No orders selected"}
+          >
+            <svg className={`w-4 h-4 transition-transform ${selectedRows.size > 0 ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      {viewMode === 'grid' ? (
+        <UnifiedGridView
+          grouped={grouped}
+          items={items}
+          retailers={retailers}
+          markets={markets}
+          onSaved={onSaved}
+          onDeleted={onDeleted}
+          selectedRows={selectedRows}
+          onToggleRowSelection={onToggleRowSelection}
+          setSelectedRows={setSelectedRows}
+        />
+      ) : (
+        <UnifiedListView
+          orders={filtered}
+          items={items}
+          retailers={retailers}
+          markets={markets}
+          onSaved={onSaved}
+          onDeleted={onDeleted}
+          selectedRows={selectedRows}
+          onToggleRowSelection={onToggleRowSelection}
+          setSelectedRows={setSelectedRows}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------- Unified Grid View Component ---------- */
+function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows }) {
+  if (!grouped.length) {
+    return <div className="text-slate-400">No orders found.</div>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {grouped.map((g) => (
+        <UnifiedDaySection
+          key={g.key}
+          title={g.nice}
+          dateKey={g.key}
+          count={g.rows.length}
+          defaultOpen={false}
+          rows={g.rows}
+          items={items}
+          retailers={retailers}
+          markets={markets}
+          onSaved={onSaved}
+          onDeleted={onDeleted}
+          selectedRows={selectedRows}
+          onToggleRowSelection={onToggleRowSelection}
+          setSelectedRows={setSelectedRows}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ---------- Unified List View Component ---------- */
+function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows }) {
+  if (!orders.length) {
+    return <div className="text-slate-400">No orders found.</div>;
+  }
+
+  return (
+    <>
+      {/* Table Header - Hidden on mobile */}
+      <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
+        <div className="w-6 flex items-center justify-center">
+          <input
+            type="checkbox"
+            checked={selectedRows.size === orders.length && orders.length > 0}
+            onChange={() => {
+              if (selectedRows.size === orders.length) {
+                setSelectedRows(new Set());
+              } else {
+                setSelectedRows(new Set(orders.map(o => o.id)));
+              }
+            }}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          />
+        </div>
+        <div className="text-xs text-slate-300 font-medium">Order date</div>
+        <div className="text-xs text-slate-300 font-medium">Item</div>
+        <div className="text-xs text-slate-300 font-medium">Profile</div>
+        <div className="text-xs text-slate-300 font-medium">Retailer</div>
+        <div className="text-xs text-slate-300 font-medium">Buy $</div>
+        <div className="text-xs text-slate-300 font-medium">Sale $</div>
+        <div className="text-xs text-slate-300 font-medium">Sale date</div>
+        <div className="text-xs text-slate-300 font-medium">Marketplace</div>
+        <div className="text-xs text-slate-300 font-medium">Ship $</div>
+      </div>
+
+      {/* Table Body */}
+      <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
+        {orders.map((order) => (
+          <OrderRow
+            key={order.id}
+            order={order}
             items={items}
             retailers={retailers}
             markets={markets}
-            onSaved={refetch}
-            onDeleted={refetch}
-            selectedRows={selectedRows}
-            onToggleRowSelection={toggleRowSelection}
-            setSelectedRows={setSelectedRows}
+            onSaved={onSaved}
+            onDeleted={onDeleted}
+            isSelected={selectedRows.has(order.id)}
+            onToggleSelection={() => onToggleRowSelection(order.id)}
           />
-        )}
+        ))}
+      </div>
+    </>
+  );
+}
+
+/* ---------- Unified Day Section Component ---------- */
+function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-slate-800 rounded-xl overflow-hidden">
+      {/* Header Row */}
+      <div 
+        className="flex items-center justify-between p-4 bg-slate-800/30 hover:bg-slate-800/50 cursor-pointer transition-colors"
+        onClick={() => setOpen(!open)}
+      >
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={selectedRows.size === rows.length && rows.length > 0 && rows.every(row => selectedRows.has(row.id))}
+              onChange={(e) => {
+                e.stopPropagation();
+                const newSelected = new Set(selectedRows);
+                if (rows.every(row => selectedRows.has(row.id))) {
+                  // Deselect all rows in this section
+                  rows.forEach(row => newSelected.delete(row.id));
+                } else {
+                  // Select all rows in this section
+                  rows.forEach(row => newSelected.add(row.id));
+                }
+                setSelectedRows(newSelected);
+              }}
+              className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+            />
+            <span className="text-sm font-semibold text-slate-400">
+              {rows.filter(row => selectedRows.has(row.id)).length}/{rows.length} Selected
+            </span>
+          </div>
+          <div>
+            <div className="text-lg font-semibold text-slate-100">{title}</div>
+            <div className="text-sm text-slate-400">{count} orders</div>
+          </div>
+        </div>
+        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </div>
+
+      {/* Content */}
+      <div 
+        className="transition-all duration-300 ease-in-out overflow-hidden"
+        style={{ maxHeight: open ? '1000px' : '0px' }}
+      >
+        <div className="p-4 border-t border-slate-700">
+          {/* Header Row for Orders */}
+          <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-3 pb-2 border-b border-slate-700">
+            <div className="w-6"></div>
+            <div className="text-xs text-slate-300 font-medium">Order date</div>
+            <div className="text-xs text-slate-300 font-medium">Item</div>
+            <div className="text-xs text-slate-300 font-medium">Profile</div>
+            <div className="text-xs text-slate-300 font-medium">Retailer</div>
+            <div className="text-xs text-slate-300 font-medium">Buy $</div>
+            <div className="text-xs text-slate-300 font-medium">Sale $</div>
+            <div className="text-xs text-slate-300 font-medium">Sale date</div>
+            <div className="text-xs text-slate-300 font-medium">Marketplace</div>
+            <div className="text-xs text-slate-300 font-medium">Ship $</div>
+          </div>
+
+          {/* Order Rows */}
+          <div className="space-y-2">
+            {rows.map((order) => (
+              <OrderRow
+                key={order.id}
+                order={order}
+                items={items}
+                retailers={retailers}
+                markets={markets}
+                onSaved={onSaved}
+                onDeleted={onDeleted}
+                isSelected={selectedRows.has(order.id)}
+                onToggleSelection={() => onToggleRowSelection(order.id)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
