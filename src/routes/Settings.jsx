@@ -248,7 +248,7 @@ export default function Settings() {
                   <span className="text-sm text-slate-400">
                     {selectedItems.size} selected
                   </span>
-                  <button
+                <button
                     onClick={bulkSaveItems}
                     className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                     title="Save selected"
@@ -296,7 +296,7 @@ export default function Settings() {
                     try {
                       const { error } = await supabase
                         .from("items")
-                        .insert({ name: "New Item", market_value_cents: 0 });
+                        .insert({ name: "New item name here", market_value_cents: 0 });
                       if (error) throw error;
                       await refetchItems();
                     } catch (e) {
@@ -361,10 +361,21 @@ export default function Settings() {
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
-                {items.map((it) => (
+                {items
+                  .sort((a, b) => {
+                    // Put new items (with placeholder text) at the top
+                    const aIsNew = a.name === "New item name here";
+                    const bIsNew = b.name === "New item name here";
+                    if (aIsNew && !bIsNew) return -1;
+                    if (!aIsNew && bIsNew) return 1;
+                    // Then sort alphabetically
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((it) => (
                   <ItemRow
                     key={it.id}
                     it={it}
+                    isNew={it.name === "New item name here"}
                     isSelected={selectedItems.has(it.id)}
                     onToggleSelection={() => {
                       const newSelected = new Set(selectedItems);
@@ -401,7 +412,7 @@ export default function Settings() {
                   <span className="text-sm text-slate-400">
                     {selectedRetailers.size} selected
                   </span>
-                  <button
+                <button
                     onClick={bulkSaveRetailers}
                     className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                     title="Save selected"
@@ -449,7 +460,7 @@ export default function Settings() {
                     try {
                       const { error } = await supabase
                         .from("retailers")
-                        .insert({ name: "New Retailer" });
+                        .insert({ name: "New retailer name here" });
                       if (error) throw error;
                       await refetchRetailers();
                     } catch (e) {
@@ -513,10 +524,21 @@ export default function Settings() {
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
-                {retailers.map((r) => (
+                {retailers
+                  .sort((a, b) => {
+                    // Put new retailers (with placeholder text) at the top
+                    const aIsNew = a.name === "New retailer name here";
+                    const bIsNew = b.name === "New retailer name here";
+                    if (aIsNew && !bIsNew) return -1;
+                    if (!aIsNew && bIsNew) return 1;
+                    // Then sort alphabetically
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((r) => (
                   <RetailerRow
                     key={r.id}
                     r={r}
+                    isNew={r.name === "New retailer name here"}
                     isSelected={selectedRetailers.has(r.id)}
                     onToggleSelection={() => {
                       const newSelected = new Set(selectedRetailers);
@@ -553,7 +575,7 @@ export default function Settings() {
                   <span className="text-sm text-slate-400">
                     {selectedMarkets.size} selected
                   </span>
-                  <button
+                <button
                     onClick={bulkSaveMarkets}
                     className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                     title="Save selected"
@@ -601,7 +623,7 @@ export default function Settings() {
                     try {
                       const { error } = await supabase
                         .from("marketplaces")
-                        .insert({ name: "New Marketplace", default_fees_pct: 0 });
+                        .insert({ name: "New marketplace name here", default_fees_pct: 0 });
                       if (error) throw error;
                       await refetchMarkets();
                     } catch (e) {
@@ -666,10 +688,21 @@ export default function Settings() {
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
-                {markets.map((m) => (
+                {markets
+                  .sort((a, b) => {
+                    // Put new marketplaces (with placeholder text) at the top
+                    const aIsNew = a.name === "New marketplace name here";
+                    const bIsNew = b.name === "New marketplace name here";
+                    if (aIsNew && !bIsNew) return -1;
+                    if (!aIsNew && bIsNew) return 1;
+                    // Then sort alphabetically
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((m) => (
                   <MarketRow
                     key={m.id}
                     m={m}
+                    isNew={m.name === "New marketplace name here"}
                     isSelected={selectedMarkets.has(m.id)}
                     onToggleSelection={() => {
                       const newSelected = new Set(selectedMarkets);
@@ -707,7 +740,7 @@ function ChevronDown({ className = "h-5 w-5" }) {
 
 /* ---------- Row components ---------- */
 
-function ItemRow({ it, isSelected = false, onToggleSelection, onDelete }) {
+function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onDelete }) {
   const [name, setName] = useState(it?.name ?? "");
   const [mv, setMv] = useState(centsToStr(it?.market_value_cents ?? 0));
   const [status, setStatus] = useState("");
@@ -730,14 +763,14 @@ function ItemRow({ it, isSelected = false, onToggleSelection, onDelete }) {
       setStatus(String(e.message || e));
       setTimeout(() => setStatus(""), 2000);
     } finally {
-      setBusy(false);
+    setBusy(false);
     }
   }
 
   return (
     <div 
       className={`${rowCard} cursor-pointer transition-all ${
-        isSelected 
+        isSelected || isNew
           ? 'border-indigo-500 bg-indigo-500/10' 
           : 'border-slate-800 hover:bg-slate-800/50'
       }`}
@@ -756,16 +789,16 @@ function ItemRow({ it, isSelected = false, onToggleSelection, onDelete }) {
               className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
             />
           </div>
-          <input
-            className={inputSm}
-            value={name}
+        <input
+          className={inputSm}
+          value={name}
             onChange={(e) => {
               e.stopPropagation();
               setName(e.target.value);
             }}
             onBlur={updateItem}
             onClick={(e) => e.stopPropagation()}
-            placeholder="Item name…"
+            placeholder={isNew ? "New item name here" : "Item name…"}
           />
         </div>
         <input
@@ -797,7 +830,7 @@ function ItemRow({ it, isSelected = false, onToggleSelection, onDelete }) {
   );
 }
 
-function RetailerRow({ r, isSelected = false, onToggleSelection, onDelete }) {
+function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, onDelete }) {
   const [name, setName] = useState(r?.name ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -818,14 +851,14 @@ function RetailerRow({ r, isSelected = false, onToggleSelection, onDelete }) {
       setStatus(String(e.message || e));
       setTimeout(() => setStatus(""), 2000);
     } finally {
-      setBusy(false);
+    setBusy(false);
     }
   }
 
   return (
     <div 
       className={`${rowCard} cursor-pointer transition-all ${
-        isSelected 
+        isSelected || isNew
           ? 'border-indigo-500 bg-indigo-500/10' 
           : 'border-slate-800 hover:bg-slate-800/50'
       }`}
@@ -844,17 +877,17 @@ function RetailerRow({ r, isSelected = false, onToggleSelection, onDelete }) {
               className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
             />
           </div>
-          <input
-            className={inputSm}
-            value={name}
-            onChange={(e) => {
-              e.stopPropagation();
-              setName(e.target.value);
-            }}
-            onBlur={updateRetailer}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="Retailer name…"
-          />
+        <input
+          className={inputSm}
+          value={name}
+          onChange={(e) => {
+            e.stopPropagation();
+            setName(e.target.value);
+          }}
+          onBlur={updateRetailer}
+          onClick={(e) => e.stopPropagation()}
+          placeholder={isNew ? "New retailer name here" : "Retailer name…"}
+        />
         </div>
       </div>
       {status && (
@@ -874,7 +907,7 @@ function RetailerRow({ r, isSelected = false, onToggleSelection, onDelete }) {
   );
 }
 
-function MarketRow({ m, isSelected = false, onToggleSelection, onDelete }) {
+function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, onDelete }) {
   const [name, setName] = useState(m?.name ?? "");
   const [fee, setFee] = useState(((m?.default_fees_pct ?? 0) * 100).toString());
   const [status, setStatus] = useState("");
@@ -897,14 +930,14 @@ function MarketRow({ m, isSelected = false, onToggleSelection, onDelete }) {
       setStatus(String(e.message || e));
       setTimeout(() => setStatus(""), 2000);
     } finally {
-      setBusy(false);
+    setBusy(false);
     }
   }
 
   return (
     <div 
       className={`${rowCard} cursor-pointer transition-all ${
-        isSelected 
+        isSelected || isNew
           ? 'border-indigo-500 bg-indigo-500/10' 
           : 'border-slate-800 hover:bg-slate-800/50'
       }`}
@@ -923,17 +956,17 @@ function MarketRow({ m, isSelected = false, onToggleSelection, onDelete }) {
               className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
             />
           </div>
-          <input
-            className={inputSm}
-            value={name}
-            onChange={(e) => {
-              e.stopPropagation();
-              setName(e.target.value);
-            }}
-            onBlur={updateMarket}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="Marketplace name…"
-          />
+        <input
+          className={inputSm}
+          value={name}
+          onChange={(e) => {
+            e.stopPropagation();
+            setName(e.target.value);
+          }}
+          onBlur={updateMarket}
+          onClick={(e) => e.stopPropagation()}
+          placeholder={isNew ? "New marketplace name here" : "Marketplace name…"}
+        />
         </div>
         <input
           className={`${inputSm} sm:w-[140px]`}
