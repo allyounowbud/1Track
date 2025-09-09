@@ -124,7 +124,7 @@ export default function Inventory() {
           : 0;
     }
     return map;
-  }, [orders, mvByName]);
+  }, [orders]);
 
   /* ---------------- Filter: searchable dropdown ---------------- */
   // Only suggest items that currently have inventory on hand
