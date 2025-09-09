@@ -303,6 +303,35 @@ export default function OrderBook() {
           </div>
         </div>
 
+        {/* View Toggle */}
+        <div className={`${pageCard} mb-6`}>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-slate-400">View Mode</div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                Grid
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                List
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Bulk Actions */}
         <div className={`${pageCard} mb-6`}>
             <div className="flex items-center justify-between">
@@ -357,35 +386,6 @@ export default function OrderBook() {
               </div>
             </div>
           </div>
-
-        {/* View Toggle */}
-        <div className={`${pageCard} mb-6`}>
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-slate-200">View Mode</div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                  viewMode === 'grid'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                Grid
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                  viewMode === 'list'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                List
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* Day cards */}
         {isLoading && <div className="text-slate-400">Loading…</div>}
