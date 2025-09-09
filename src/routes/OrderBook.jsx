@@ -326,7 +326,7 @@ export default function OrderBook() {
                 <button
                   onClick={bulkSaveSelected}
                   disabled={selectedRows.size === 0}
-                  className={`w-10 h-10 rounded-full border transition-all duration-200 flex items-center justify-center group ${
+                  className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
                     selectedRows.size > 0
                       ? 'border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200'
                       : 'border-slate-700 bg-slate-800/30 text-slate-500 cursor-not-allowed'
@@ -342,7 +342,7 @@ export default function OrderBook() {
                 <button
                   onClick={bulkDeleteSelected}
                   disabled={selectedRows.size === 0}
-                  className={`w-10 h-10 rounded-full border transition-all duration-200 flex items-center justify-center group ${
+                  className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
                     selectedRows.size > 0
                       ? 'border-red-600/50 bg-red-900/30 hover:bg-red-800/50 hover:border-red-500 text-red-200'
                       : 'border-slate-700 bg-slate-800/30 text-slate-500 cursor-not-allowed'
