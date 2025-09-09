@@ -651,7 +651,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-full min-w-0 max-w-full"
         />
 
         {/* Item Name - Most Important */}
@@ -717,7 +717,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={sale_date || ""}
           onChange={(e) => setSaleDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-full min-w-0 max-w-full"
         />
 
         {/* Marketplace */}

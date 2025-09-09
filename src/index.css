@@ -37,3 +37,20 @@ body { @apply bg-slate-950 text-slate-100; }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: rgb(94 106 125); /* slate-500 */
 }
+
+/* Fix date input sizing on mobile */
+input[type="date"] {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Ensure grid items don't overflow on mobile */
+.grid {
+  min-width: 0;
+}
+
+.grid > * {
+  min-width: 0;
+  overflow: hidden;
+}
