@@ -148,6 +148,9 @@ export default function OrderBook() {
   
   /* refs for collecting form data from OrderRow components */
   const orderRowRefs = useRef(new Map());
+  
+  /* form state management for persistent form data */
+  const [formStates, setFormStates] = useState(new Map());
 
   // Update bulk actions visibility when selection changes
   useEffect(() => {
@@ -349,7 +352,7 @@ export default function OrderBook() {
 
   const filtered = useMemo(() => {
     const query = (q || "").trim().toLowerCase();
-    const allRows = [...orders, ...newRows]; // Include new rows
+    const allRows = [...newRows, ...orders]; // Include new rows at the top
     
     if (!query) return allRows;
 
@@ -473,6 +476,8 @@ export default function OrderBook() {
           cancelNewRows={cancelNewRows}
           bulkDeleteSelected={bulkDeleteSelected}
           orderRowRefs={orderRowRefs}
+          formStates={formStates}
+          setFormStates={setFormStates}
         />
       </div>
     </div>
@@ -498,7 +503,9 @@ function UnifiedOrderView({
   bulkDeleteSelected,
   addNewRow,
   cancelNewRows,
-  orderRowRefs
+  orderRowRefs,
+  formStates,
+  setFormStates
 }) {
   return (
     <div className={`${pageCard}`}>
@@ -612,6 +619,8 @@ function UnifiedOrderView({
           onToggleRowSelection={onToggleRowSelection}
           setSelectedRows={setSelectedRows}
           orderRowRefs={orderRowRefs}
+          formStates={formStates}
+          setFormStates={setFormStates}
         />
       ) : (
         <UnifiedListView
@@ -625,6 +634,8 @@ function UnifiedOrderView({
           onToggleRowSelection={onToggleRowSelection}
           setSelectedRows={setSelectedRows}
           orderRowRefs={orderRowRefs}
+          formStates={formStates}
+          setFormStates={setFormStates}
         />
       )}
     </div>
@@ -632,7 +643,7 @@ function UnifiedOrderView({
 }
 
 /* ---------- Unified Grid View Component ---------- */
-function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs }) {
+function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates }) {
   if (!grouped.length) {
     return <div className="text-slate-400">No orders found.</div>;
   }
@@ -656,6 +667,8 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
           onToggleRowSelection={onToggleRowSelection}
           setSelectedRows={setSelectedRows}
           orderRowRefs={orderRowRefs}
+          formStates={formStates}
+          setFormStates={setFormStates}
             />
           ))}
     </div>
@@ -663,7 +676,7 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
 }
 
 /* ---------- Unified List View Component ---------- */
-function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs }) {
+function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates }) {
   if (!orders.length) {
     return <div className="text-slate-400">No orders found.</div>;
   }
@@ -698,6 +711,8 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
             isSelected={selectedRows.has(order.id)}
             onToggleSelection={() => onToggleRowSelection(order.id)}
             orderRowRefs={orderRowRefs}
+            formStates={formStates}
+            setFormStates={setFormStates}
           />
         ))}
       </div>
@@ -706,7 +721,7 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
 }
 
 /* ---------- Unified Day Section Component ---------- */
-function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs }) {
+function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates }) {
   const [open, setOpen] = useState(defaultOpen);
   const allRowsSelected = rows.length > 0 && rows.every(row => selectedRows.has(row.id));
 
@@ -742,6 +757,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
                 }
                 setSelectedRows(newSelected);
               }}
+              onClick={(e) => e.stopPropagation()}
               className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
             />
           </div>
@@ -784,6 +800,8 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
                 isSelected={selectedRows.has(order.id)}
                 onToggleSelection={() => onToggleRowSelection(order.id)}
                 orderRowRefs={orderRowRefs}
+                formStates={formStates}
+                setFormStates={setFormStates}
             />
           ))}
           </div>
@@ -1032,17 +1050,120 @@ function DayCard({
 }
 
 /* ============== Row component ============== */
-function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSelected, onToggleSelection, orderRowRefs }) {
-  const [order_date, setOrderDate] = useState(order.order_date || "");
-  const [item, setItem] = useState(order.item || "");
-  const [profile_name, setProfile] = useState(order.profile_name || "");
-  const [retailer, setRetailer] = useState(order.retailer || "");
-  const [buyPrice, setBuyPrice] = useState(centsToStr(order.buy_price_cents));
-  const [salePrice, setSalePrice] = useState(centsToStr(order.sale_price_cents));
-  const [sale_date, setSaleDate] = useState(order.sale_date || "");
-  const [marketplace, setMarketplace] = useState(order.marketplace || "");
-  const [feesPct, setFeesPct] = useState(((order.fees_pct ?? 0) * 100).toString());
-  const [shipping, setShipping] = useState(centsToStr(order.shipping_cents));
+function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSelected, onToggleSelection, orderRowRefs, formStates, setFormStates }) {
+  // Get or initialize form state for this order
+  const getFormState = () => {
+    if (!formStates.has(order.id)) {
+      const initialState = {
+        order_date: order.order_date || "",
+        item: order.item || "",
+        profile_name: order.profile_name || "",
+        retailer: order.retailer || "",
+        buyPrice: centsToStr(order.buy_price_cents),
+        salePrice: centsToStr(order.sale_price_cents),
+        sale_date: order.sale_date || "",
+        marketplace: order.marketplace || "",
+        feesPct: ((order.fees_pct ?? 0) * 100).toString(),
+        shipping: centsToStr(order.shipping_cents),
+      };
+      setFormStates(prev => new Map(prev).set(order.id, initialState));
+      return initialState;
+    }
+    return formStates.get(order.id);
+  };
+
+  const formState = getFormState();
+  
+  // State setters that update the persistent form state
+  const setOrderDate = (value) => {
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { ...currentState, order_date: value });
+      return newMap;
+    });
+  };
+  
+  const setItem = (value) => {
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { ...currentState, item: value });
+      return newMap;
+    });
+  };
+  
+  const setProfile = (value) => {
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { ...currentState, profile_name: value });
+      return newMap;
+    });
+  };
+  
+  const setRetailer = (value) => {
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { ...currentState, retailer: value });
+      return newMap;
+    });
+  };
+  
+  const setBuyPrice = (value) => {
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { ...currentState, buyPrice: value });
+      return newMap;
+    });
+  };
+  
+  const setSalePrice = (value) => {
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { ...currentState, salePrice: value });
+      return newMap;
+    });
+  };
+  
+  const setSaleDate = (value) => {
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { ...currentState, sale_date: value });
+      return newMap;
+    });
+  };
+  
+  const setMarketplace = (value) => {
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { ...currentState, marketplace: value });
+      return newMap;
+    });
+  };
+  
+  const setFeesPct = (value) => {
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { ...currentState, feesPct: value });
+      return newMap;
+    });
+  };
+  
+  const setShipping = (value) => {
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { ...currentState, shipping: value });
+      return newMap;
+    });
+  };
 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1052,17 +1173,18 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
     if (orderRowRefs) {
       // Create a function that captures current state values
       const getFormData = () => {
+        const currentFormState = formStates.get(order.id) || formState;
         const formData = {
-          order_date,
-          item,
-          profile_name,
-          retailer,
-          buy_price_cents: buyPrice,
-          sale_price_cents: salePrice,
-          sale_date,
-          marketplace,
-          shipping_cents: shipping,
-          fees_pct: feesPct,
+          order_date: currentFormState.order_date,
+          item: currentFormState.item,
+          profile_name: currentFormState.profile_name,
+          retailer: currentFormState.retailer,
+          buy_price_cents: currentFormState.buyPrice,
+          sale_price_cents: currentFormState.salePrice,
+          sale_date: currentFormState.sale_date,
+          marketplace: currentFormState.marketplace,
+          shipping_cents: currentFormState.shipping,
+          fees_pct: currentFormState.feesPct,
         };
         console.log(`OrderRow ${order.id} getFormData called, returning:`, formData);
         return formData;
@@ -1075,12 +1197,13 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         orderRowRefs.current.delete(order.id);
       };
     }
-  }, [order.id, orderRowRefs, order_date, item, profile_name, retailer, buyPrice, salePrice, sale_date, marketplace, shipping, feesPct]);
+  }, [order.id, orderRowRefs, formStates, formState]);
 
   function handleMarketplaceChange(name) {
     setMarketplace(name);
     const mk = markets.find((m) => m.name === name);
-    const current = Number(String(feesPct).replace("%", "")) || 0;
+    const currentFormState = formStates.get(order.id) || formState;
+    const current = Number(String(currentFormState.feesPct).replace("%", "")) || 0;
     if (mk && (!current || current === 0)) {
       setFeesPct(((mk.default_fees_pct ?? 0) * 100).toString());
     }
@@ -1090,18 +1213,19 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
     setBusy(true);
     setMsg("");
     try {
-      const statusValue = moneyToCents(salePrice) > 0 ? "sold" : "ordered";
+      const currentFormState = formStates.get(order.id) || formState;
+      const statusValue = moneyToCents(currentFormState.salePrice) > 0 ? "sold" : "ordered";
       const payload = {
-        order_date: order_date || null,
-        item: item || null,
-        profile_name: profile_name || null,
-        retailer: retailer || null,
-        marketplace: marketplace || null,
-        buy_price_cents: moneyToCents(buyPrice),
-        sale_price_cents: moneyToCents(salePrice),
-        sale_date: sale_date || null,
-        fees_pct: parsePct(feesPct),
-        shipping_cents: moneyToCents(shipping),
+        order_date: currentFormState.order_date || null,
+        item: currentFormState.item || null,
+        profile_name: currentFormState.profile_name || null,
+        retailer: currentFormState.retailer || null,
+        marketplace: currentFormState.marketplace || null,
+        buy_price_cents: moneyToCents(currentFormState.buyPrice),
+        sale_price_cents: moneyToCents(currentFormState.salePrice),
+        sale_date: currentFormState.sale_date || null,
+        fees_pct: parsePct(currentFormState.feesPct),
+        shipping_cents: moneyToCents(currentFormState.shipping),
         status: statusValue,
       };
       const { error } = await supabase.from("orders").update(payload).eq("id", order.id);
@@ -1147,7 +1271,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         {/* Order Date - Responsive */}
         <input
           type="date"
-          value={order_date || ""}
+          value={formState.order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-full min-w-0 max-w-full"
@@ -1155,7 +1279,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
         {/* Item Name - Most Important */}
         <select
-          value={item || ""}
+          value={formState.item || ""}
           onChange={(e) => setItem(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
@@ -1170,7 +1294,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
         {/* Profile */}
         <input
-          value={profile_name}
+          value={formState.profile_name}
           onChange={(e) => setProfile(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Profile"
@@ -1179,7 +1303,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
         {/* Retailer */}
         <select
-          value={retailer || ""}
+          value={formState.retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
@@ -1194,7 +1318,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
         {/* Buy Price */}
         <input
-          value={buyPrice}
+          value={formState.buyPrice}
           onChange={(e) => setBuyPrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Buy"
@@ -1203,7 +1327,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
         {/* Sale Price */}
         <input
-          value={salePrice}
+          value={formState.salePrice}
           onChange={(e) => setSalePrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Sale"
@@ -1213,7 +1337,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         {/* Sale Date - Responsive */}
         <input
           type="date"
-          value={sale_date || ""}
+          value={formState.sale_date || ""}
           onChange={(e) => setSaleDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-full min-w-0 max-w-full"
@@ -1221,7 +1345,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
         {/* Marketplace */}
         <select
-          value={marketplace || ""}
+          value={formState.marketplace || ""}
           onChange={(e) => handleMarketplaceChange(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
@@ -1236,7 +1360,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
         {/* Shipping */}
         <input
-          value={shipping}
+          value={formState.shipping}
           onChange={(e) => setShipping(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Ship"
