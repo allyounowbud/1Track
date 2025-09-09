@@ -38,19 +38,70 @@ body { @apply bg-slate-950 text-slate-100; }
   background: rgb(94 106 125); /* slate-500 */
 }
 
-/* Fix date input sizing on mobile */
+/* Fix date input sizing on mobile and iOS */
 input[type="date"] {
   min-width: 0;
   max-width: 100%;
+  width: 100%;
   box-sizing: border-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* iOS/Safari specific date input fixes */
+input[type="date"]::-webkit-datetime-edit {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+input[type="date"]::-webkit-datetime-edit-text {
+  padding: 0;
+}
+
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  width: auto;
+  min-width: 0;
 }
 
 /* Ensure grid items don't overflow on mobile */
 .grid {
   min-width: 0;
+  overflow: hidden;
 }
 
 .grid > * {
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* iOS/Safari specific media query for date inputs */
+@supports (-webkit-touch-callout: none) {
+  input[type="date"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  input[type="date"]::-webkit-datetime-edit {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+  
+  input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
 }

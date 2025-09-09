@@ -633,7 +633,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center min-w-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center min-w-0 overflow-hidden">
         {/* Selection checkbox */}
         <input
           type="checkbox"
