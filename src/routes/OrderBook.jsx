@@ -410,8 +410,8 @@ function UnifiedOrderView({
       </div>
 
       {/* Selection Info */}
-      <div className={`${pageCard} mb-6`}>
-        <div className="flex items-center gap-3">
+      <div className="mb-3">
+        <div className="flex items-center gap-3 px-4 sm:px-6">
           <input
             type="checkbox"
             checked={selectedRows.size === filtered.length && filtered.length > 0}
