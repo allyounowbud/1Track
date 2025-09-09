@@ -413,7 +413,7 @@ export default function OrderBook() {
     
     return keys.map((k) => ({
       key: k,
-      nice: k === "__new__" ? "New Orders" : k === "__unknown__" ? "Unknown date" : fmtNiceDate(k),
+      nice: k === "__new__" ? "New Order" : k === "__unknown__" ? "Unknown date" : fmtNiceDate(k),
       rows: map.get(k),
     }));
   }, [filtered]);
