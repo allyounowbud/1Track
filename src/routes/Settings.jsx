@@ -54,10 +54,7 @@ export default function Settings() {
   const [selectedRetailers, setSelectedRetailers] = useState(new Set());
   const [selectedMarkets, setSelectedMarkets] = useState(new Set());
 
-  // temp rows when adding
-  const [addingItem, setAddingItem] = useState(false);
-  const [addingRetailer, setAddingRetailer] = useState(false);
-  const [addingMarket, setAddingMarket] = useState(false);
+  // temp rows when adding - none needed now
 
   // Helper functions for single card expansion
   const openItems = openCard === 'items';
@@ -293,9 +290,19 @@ export default function Settings() {
                 </div>
               )}
 
-              {openItems && !addingItem && (
+              {openItems && (
                 <button
-                  onClick={() => setAddingItem(true)}
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase
+                        .from("items")
+                        .insert({ name: "New Item", market_value_cents: 0 });
+                      if (error) throw error;
+                      await refetchItems();
+                    } catch (e) {
+                      alert(e.message || String(e));
+                    }
+                  }}
                   className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                   aria-label="Add item"
                   title="Add item"
@@ -354,17 +361,6 @@ export default function Settings() {
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
-                {addingItem && (
-                  <ItemRow
-                    isNew
-                    onSave={async (name, mv) => {
-                      const ok = await createItem(name, mv);
-                      if (ok) setAddingItem(false);
-                      return ok;
-                    }}
-                    onDelete={() => setAddingItem(false)}
-                  />
-                )}
                 {items.map((it) => (
                   <ItemRow
                     key={it.id}
@@ -379,11 +375,10 @@ export default function Settings() {
                       }
                       setSelectedItems(newSelected);
                     }}
-                    onSave={(name, mv) => updateItem(it.id, name, mv)}
                     onDelete={() => deleteItem(it.id)}
                   />
                 ))}
-                {!items.length && !addingItem && (
+                {!items.length && (
                   <div className="text-slate-400">No items yet.</div>
                 )}
               </div>
@@ -448,9 +443,19 @@ export default function Settings() {
                 </div>
               )}
 
-              {openRetailers && !addingRetailer && (
+              {openRetailers && (
                 <button
-                  onClick={() => setAddingRetailer(true)}
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase
+                        .from("retailers")
+                        .insert({ name: "New Retailer" });
+                      if (error) throw error;
+                      await refetchRetailers();
+                    } catch (e) {
+                      alert(e.message || String(e));
+                    }
+                  }}
                   className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                   aria-label="Add retailer"
                   title="Add retailer"
@@ -508,17 +513,6 @@ export default function Settings() {
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
-                {addingRetailer && (
-                  <RetailerRow
-                    isNew
-                    onSave={async (name) => {
-                      const ok = await createRetailer(name);
-                      if (ok) setAddingRetailer(false);
-                      return ok;
-                    }}
-                    onDelete={() => setAddingRetailer(false)}
-                  />
-                )}
                 {retailers.map((r) => (
                   <RetailerRow
                     key={r.id}
@@ -533,11 +527,10 @@ export default function Settings() {
                       }
                       setSelectedRetailers(newSelected);
                     }}
-                    onSave={(name) => updateRetailer(r.id, name)}
                     onDelete={() => deleteRetailer(r.id)}
                   />
                 ))}
-                {!retailers.length && !addingRetailer && (
+                {!retailers.length && (
                   <div className="text-slate-400">No retailers yet.</div>
                 )}
               </div>
@@ -602,9 +595,19 @@ export default function Settings() {
                 </div>
               )}
 
-              {openMarkets && !addingMarket && (
+              {openMarkets && (
                 <button
-                  onClick={() => setAddingMarket(true)}
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase
+                        .from("marketplaces")
+                        .insert({ name: "New Marketplace", default_fees_pct: 0 });
+                      if (error) throw error;
+                      await refetchMarkets();
+                    } catch (e) {
+                      alert(e.message || String(e));
+                    }
+                  }}
                   className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                   aria-label="Add marketplace"
                   title="Add marketplace"
@@ -663,17 +666,6 @@ export default function Settings() {
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
-                {addingMarket && (
-                  <MarketRow
-                    isNew
-                    onSave={async (name, fee) => {
-                      const ok = await createMarket(name, fee);
-                      if (ok) setAddingMarket(false);
-                      return ok;
-                    }}
-                    onDelete={() => setAddingMarket(false)}
-                  />
-                )}
                 {markets.map((m) => (
                   <MarketRow
                     key={m.id}
@@ -688,11 +680,10 @@ export default function Settings() {
                       }
                       setSelectedMarkets(newSelected);
                     }}
-                    onSave={(name, fee) => updateMarket(m.id, name, fee)}
                     onDelete={() => deleteMarket(m.id)}
                   />
                 ))}
-                {!markets.length && !addingMarket && (
+                {!markets.length && (
                   <div className="text-slate-400">No marketplaces yet.</div>
                 )}
               </div>
@@ -716,19 +707,31 @@ function ChevronDown({ className = "h-5 w-5" }) {
 
 /* ---------- Row components ---------- */
 
-function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onSave, onDelete }) {
+function ItemRow({ it, isSelected = false, onToggleSelection, onDelete }) {
   const [name, setName] = useState(it?.name ?? "");
   const [mv, setMv] = useState(centsToStr(it?.market_value_cents ?? 0));
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function handleSave() {
+  async function updateItem() {
+    if (busy) return;
     setBusy(true);
     setStatus("Saving…");
-    const ok = await onSave(name, mv);
-    setStatus(ok ? "Saved ✓" : "Error");
-    if (ok) setTimeout(() => setStatus(""), 1500);
-    setBusy(false);
+    try {
+      const market_value_cents = moneyToCents(mv);
+      const { error } = await supabase
+        .from("items")
+        .update({ name: name.trim(), market_value_cents })
+        .eq("id", it.id);
+      if (error) throw error;
+      setStatus("Saved ✓");
+      setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      setStatus(String(e.message || e));
+      setTimeout(() => setStatus(""), 2000);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -760,6 +763,7 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onS
               e.stopPropagation();
               setName(e.target.value);
             }}
+            onBlur={updateItem}
             onClick={(e) => e.stopPropagation()}
             placeholder="Item name…"
           />
@@ -771,34 +775,10 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onS
             e.stopPropagation();
             setMv(e.target.value);
           }}
+          onBlur={updateItem}
           onClick={(e) => e.stopPropagation()}
           placeholder="e.g. 129.99"
         />
-        {isNew && (
-          <div className="sm:col-span-2 flex justify-end">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-              title="Cancel"
-              aria-label="Cancel"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
       </div>
       {status && (
         <div
@@ -817,18 +797,29 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onS
   );
 }
 
-function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, onSave, onDelete }) {
+function RetailerRow({ r, isSelected = false, onToggleSelection, onDelete }) {
   const [name, setName] = useState(r?.name ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function handleSave() {
+  async function updateRetailer() {
+    if (busy) return;
     setBusy(true);
     setStatus("Saving…");
-    const ok = await onSave(name);
-    setStatus(ok ? "Saved ✓" : "Error");
-    if (ok) setTimeout(() => setStatus(""), 1500);
-    setBusy(false);
+    try {
+      const { error } = await supabase
+        .from("retailers")
+        .update({ name: name.trim() })
+        .eq("id", r.id);
+      if (error) throw error;
+      setStatus("Saved ✓");
+      setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      setStatus(String(e.message || e));
+      setTimeout(() => setStatus(""), 2000);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -860,35 +851,11 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
               e.stopPropagation();
               setName(e.target.value);
             }}
+            onBlur={updateRetailer}
             onClick={(e) => e.stopPropagation()}
             placeholder="Retailer name…"
           />
         </div>
-        {isNew && (
-          <div className="flex justify-end">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-              title="Cancel"
-              aria-label="Cancel"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
       </div>
       {status && (
         <div
@@ -907,19 +874,31 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
   );
 }
 
-function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, onSave, onDelete }) {
+function MarketRow({ m, isSelected = false, onToggleSelection, onDelete }) {
   const [name, setName] = useState(m?.name ?? "");
   const [fee, setFee] = useState(((m?.default_fees_pct ?? 0) * 100).toString());
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function handleSave() {
+  async function updateMarket() {
+    if (busy) return;
     setBusy(true);
     setStatus("Saving…");
-    const ok = await onSave(name, fee);
-    setStatus(ok ? "Saved ✓" : "Error");
-    if (ok) setTimeout(() => setStatus(""), 1500);
-    setBusy(false);
+    try {
+      const default_fees_pct = parseFloat(fee) / 100;
+      const { error } = await supabase
+        .from("marketplaces")
+        .update({ name: name.trim(), default_fees_pct })
+        .eq("id", m.id);
+      if (error) throw error;
+      setStatus("Saved ✓");
+      setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      setStatus(String(e.message || e));
+      setTimeout(() => setStatus(""), 2000);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -951,6 +930,7 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
               e.stopPropagation();
               setName(e.target.value);
             }}
+            onBlur={updateMarket}
             onClick={(e) => e.stopPropagation()}
             placeholder="Marketplace name…"
           />
@@ -962,34 +942,10 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
             e.stopPropagation();
             setFee(e.target.value);
           }}
+          onBlur={updateMarket}
           onClick={(e) => e.stopPropagation()}
           placeholder="Fee %"
         />
-        {isNew && (
-          <div className="sm:col-span-2 flex justify-end">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-              title="Cancel"
-              aria-label="Cancel"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
       </div>
       {status && (
         <div
