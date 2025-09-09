@@ -476,6 +476,30 @@ function DayCard({
                 {count} order{count !== 1 ? "s" : ""}
               </p>
             </div>
+            {open && (
+              <div className="flex items-center gap-2 lg:hidden">
+                <input
+                  type="checkbox"
+                  checked={rows.every(row => selectedRows.has(row.id))}
+                  onChange={(e) => {
+                    const rowIds = rows.map(row => row.id);
+                    if (e.target.checked) {
+                      // Select all rows in this card
+                      const newSelected = new Set(selectedRows);
+                      rowIds.forEach(id => newSelected.add(id));
+                      setSelectedRows(newSelected);
+                    } else {
+                      // Deselect all rows in this card
+                      const newSelected = new Set(selectedRows);
+                      rowIds.forEach(id => newSelected.delete(id));
+                      setSelectedRows(newSelected);
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all flex-shrink-0"
+                />
+                <span className="text-xs text-slate-400">Select all</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -503,17 +527,17 @@ function DayCard({
                     setSelectedRows(newSelected);
                   }
                 }}
-                className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all flex-shrink-0"
               />
             </div>
             <div className="w-24">Order date</div>
-            <div className="min-w-[100px] flex-1">Item</div>
-            <div className="w-18">Profile</div>
-            <div className="w-18">Retailer</div>
+            <div className="w-48">Item</div>
+            <div className="w-24">Profile</div>
+            <div className="w-20">Retailer</div>
             <div className="w-14">Buy $</div>
             <div className="w-14">Sale $</div>
             <div className="w-24">Sale date</div>
-            <div className="w-18">Marketplace</div>
+            <div className="w-20">Marketplace</div>
             <div className="w-14">Ship $</div>
           </div>
 
@@ -635,7 +659,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={item || ""}
           onChange={(e) => setItem(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none min-w-[100px] flex-1"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-48"
         >
           <option value="" className="text-slate-400">Select item...</option>
           {items.map((it) => (
@@ -651,7 +675,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setProfile(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Profile"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-18"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-24"
         />
 
         {/* Retailer */}
@@ -659,7 +683,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-18"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-20"
         >
           <option value="" className="text-slate-400">Retailer</option>
           {retailers.map((r) => (
@@ -701,7 +725,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={marketplace || ""}
           onChange={(e) => handleMarketplaceChange(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-18"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-20"
         >
           <option value="" className="text-slate-400">Market</option>
           {markets.map((m) => (
