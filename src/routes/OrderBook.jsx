@@ -303,7 +303,7 @@ export default function OrderBook() {
         </div>
 
         {/* Bulk Actions */}
-        <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-4 mb-6">
+        <div className={`${pageCard} mb-6`}>
             <div className="flex items-center justify-between">
               {/* Selection Info */}
               <div className="flex items-center gap-4">
