@@ -307,29 +307,17 @@ export default function OrderBook() {
             <div className="flex items-center justify-between">
               {/* Selection Info */}
               <div className="flex items-center gap-4">
-                {selectedRows.size > 0 ? (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                      <span className="text-sm font-semibold text-slate-200">
-                        {selectedRows.size} Selected
-                      </span>
-                    </div>
-                    <button
-                      onClick={toggleAllSelection}
-                      className="text-xs text-slate-400 hover:text-indigo-400 transition-colors"
-                    >
-                      {selectedRows.size === filtered.length ? "Deselect All" : "Select All"}
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-slate-600 rounded-full"></div>
-                    <span className="text-sm font-semibold text-slate-400">
-                      No rows selected
-                    </span>
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === filtered.length && filtered.length > 0}
+                    onChange={toggleAllSelection}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  />
+                  <span className="text-sm font-semibold text-slate-200">
+                    {selectedRows.size}/{filtered.length}
+                  </span>
+                </div>
               </div>
               
               {/* Action Buttons */}
