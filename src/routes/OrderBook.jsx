@@ -560,7 +560,8 @@ function UnifiedOrderView({
           {(() => {
             const hasSelection = selectedRows.size > 0;
             const selectedOrders = filtered.filter(order => selectedRows.has(order.id));
-            const hasNewRows = selectedOrders.some(order => order.isNew);
+            const hasNewRowsInSelection = selectedOrders.some(order => order.isNew);
+            const hasNewRowsInSystem = filtered.some(order => order.isNew); // Check entire system
             const hasExistingRows = selectedOrders.some(order => !order.isNew);
             
             // Default state: no selection - show only + add button
@@ -579,7 +580,7 @@ function UnifiedOrderView({
             }
             
             // New rows only: show X cancel and save buttons
-            if (hasNewRows && !hasExistingRows) {
+            if (hasNewRowsInSelection && !hasExistingRows) {
               return (
                 <>
                   <button
@@ -626,8 +627,8 @@ function UnifiedOrderView({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
                   </button>
-                  {/* Only show delete button if no new rows are present */}
-                  {!hasNewRows && (
+                  {/* Only show delete button if no new rows are present in the system */}
+                  {!hasNewRowsInSystem && (
                     <button
                       onClick={bulkDeleteSelected}
                       className="w-10 h-10 rounded-xl border border-red-600/50 bg-red-900/30 hover:bg-red-800/50 hover:border-red-500 text-red-200 transition-all duration-200 flex items-center justify-center group"
