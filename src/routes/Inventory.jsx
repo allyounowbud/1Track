@@ -308,7 +308,7 @@ export default function Inventory() {
             </button>
             <button
               onClick={() => toggleSort("onHandQty")}
-              className="flex items-center justify-center gap-1 text-center hover:text-slate-200 transition-colors"
+              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
             >
               On hand
               {sortKey === "onHandQty" && (
