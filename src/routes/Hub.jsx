@@ -106,7 +106,7 @@ export default function Hub() {
               <div className="flex-1">
                 <div className="text-xl font-semibold">Profiles</div>
                 <div className="text-slate-400 text-sm">
-                  Manage your selling profiles and marketplaces. Track performance across different platforms, 
+                  Manage your profiles and seller marketplaces. Track performance across different platforms, 
                   manage inventory distribution, and optimize your selling strategy.
                 </div>
                 <div className="mt-3 inline-flex items-center text-purple-300">
