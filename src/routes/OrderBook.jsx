@@ -290,7 +290,7 @@ export default function OrderBook() {
               />
             </div>
 
-            {!!q && (
+              {!!q && (
               <div className="flex justify-end">
                 <button
                   onClick={() => setQ("")}
@@ -299,7 +299,7 @@ export default function OrderBook() {
                   Clear search
                 </button>
               </div>
-            )}
+              )}
           </div>
         </div>
 
@@ -460,17 +460,17 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
 
   return (
     <div className="space-y-3">
-      {grouped.map((g) => (
+          {grouped.map((g) => (
         <UnifiedDaySection
-          key={g.key}
-          title={g.nice}
-          dateKey={g.key}
-          count={g.rows.length}
+              key={g.key}
+              title={g.nice}
+              dateKey={g.key}
+              count={g.rows.length}
           defaultOpen={false}
-          rows={g.rows}
-          items={items}
-          retailers={retailers}
-          markets={markets}
+              rows={g.rows}
+              items={items}
+              retailers={retailers}
+              markets={markets}
           onSaved={onSaved}
           onDeleted={onDeleted}
           selectedRows={selectedRows}
@@ -518,7 +518,7 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
       </div>
 
       {/* Table Body */}
-      <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
+      <div className="space-y-2">
         {orders.map((order) => (
           <OrderRow
             key={order.id}
@@ -586,10 +586,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
       </div>
 
       {/* Content */}
-      <div 
-        className="transition-all duration-300 ease-in-out overflow-hidden"
-        style={{ maxHeight: open ? '1000px' : '0px' }}
-      >
+      {open && (
         <div className="p-4 border-t border-slate-700">
           {/* Header Row for Orders */}
           <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-3 pb-2 border-b border-slate-700">
@@ -622,7 +619,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
             ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -786,10 +783,10 @@ function DayCard({
         <div className="pr-36 sm:pr-40">
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <h3 className="text-lg font-semibold leading-tight break-words">{title}</h3>
-              <p className="text-xs text-slate-400">
-                {count} order{count !== 1 ? "s" : ""}
-              </p>
+          <h3 className="text-lg font-semibold leading-tight break-words">{title}</h3>
+          <p className="text-xs text-slate-400">
+            {count} order{count !== 1 ? "s" : ""}
+          </p>
             </div>
             {open && (
               <div className="flex items-center gap-2 lg:hidden">
