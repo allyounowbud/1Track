@@ -378,7 +378,7 @@ export default function Inventory() {
                 }`}
               >
                 <div className="text-slate-100 font-medium truncate pr-2">{r.name}</div>
-                <div className="text-slate-200 text-center">{r.onHandQty}</div>
+                <div className="text-slate-200">{r.onHandQty}</div>
                 <div className="text-slate-200">${centsToStr(r.onHandAvgCostCents)}</div>
                 <div className="hidden lg:block text-slate-200">${centsToStr(r.onHandCostCents)}</div>
                 <div className="hidden lg:block text-slate-100 font-semibold">${centsToStr(r.estValueCents)}</div>
