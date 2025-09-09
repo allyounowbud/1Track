@@ -15,3 +15,8 @@ export const parsePct = (v) => {
   if (isNaN(n)) return 0;
   return n > 1 ? n / 100 : n;
 };
+
+export const formatNumber = (n) => {
+  if (n == null || isNaN(n)) return "0";
+  return Number(n).toLocaleString();
+};

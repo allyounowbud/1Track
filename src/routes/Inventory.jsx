@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
-import { centsToStr } from "../utils/money.js";
+import { centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
 
 /* ---------- data ---------- */
@@ -267,7 +267,7 @@ export default function Inventory() {
         {/* KPI pills (8) */}
         <div className={`${pageCard} mb-6`}>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            <Kpi label="Inventory" value={kpis.totalUnits} sub="units on hand" />
+            <Kpi label="Inventory" value={formatNumber(kpis.totalUnits)} sub="units on hand" />
             <Kpi
               label="Total Cost"
               value={`$${centsToStr(kpis.totalCost)}`}
@@ -383,7 +383,7 @@ export default function Inventory() {
                 }`}
               >
                 <div className="text-slate-100 font-medium truncate pr-2">{r.name}</div>
-                <div className="text-slate-200">{r.onHandQty}</div>
+                <div className="text-slate-200">{formatNumber(r.onHandQty)}</div>
                 <div className="text-slate-200">${centsToStr(r.onHandAvgCostCents)}</div>
                 <div className="hidden lg:block text-slate-200">${centsToStr(r.onHandCostCents)}</div>
                 <div className="hidden lg:block text-slate-100 font-semibold">${centsToStr(r.estValueCents)}</div>

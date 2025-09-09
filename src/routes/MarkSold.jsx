@@ -4,7 +4,7 @@ import { NavLink, Link } from 'react-router-dom';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
-import { moneyToCents, centsToStr, parsePct } from "../utils/money.js";
+import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 
 /* ---------- queries ---------- */
 async function getUnsoldOrders() {

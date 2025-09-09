@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 import { useAuth } from "../hooks/useAuth.js";
-import { centsToStr } from "../utils/money.js";
+import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, pill } from "../utils/ui.js";
 const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 
@@ -617,7 +617,7 @@ export default function Emails() {
                         </div>
                         <div className="min-w-0">
                           <div className="font-medium truncate">{r.item_name || "—"}</div>
-                          <div className="text-slate-400 text-sm">Qty {r.quantity ?? "—"}</div>
+                          <div className="text-slate-400 text-sm">Qty {r.quantity ? formatNumber(r.quantity) : "—"}</div>
                         </div>
                       </div>
 
@@ -763,7 +763,7 @@ export default function Emails() {
                               {centsToStr(row.buy_price_cents)}
                             </div>
                             <div className="text-sm text-slate-400">
-                              Qty: {row.quantity}
+                              Qty: {formatNumber(row.quantity)}
                             </div>
                           </div>
                         </div>
