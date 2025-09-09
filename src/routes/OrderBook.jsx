@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
-import { pageCard, rowCard, inputSm } from "../utils/ui.js";
+import { pageCard, rowCard, inputSm, Select } from "../utils/ui.js";
 const fmtNiceDate = (yyyyMmDd) => {
   if (!yyyyMmDd) return "Unknown date";
   const [y, m, d] = yyyyMmDd.split("-").map((n) => Number(n));
@@ -1342,19 +1342,18 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         />
 
         {/* Item Name - Most Important */}
-        <select
-          value={formState.item || ""}
-          onChange={(e) => setItem(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
-        >
-          <option value="" className="text-slate-400">Select item...</option>
-          {items.map((it) => (
-            <option key={it.id} value={it.name} className="bg-slate-800 text-slate-100">
-              {it.name}
-            </option>
-          ))}
-        </select>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Select
+            value={formState.item || ""}
+            onChange={setItem}
+            options={[
+              { value: "", label: "Select item..." },
+              ...items.map((it) => ({ value: it.name, label: it.name }))
+            ]}
+            placeholder="Select item..."
+            className="text-sm"
+          />
+        </div>
 
         {/* Profile */}
         <input
@@ -1366,19 +1365,18 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         />
 
         {/* Retailer */}
-        <select
-          value={formState.retailer || ""}
-          onChange={(e) => setRetailer(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
-        >
-          <option value="" className="text-slate-400">Retailer</option>
-          {retailers.map((r) => (
-            <option key={r.id} value={r.name} className="bg-slate-800 text-slate-100">
-              {r.name}
-            </option>
-          ))}
-        </select>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Select
+            value={formState.retailer || ""}
+            onChange={setRetailer}
+            options={[
+              { value: "", label: "Retailer" },
+              ...retailers.map((r) => ({ value: r.name, label: r.name }))
+            ]}
+            placeholder="Retailer"
+            className="text-sm"
+          />
+        </div>
 
         {/* Buy Price */}
         <input
@@ -1408,19 +1406,18 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         />
 
         {/* Marketplace */}
-        <select
-          value={formState.marketplace || ""}
-          onChange={(e) => handleMarketplaceChange(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
-        >
-          <option value="" className="text-slate-400">Market</option>
-          {markets.map((m) => (
-            <option key={m.id} value={m.name} className="bg-slate-800 text-slate-100">
-              {m.name}
-            </option>
-          ))}
-        </select>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Select
+            value={formState.marketplace || ""}
+            onChange={handleMarketplaceChange}
+            options={[
+              { value: "", label: "Market" },
+              ...markets.map((m) => ({ value: m.name, label: m.name }))
+            ]}
+            placeholder="Market"
+            className="text-sm"
+          />
+        </div>
 
         {/* Shipping */}
         <input

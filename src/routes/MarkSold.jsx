@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
+import { Select } from "../utils/ui.js";
 
 /* ---------- queries ---------- */
 async function getUnsoldOrders() {
@@ -177,7 +178,7 @@ export default function MarkSold() {
                 className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
               />
               {dropdownOpen && (
-                <div className="absolute left-0 right-0 z-20 mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
+                <div className="absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
                   {filtered.length === 0 && (
                     <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
                   )}
@@ -224,18 +225,15 @@ export default function MarkSold() {
 
             <div className="min-w-0">
               <label className="text-slate-300 mb-1 block text-sm">Sale Location</label>
-              <select
+              <Select
                 value={marketId}
-                onChange={(e) => onMarketChange(e.target.value)}
-                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">— Select marketplace —</option>
-                {markets.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
+                onChange={onMarketChange}
+                options={[
+                  { value: "", label: "— Select marketplace —" },
+                  ...markets.map((m) => ({ value: m.id, label: m.name }))
+                ]}
+                placeholder="— Select marketplace —"
+              />
             </div>
 
             <div className="min-w-0">
