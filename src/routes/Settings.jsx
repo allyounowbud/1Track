@@ -326,7 +326,8 @@ export default function Settings() {
           {/* content */}
           <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openItems ? 1000 : 0 }}>
             <div className="pt-5">
-              <div className="hidden sm:grid sm:grid-cols-[1fr_160px_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
+              {/* Select All Row - borderless */}
+              <div className="hidden sm:grid sm:grid-cols-[1fr_160px] gap-2 px-1 pb-2 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
                   <div className="w-6 flex items-center justify-center">
                     <input
@@ -348,10 +349,9 @@ export default function Settings() {
                   <span>Item</span>
                 </div>
                 <div>Market value ($)</div>
-                <div className="text-right">Actions</div>
               </div>
 
-              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
                 {addingItem && (
                   <ItemRow
                     isNew
@@ -479,7 +479,8 @@ export default function Settings() {
           {/* content */}
           <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openRetailers ? 1000 : 0 }}>
             <div className="pt-5">
-              <div className="hidden sm:grid sm:grid-cols-[1fr_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
+              {/* Select All Row - borderless */}
+              <div className="hidden sm:grid sm:grid-cols-[1fr] gap-2 px-1 pb-2 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
                   <div className="w-6 flex items-center justify-center">
                     <input
@@ -500,10 +501,9 @@ export default function Settings() {
                   </div>
                   <span>Retailer</span>
                 </div>
-                <div className="text-right">Actions</div>
               </div>
 
-              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
                 {addingRetailer && (
                   <RetailerRow
                     isNew
@@ -631,7 +631,8 @@ export default function Settings() {
           {/* content */}
           <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openMarkets ? 1000 : 0 }}>
             <div className="pt-5">
-              <div className="hidden sm:grid sm:grid-cols-[1fr_140px_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
+              {/* Select All Row - borderless */}
+              <div className="hidden sm:grid sm:grid-cols-[1fr_140px] gap-2 px-1 pb-2 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
                   <div className="w-6 flex items-center justify-center">
                     <input
@@ -653,10 +654,9 @@ export default function Settings() {
                   <span>Marketplace</span>
                 </div>
                 <div>Fee %</div>
-                <div className="text-right">Actions</div>
               </div>
 
-              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
                 {addingMarket && (
                   <MarketRow
                     isNew
@@ -734,7 +734,7 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onS
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_200px] gap-2 items-center min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-2 items-center min-w-0">
         <div className="flex items-center gap-2">
           <div className="w-6 flex items-center justify-center">
             <input
@@ -768,8 +768,8 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onS
           onClick={(e) => e.stopPropagation()}
           placeholder="e.g. 129.99"
         />
-        <div className="flex justify-end gap-2">
-          {isNew && (
+        {isNew && (
+          <div className="sm:col-span-2 flex justify-end">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -791,8 +791,8 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onS
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       {status && (
         <div
@@ -834,7 +834,7 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-2 items-center min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr] gap-2 items-center min-w-0">
         <div className="flex items-center gap-2">
           <div className="w-6 flex items-center justify-center">
             <input
@@ -858,8 +858,8 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
             placeholder="Retailer name…"
           />
         </div>
-        <div className="flex justify-end gap-2">
-          {isNew && (
+        {isNew && (
+          <div className="flex justify-end">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -881,8 +881,8 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       {status && (
         <div
@@ -925,7 +925,7 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_200px] gap-2 items-center min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-2 items-center min-w-0">
         <div className="flex items-center gap-2">
           <div className="w-6 flex items-center justify-center">
             <input
@@ -959,8 +959,8 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
           onClick={(e) => e.stopPropagation()}
           placeholder="Fee %"
         />
-        <div className="flex justify-end gap-2">
-          {isNew && (
+        {isNew && (
+          <div className="sm:col-span-2 flex justify-end">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -982,8 +982,8 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       {status && (
         <div
