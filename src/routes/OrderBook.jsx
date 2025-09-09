@@ -550,12 +550,11 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
     }`}>
       {/* Header Row */}
       <div 
-        className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${
+        className={`flex items-center justify-between p-4 transition-colors ${
           allRowsSelected
             ? 'bg-indigo-500/20 hover:bg-indigo-500/30'
             : 'bg-slate-800/30 hover:bg-slate-800/50'
         }`}
-        onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
@@ -582,7 +581,12 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
             <div className="text-sm text-slate-400">{count} orders</div>
           </div>
         </div>
-        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <button 
+          onClick={() => setOpen(!open)}
+          className="p-1 hover:bg-slate-700/50 rounded transition-colors"
+        >
+          <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
       </div>
 
       {/* Content */}
