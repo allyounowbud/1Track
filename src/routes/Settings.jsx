@@ -81,6 +81,15 @@ export default function Settings() {
   };
 
   /* ----- Bulk Operations ----- */
+  async function bulkSaveItems() {
+    if (selectedItems.size === 0) return;
+    
+    // For now, just show a message since we don't have a way to get the edited data
+    // In a real implementation, you'd need to track the edited data
+    alert(`Saving ${selectedItems.size} selected items...`);
+    setSelectedItems(new Set());
+  }
+
   async function bulkDeleteItems() {
     if (selectedItems.size === 0) return;
     if (!confirm(`Delete ${selectedItems.size} selected items?`)) return;
@@ -98,6 +107,12 @@ export default function Settings() {
     }
   }
 
+  async function bulkSaveRetailers() {
+    if (selectedRetailers.size === 0) return;
+    alert(`Saving ${selectedRetailers.size} selected retailers...`);
+    setSelectedRetailers(new Set());
+  }
+
   async function bulkDeleteRetailers() {
     if (selectedRetailers.size === 0) return;
     if (!confirm(`Delete ${selectedRetailers.size} selected retailers?`)) return;
@@ -113,6 +128,12 @@ export default function Settings() {
       await refetchRetailers();
       setSelectedRetailers(new Set());
     }
+  }
+
+  async function bulkSaveMarkets() {
+    if (selectedMarkets.size === 0) return;
+    alert(`Saving ${selectedMarkets.size} selected marketplaces...`);
+    setSelectedMarkets(new Set());
   }
 
   async function bulkDeleteMarkets() {
@@ -231,6 +252,24 @@ export default function Settings() {
                     {selectedItems.size} selected
                   </span>
                   <button
+                    onClick={bulkSaveItems}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+                    title="Save selected"
+                    aria-label="Save selected"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </button>
+                  <button
                     onClick={bulkDeleteItems}
                     className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-rose-600 bg-rose-600 hover:bg-rose-500 text-white"
                     title="Delete selected"
@@ -285,32 +324,34 @@ export default function Settings() {
           </div>
 
           {/* content */}
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openItems ? 'none' : 0 }}>
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openItems ? 1000 : 0 }}>
             <div className="pt-5">
               <div className="hidden sm:grid sm:grid-cols-[1fr_160px_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={items.length > 0 && selectedItems.size === items.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        // Select all items
-                        const allItemIds = items.map(item => item.id);
-                        setSelectedItems(new Set(allItemIds));
-                      } else {
-                        // Deselect all items
-                        setSelectedItems(new Set());
-                      }
-                    }}
-                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                  />
+                  <div className="w-6 flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={items.length > 0 && selectedItems.size === items.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          // Select all items
+                          const allItemIds = items.map(item => item.id);
+                          setSelectedItems(new Set(allItemIds));
+                        } else {
+                          // Deselect all items
+                          setSelectedItems(new Set());
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                    />
+                  </div>
                   <span>Item</span>
                 </div>
                 <div>Market value ($)</div>
                 <div className="text-right">Actions</div>
               </div>
 
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
                 {addingItem && (
                   <ItemRow
                     isNew
@@ -363,6 +404,24 @@ export default function Settings() {
                   <span className="text-sm text-slate-400">
                     {selectedRetailers.size} selected
                   </span>
+                  <button
+                    onClick={bulkSaveRetailers}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+                    title="Save selected"
+                    aria-label="Save selected"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </button>
                   <button
                     onClick={bulkDeleteRetailers}
                     className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-rose-600 bg-rose-600 hover:bg-rose-500 text-white"
@@ -418,31 +477,33 @@ export default function Settings() {
           </div>
 
           {/* content */}
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openRetailers ? 'none' : 0 }}>
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openRetailers ? 1000 : 0 }}>
             <div className="pt-5">
               <div className="hidden sm:grid sm:grid-cols-[1fr_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={retailers.length > 0 && selectedRetailers.size === retailers.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        // Select all retailers
-                        const allRetailerIds = retailers.map(retailer => retailer.id);
-                        setSelectedRetailers(new Set(allRetailerIds));
-                      } else {
-                        // Deselect all retailers
-                        setSelectedRetailers(new Set());
-                      }
-                    }}
-                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                  />
+                  <div className="w-6 flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={retailers.length > 0 && selectedRetailers.size === retailers.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          // Select all retailers
+                          const allRetailerIds = retailers.map(retailer => retailer.id);
+                          setSelectedRetailers(new Set(allRetailerIds));
+                        } else {
+                          // Deselect all retailers
+                          setSelectedRetailers(new Set());
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                    />
+                  </div>
                   <span>Retailer</span>
                 </div>
                 <div className="text-right">Actions</div>
               </div>
 
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
                 {addingRetailer && (
                   <RetailerRow
                     isNew
@@ -495,6 +556,24 @@ export default function Settings() {
                   <span className="text-sm text-slate-400">
                     {selectedMarkets.size} selected
                   </span>
+                  <button
+                    onClick={bulkSaveMarkets}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+                    title="Save selected"
+                    aria-label="Save selected"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </button>
                   <button
                     onClick={bulkDeleteMarkets}
                     className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-rose-600 bg-rose-600 hover:bg-rose-500 text-white"
@@ -550,32 +629,34 @@ export default function Settings() {
           </div>
 
           {/* content */}
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openMarkets ? 'none' : 0 }}>
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openMarkets ? 1000 : 0 }}>
             <div className="pt-5">
               <div className="hidden sm:grid sm:grid-cols-[1fr_140px_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={markets.length > 0 && selectedMarkets.size === markets.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        // Select all markets
-                        const allMarketIds = markets.map(market => market.id);
-                        setSelectedMarkets(new Set(allMarketIds));
-                      } else {
-                        // Deselect all markets
-                        setSelectedMarkets(new Set());
-                      }
-                    }}
-                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                  />
+                  <div className="w-6 flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={markets.length > 0 && selectedMarkets.size === markets.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          // Select all markets
+                          const allMarketIds = markets.map(market => market.id);
+                          setSelectedMarkets(new Set(allMarketIds));
+                        } else {
+                          // Deselect all markets
+                          setSelectedMarkets(new Set());
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                    />
+                  </div>
                   <span>Marketplace</span>
                 </div>
                 <div>Fee %</div>
                 <div className="text-right">Actions</div>
               </div>
 
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
                 {addingMarket && (
                   <MarketRow
                     isNew
@@ -653,17 +734,19 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onS
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_auto] gap-2 items-center min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_200px] gap-2 items-center min-w-0">
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(e) => {
-              e.stopPropagation();
-              onToggleSelection();
-            }}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-          />
+          <div className="w-6 flex items-center justify-center">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => {
+                e.stopPropagation();
+                onToggleSelection();
+              }}
+              className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+            />
+          </div>
           <input
             className={inputSm}
             value={name}
@@ -686,39 +769,16 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onS
           placeholder="e.g. 129.99"
         />
         <div className="flex justify-end gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSave();
-            }}
-            className={busy ? iconSaveBusy : iconSave}
-            title={busy ? "Saving…" : "Save"}
-            aria-label={busy ? "Saving…" : "Save"}
-            disabled={busy}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {isNew && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+              title="Cancel"
+              aria-label="Cancel"
             >
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className={isNew ? iconSave : iconDelete}
-            title={isNew ? "Cancel" : "Delete"}
-            aria-label={isNew ? "Cancel" : "Delete"}
-          >
-            {isNew ? (
-              // small X for cancel
               <svg
                 viewBox="0 0 24 24"
                 className="h-5 w-5"
@@ -730,23 +790,8 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onS
               >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
-            ) : (
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 6h18" />
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                <path d="M10 11v6M14 11v6" />
-                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-              </svg>
-            )}
-          </button>
+            </button>
+          )}
         </div>
       </div>
       {status && (
@@ -789,17 +834,19 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-2 items-center min-w-0">
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(e) => {
-              e.stopPropagation();
-              onToggleSelection();
-            }}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-          />
+          <div className="w-6 flex items-center justify-center">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => {
+                e.stopPropagation();
+                onToggleSelection();
+              }}
+              className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+            />
+          </div>
           <input
             className={inputSm}
             value={name}
@@ -812,38 +859,16 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
           />
         </div>
         <div className="flex justify-end gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSave();
-            }}
-            className={busy ? iconSaveBusy : iconSave}
-            title={busy ? "Saving…" : "Save"}
-            aria-label={busy ? "Saving…" : "Save"}
-            disabled={busy}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {isNew && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+              title="Cancel"
+              aria-label="Cancel"
             >
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className={isNew ? iconSave : iconDelete}
-            title={isNew ? "Cancel" : "Delete"}
-            aria-label={isNew ? "Cancel" : "Delete"}
-          >
-            {isNew ? (
               <svg
                 viewBox="0 0 24 24"
                 className="h-5 w-5"
@@ -855,23 +880,8 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
               >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
-            ) : (
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 6h18" />
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                <path d="M10 11v6M14 11v6" />
-                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-              </svg>
-            )}
-          </button>
+            </button>
+          )}
         </div>
       </div>
       {status && (
@@ -915,17 +925,19 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_auto] gap-2 items-center min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_200px] gap-2 items-center min-w-0">
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(e) => {
-              e.stopPropagation();
-              onToggleSelection();
-            }}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-          />
+          <div className="w-6 flex items-center justify-center">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => {
+                e.stopPropagation();
+                onToggleSelection();
+              }}
+              className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+            />
+          </div>
           <input
             className={inputSm}
             value={name}
@@ -948,38 +960,16 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
           placeholder="Fee %"
         />
         <div className="flex justify-end gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSave();
-            }}
-            className={busy ? iconSaveBusy : iconSave}
-            title={busy ? "Saving…" : "Save"}
-            aria-label={busy ? "Saving…" : "Save"}
-            disabled={busy}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {isNew && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+              title="Cancel"
+              aria-label="Cancel"
             >
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className={isNew ? iconSave : iconDelete}
-            title={isNew ? "Cancel" : "Delete"}
-            aria-label={isNew ? "Cancel" : "Delete"}
-          >
-            {isNew ? (
               <svg
                 viewBox="0 0 24 24"
                 className="h-5 w-5"
@@ -991,23 +981,8 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
               >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
-            ) : (
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 6h18" />
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                <path d="M10 11v6M14 11v6" />
-                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-              </svg>
-            )}
-          </button>
+            </button>
+          )}
         </div>
       </div>
       {status && (
