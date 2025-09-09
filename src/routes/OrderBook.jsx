@@ -289,18 +289,16 @@ export default function OrderBook() {
               />
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="text-slate-400 text-sm">Rows</div>
-              <div className="text-xl font-semibold">{filtered.length}</div>
-              {!!q && (
+            {!!q && (
+              <div className="flex justify-end">
                 <button
                   onClick={() => setQ("")}
-                  className="ml-auto h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+                  className="h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
                 >
                   Clear search
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
