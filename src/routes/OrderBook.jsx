@@ -441,8 +441,8 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
 
   return (
     <div className={`${pageCard}`}>
-      {/* Table Header */}
-      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
+      {/* Table Header - Hidden on mobile */}
+      <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
         <div className="w-6 flex items-center justify-center">
           <input
             type="checkbox"
@@ -466,6 +466,27 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
         <div className="text-xs text-slate-300 font-medium">Sale date</div>
         <div className="text-xs text-slate-300 font-medium">Marketplace</div>
         <div className="text-xs text-slate-300 font-medium">Ship $</div>
+      </div>
+
+      {/* Mobile Header - Show on small screens */}
+      <div className="lg:hidden flex items-center justify-between mb-4 pb-3 border-b border-slate-700">
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={selectedRows.size === orders.length && orders.length > 0}
+            onChange={() => {
+              if (selectedRows.size === orders.length) {
+                setSelectedRows(new Set());
+              } else {
+                setSelectedRows(new Set(orders.map(o => o.id)));
+              }
+            }}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          />
+          <span className="text-sm font-semibold text-slate-400">
+            {selectedRows.size}/{orders.length} Selected
+          </span>
+        </div>
       </div>
 
       {/* Table Body */}
