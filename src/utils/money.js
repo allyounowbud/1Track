@@ -7,7 +7,7 @@ export const parseMoney = (v) => {
 
 export const moneyToCents = (v) => Math.round(parseMoney(v) * 100);
 
-export const centsToStr = (c) => (Number(c || 0) / 100).toFixed(2);
+export const centsToStr = (c) => (Number(c || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const parsePct = (v) => {
   if (v === "" || v == null) return 0;
