@@ -140,6 +140,7 @@ export default function OrderBook() {
   /* bulk selection state */
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [bulkActionsVisible, setBulkActionsVisible] = useState(false);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
   // Update bulk actions visibility when selection changes
   useEffect(() => {
@@ -357,33 +358,131 @@ export default function OrderBook() {
             </div>
           </div>
 
+        {/* View Toggle */}
+        <div className={`${pageCard} mb-6`}>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-slate-200">View Mode</div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                Grid
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                List
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Day cards */}
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
-        <div className="space-y-5">
-          {grouped.map((g) => (
-            <DayCard
-              key={g.key}
-              title={g.nice}
-              dateKey={g.key}
-              count={g.rows.length}
-              defaultOpen={false}       // collapsed by default
-              rows={g.rows}
-              items={items}
-              retailers={retailers}
-              markets={markets}
-              onSaved={refetch}
-              onDeleted={refetch}
-              selectedRows={selectedRows}
-              onToggleRowSelection={toggleRowSelection}
-              setSelectedRows={setSelectedRows}
-            />
-          ))}
-          {!grouped.length && (
-            <div className={`${pageCard} text-slate-400`}>No orders found.</div>
-          )}
+        {viewMode === 'grid' ? (
+          <div className="space-y-5">
+            {grouped.map((g) => (
+              <DayCard
+                key={g.key}
+                title={g.nice}
+                dateKey={g.key}
+                count={g.rows.length}
+                defaultOpen={false}       // collapsed by default
+                rows={g.rows}
+                items={items}
+                retailers={retailers}
+                markets={markets}
+                onSaved={refetch}
+                onDeleted={refetch}
+                selectedRows={selectedRows}
+                onToggleRowSelection={toggleRowSelection}
+                setSelectedRows={setSelectedRows}
+              />
+            ))}
+            {!grouped.length && (
+              <div className={`${pageCard} text-slate-400`}>No orders found.</div>
+            )}
+          </div>
+        ) : (
+          <ListView
+            orders={filtered}
+            items={items}
+            retailers={retailers}
+            markets={markets}
+            onSaved={refetch}
+            onDeleted={refetch}
+            selectedRows={selectedRows}
+            onToggleRowSelection={toggleRowSelection}
+            setSelectedRows={setSelectedRows}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- List View Component ---------- */
+function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows }) {
+  if (!orders.length) {
+    return <div className={`${pageCard} text-slate-400`}>No orders found.</div>;
+  }
+
+  return (
+    <div className={`${pageCard}`}>
+      {/* Table Header */}
+      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
+        <div className="w-6 flex items-center justify-center">
+          <input
+            type="checkbox"
+            checked={selectedRows.size === orders.length && orders.length > 0}
+            onChange={() => {
+              if (selectedRows.size === orders.length) {
+                setSelectedRows(new Set());
+              } else {
+                setSelectedRows(new Set(orders.map(o => o.id)));
+              }
+            }}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          />
         </div>
+        <div className="text-xs text-slate-300 font-medium">Order date</div>
+        <div className="text-xs text-slate-300 font-medium">Item</div>
+        <div className="text-xs text-slate-300 font-medium">Profile</div>
+        <div className="text-xs text-slate-300 font-medium">Retailer</div>
+        <div className="text-xs text-slate-300 font-medium">Buy $</div>
+        <div className="text-xs text-slate-300 font-medium">Sale $</div>
+        <div className="text-xs text-slate-300 font-medium">Sale date</div>
+        <div className="text-xs text-slate-300 font-medium">Marketplace</div>
+        <div className="text-xs text-slate-300 font-medium">Ship $</div>
+      </div>
+
+      {/* Table Body */}
+      <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
+        {orders.map((order) => (
+          <OrderRow
+            key={order.id}
+            order={order}
+            items={items}
+            retailers={retailers}
+            markets={markets}
+            onSaved={onSaved}
+            onDeleted={onDeleted}
+            isSelected={selectedRows.has(order.id)}
+            onToggleSelection={() => onToggleRowSelection(order.id)}
+          />
+        ))}
       </div>
     </div>
   );
