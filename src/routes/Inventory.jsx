@@ -21,7 +21,7 @@ async function getOrders(limit = 2000) {
 async function getItems() {
   const { data, error } = await supabase
     .from("items")
-    .select("id, name")
+    .select("id, name, market_value_cents")
     .order("name", { ascending: true });
   if (error) throw error;
   return data ?? [];
@@ -38,7 +38,12 @@ export default function Inventory() {
     queryFn: getItems,
   });
 
-  // Market value lookup by name - removed
+  // Market value lookup by name
+  const mvByName = useMemo(() => {
+    const m = new Map();
+    for (const it of items) m.set(it.name, Number(it.market_value_cents || 0));
+    return m;
+  }, [items]);
 
   // Aggregate orders into inventory rows by item
   const byItem = useMemo(() => {
@@ -59,7 +64,7 @@ export default function Inventory() {
           holdDays: [],
           maxHold: 0,
 
-          marketValueCents: 0,
+          marketValueCents: Number(mvByName.get(name) || 0),
           estValueCents: 0,
         });
       return map.get(name);
@@ -105,7 +110,7 @@ export default function Inventory() {
     for (const r of map.values()) {
       r.onHandAvgCostCents =
         r.onHandQty > 0 ? Math.round(r.onHandCostCents / r.onHandQty) : 0;
-      r.estValueCents = r.onHandCostCents;
+      r.estValueCents = r.marketValueCents * r.onHandQty;
       r.avgProfitCents =
         r.soldQty > 0 ? Math.round(r.totalProfitCents / r.soldQty) : 0;
       r.roi =
@@ -124,7 +129,7 @@ export default function Inventory() {
           : 0;
     }
     return map;
-  }, [orders]);
+  }, [orders, mvByName]);
 
   /* ---------------- Filter: searchable dropdown ---------------- */
   // Only suggest items that currently have inventory on hand
