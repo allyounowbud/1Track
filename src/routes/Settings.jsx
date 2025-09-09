@@ -1,5 +1,5 @@
 // src/routes/Settings.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
@@ -46,16 +46,91 @@ export default function Settings() {
     queryFn: getMarkets,
   });
 
+  // Single card expansion - only one can be open at a time
+  const [openCard, setOpenCard] = useState(null); // 'items', 'retailers', 'markets', or null
 
-  // collapsed by default
-  const [openItems, setOpenItems] = useState(false);
-  const [openRetailers, setOpenRetailers] = useState(false);
-  const [openMarkets, setOpenMarkets] = useState(false);
+  // Bulk selection state for each card
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [selectedRetailers, setSelectedRetailers] = useState(new Set());
+  const [selectedMarkets, setSelectedMarkets] = useState(new Set());
 
   // temp rows when adding
   const [addingItem, setAddingItem] = useState(false);
   const [addingRetailer, setAddingRetailer] = useState(false);
   const [addingMarket, setAddingMarket] = useState(false);
+
+  // Helper functions for single card expansion
+  const openItems = openCard === 'items';
+  const openRetailers = openCard === 'retailers';
+  const openMarkets = openCard === 'markets';
+
+  const toggleCard = (cardName) => {
+    if (openCard === cardName) {
+      setOpenCard(null);
+      // Clear selections when closing
+      if (cardName === 'items') setSelectedItems(new Set());
+      if (cardName === 'retailers') setSelectedRetailers(new Set());
+      if (cardName === 'markets') setSelectedMarkets(new Set());
+    } else {
+      setOpenCard(cardName);
+      // Clear other selections when opening a new card
+      setSelectedItems(new Set());
+      setSelectedRetailers(new Set());
+      setSelectedMarkets(new Set());
+    }
+  };
+
+  /* ----- Bulk Operations ----- */
+  async function bulkDeleteItems() {
+    if (selectedItems.size === 0) return;
+    if (!confirm(`Delete ${selectedItems.size} selected items?`)) return;
+    
+    const { error } = await supabase
+      .from("items")
+      .delete()
+      .in("id", Array.from(selectedItems));
+    
+    if (error) {
+      alert(error.message);
+    } else {
+      await refetchItems();
+      setSelectedItems(new Set());
+    }
+  }
+
+  async function bulkDeleteRetailers() {
+    if (selectedRetailers.size === 0) return;
+    if (!confirm(`Delete ${selectedRetailers.size} selected retailers?`)) return;
+    
+    const { error } = await supabase
+      .from("retailers")
+      .delete()
+      .in("id", Array.from(selectedRetailers));
+    
+    if (error) {
+      alert(error.message);
+    } else {
+      await refetchRetailers();
+      setSelectedRetailers(new Set());
+    }
+  }
+
+  async function bulkDeleteMarkets() {
+    if (selectedMarkets.size === 0) return;
+    if (!confirm(`Delete ${selectedMarkets.size} selected marketplaces?`)) return;
+    
+    const { error } = await supabase
+      .from("marketplaces")
+      .delete()
+      .in("id", Array.from(selectedMarkets));
+    
+    if (error) {
+      alert(error.message);
+    } else {
+      await refetchMarkets();
+      setSelectedMarkets(new Set());
+    }
+  }
 
   /* ----- CRUD: Items ----- */
   async function createItem(name, mvStr) {
@@ -149,6 +224,36 @@ export default function Settings() {
             </div>
 
             <div className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0">
+              {/* Bulk Actions - only show when items are selected */}
+              {openItems && selectedItems.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-400">
+                    {selectedItems.size} selected
+                  </span>
+                  <button
+                    onClick={bulkDeleteItems}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-rose-600 bg-rose-600 hover:bg-rose-500 text-white"
+                    title="Delete selected"
+                    aria-label="Delete selected"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
               {openItems && !addingItem && (
                 <button
                   onClick={() => setAddingItem(true)}
@@ -170,19 +275,17 @@ export default function Settings() {
                 </button>
               )}
               <button
-                onClick={() => {
-                  const n = !openItems;
-                  setOpenItems(n);
-                  if (!n) setAddingItem(false);
-                }}
+                onClick={() => toggleCard('items')}
                 className={headerGhostBtn}
+                aria-label={openItems ? "Collapse" : "Expand"}
               >
-                {openItems ? "Collapse" : "Expand"}
+                <ChevronDown className={`h-5 w-5 transition-transform ${openItems ? "rotate-180" : ""}`} />
               </button>
             </div>
           </div>
 
-          {openItems && (
+          {/* content */}
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openItems ? 1000 : 0 }}>
             <div className="pt-5">
               <div className="hidden sm:grid sm:grid-cols-[1fr_160px_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
                 <div>Item</div>
@@ -206,6 +309,16 @@ export default function Settings() {
                   <ItemRow
                     key={it.id}
                     it={it}
+                    isSelected={selectedItems.has(it.id)}
+                    onToggleSelection={() => {
+                      const newSelected = new Set(selectedItems);
+                      if (newSelected.has(it.id)) {
+                        newSelected.delete(it.id);
+                      } else {
+                        newSelected.add(it.id);
+                      }
+                      setSelectedItems(newSelected);
+                    }}
                     onSave={(name, mv) => updateItem(it.id, name, mv)}
                     onDelete={() => deleteItem(it.id)}
                   />
@@ -215,7 +328,7 @@ export default function Settings() {
                 )}
               </div>
             </div>
-          )}
+          </div>
         </section>
 
         {/* ---------- Retailers ---------- */}
@@ -227,6 +340,36 @@ export default function Settings() {
             </div>
 
             <div className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0">
+              {/* Bulk Actions - only show when retailers are selected */}
+              {openRetailers && selectedRetailers.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-400">
+                    {selectedRetailers.size} selected
+                  </span>
+                  <button
+                    onClick={bulkDeleteRetailers}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-rose-600 bg-rose-600 hover:bg-rose-500 text-white"
+                    title="Delete selected"
+                    aria-label="Delete selected"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
               {openRetailers && !addingRetailer && (
                 <button
                   onClick={() => setAddingRetailer(true)}
@@ -248,19 +391,17 @@ export default function Settings() {
                 </button>
               )}
               <button
-                onClick={() => {
-                  const n = !openRetailers;
-                  setOpenRetailers(n);
-                  if (!n) setAddingRetailer(false);
-                }}
+                onClick={() => toggleCard('retailers')}
                 className={headerGhostBtn}
+                aria-label={openRetailers ? "Collapse" : "Expand"}
               >
-                {openRetailers ? "Collapse" : "Expand"}
+                <ChevronDown className={`h-5 w-5 transition-transform ${openRetailers ? "rotate-180" : ""}`} />
               </button>
             </div>
           </div>
 
-          {openRetailers && (
+          {/* content */}
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openRetailers ? 1000 : 0 }}>
             <div className="pt-5">
               <div className="hidden sm:grid sm:grid-cols-[1fr_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
                 <div>Retailer</div>
@@ -283,6 +424,16 @@ export default function Settings() {
                   <RetailerRow
                     key={r.id}
                     r={r}
+                    isSelected={selectedRetailers.has(r.id)}
+                    onToggleSelection={() => {
+                      const newSelected = new Set(selectedRetailers);
+                      if (newSelected.has(r.id)) {
+                        newSelected.delete(r.id);
+                      } else {
+                        newSelected.add(r.id);
+                      }
+                      setSelectedRetailers(newSelected);
+                    }}
                     onSave={(name) => updateRetailer(r.id, name)}
                     onDelete={() => deleteRetailer(r.id)}
                   />
@@ -292,7 +443,7 @@ export default function Settings() {
                 )}
               </div>
             </div>
-          )}
+          </div>
         </section>
 
         {/* ---------- Marketplaces ---------- */}
@@ -304,6 +455,36 @@ export default function Settings() {
             </div>
 
             <div className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0">
+              {/* Bulk Actions - only show when markets are selected */}
+              {openMarkets && selectedMarkets.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-400">
+                    {selectedMarkets.size} selected
+                  </span>
+                  <button
+                    onClick={bulkDeleteMarkets}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-rose-600 bg-rose-600 hover:bg-rose-500 text-white"
+                    title="Delete selected"
+                    aria-label="Delete selected"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
               {openMarkets && !addingMarket && (
                 <button
                   onClick={() => setAddingMarket(true)}
@@ -325,19 +506,17 @@ export default function Settings() {
                 </button>
               )}
               <button
-                onClick={() => {
-                  const n = !openMarkets;
-                  setOpenMarkets(n);
-                  if (!n) setAddingMarket(false);
-                }}
+                onClick={() => toggleCard('markets')}
                 className={headerGhostBtn}
+                aria-label={openMarkets ? "Collapse" : "Expand"}
               >
-                {openMarkets ? "Collapse" : "Expand"}
+                <ChevronDown className={`h-5 w-5 transition-transform ${openMarkets ? "rotate-180" : ""}`} />
               </button>
             </div>
           </div>
 
-          {openMarkets && (
+          {/* content */}
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openMarkets ? 1000 : 0 }}>
             <div className="pt-5">
               <div className="hidden sm:grid sm:grid-cols-[1fr_140px_200px] gap-2 px-1 pb-2 text-xs text-slate-400">
                 <div>Marketplace</div>
@@ -361,6 +540,16 @@ export default function Settings() {
                   <MarketRow
                     key={m.id}
                     m={m}
+                    isSelected={selectedMarkets.has(m.id)}
+                    onToggleSelection={() => {
+                      const newSelected = new Set(selectedMarkets);
+                      if (newSelected.has(m.id)) {
+                        newSelected.delete(m.id);
+                      } else {
+                        newSelected.add(m.id);
+                      }
+                      setSelectedMarkets(newSelected);
+                    }}
                     onSave={(name, fee) => updateMarket(m.id, name, fee)}
                     onDelete={() => deleteMarket(m.id)}
                   />
@@ -370,16 +559,26 @@ export default function Settings() {
                 )}
               </div>
             </div>
-          )}
+          </div>
         </section>
       </div>
     </div>
   );
 }
 
+/* ---------- Components ---------- */
+
+function ChevronDown({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
 /* ---------- Row components ---------- */
 
-function ItemRow({ it, isNew = false, onSave, onDelete }) {
+function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onSave, onDelete }) {
   const [name, setName] = useState(it?.name ?? "");
   const [mv, setMv] = useState(centsToStr(it?.market_value_cents ?? 0));
   const [status, setStatus] = useState("");
@@ -395,23 +594,41 @@ function ItemRow({ it, isNew = false, onSave, onDelete }) {
   }
 
   return (
-    <div className={rowCard}>
+    <div 
+      className={`${rowCard} cursor-pointer transition-all ${
+        isSelected 
+          ? 'border-indigo-500 bg-indigo-500/10' 
+          : 'border-slate-800 hover:bg-slate-800/50'
+      }`}
+      onClick={onToggleSelection}
+    >
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_auto] gap-2 items-center min-w-0">
         <input
           className={inputSm}
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            e.stopPropagation();
+            setName(e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
           placeholder="Item name…"
         />
         <input
           className={`${inputSm} sm:w-[160px]`}
           value={mv}
-          onChange={(e) => setMv(e.target.value)}
+          onChange={(e) => {
+            e.stopPropagation();
+            setMv(e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
           placeholder="e.g. 129.99"
         />
         <div className="flex justify-end gap-2">
           <button
-            onClick={handleSave}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave();
+            }}
             className={busy ? iconSaveBusy : iconSave}
             title={busy ? "Saving…" : "Save"}
             aria-label={busy ? "Saving…" : "Save"}
@@ -430,7 +647,10 @@ function ItemRow({ it, isNew = false, onSave, onDelete }) {
             </svg>
           </button>
           <button
-            onClick={onDelete}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             className={isNew ? iconSave : iconDelete}
             title={isNew ? "Cancel" : "Delete"}
             aria-label={isNew ? "Cancel" : "Delete"}
@@ -484,7 +704,7 @@ function ItemRow({ it, isNew = false, onSave, onDelete }) {
   );
 }
 
-function RetailerRow({ r, isNew = false, onSave, onDelete }) {
+function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, onSave, onDelete }) {
   const [name, setName] = useState(r?.name ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -499,17 +719,31 @@ function RetailerRow({ r, isNew = false, onSave, onDelete }) {
   }
 
   return (
-    <div className={rowCard}>
+    <div 
+      className={`${rowCard} cursor-pointer transition-all ${
+        isSelected 
+          ? 'border-indigo-500 bg-indigo-500/10' 
+          : 'border-slate-800 hover:bg-slate-800/50'
+      }`}
+      onClick={onToggleSelection}
+    >
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center min-w-0">
         <input
           className={inputSm}
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            e.stopPropagation();
+            setName(e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
           placeholder="Retailer name…"
         />
         <div className="flex justify-end gap-2">
           <button
-            onClick={handleSave}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave();
+            }}
             className={busy ? iconSaveBusy : iconSave}
             title={busy ? "Saving…" : "Save"}
             aria-label={busy ? "Saving…" : "Save"}
@@ -528,7 +762,10 @@ function RetailerRow({ r, isNew = false, onSave, onDelete }) {
             </svg>
           </button>
           <button
-            onClick={onDelete}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             className={isNew ? iconSave : iconDelete}
             title={isNew ? "Cancel" : "Delete"}
             aria-label={isNew ? "Cancel" : "Delete"}
@@ -581,7 +818,7 @@ function RetailerRow({ r, isNew = false, onSave, onDelete }) {
   );
 }
 
-function MarketRow({ m, isNew = false, onSave, onDelete }) {
+function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, onSave, onDelete }) {
   const [name, setName] = useState(m?.name ?? "");
   const [fee, setFee] = useState(((m?.default_fees_pct ?? 0) * 100).toString());
   const [status, setStatus] = useState("");
@@ -597,23 +834,41 @@ function MarketRow({ m, isNew = false, onSave, onDelete }) {
   }
 
   return (
-    <div className={rowCard}>
+    <div 
+      className={`${rowCard} cursor-pointer transition-all ${
+        isSelected 
+          ? 'border-indigo-500 bg-indigo-500/10' 
+          : 'border-slate-800 hover:bg-slate-800/50'
+      }`}
+      onClick={onToggleSelection}
+    >
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_auto] gap-2 items-center min-w-0">
         <input
           className={inputSm}
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            e.stopPropagation();
+            setName(e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
           placeholder="Marketplace name…"
         />
         <input
           className={`${inputSm} sm:w-[140px]`}
           value={fee}
-          onChange={(e) => setFee(e.target.value)}
+          onChange={(e) => {
+            e.stopPropagation();
+            setFee(e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
           placeholder="Fee %"
         />
         <div className="flex justify-end gap-2">
           <button
-            onClick={handleSave}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave();
+            }}
             className={busy ? iconSaveBusy : iconSave}
             title={busy ? "Saving…" : "Save"}
             aria-label={busy ? "Saving…" : "Save"}
@@ -632,7 +887,10 @@ function MarketRow({ m, isNew = false, onSave, onDelete }) {
             </svg>
           </button>
           <button
-            onClick={onDelete}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             className={isNew ? iconSave : iconDelete}
             title={isNew ? "Cancel" : "Delete"}
             aria-label={isNew ? "Cancel" : "Delete"}
