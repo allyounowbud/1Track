@@ -183,16 +183,25 @@ export default function OrderBook() {
       const formDataArray = [];
       const selectedOrders = filtered.filter(order => selectedRows.has(order.id));
       
+      console.log("Selected orders:", selectedOrders);
+      console.log("OrderRow refs:", orderRowRefs.current);
+      
       for (const order of selectedOrders) {
         const orderRowRef = orderRowRefs.current.get(order.id);
+        console.log(`Order ${order.id} ref:`, orderRowRef);
+        
         if (orderRowRef && orderRowRef.getFormData) {
           const formData = orderRowRef.getFormData();
+          console.log(`Order ${order.id} form data:`, formData);
           formDataArray.push({ ...order, ...formData });
         } else {
+          console.log(`Order ${order.id} - no ref or getFormData, using original data`);
           // Fallback to original order data if ref not available
           formDataArray.push(order);
         }
       }
+      
+      console.log("Final form data array:", formDataArray);
 
       // Separate new rows from existing rows
       const newRowsToSave = formDataArray.filter(order => order.isNew);
@@ -200,6 +209,8 @@ export default function OrderBook() {
 
       // Handle new rows - insert into database
       if (newRowsToSave.length > 0) {
+        console.log("New rows to save:", newRowsToSave);
+        
         const newOrdersData = newRowsToSave.map(row => ({
           order_date: row.order_date || new Date().toISOString().split('T')[0],
           item: row.item || "",
@@ -213,35 +224,51 @@ export default function OrderBook() {
           fees_pct: parsePct(row.fees_pct || 0) / 100,
         }));
 
+        console.log("New orders data to insert:", newOrdersData);
+
         const { error: insertError } = await supabase
           .from("orders")
           .insert(newOrdersData);
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Insert error:", insertError);
+          throw insertError;
+        }
+        
+        console.log("Successfully inserted new rows");
       }
 
       // Handle existing rows - update in database
       if (existingRowsToUpdate.length > 0) {
+        console.log("Existing rows to update:", existingRowsToUpdate);
+        
         for (const row of existingRowsToUpdate) {
           const updateData = {
-            order_date: row.order_date || null,
-            item: row.item || null,
-            profile_name: row.profile_name || null,
-            retailer: row.retailer || null,
+            order_date: row.order_date || new Date().toISOString().split('T')[0], // Default to today if empty
+            item: row.item || "",
+            profile_name: row.profile_name || "",
+            retailer: row.retailer || "",
             buy_price_cents: moneyToCents(row.buy_price_cents || 0),
             sale_price_cents: moneyToCents(row.sale_price_cents || 0),
-            sale_date: row.sale_date || null,
-            marketplace: row.marketplace || null,
+            sale_date: row.sale_date || null, // Sale date can be null
+            marketplace: row.marketplace || "",
             shipping_cents: moneyToCents(row.shipping_cents || 0),
             fees_pct: parsePct(row.fees_pct || 0) / 100,
           };
+
+          console.log(`Updating order ${row.id} with data:`, updateData);
 
           const { error: updateError } = await supabase
             .from("orders")
             .update(updateData)
             .eq("id", row.id);
 
-          if (updateError) throw updateError;
+          if (updateError) {
+            console.error(`Update error for order ${row.id}:`, updateError);
+            throw updateError;
+          }
+          
+          console.log(`Successfully updated order ${row.id}`);
         }
       }
 
