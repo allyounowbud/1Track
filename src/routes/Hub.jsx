@@ -78,15 +78,18 @@ export default function Hub() {
               </div>
             </Link>
 
-            <Link to="/automation" className={tile}>
+            <Link to="/emails" className={tile}>
               <div className="h-12 w-12 rounded-xl bg-emerald-600/20 grid place-items-center text-emerald-300">
-                🤖
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="M3 7l9 6 9-6" />
+                </svg>
               </div>
               <div className="flex-1">
-                <div className="text-xl font-semibold">Automations</div>
+                <div className="text-xl font-semibold">Emails</div>
                 <div className="text-slate-400 text-sm">
-                  Coming soon: automations for things like building and converting profiles, email management, 
-                  jigging information and more..
+                  Auto-import orders & shipping updates. Connect your Gmail to automatically sync order confirmations, 
+                  track shipments, and add orders to your order book.
                 </div>
                 <div className="mt-3 inline-flex items-center text-emerald-300 group-hover:text-emerald-200">
                   Open →

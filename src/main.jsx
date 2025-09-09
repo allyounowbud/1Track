@@ -14,7 +14,6 @@ import MarkSold from "./routes/MarkSold.jsx";
 import Inventory from "./routes/Inventory.jsx";
 import Stats from "./routes/Stats.jsx";
 import OrderBook from "./routes/OrderBook.jsx";
-import Automation from "./routes/Automation.jsx";
 import Emails from "./routes/Emails.jsx";           // <-- NEW
 import AuthGuard from "./routes/AuthGuard.jsx";     // <-- RENAMED
 
@@ -27,7 +26,6 @@ const router = createBrowserRouter([
   { path: "/inventory", element: <Inventory /> },
   { path: "/stats", element: <Stats /> },
   { path: "/settings", element: <Settings /> },
-  { path: "/automation", element: <Automation /> },
   { path: "/emails", element: <Emails /> },        // <-- NEW ROUTE
 
   // Legacy + fallback routes
