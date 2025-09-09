@@ -61,7 +61,7 @@ export default function Hub() {
         <div className={`${card}`}>
           <h2 className="text-lg font-semibold mb-4">Choose a workspace</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Link to="/orders" className={tile}>
               <div className="h-12 w-12 rounded-xl bg-indigo-600/20 grid place-items-center text-indigo-300">
                 🧾
@@ -96,6 +96,24 @@ export default function Hub() {
                 </div>
               </div>
             </Link>
+
+            <div className={tile}>
+              <div className="h-12 w-12 rounded-xl bg-purple-600/20 grid place-items-center text-purple-300">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="text-xl font-semibold">Profiles</div>
+                <div className="text-slate-400 text-sm">
+                  Manage your selling profiles and marketplaces. Track performance across different platforms, 
+                  manage inventory distribution, and optimize your selling strategy.
+                </div>
+                <div className="mt-3 inline-flex items-center text-purple-300">
+                  Coming soon
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
