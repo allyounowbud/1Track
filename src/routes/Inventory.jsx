@@ -203,8 +203,8 @@ export default function Inventory() {
   }, [byItem]);
 
   /* ---------------- Sorting ---------------- */
-  const [sortKey, setSortKey] = useState("estValueCents");
-  const [sortDir, setSortDir] = useState("desc"); // 'asc' | 'desc'
+  const [sortKey, setSortKey] = useState("name");
+  const [sortDir, setSortDir] = useState("asc"); // 'asc' | 'desc'
 
   function toggleSort(key) {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -295,7 +295,7 @@ export default function Inventory() {
 
         <div className={`${pageCard} overflow-hidden`}>
           {/* Header */}
-          <div className="grid grid-cols-6 gap-4 px-4 py-3 border-b border-slate-800 bg-slate-900/40 text-xs text-slate-400 font-medium">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 border-b border-slate-800 bg-slate-900/40 text-xs text-slate-400 font-medium">
             <button
               onClick={() => toggleSort("name")}
               className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
@@ -389,11 +389,11 @@ export default function Inventory() {
           </div>
 
           {/* Rows */}
-          <div className="max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800">
+          <div>
             {sortedRows.map((r, index) => (
               <div
                 key={r.name}
-                className={`grid grid-cols-6 gap-4 px-4 py-3 border-b border-slate-800/50 hover:bg-slate-900/20 transition-colors ${
+                className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 border-b border-slate-800/50 hover:bg-slate-900/20 transition-colors ${
                   index % 2 === 0 ? "bg-slate-900/10" : "bg-slate-900/5"
                 }`}
               >
