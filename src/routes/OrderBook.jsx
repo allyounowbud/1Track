@@ -1,6 +1,5 @@
 // src/routes/OrderBook.jsx
 import { useEffect, useMemo, useState, useRef } from "react";
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
@@ -422,20 +421,7 @@ export default function OrderBook() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="orders" section="orderbook" />
-
-        {/* Back to Hub */}
-        <div className="mb-6">
-          <Link 
-            to="/" 
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Hub
-          </Link>
-        </div>
+        <HeaderWithTabs active="orders" section="orderbook" showHubTab={true} />
 
         {/* Search + meta */}
         <div className={`${pageCard} mb-6`}>

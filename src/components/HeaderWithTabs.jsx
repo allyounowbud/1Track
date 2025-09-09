@@ -8,8 +8,9 @@ import { supabase } from "../lib/supabaseClient";
  * - active: "orders" | "add" | "sold" | "stats" | "settings" | "emails"
  * - showTabs: boolean (default true)
  * - section: "orderbook" | "automations" (default "orderbook")
+ * - showHubTab: boolean (default false) - adds Hub tab as first tab
  */
-export default function HeaderWithTabs({ active = "", showTabs = true, section = "orderbook" }) {
+export default function HeaderWithTabs({ active = "", showTabs = true, section = "orderbook", showHubTab = false }) {
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
 
   useEffect(() => {
@@ -92,6 +93,14 @@ export default function HeaderWithTabs({ active = "", showTabs = true, section =
         <div className="relative z-20 flex flex-wrap items-center gap-2 mb-6">
           {section === "orderbook" ? (
             <>
+              {showHubTab && (
+                <Link to="/" className={tabClass("hub")({ isActive: false })}>
+                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Hub
+                </Link>
+              )}
               <NavLink to="/add" end className={tabClass("add")}>
                 Quick Add
               </NavLink>
