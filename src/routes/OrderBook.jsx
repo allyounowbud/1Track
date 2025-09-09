@@ -1047,29 +1047,35 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
-  // Function to get current form data for bulk save
-  const getFormData = () => ({
-    order_date,
-    item,
-    profile_name,
-    retailer,
-    buy_price_cents: buyPrice,
-    sale_price_cents: salePrice,
-    sale_date,
-    marketplace,
-    shipping_cents: shipping,
-    fees_pct: feesPct,
-  });
-
   // Register this component with the refs map
   useEffect(() => {
     if (orderRowRefs) {
+      // Create a function that captures current state values
+      const getFormData = () => {
+        const formData = {
+          order_date,
+          item,
+          profile_name,
+          retailer,
+          buy_price_cents: buyPrice,
+          sale_price_cents: salePrice,
+          sale_date,
+          marketplace,
+          shipping_cents: shipping,
+          fees_pct: feesPct,
+        };
+        console.log(`OrderRow ${order.id} getFormData called, returning:`, formData);
+        return formData;
+      };
+      
+      console.log(`Registering OrderRow ${order.id} with refs`);
       orderRowRefs.current.set(order.id, { getFormData });
       return () => {
+        console.log(`Unregistering OrderRow ${order.id} from refs`);
         orderRowRefs.current.delete(order.id);
       };
     }
-  }, [order.id, orderRowRefs]);
+  }, [order.id, orderRowRefs, order_date, item, profile_name, retailer, buyPrice, salePrice, sale_date, marketplace, shipping, feesPct]);
 
   function handleMarketplaceChange(name) {
     setMarketplace(name);
