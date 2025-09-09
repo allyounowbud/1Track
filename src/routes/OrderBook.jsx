@@ -410,16 +410,18 @@ function UnifiedOrderView({
       </div>
 
       {/* Selection Info */}
-      <div className="flex items-center gap-3 mb-6">
-        <input
-          type="checkbox"
-          checked={selectedRows.size === filtered.length && filtered.length > 0}
-          onChange={toggleAllSelection}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-        />
-        <span className="text-sm font-semibold text-slate-400">
-          {selectedRows.size}/{filtered.length} Selected
-        </span>
+      <div className={`${pageCard} mb-6`}>
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={selectedRows.size === filtered.length && filtered.length > 0}
+            onChange={toggleAllSelection}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          />
+          <span className="text-sm font-semibold text-slate-400">
+            {selectedRows.size}/{filtered.length} Selected
+          </span>
+        </div>
       </div>
 
       {/* Content Area */}
