@@ -350,46 +350,30 @@ function UnifiedOrderView({
 }) {
   return (
     <div className={`${pageCard}`}>
-      {/* Header with View Toggle, Selection, and Actions */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700">
+      {/* Header with View Toggle and Actions */}
+      <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
         {/* Left side - View Toggle */}
-        <div className="flex items-center gap-4">
-          <div className="text-sm font-semibold text-slate-400">View Mode</div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                viewMode === 'grid'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              Grid
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                viewMode === 'list'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              List
-            </button>
-          </div>
-        </div>
-
-        {/* Center - Selection Info */}
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={selectedRows.size === filtered.length && filtered.length > 0}
-            onChange={toggleAllSelection}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-          />
-          <span className="text-sm font-semibold text-slate-400">
-            {selectedRows.size}/{filtered.length} Selected
-          </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+              viewMode === 'grid'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            Grid
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+              viewMode === 'list'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            List
+          </button>
         </div>
 
         {/* Right side - Action Buttons */}
@@ -423,6 +407,19 @@ function UnifiedOrderView({
             </svg>
           </button>
         </div>
+      </div>
+
+      {/* Selection Info */}
+      <div className="flex items-center gap-3 mb-6">
+        <input
+          type="checkbox"
+          checked={selectedRows.size === filtered.length && filtered.length > 0}
+          onChange={toggleAllSelection}
+          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+        />
+        <span className="text-sm font-semibold text-slate-400">
+          {selectedRows.size}/{filtered.length} Selected
+        </span>
       </div>
 
       {/* Content Area */}
@@ -543,23 +540,32 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
 /* ---------- Unified Day Section Component ---------- */
 function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows }) {
   const [open, setOpen] = useState(defaultOpen);
+  const allRowsSelected = rows.length > 0 && rows.every(row => selectedRows.has(row.id));
 
   return (
-    <div className="border border-slate-800 rounded-xl overflow-hidden">
+    <div className={`border rounded-xl overflow-hidden transition-all ${
+      allRowsSelected 
+        ? 'border-indigo-500 bg-indigo-500/10' 
+        : 'border-slate-800'
+    }`}>
       {/* Header Row */}
       <div 
-        className="flex items-center justify-between p-4 bg-slate-800/30 hover:bg-slate-800/50 cursor-pointer transition-colors"
+        className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${
+          allRowsSelected
+            ? 'bg-indigo-500/20 hover:bg-indigo-500/30'
+            : 'bg-slate-800/30 hover:bg-slate-800/50'
+        }`}
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
-              checked={selectedRows.size === rows.length && rows.length > 0 && rows.every(row => selectedRows.has(row.id))}
+              checked={allRowsSelected}
               onChange={(e) => {
                 e.stopPropagation();
                 const newSelected = new Set(selectedRows);
-                if (rows.every(row => selectedRows.has(row.id))) {
+                if (allRowsSelected) {
                   // Deselect all rows in this section
                   rows.forEach(row => newSelected.delete(row.id));
                 } else {
@@ -570,9 +576,6 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
               }}
               className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
             />
-            <span className="text-sm font-semibold text-slate-400">
-              {rows.filter(row => selectedRows.has(row.id)).length}/{rows.length} Selected
-            </span>
           </div>
           <div>
             <div className="text-lg font-semibold text-slate-100">{title}</div>
