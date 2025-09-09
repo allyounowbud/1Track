@@ -807,7 +807,9 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
           </div>
           <div>
             <div className="text-lg font-semibold text-slate-100">{title}</div>
-            <div className="text-sm text-slate-400">{count} orders</div>
+            <div className="text-sm text-slate-400">
+              {title === "New Orders" ? "Save changes to add to the order book" : `${count} orders`}
+            </div>
           </div>
         </div>
         <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
