@@ -233,36 +233,34 @@ export default function Inventory() {
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="inventory" showTabs />
 
-        {/* Filter */}
+        {/* Search */}
         <div className={`${pageCard} mb-6`}>
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-            <div>
-              <label className="text-slate-300 mb-1 block text-sm">Item</label>
-              <input
-                list="inv-items-datalist"
-                value={itemFilter}
-                onChange={(e) => setItemFilter(e.target.value)}
-                placeholder="All items (type to search, or pick)"
-                className={inputSm}
-              />
-              <datalist id="inv-items-datalist">
-                {onHandNames.map((n) => (
-                  <option key={n} value={n} />
-                ))}
-              </datalist>
-            </div>
-            <div className="flex items-center gap-4 sm:justify-end">
-              <div className="text-slate-400 text-sm">Rows</div>
-              <div className="text-xl font-semibold">{sortedRows.length}</div>
-              {!!itemFilter && (
-                <button
-                  onClick={() => setItemFilter("")}
-                  className="h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              list="inv-items-datalist"
+              value={itemFilter}
+              onChange={(e) => setItemFilter(e.target.value)}
+              placeholder="Search inventory..."
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <datalist id="inv-items-datalist">
+              {onHandNames.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
+            {!!itemFilter && (
+              <button
+                onClick={() => setItemFilter("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -295,92 +293,125 @@ export default function Inventory() {
           <div className="text-rose-400">{String(error.message || error)}</div>
         )}
 
-        <div className="space-y-3">
-          {/* header (desktop) */}
-          <div className="hidden lg:flex text-xs text-slate-400 px-1 select-none">
-            <Th
-              label="Item"
-              active={sortKey === "name"}
-              dir={sortDir}
+        <div className={`${pageCard} overflow-hidden`}>
+          {/* Header */}
+          <div className="grid grid-cols-6 gap-4 px-4 py-3 border-b border-slate-800 bg-slate-900/40 text-xs text-slate-400 font-medium">
+            <button
               onClick={() => toggleSort("name")}
-              className="min-w-[220px] flex-1"
-            />
-            <Th
-              label="On hand"
-              active={sortKey === "onHandQty"}
-              dir={sortDir}
+              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+            >
+              Item
+              {sortKey === "name" && (
+                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                  {sortDir === "asc" ? (
+                    <path d="M10 6l-5 6h10L10 6z" />
+                  ) : (
+                    <path d="M10 14l5-6H5l5 6z" />
+                  )}
+                </svg>
+              )}
+            </button>
+            <button
               onClick={() => toggleSort("onHandQty")}
-              className="w-24"
-            />
-            <Th
-              label="Avg cost"
-              active={sortKey === "onHandAvgCostCents"}
-              dir={sortDir}
+              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+            >
+              On hand
+              {sortKey === "onHandQty" && (
+                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                  {sortDir === "asc" ? (
+                    <path d="M10 6l-5 6h10L10 6z" />
+                  ) : (
+                    <path d="M10 14l5-6H5l5 6z" />
+                  )}
+                </svg>
+              )}
+            </button>
+            <button
               onClick={() => toggleSort("onHandAvgCostCents")}
-              className="w-28"
-            />
-            <Th
-              label="Total cost"
-              active={sortKey === "onHandCostCents"}
-              dir={sortDir}
+              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+            >
+              Avg cost
+              {sortKey === "onHandAvgCostCents" && (
+                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                  {sortDir === "asc" ? (
+                    <path d="M10 6l-5 6h10L10 6z" />
+                  ) : (
+                    <path d="M10 14l5-6H5l5 6z" />
+                  )}
+                </svg>
+              )}
+            </button>
+            <button
               onClick={() => toggleSort("onHandCostCents")}
-              className="w-32"
-            />
-            <Th
-              label="Mkt value"
-              active={sortKey === "marketValueCents"}
-              dir={sortDir}
+              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+            >
+              Total cost
+              {sortKey === "onHandCostCents" && (
+                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                  {sortDir === "asc" ? (
+                    <path d="M10 6l-5 6h10L10 6z" />
+                  ) : (
+                    <path d="M10 14l5-6H5l5 6z" />
+                  )}
+                </svg>
+              )}
+            </button>
+            <button
               onClick={() => toggleSort("marketValueCents")}
-              className="w-28"
-            />
-            <Th
-              label="Est. value"
-              active={sortKey === "estValueCents"}
-              dir={sortDir}
+              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+            >
+              Mkt value
+              {sortKey === "marketValueCents" && (
+                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                  {sortDir === "asc" ? (
+                    <path d="M10 6l-5 6h10L10 6z" />
+                  ) : (
+                    <path d="M10 14l5-6H5l5 6z" />
+                  )}
+                </svg>
+              )}
+            </button>
+            <button
               onClick={() => toggleSort("estValueCents")}
-              className="w-32 text-right justify-end"
-            />
+              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+            >
+              Est. value
+              {sortKey === "estValueCents" && (
+                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                  {sortDir === "asc" ? (
+                    <path d="M10 6l-5 6h10L10 6z" />
+                  ) : (
+                    <path d="M10 14l5-6H5l5 6z" />
+                  )}
+                </svg>
+              )}
+            </button>
           </div>
 
-          {sortedRows.map((r) => (
-            <div key={r.name} className={rowCard}>
-              {/* desktop row */}
-              <div className="hidden lg:flex items-center gap-2">
-                <div className="min-w-[220px] flex-1 truncate">{r.name}</div>
-                <div className="w-24">{r.onHandQty}</div>
-                <div className="w-28">${centsToStr(r.onHandAvgCostCents)}</div>
-                <div className="w-32">${centsToStr(r.onHandCostCents)}</div>
-                <div className="w-28">${centsToStr(r.marketValueCents)}</div>
-                <div className="w-32 text-right font-medium">
-                  ${centsToStr(r.estValueCents)}
-                </div>
+          {/* Rows */}
+          <div className="max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800">
+            {sortedRows.map((r, index) => (
+              <div
+                key={r.name}
+                className={`grid grid-cols-6 gap-4 px-4 py-3 border-b border-slate-800/50 hover:bg-slate-900/20 transition-colors ${
+                  index % 2 === 0 ? "bg-slate-900/10" : "bg-slate-900/5"
+                }`}
+              >
+                <div className="text-slate-100 font-medium truncate pr-2">{r.name}</div>
+                <div className="text-slate-200">{r.onHandQty}</div>
+                <div className="text-slate-200">${centsToStr(r.onHandAvgCostCents)}</div>
+                <div className="text-slate-200">${centsToStr(r.onHandCostCents)}</div>
+                <div className="text-slate-200">${centsToStr(r.marketValueCents)}</div>
+                <div className="text-slate-100 font-semibold">${centsToStr(r.estValueCents)}</div>
               </div>
+            ))}
 
-              {/* mobile row */}
-              <div className="lg:hidden">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium pr-3">{r.name}</div>
-                  <span className="inline-flex items-center justify-center h-6 px-2 rounded-md text-xs border border-slate-700 bg-slate-800/60">
-                    {r.onHandQty} on hand
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <Cell label="Avg cost" value={`$${centsToStr(r.onHandAvgCostCents)}`} />
-                  <Cell label="Total cost" value={`$${centsToStr(r.onHandCostCents)}`} />
-                  <Cell label="Mkt value" value={`$${centsToStr(r.marketValueCents)}`} />
-                  <Cell
-                    label="Est. value"
-                    value={`$${centsToStr(r.estValueCents)}`}
-                    strong
-                  />
-                </div>
+            {!isLoading && sortedRows.length === 0 && (
+              <div className="px-4 py-8 text-center text-slate-400">
+                No matching items.
               </div>
-            </div>
-          ))}
-
-          {!isLoading && sortedRows.length === 0 && (
-            <div className={`${pageCard} text-slate-400`}>No matching items.</div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -400,41 +431,6 @@ function Kpi({ label, value, sub, tone = "neutral" }) {
       <div className="text-xs text-slate-400">{label}</div>
       <div className={`text-xl font-semibold ${toneCls}`}>{value}</div>
       <div className="text-[11px] text-slate-400 truncate">{sub || " "}</div>
-    </div>
-  );
-}
-
-function Th({ label, active, dir, onClick, className = "" }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-1 ${className}`}
-      title="Sort"
-    >
-      <span>{label}</span>
-      <svg
-        className={`h-3 w-3 transition-opacity ${
-          active ? "opacity-100" : "opacity-30"
-        }`}
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        {dir === "asc" ? (
-          <path d="M10 6l-5 6h10L10 6z" />
-        ) : (
-          <path d="M10 14l5-6H5l5 6z" />
-        )}
-      </svg>
-    </button>
-  );
-}
-
-function Cell({ label, value, strong = false }) {
-  return (
-    <div className="flex items-center justify-between border border-slate-800 rounded-lg px-3 py-2 bg-slate-900/40">
-      <span className="text-xs text-slate-400">{label}</span>
-      <span className={`ml-3 ${strong ? "font-semibold" : ""}`}>{value}</span>
     </div>
   );
 }
