@@ -535,7 +535,7 @@ async function amazonCommon($, html, text) {
 
   console.log("Final parsed data:", out);
   console.log("=== END AMAZON PARSING DEBUG ===");
-  
+
   return out;
 }
 
@@ -1153,16 +1153,16 @@ exports.handler = async (event) => {
       
       try {
         processed++;
-        const msg = await getMessageFull(gmail, id);
-        const h = headersToObj(msg.payload?.headers || []);
-        const subject = h["subject"] || "";
-        const from = h["from"] || "";
-        const dateHeader = h["date"] || "";
-        const messageDate =
-          dateHeader
-            ? new Date(dateHeader)
-            : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
-        const { html, text } = extractBodyParts(msg.payload || {});
+      const msg = await getMessageFull(gmail, id);
+      const h = headersToObj(msg.payload?.headers || []);
+      const subject = h["subject"] || "";
+      const from = h["from"] || "";
+      const dateHeader = h["date"] || "";
+      const messageDate =
+        dateHeader
+          ? new Date(dateHeader)
+          : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
+      const { html, text } = extractBodyParts(msg.payload || {});
 
         // Only process emails from the last 30 days to avoid old emails
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -1171,8 +1171,8 @@ exports.handler = async (event) => {
           continue;
         }
 
-        const retailer = classifyRetailer(from);
-        const type = classifyType(retailer, subject);
+      const retailer = classifyRetailer(from);
+      const type = classifyType(retailer, subject);
         
         console.log(`Processing email from: ${from}, retailer: ${retailer.name}, type: ${type}`);
         
@@ -1186,13 +1186,13 @@ exports.handler = async (event) => {
         console.log(`Parsed order data:`, JSON.stringify(parsed, null, 2));
 
         // Extract order ID with better fallbacks
-        const order_id = 
-          parsed.order_id ||
+      const order_id =
+        parsed.order_id ||
           ((subject.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
-          ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
+        ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
           ((subject.match(/order\s*number\s*([0-9\-]+)/i) || [])[1]) ||
           ((subject.match(/([0-9]{10,})/) || [])[1]) || // long numbers
-          null;
+        null;
         
         // Add debug info to the response for browser visibility
         if (!parsed.item_name || parsed.item_name.includes('...')) {
@@ -1213,22 +1213,22 @@ exports.handler = async (event) => {
           continue;
         }
 
-        if (mode === "preview") {
-          const exists = await getOrderIdExists(acct.user_id, retailer.name, order_id);
+      if (mode === "preview") {
+        const exists = await getOrderIdExists(acct.user_id, retailer.name, order_id);
           if (!exists) {
-            proposed.push({
-              retailer: retailer.name,
+          proposed.push({
+            retailer: retailer.name,
               order_id: order_id,
-              order_date: ymd(messageDate),
-              item_name: parsed.item_name || null,
-              quantity: parsed.quantity || null,
-              unit_price_cents: parsed.unit_price_cents || null,
-              total_cents: parsed.total_cents || null,
-              image_url: parsed.image_url || null,
-            });
-          }
-          continue;
+            order_date: ymd(messageDate),
+            item_name: parsed.item_name || null,
+            quantity: parsed.quantity || null,
+            unit_price_cents: parsed.unit_price_cents || null,
+            total_cents: parsed.total_cents || null,
+            image_url: parsed.image_url || null,
+          });
         }
+        continue;
+      }
 
         // Create or update order
         const exists = await getOrderIdExists(acct.user_id, retailer.name, order_id);
@@ -1319,13 +1319,13 @@ exports.handler = async (event) => {
         await upsertShipment(ship);
         
         // Update order status to in_transit
-        await upsertOrder({
-          user_id: acct.user_id,
-          retailer: retailer.name,
-          order_id,
-          shipped_at: messageDate.toISOString(),
-          status: "in_transit",
-        });
+          await upsertOrder({
+            user_id: acct.user_id,
+            retailer: retailer.name,
+            order_id,
+            shipped_at: messageDate.toISOString(),
+            status: "in_transit",
+          });
         
         updated++;
         
@@ -1387,13 +1387,13 @@ exports.handler = async (event) => {
         }
 
         // Update order to delivered
-        await upsertOrder({
-          user_id: acct.user_id,
-          retailer: retailer.name,
-          order_id,
-          delivered_at: messageDate.toISOString(),
-          status: "delivered",
-        });
+          await upsertOrder({
+            user_id: acct.user_id,
+            retailer: retailer.name,
+            order_id,
+            delivered_at: messageDate.toISOString(),
+            status: "delivered",
+          });
         
         updated++;
         
