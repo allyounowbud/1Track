@@ -492,7 +492,7 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
   return (
     <>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
+      <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
         <div className="w-6"></div>
         <div className="text-xs text-slate-300 font-medium">Order date</div>
         <div className="text-xs text-slate-300 font-medium">Item</div>
