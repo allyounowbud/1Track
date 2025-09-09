@@ -581,7 +581,7 @@ function UnifiedOrderView({
               return (
                 <button
                   onClick={addNewRow}
-                  className="w-10 h-10 rounded-xl border border-green-600/50 bg-green-900/30 hover:bg-green-800/50 hover:border-green-500 text-green-200 transition-all duration-200 flex items-center justify-center group"
+                  className="w-10 h-10 rounded-xl border border-green-500 bg-green-600/80 hover:bg-green-500 hover:border-green-400 text-white transition-all duration-200 flex items-center justify-center group"
                   title="Add New Order"
                 >
                   <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -597,7 +597,7 @@ function UnifiedOrderView({
                 <>
                   <button
                     onClick={cancelNewRows}
-                    className="w-10 h-10 rounded-xl border border-red-600/50 bg-red-900/30 hover:bg-red-800/50 hover:border-red-500 text-red-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-10 h-10 rounded-xl border border-red-500 bg-red-600/80 hover:bg-red-500 hover:border-red-400 text-white transition-all duration-200 flex items-center justify-center group"
                     title="Cancel Changes"
                   >
                     <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -623,7 +623,7 @@ function UnifiedOrderView({
                 <>
                   <button
                     onClick={cancelNewRows}
-                    className="w-10 h-10 rounded-xl border border-red-600/50 bg-red-900/30 hover:bg-red-800/50 hover:border-red-500 text-red-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-10 h-10 rounded-xl border border-red-500 bg-red-600/80 hover:bg-red-500 hover:border-red-400 text-white transition-all duration-200 flex items-center justify-center group"
                     title="Cancel Changes"
                   >
                     <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
