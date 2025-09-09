@@ -508,8 +508,8 @@ function DayCard({
       <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 1000 : 0 }}>
         <div className="pt-5">
           {/* Header labels per group (desktop) */}
-          <div className="hidden lg:flex text-xs text-slate-400 px-1 mb-1 gap-2 items-center">
-            <div className="w-6 flex items-center justify-center">
+          <div className="hidden lg:grid lg:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 text-xs text-slate-400 px-1 mb-1 items-center">
+            <div className="flex items-center justify-center">
               <input
                 type="checkbox"
                 checked={rows.every(row => selectedRows.has(row.id))}
@@ -530,15 +530,15 @@ function DayCard({
                 className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
               />
             </div>
-            <div className="w-28">Order date</div>
-            <div className="w-56">Item</div>
-            <div className="w-28">Profile</div>
-            <div className="w-24">Retailer</div>
-            <div className="w-18">Buy $</div>
-            <div className="w-18">Sale $</div>
-            <div className="w-28">Sale date</div>
-            <div className="w-24">Marketplace</div>
-            <div className="w-18">Ship $</div>
+            <div>Order date</div>
+            <div>Item</div>
+            <div>Profile</div>
+            <div>Retailer</div>
+            <div>Buy $</div>
+            <div>Sale $</div>
+            <div>Sale date</div>
+            <div>Marketplace</div>
+            <div>Ship $</div>
           </div>
 
           <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
@@ -633,7 +633,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[28px_28px_56px_28px_24px_18px_18px_28px_24px_18px] gap-2 items-center min-w-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center min-w-0">
         {/* Selection checkbox */}
         <input
           type="checkbox"
