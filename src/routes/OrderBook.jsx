@@ -1,5 +1,5 @@
 // src/routes/OrderBook.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
@@ -145,6 +145,9 @@ export default function OrderBook() {
   /* new row state */
   const [newRows, setNewRows] = useState([]); // Array of temporary new rows
   const [nextNewRowId, setNextNewRowId] = useState(-1); // Negative IDs for new rows
+  
+  /* refs for collecting form data from OrderRow components */
+  const orderRowRefs = useRef(new Map());
 
   // Update bulk actions visibility when selection changes
   useEffect(() => {
@@ -176,21 +179,35 @@ export default function OrderBook() {
     if (selectedRows.size === 0) return;
 
     try {
-      // Separate new rows from existing rows
+      // Collect current form data from all selected OrderRow components
+      const formDataArray = [];
       const selectedOrders = filtered.filter(order => selectedRows.has(order.id));
-      const newRowsToSave = selectedOrders.filter(order => order.isNew);
-      const existingRowsToUpdate = selectedOrders.filter(order => !order.isNew);
+      
+      for (const order of selectedOrders) {
+        const orderRowRef = orderRowRefs.current.get(order.id);
+        if (orderRowRef && orderRowRef.getFormData) {
+          const formData = orderRowRef.getFormData();
+          formDataArray.push({ ...order, ...formData });
+        } else {
+          // Fallback to original order data if ref not available
+          formDataArray.push(order);
+        }
+      }
+
+      // Separate new rows from existing rows
+      const newRowsToSave = formDataArray.filter(order => order.isNew);
+      const existingRowsToUpdate = formDataArray.filter(order => !order.isNew);
 
       // Handle new rows - insert into database
       if (newRowsToSave.length > 0) {
         const newOrdersData = newRowsToSave.map(row => ({
-          order_date: row.order_date || new Date().toISOString().split('T')[0], // Default to today if empty
+          order_date: row.order_date || new Date().toISOString().split('T')[0],
           item: row.item || "",
           profile_name: row.profile_name || "",
           retailer: row.retailer || "",
           buy_price_cents: moneyToCents(row.buy_price_cents || 0),
           sale_price_cents: moneyToCents(row.sale_price_cents || 0),
-          sale_date: row.sale_date || null, // Sale date can be null
+          sale_date: row.sale_date || null,
           marketplace: row.marketplace || "",
           shipping_cents: moneyToCents(row.shipping_cents || 0),
           fees_pct: parsePct(row.fees_pct || 0) / 100,
@@ -205,8 +222,27 @@ export default function OrderBook() {
 
       // Handle existing rows - update in database
       if (existingRowsToUpdate.length > 0) {
-        // For now, just show a message - would need form state tracking for actual updates
-        console.log("Would update existing rows:", existingRowsToUpdate);
+        for (const row of existingRowsToUpdate) {
+          const updateData = {
+            order_date: row.order_date || null,
+            item: row.item || null,
+            profile_name: row.profile_name || null,
+            retailer: row.retailer || null,
+            buy_price_cents: moneyToCents(row.buy_price_cents || 0),
+            sale_price_cents: moneyToCents(row.sale_price_cents || 0),
+            sale_date: row.sale_date || null,
+            marketplace: row.marketplace || null,
+            shipping_cents: moneyToCents(row.shipping_cents || 0),
+            fees_pct: parsePct(row.fees_pct || 0) / 100,
+          };
+
+          const { error: updateError } = await supabase
+            .from("orders")
+            .update(updateData)
+            .eq("id", row.id);
+
+          if (updateError) throw updateError;
+        }
       }
 
       // Clear new rows and selection
@@ -409,6 +445,7 @@ export default function OrderBook() {
           addNewRow={addNewRow}
           cancelNewRows={cancelNewRows}
           bulkDeleteSelected={bulkDeleteSelected}
+          orderRowRefs={orderRowRefs}
         />
       </div>
     </div>
@@ -433,7 +470,8 @@ function UnifiedOrderView({
   bulkSaveSelected, 
   bulkDeleteSelected,
   addNewRow,
-  cancelNewRows
+  cancelNewRows,
+  orderRowRefs
 }) {
   return (
     <div className={`${pageCard}`}>
@@ -546,6 +584,7 @@ function UnifiedOrderView({
           selectedRows={selectedRows}
           onToggleRowSelection={onToggleRowSelection}
           setSelectedRows={setSelectedRows}
+          orderRowRefs={orderRowRefs}
         />
       ) : (
         <UnifiedListView
@@ -558,6 +597,7 @@ function UnifiedOrderView({
           selectedRows={selectedRows}
           onToggleRowSelection={onToggleRowSelection}
           setSelectedRows={setSelectedRows}
+          orderRowRefs={orderRowRefs}
         />
       )}
     </div>
@@ -565,7 +605,7 @@ function UnifiedOrderView({
 }
 
 /* ---------- Unified Grid View Component ---------- */
-function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows }) {
+function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs }) {
   if (!grouped.length) {
     return <div className="text-slate-400">No orders found.</div>;
   }
@@ -588,6 +628,7 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
           selectedRows={selectedRows}
           onToggleRowSelection={onToggleRowSelection}
           setSelectedRows={setSelectedRows}
+          orderRowRefs={orderRowRefs}
             />
           ))}
     </div>
@@ -595,7 +636,7 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
 }
 
 /* ---------- Unified List View Component ---------- */
-function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows }) {
+function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs }) {
   if (!orders.length) {
     return <div className="text-slate-400">No orders found.</div>;
   }
@@ -629,6 +670,7 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
             onDeleted={onDeleted}
             isSelected={selectedRows.has(order.id)}
             onToggleSelection={() => onToggleRowSelection(order.id)}
+            orderRowRefs={orderRowRefs}
           />
         ))}
       </div>
@@ -637,7 +679,7 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
 }
 
 /* ---------- Unified Day Section Component ---------- */
-function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows }) {
+function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs }) {
   const [open, setOpen] = useState(defaultOpen);
   const allRowsSelected = rows.length > 0 && rows.every(row => selectedRows.has(row.id));
 
@@ -714,6 +756,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
                 onDeleted={onDeleted}
                 isSelected={selectedRows.has(order.id)}
                 onToggleSelection={() => onToggleRowSelection(order.id)}
+                orderRowRefs={orderRowRefs}
             />
           ))}
           </div>
@@ -962,7 +1005,7 @@ function DayCard({
 }
 
 /* ============== Row component ============== */
-function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSelected, onToggleSelection }) {
+function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSelected, onToggleSelection, orderRowRefs }) {
   const [order_date, setOrderDate] = useState(order.order_date || "");
   const [item, setItem] = useState(order.item || "");
   const [profile_name, setProfile] = useState(order.profile_name || "");
@@ -976,6 +1019,30 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+
+  // Function to get current form data for bulk save
+  const getFormData = () => ({
+    order_date,
+    item,
+    profile_name,
+    retailer,
+    buy_price_cents: buyPrice,
+    sale_price_cents: salePrice,
+    sale_date,
+    marketplace,
+    shipping_cents: shipping,
+    fees_pct: feesPct,
+  });
+
+  // Register this component with the refs map
+  useEffect(() => {
+    if (orderRowRefs) {
+      orderRowRefs.current.set(order.id, { getFormData });
+      return () => {
+        orderRowRefs.current.delete(order.id);
+      };
+    }
+  }, [order.id, orderRowRefs]);
 
   function handleMarketplaceChange(name) {
     setMarketplace(name);
