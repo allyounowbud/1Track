@@ -295,7 +295,7 @@ export default function Inventory() {
 
         <div className={`${pageCard} overflow-hidden`}>
           {/* Header */}
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 border-b border-slate-800 bg-slate-900/40 text-xs text-slate-400 font-medium">
+          <div className="grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 border-b border-slate-800 bg-slate-900/40 text-xs text-slate-400 font-medium">
             <button
               onClick={() => toggleSort("name")}
               className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
@@ -343,7 +343,7 @@ export default function Inventory() {
             </button>
             <button
               onClick={() => toggleSort("onHandCostCents")}
-              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+              className="hidden lg:flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
             >
               Total cost
               {sortKey === "onHandCostCents" && (
@@ -393,14 +393,14 @@ export default function Inventory() {
             {sortedRows.map((r, index) => (
               <div
                 key={r.name}
-                className={`grid grid-cols-[2fr_1fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 border-b border-slate-800/50 hover:bg-slate-900/20 transition-colors ${
+                className={`grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 border-b border-slate-800/50 hover:bg-slate-900/20 transition-colors ${
                   index % 2 === 0 ? "bg-slate-900/10" : "bg-slate-900/5"
                 }`}
               >
                 <div className="text-slate-100 font-medium truncate pr-2">{r.name}</div>
                 <div className="text-slate-200">{r.onHandQty}</div>
                 <div className="text-slate-200">${centsToStr(r.onHandAvgCostCents)}</div>
-                <div className="text-slate-200">${centsToStr(r.onHandCostCents)}</div>
+                <div className="hidden lg:block text-slate-200">${centsToStr(r.onHandCostCents)}</div>
                 <div className="hidden lg:block text-slate-200">${centsToStr(r.marketValueCents)}</div>
                 <div className="hidden lg:block text-slate-100 font-semibold">${centsToStr(r.estValueCents)}</div>
               </div>
