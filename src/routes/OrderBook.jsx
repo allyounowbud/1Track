@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
-import { pageCard, rowCard, inputSm, Select } from "../utils/ui.js";
+import { pageCard, rowCard, inputSm } from "../utils/ui.js";
+import { Select } from "../components/Select.jsx";
 const fmtNiceDate = (yyyyMmDd) => {
   if (!yyyyMmDd) return "Unknown date";
   const [y, m, d] = yyyyMmDd.split("-").map((n) => Number(n));

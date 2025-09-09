@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
-import { Select } from "../utils/ui.js";
+import { Select } from "../components/Select.jsx";
 
 /* ---------- queries ---------- */
 async function getUnsoldOrders() {

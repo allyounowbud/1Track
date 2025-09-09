@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
-import { card, inputBase, rowCard, Select } from "../utils/ui.js";
+import { card, inputBase, rowCard } from "../utils/ui.js";
+import { Select } from "../components/Select.jsx";
 
 /* ----------------------------- data helpers ---------------------------- */
 const cents = (n) => Math.round(Number(n || 0));
