@@ -161,6 +161,12 @@ export default function OrderBook() {
   function toggleRowSelection(rowId) {
     const newSelected = new Set(selectedRows);
     if (newSelected.has(rowId)) {
+      // Check if this is a new order row - prevent deselection
+      const order = filtered.find(o => o.id === rowId);
+      if (order && order.isNew) {
+        // Don't allow deselection of new order rows
+        return;
+      }
       newSelected.delete(rowId);
     } else {
       newSelected.add(rowId);
@@ -170,6 +176,12 @@ export default function OrderBook() {
 
   function toggleAllSelection() {
     if (selectedRows.size === filtered.length) {
+      // Check if there are new orders - prevent deselection
+      const hasNewOrders = filtered.some(order => order.isNew);
+      if (hasNewOrders) {
+        // Don't allow deselection when new orders are present
+        return;
+      }
       // Deselect all
       setSelectedRows(new Set());
     } else {
@@ -700,7 +712,7 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
               title={g.nice}
               dateKey={g.key}
               count={g.rows.length}
-          defaultOpen={false}
+          defaultOpen={g.key === "__new__"}
               rows={g.rows}
               items={items}
               retailers={retailers}
@@ -793,6 +805,12 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
                 e.stopPropagation();
                 const newSelected = new Set(selectedRows);
                 if (allRowsSelected) {
+                  // Check if this section contains new orders - prevent deselection
+                  const hasNewOrdersInSection = rows.some(row => row.isNew);
+                  if (hasNewOrdersInSection) {
+                    // Don't allow deselection when new orders are present in this section
+                    return;
+                  }
                   // Deselect all rows in this section
                   rows.forEach(row => newSelected.delete(row.id));
                 } else {
@@ -808,7 +826,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
           <div>
             <div className="text-lg font-semibold text-slate-100">{title}</div>
             <div className="text-sm text-slate-400">
-              {title === "New Orders" ? "Save changes to add to the order book" : `${count} orders`}
+              {title === "New Orders" ? "Click save to add new entry" : `${count} orders`}
             </div>
           </div>
         </div>
