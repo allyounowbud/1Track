@@ -607,7 +607,7 @@ function UnifiedOrderView({
                   <button
                     onClick={bulkSaveSelected}
                     className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                    title="Save New Orders"
+                    title="Save Changes"
                   >
                     <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
@@ -826,7 +826,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
           <div>
             <div className="text-lg font-semibold text-slate-100">{title}</div>
             <div className="text-sm text-slate-400">
-              {title === "New Orders" ? "Click save to add new entry" : `${count} orders`}
+              {title === "New Order" ? "Click save to add new order" : `${count} orders`}
             </div>
           </div>
         </div>
