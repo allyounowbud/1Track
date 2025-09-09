@@ -184,14 +184,14 @@ export default function OrderBook() {
       // Handle new rows - insert into database
       if (newRowsToSave.length > 0) {
         const newOrdersData = newRowsToSave.map(row => ({
-          order_date: row.order_date || null,
-          item: row.item || null,
-          profile_name: row.profile_name || null,
-          retailer: row.retailer || null,
+          order_date: row.order_date || new Date().toISOString().split('T')[0], // Default to today if empty
+          item: row.item || "",
+          profile_name: row.profile_name || "",
+          retailer: row.retailer || "",
           buy_price_cents: moneyToCents(row.buy_price_cents || 0),
           sale_price_cents: moneyToCents(row.sale_price_cents || 0),
-          sale_date: row.sale_date || null,
-          marketplace: row.marketplace || null,
+          sale_date: row.sale_date || null, // Sale date can be null
+          marketplace: row.marketplace || "",
           shipping_cents: moneyToCents(row.shipping_cents || 0),
           fees_pct: parsePct(row.fees_pct || 0) / 100,
         }));
@@ -243,9 +243,13 @@ export default function OrderBook() {
 
   /* new row management functions */
   function addNewRow() {
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
     const newRow = {
       id: nextNewRowId,
-      order_date: "",
+      order_date: todayStr, // Default to today's date
       item: "",
       profile_name: "",
       retailer: "",
