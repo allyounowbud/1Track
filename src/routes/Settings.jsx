@@ -326,29 +326,31 @@ export default function Settings() {
           {/* content */}
           <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openItems ? 1000 : 0 }}>
             <div className="pt-5">
-              {/* Select All Row - borderless */}
-              <div className="hidden sm:grid sm:grid-cols-[1fr_160px] gap-2 px-1 pb-2 text-xs text-slate-400">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      checked={items.length > 0 && selectedItems.size === items.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          // Select all items
-                          const allItemIds = items.map(item => item.id);
-                          setSelectedItems(new Set(allItemIds));
-                        } else {
-                          // Deselect all items
-                          setSelectedItems(new Set());
-                        }
-                      }}
-                      className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                    />
+              {/* Header row - text only */}
+              <div className="hidden sm:block">
+                <div className="grid grid-cols-[1fr_160px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={items.length > 0 && selectedItems.size === items.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            // Select all items
+                            const allItemIds = items.map(item => item.id);
+                            setSelectedItems(new Set(allItemIds));
+                          } else {
+                            // Deselect all items
+                            setSelectedItems(new Set());
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                      />
+                    </div>
+                    <span className="text-xs text-slate-300 font-medium">Item</span>
                   </div>
-                  <span>Item</span>
+                  <div className="text-xs text-slate-300 font-medium">Market value ($)</div>
                 </div>
-                <div>Market value ($)</div>
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
@@ -479,27 +481,29 @@ export default function Settings() {
           {/* content */}
           <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openRetailers ? 1000 : 0 }}>
             <div className="pt-5">
-              {/* Select All Row - borderless */}
-              <div className="hidden sm:grid sm:grid-cols-[1fr] gap-2 px-1 pb-2 text-xs text-slate-400">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      checked={retailers.length > 0 && selectedRetailers.size === retailers.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          // Select all retailers
-                          const allRetailerIds = retailers.map(retailer => retailer.id);
-                          setSelectedRetailers(new Set(allRetailerIds));
-                        } else {
-                          // Deselect all retailers
-                          setSelectedRetailers(new Set());
-                        }
-                      }}
-                      className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                    />
+              {/* Header row - text only */}
+              <div className="hidden sm:block">
+                <div className="grid grid-cols-[1fr] gap-2 items-center min-w-0 px-3 py-2 mb-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={retailers.length > 0 && selectedRetailers.size === retailers.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            // Select all retailers
+                            const allRetailerIds = retailers.map(retailer => retailer.id);
+                            setSelectedRetailers(new Set(allRetailerIds));
+                          } else {
+                            // Deselect all retailers
+                            setSelectedRetailers(new Set());
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                      />
+                    </div>
+                    <span className="text-xs text-slate-300 font-medium">Retailer</span>
                   </div>
-                  <span>Retailer</span>
                 </div>
               </div>
 
@@ -631,29 +635,31 @@ export default function Settings() {
           {/* content */}
           <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openMarkets ? 1000 : 0 }}>
             <div className="pt-5">
-              {/* Select All Row - borderless */}
-              <div className="hidden sm:grid sm:grid-cols-[1fr_140px] gap-2 px-1 pb-2 text-xs text-slate-400">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      checked={markets.length > 0 && selectedMarkets.size === markets.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          // Select all markets
-                          const allMarketIds = markets.map(market => market.id);
-                          setSelectedMarkets(new Set(allMarketIds));
-                        } else {
-                          // Deselect all markets
-                          setSelectedMarkets(new Set());
-                        }
-                      }}
-                      className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                    />
+              {/* Header row - text only */}
+              <div className="hidden sm:block">
+                <div className="grid grid-cols-[1fr_140px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={markets.length > 0 && selectedMarkets.size === markets.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            // Select all markets
+                            const allMarketIds = markets.map(market => market.id);
+                            setSelectedMarkets(new Set(allMarketIds));
+                          } else {
+                            // Deselect all markets
+                            setSelectedMarkets(new Set());
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                      />
+                    </div>
+                    <span className="text-xs text-slate-300 font-medium">Marketplace</span>
                   </div>
-                  <span>Marketplace</span>
+                  <div className="text-xs text-slate-300 font-medium">Fee %</div>
                 </div>
-                <div>Fee %</div>
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
