@@ -507,38 +507,42 @@ function DayCard({
       {/* content */}
       <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 1000 : 0 }}>
         <div className="pt-5">
-          {/* Header labels per group (desktop) */}
-          <div className="hidden lg:grid lg:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 text-xs text-slate-400 px-1 mb-1 items-center">
-            <div className="flex items-center justify-center">
-              <input
-                type="checkbox"
-                checked={rows.every(row => selectedRows.has(row.id))}
-                onChange={(e) => {
-                  const rowIds = rows.map(row => row.id);
-                  if (e.target.checked) {
-                    // Select all rows in this card
-                    const newSelected = new Set(selectedRows);
-                    rowIds.forEach(id => newSelected.add(id));
-                    setSelectedRows(newSelected);
-                  } else {
-                    // Deselect all rows in this card
-                    const newSelected = new Set(selectedRows);
-                    rowIds.forEach(id => newSelected.delete(id));
-                    setSelectedRows(newSelected);
-                  }
-                }}
-                className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-              />
+          {/* Header row - styled like data rows */}
+          <div className="hidden lg:block">
+            <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-3 mb-3">
+              <div className="grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center min-w-0">
+                <div className="flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={rows.every(row => selectedRows.has(row.id))}
+                    onChange={(e) => {
+                      const rowIds = rows.map(row => row.id);
+                      if (e.target.checked) {
+                        // Select all rows in this card
+                        const newSelected = new Set(selectedRows);
+                        rowIds.forEach(id => newSelected.add(id));
+                        setSelectedRows(newSelected);
+                      } else {
+                        // Deselect all rows in this card
+                        const newSelected = new Set(selectedRows);
+                        rowIds.forEach(id => newSelected.delete(id));
+                        setSelectedRows(newSelected);
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  />
+                </div>
+                <div className="text-xs text-slate-300 font-medium">Order date</div>
+                <div className="text-xs text-slate-300 font-medium">Item</div>
+                <div className="text-xs text-slate-300 font-medium">Profile</div>
+                <div className="text-xs text-slate-300 font-medium">Retailer</div>
+                <div className="text-xs text-slate-300 font-medium">Buy $</div>
+                <div className="text-xs text-slate-300 font-medium">Sale $</div>
+                <div className="text-xs text-slate-300 font-medium">Sale date</div>
+                <div className="text-xs text-slate-300 font-medium">Marketplace</div>
+                <div className="text-xs text-slate-300 font-medium">Ship $</div>
+              </div>
             </div>
-            <div>Order date</div>
-            <div>Item</div>
-            <div>Profile</div>
-            <div>Retailer</div>
-            <div>Buy $</div>
-            <div>Sale $</div>
-            <div>Sale date</div>
-            <div>Marketplace</div>
-            <div>Ship $</div>
           </div>
 
           <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
