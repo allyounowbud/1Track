@@ -314,9 +314,12 @@ export default function OrderBook() {
                     onChange={toggleAllSelection}
                     className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
                   />
-                  <span className="text-sm font-semibold text-slate-200">
-                    {selectedRows.size}/{filtered.length}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+                    <span className="text-sm font-semibold text-slate-200">
+                      {selectedRows.size}/{filtered.length} Selected
+                    </span>
+                  </div>
                 </div>
               </div>
               
