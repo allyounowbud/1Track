@@ -154,7 +154,7 @@ export default function MarkSold() {
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
 
         {/* ======= SHARED HEADER + TABS ======= */}
-        <HeaderWithTabs active="sold" section="orderbook" />
+        <HeaderWithTabs active="sold" section="orderbook" showHubTab={true} />
         {/* ==================================== */}
 
         {/* Card (mobile-friendly: overflow-hidden, min-w-0, responsive gaps) */}
