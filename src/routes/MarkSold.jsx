@@ -75,13 +75,22 @@ export default function MarkSold() {
     )}`;
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = search.toLowerCase().trim();
     if (!q) return openOrders.slice(0, 50);
-    return openOrders.filter((o) =>
-      [o.item, o.retailer, o.order_date, label(o)]
+    
+    // Split search query into individual words
+    const searchWords = q.split(/\s+/).filter(word => word.length > 0);
+    
+    return openOrders.filter((o) => {
+      // Create searchable text from item name, retailer, and order date
+      const searchableText = [o.item, o.retailer, o.order_date]
         .filter(Boolean)
-        .some((t) => String(t).toLowerCase().includes(q))
-    );
+        .join(' ')
+        .toLowerCase();
+      
+      // Check if ALL search words are found in the searchable text
+      return searchWords.every(word => searchableText.includes(word));
+    });
   }, [openOrders, search]);
 
   // ---------- marketplace -> autofill fee ----------
