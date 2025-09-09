@@ -402,6 +402,8 @@ export default function OrderBook() {
           setSelectedRows={setSelectedRows}
           toggleAllSelection={toggleAllSelection}
           bulkSaveSelected={bulkSaveSelected}
+          addNewRow={addNewRow}
+          cancelNewRows={cancelNewRows}
           bulkDeleteSelected={bulkDeleteSelected}
         />
       </div>
@@ -425,7 +427,9 @@ function UnifiedOrderView({
   setSelectedRows, 
   toggleAllSelection, 
   bulkSaveSelected, 
-  bulkDeleteSelected 
+  bulkDeleteSelected,
+  addNewRow,
+  cancelNewRows
 }) {
   return (
     <div className={`${pageCard}`}>
