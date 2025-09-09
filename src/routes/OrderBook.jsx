@@ -541,7 +541,7 @@ function DayCard({
             <div className="w-18">Ship $</div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
             {rows.map((o) => (
               <OrderRow
                 key={o.id}
@@ -633,7 +633,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       }`}
       onClick={onToggleSelection}
     >
-      <div className="flex flex-wrap lg:flex-nowrap items-center gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-[28px_28px_56px_28px_24px_18px_18px_28px_24px_18px] gap-2 items-center min-w-0">
         {/* Selection checkbox */}
         <input
           type="checkbox"
@@ -651,7 +651,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-28 sm:w-32 lg:w-28"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         />
 
         {/* Item Name - Most Important */}
@@ -659,7 +659,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={item || ""}
           onChange={(e) => setItem(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-56 sm:w-64 lg:w-56"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         >
           <option value="" className="text-slate-400">Select item...</option>
           {items.map((it) => (
@@ -675,7 +675,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setProfile(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Profile"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-28 sm:w-32 lg:w-28"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         />
 
         {/* Retailer */}
@@ -683,7 +683,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-24 sm:w-28 lg:w-24"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         >
           <option value="" className="text-slate-400">Retailer</option>
           {retailers.map((r) => (
@@ -699,7 +699,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setBuyPrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Buy"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-18 sm:w-20 lg:w-18"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         />
 
         {/* Sale Price */}
@@ -708,7 +708,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setSalePrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Sale"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-18 sm:w-20 lg:w-18"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         />
 
         {/* Sale Date - Responsive */}
@@ -717,7 +717,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={sale_date || ""}
           onChange={(e) => setSaleDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-28 sm:w-32 lg:w-28"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         />
 
         {/* Marketplace */}
@@ -725,7 +725,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={marketplace || ""}
           onChange={(e) => handleMarketplaceChange(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-24 sm:w-28 lg:w-24"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         >
           <option value="" className="text-slate-400">Market</option>
           {markets.map((m) => (
@@ -741,7 +741,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setShipping(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Ship"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-18 sm:w-20 lg:w-18"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         />
 
       </div>
