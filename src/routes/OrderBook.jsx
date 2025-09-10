@@ -5,7 +5,6 @@ import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
-import { Select } from "../components/Select.jsx";
 const fmtNiceDate = (yyyyMmDd) => {
   if (!yyyyMmDd) return "Unknown date";
   const [y, m, d] = yyyyMmDd.split("-").map((n) => Number(n));
@@ -1343,18 +1342,19 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         />
 
         {/* Item Name - Most Important */}
-        <div onClick={(e) => e.stopPropagation()}>
-          <Select
-            value={formState.item || ""}
-            onChange={setItem}
-            options={[
-              { value: "", label: "Select item..." },
-              ...items.map((it) => ({ value: it.name, label: it.name }))
-            ]}
-            placeholder="Select item..."
-            className="text-sm"
-          />
-        </div>
+        <select
+          value={formState.item || ""}
+          onChange={(e) => setItem(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-3 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+        >
+          <option value="">Select item...</option>
+          {items.map((it) => (
+            <option key={it.name} value={it.name}>
+              {it.name}
+            </option>
+          ))}
+        </select>
 
         {/* Profile */}
         <input
@@ -1366,18 +1366,19 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         />
 
         {/* Retailer */}
-        <div onClick={(e) => e.stopPropagation()}>
-          <Select
-            value={formState.retailer || ""}
-            onChange={setRetailer}
-            options={[
-              { value: "", label: "Retailer" },
-              ...retailers.map((r) => ({ value: r.name, label: r.name }))
-            ]}
-            placeholder="Retailer"
-            className="text-sm"
-          />
-        </div>
+        <select
+          value={formState.retailer || ""}
+          onChange={(e) => setRetailer(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-3 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+        >
+          <option value="">Retailer</option>
+          {retailers.map((r) => (
+            <option key={r.name} value={r.name}>
+              {r.name}
+            </option>
+          ))}
+        </select>
 
         {/* Buy Price */}
         <input
@@ -1407,18 +1408,19 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         />
 
         {/* Marketplace */}
-        <div onClick={(e) => e.stopPropagation()}>
-          <Select
-            value={formState.marketplace || ""}
-            onChange={handleMarketplaceChange}
-            options={[
-              { value: "", label: "Market" },
-              ...markets.map((m) => ({ value: m.name, label: m.name }))
-            ]}
-            placeholder="Market"
-            className="text-sm"
-          />
-        </div>
+        <select
+          value={formState.marketplace || ""}
+          onChange={handleMarketplaceChange}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-3 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+        >
+          <option value="">Market</option>
+          {markets.map((m) => (
+            <option key={m.name} value={m.name}>
+              {m.name}
+            </option>
+          ))}
+        </select>
 
         {/* Shipping */}
         <input
