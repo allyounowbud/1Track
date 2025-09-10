@@ -128,6 +128,30 @@ export default function Hub() {
             <div className="flex items-start gap-3">
               <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
               <div>
+                <div className="text-sm font-medium text-slate-200">Fixed Order Book Input Styling</div>
+                <div className="text-xs text-slate-400">Standardized input heights, fixed dropdown colors to match dark theme, and improved screen space utilization</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+              <div>
+                <div className="text-sm font-medium text-slate-200">Improved Order Book Dropdowns</div>
+                <div className="text-xs text-slate-400">Replaced complex Select components with native dropdowns for better performance and consistent styling</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="h-2 w-2 rounded-full bg-pink-500 mt-2 flex-shrink-0"></div>
+              <div>
+                <div className="text-sm font-medium text-slate-200">Added Profiles Card to Hub</div>
+                <div className="text-xs text-slate-400">New "Profiles" card added to main hub with "Coming soon" status for future user profile management</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+              <div>
                 <div className="text-sm font-medium text-slate-200">Enhanced Inventory Dashboard</div>
                 <div className="text-xs text-slate-400">Added 8 comprehensive KPI pills with live filtering, improved search functionality, and better visual hierarchy</div>
               </div>
