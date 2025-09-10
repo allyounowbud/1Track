@@ -186,25 +186,70 @@ export default function Inventory() {
     const longestHold =
       rows.filter((r) => r.maxHold > 0).sort((a, b) => b.maxHold - a.maxHold)[0] ||
       null;
-    const avgHold =
-      rows.reduce((a, r) => a + r.avgHold * (r.holdDays.length > 0 ? 1 : 0), 0) /
-      Math.max(1, rows.filter((r) => r.holdDays.length > 0).length);
+    // Calculate average hold time (including unsold items)
+    const allHoldDays = [];
+    rows.forEach(r => {
+      // Add sold items' hold days
+      allHoldDays.push(...r.holdDays);
+      // Add unsold items' current hold days
+      if (r.onHandQty > 0) {
+        const unsoldOrders = orders.filter(o => 
+          o.item === r.name && 
+          o.status !== 'cancelled' && 
+          !o.sale_date
+        );
+        unsoldOrders.forEach(order => {
+          const daysSincePurchase = Math.floor((new Date() - new Date(order.order_date)) / (1000 * 60 * 60 * 24));
+          allHoldDays.push(daysSincePurchase);
+        });
+      }
+    });
+    const avgHold = allHoldDays.length > 0 ? 
+      Math.round(allHoldDays.reduce((a, b) => a + b, 0) / allHoldDays.length) : 0;
 
-    // Calculate last purchase and last sale dates
+    // Calculate longest hold time (unsold items only)
+    let longestHoldDays = 0;
+    rows.forEach(r => {
+      if (r.onHandQty > 0) {
+        const unsoldOrders = orders.filter(o => 
+          o.item === r.name && 
+          o.status !== 'cancelled' && 
+          !o.sale_date
+        );
+        unsoldOrders.forEach(order => {
+          const daysSincePurchase = Math.floor((new Date() - new Date(order.order_date)) / (1000 * 60 * 60 * 24));
+          longestHoldDays = Math.max(longestHoldDays, daysSincePurchase);
+        });
+      }
+    });
+
+    // Calculate last purchase (most recent on-hand order)
     const today = new Date();
-    const lastPurchaseDays = rows.length > 0 ? 
-      Math.min(...rows.map(r => {
-        const lastOrder = orders.filter(o => o.item === r.name && o.status !== 'cancelled')
-          .sort((a, b) => new Date(b.order_date) - new Date(a.order_date))[0];
-        return lastOrder ? Math.floor((today - new Date(lastOrder.order_date)) / (1000 * 60 * 60 * 24)) : 0;
-      })) : 0;
+    let lastPurchaseDays = 0;
+    if (rows.length > 0) {
+      const onHandOrders = orders.filter(o => 
+        rows.some(r => r.name === o.item) && 
+        o.status !== 'cancelled' && 
+        !o.sale_date
+      );
+      if (onHandOrders.length > 0) {
+        const mostRecentOrder = onHandOrders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date))[0];
+        lastPurchaseDays = Math.floor((today - new Date(mostRecentOrder.order_date)) / (1000 * 60 * 60 * 24));
+      }
+    }
 
-    const lastSaleDays = rows.length > 0 ?
-      Math.min(...rows.map(r => {
-        const lastSale = orders.filter(o => o.item === r.name && o.sale_date)
-          .sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date))[0];
-        return lastSale ? Math.floor((today - new Date(lastSale.sale_date)) / (1000 * 60 * 60 * 24)) : 0;
-      })) : 0;
+    // Calculate last sale (most recent sold order)
+    let lastSaleDays = null; // null means no sales found
+    if (rows.length > 0) {
+      const soldOrders = orders.filter(o => 
+        rows.some(r => r.name === o.item) && 
+        o.sale_date
+      );
+      if (soldOrders.length > 0) {
+        const mostRecentSale = soldOrders.sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date))[0];
+        lastSaleDays = Math.floor((today - new Date(mostRecentSale.sale_date)) / (1000 * 60 * 60 * 24));
+      }
+    }
 
     return {
       totalUnits,
@@ -215,7 +260,8 @@ export default function Inventory() {
       bestMargin,
       bestRoi,
       longestHold,
-      avgHold: Math.round(avgHold || 0),
+      avgHold,
+      longestHoldDays,
       lastPurchaseDays,
       lastSaleDays,
     };
@@ -279,7 +325,7 @@ export default function Inventory() {
             />
             <Kpi
               label="Longest Hold"
-              value={formatNumber(kpis.longestHold?.maxHold || 0)}
+              value={formatNumber(kpis.longestHoldDays)}
               sub="days"
             />
             <Kpi
@@ -289,8 +335,9 @@ export default function Inventory() {
             />
             <Kpi
               label="Last Sale"
-              value={formatNumber(kpis.lastSaleDays)}
+              value={kpis.lastSaleDays !== null ? formatNumber(kpis.lastSaleDays) : "-"}
               sub="days ago"
+              tone={kpis.lastSaleDays === null ? "muted" : undefined}
             />
           </div>
         </div>
