@@ -84,14 +84,9 @@ exports.handler = async (event) => {
       error = updateError;
     } else {
       // This is a new email - try to insert it
-      // We'll use a unique identifier approach to work around the constraint
       const { error: insertError } = await supabase
         .from("email_accounts")
-        .insert({
-          ...accountData,
-          // Add a unique identifier to differentiate multiple Gmail accounts
-          account_identifier: `${uid}_gmail_${Date.now()}`
-        });
+        .insert(accountData);
       error = insertError;
       
       // If we still get a constraint error, it means the database constraint is too restrictive
