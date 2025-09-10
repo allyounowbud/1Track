@@ -51,23 +51,44 @@ exports.handler = async (event) => {
     if (!profRes.ok) throw new Error("Profile fetch failed");
     const email = profile.email;
 
-    // ---- upsert account (multi-user safe, multiple emails per user)
-    const { error } = await supabase
+    // ---- insert or update account (multi-user safe, multiple emails per user)
+    // First, try to find existing account with this email
+    const { data: existing, error: findError } = await supabase
       .from("email_accounts")
-      .upsert(
-        {
-          user_id: uid,
-          provider: "gmail",
-          email_address: email,
-          access_token,
-          refresh_token: refresh_token || null,
-          token_scope: scope || null,
-          expires_at,
-          updated_at: new Date().toISOString(),
-        },
-        // Allow multiple Gmail accounts per user by using email_address as the unique key
-        { onConflict: "email_address" }
-      );
+      .select("id")
+      .eq("email_address", email)
+      .single();
+    
+    if (findError && findError.code !== "PGRST116") {
+      throw findError;
+    }
+    
+    const accountData = {
+      user_id: uid,
+      provider: "gmail",
+      email_address: email,
+      access_token,
+      refresh_token: refresh_token || null,
+      token_scope: scope || null,
+      expires_at,
+      updated_at: new Date().toISOString(),
+    };
+    
+    let error;
+    if (existing) {
+      // Update existing account
+      const { error: updateError } = await supabase
+        .from("email_accounts")
+        .update(accountData)
+        .eq("id", existing.id);
+      error = updateError;
+    } else {
+      // Insert new account
+      const { error: insertError } = await supabase
+        .from("email_accounts")
+        .insert(accountData);
+      error = insertError;
+    }
     if (error) throw error;
 
     // Back to app
