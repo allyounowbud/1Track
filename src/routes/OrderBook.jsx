@@ -527,7 +527,7 @@ function UnifiedOrderView({
       {/* Header with Selection Count and Actions */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
         {/* Left side - Selection Count */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={selectedRows.size === filtered.length && filtered.length > 0}
@@ -549,8 +549,13 @@ function UnifiedOrderView({
             const hasNewRowsInSystem = filtered.some(order => order.isNew); // Check entire system
             const hasExistingRows = selectedOrders.some(order => !order.isNew);
             
-            // Default state: no selection - show only + add button
+            // Default state: no selection - show only + add button (but hide if search has input)
             if (!hasSelection) {
+              // Hide + button if there's search input
+              if (searchQuery && searchQuery.trim()) {
+                return null;
+              }
+              
               return (
                 <button
                   onClick={addNewRow}
