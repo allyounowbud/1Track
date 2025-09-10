@@ -1339,7 +1339,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-full min-w-0 max-w-full"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-3 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full min-w-0 max-w-full"
         />
 
         {/* Item Name - Most Important */}
@@ -1362,7 +1362,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setProfile(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Profile"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-3 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         />
 
         {/* Retailer */}
@@ -1385,7 +1385,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setBuyPrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Buy"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-3 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         />
 
         {/* Sale Price */}
@@ -1394,7 +1394,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setSalePrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Sale"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-3 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         />
 
         {/* Sale Date - Responsive */}
@@ -1403,7 +1403,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.sale_date || ""}
           onChange={(e) => setSaleDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none w-full min-w-0 max-w-full"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-3 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full min-w-0 max-w-full"
         />
 
         {/* Marketplace */}
@@ -1426,7 +1426,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setShipping(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Ship"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-1 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-3 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
         />
 
       </div>
