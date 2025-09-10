@@ -62,30 +62,27 @@ export default function HeaderWithTabs({ active = "", showTabs = true, section =
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">OneTrack</h1>
-        <div className="flex items-center gap-3">
+        <Link
+          to="/"
+          className="h-10 px-3 inline-flex items-center gap-3 leading-none
+                     rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900
+                     text-slate-100 cursor-pointer transition-colors"
+        >
           {userInfo.avatar_url ? (
             <img
               src={userInfo.avatar_url}
               alt=""
-              className="h-8 w-8 rounded-full border border-slate-800 object-cover"
+              className="h-6 w-6 rounded-md border border-slate-800 object-cover"
             />
           ) : (
-            <div className="h-8 w-8 rounded-full bg-slate-800 grid place-items-center text-slate-300 text-xs">
+            <div className="h-6 w-6 rounded-md bg-slate-800 grid place-items-center text-slate-300 text-xs">
               {(userInfo.username || "U").slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="hidden sm:block text-sm text-slate-300 max-w-[160px] truncate">
+          <div className="text-sm text-slate-100 font-medium">
             {userInfo.username}
           </div>
-          <Link
-            to="/"
-            className="h-10 px-4 inline-flex items-center justify-center leading-none
-                       rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900
-                       text-slate-100 cursor-pointer"
-          >
-            Dashboard
-          </Link>
-        </div>
+        </Link>
       </div>
 
       {/* Tabs */}

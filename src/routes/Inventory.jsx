@@ -306,7 +306,7 @@ export default function Inventory() {
         {/* KPI pills (8) */}
         <div className={`${pageCard} mb-6`}>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Kpi label="Inventory" value={formatNumber(kpis.totalUnits)} sub="units on hand" />
+            <Kpi label="Inventory" value={formatNumber(kpis.totalUnits)} sub="on hand" />
             <Kpi
               label="Total Cost"
               value={`$${centsToStr(kpis.totalCost)}`}
@@ -315,23 +315,23 @@ export default function Inventory() {
             <Kpi
               label="Est. Value"
               value={`$${centsToStr(kpis.totalEst)}`}
-              sub="on-hand market"
+              sub="market value"
             />
             <Kpi
               label="Unrealized P/L"
               value={`$${centsToStr(kpis.unrealized)}`}
-              sub={kpis.unrealized >= 0 ? "gain" : "loss"}
+              sub={kpis.unrealized >= 0 ? "unreazlized profit" : "unrealized loss"}
               tone={kpis.unrealized >= 0 ? "blue" : "bad"}
             />
             <Kpi
-              label="Avg Hold Time"
+              label="Avg Hold"
               value={formatNumber(kpis.avgHold)}
-              sub="days"
+              sub="in days"
             />
             <Kpi
               label="Longest Hold"
               value={formatNumber(kpis.longestHoldDays)}
-              sub="days"
+              sub="in days"
             />
             <Kpi
               label="Last Purchase"
