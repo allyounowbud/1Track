@@ -493,7 +493,7 @@ function Kpi({ label, value, sub, tone = "neutral" }) {
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
       <div className="text-xs text-slate-400">{label}</div>
       <div className={`text-xl font-semibold ${toneCls}`}>{value}</div>
-      <div className="text-[11px] text-slate-400 truncate">{sub || " "}</div>
+      <div className="text-[11px] text-slate-400/60 truncate">{sub || " "}</div>
     </div>
   );
 }
