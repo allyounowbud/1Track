@@ -28,8 +28,8 @@ export const SearchDropdown = ({
     if (boxRef.current) {
       const rect = boxRef.current.getBoundingClientRect();
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
+        top: rect.bottom + 8,
+        left: rect.left,
         width: rect.width
       });
     }
@@ -92,7 +92,7 @@ export const SearchDropdown = ({
         />
         {dropdownOpen && createPortal(
           <div 
-            className="fixed z-[99999] max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl"
+            className="absolute z-[99999] max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl"
             style={{
               top: dropdownPosition.top,
               left: dropdownPosition.left,
