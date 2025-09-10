@@ -58,7 +58,7 @@ export default function Hub() {
         </div>
 
         {/* App tiles */}
-        <div className={`${card}`}>
+        <div className={`${card} mb-6`}>
           <h2 className="text-lg font-semibold mb-4">Choose a workspace</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
