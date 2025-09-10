@@ -241,10 +241,15 @@ export default function Inventory() {
     // Calculate last sale (most recent sold order)
     let lastSaleDays = null; // null means no sales found
     if (rows.length > 0) {
-      const soldOrders = orders.filter(o => 
-        rows.some(r => r.name === o.item) && 
-        o.sale_date
-      );
+      // For filtered results, only look at items in the current filter
+      // For all items (no filter), look at all orders
+      const soldOrders = itemFilter.trim() ? 
+        orders.filter(o => 
+          rows.some(r => r.name === o.item) && 
+          o.sale_date
+        ) :
+        orders.filter(o => o.sale_date);
+        
       if (soldOrders.length > 0) {
         const mostRecentSale = soldOrders.sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date))[0];
         lastSaleDays = Math.floor((today - new Date(mostRecentSale.sale_date)) / (1000 * 60 * 60 * 24));
@@ -265,7 +270,7 @@ export default function Inventory() {
       lastPurchaseDays,
       lastSaleDays,
     };
-  }, [filteredRows, orders]);
+  }, [filteredRows, orders, itemFilter]);
 
   /* ---------------- Sorting ---------------- */
   const [sortKey, setSortKey] = useState("name");
