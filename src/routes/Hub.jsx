@@ -126,7 +126,15 @@ export default function Hub() {
           
           <div className="space-y-3">
             <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+              <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
+              <div>
+                <div className="text-sm font-medium text-slate-200">Integrated Order Book Search</div>
+                <div className="text-xs text-slate-400">Moved search bar into order rows card for cleaner layout, matching Inventory page design pattern</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
               <div>
                 <div className="text-sm font-medium text-slate-200">Fixed Order Book Input Styling</div>
                 <div className="text-xs text-slate-400">Standardized input heights, fixed dropdown colors to match dark theme, and improved screen space utilization</div>
@@ -134,7 +142,7 @@ export default function Hub() {
             </div>
             
             <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+              <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
               <div>
                 <div className="text-sm font-medium text-slate-200">Improved Order Book Dropdowns</div>
                 <div className="text-xs text-slate-400">Replaced complex Select components with native dropdowns for better performance and consistent styling</div>
@@ -142,7 +150,7 @@ export default function Hub() {
             </div>
             
             <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-pink-500 mt-2 flex-shrink-0"></div>
+              <div className="h-2 w-2 rounded-full bg-pink-500/70 mt-2 flex-shrink-0"></div>
               <div>
                 <div className="text-sm font-medium text-slate-200">Added Profiles Card to Hub</div>
                 <div className="text-xs text-slate-400">New "Profiles" card added to main hub with "Coming soon" status for future user profile management</div>
@@ -150,7 +158,7 @@ export default function Hub() {
             </div>
             
             <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+              <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
               <div>
                 <div className="text-sm font-medium text-slate-200">Enhanced Inventory Dashboard</div>
                 <div className="text-xs text-slate-400">Added 8 comprehensive KPI pills with live filtering, improved search functionality, and better visual hierarchy</div>
@@ -158,7 +166,7 @@ export default function Hub() {
             </div>
             
             <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-yellow-400 mt-2 flex-shrink-0"></div>
+              <div className="h-2 w-2 rounded-full bg-yellow-400/70 mt-2 flex-shrink-0"></div>
               <div>
                 <div className="text-sm font-medium text-slate-200">Universal Search Dropdown</div>
                 <div className="text-xs text-slate-400">Standardized all dropdowns across the app with consistent styling, proper layering, and live filtering</div>
@@ -166,7 +174,7 @@ export default function Hub() {
             </div>
             
             <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-yellow-400 mt-2 flex-shrink-0"></div>
+              <div className="h-2 w-2 rounded-full bg-yellow-400/70 mt-2 flex-shrink-0"></div>
               <div>
                 <div className="text-sm font-medium text-slate-200">Improved Header Design</div>
                 <div className="text-xs text-slate-400">Replaced dashboard button with clickable avatar/username button for better navigation and visual balance</div>
@@ -174,7 +182,7 @@ export default function Hub() {
             </div>
             
             <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+              <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
               <div>
                 <div className="text-sm font-medium text-slate-200">Enhanced Order Book</div>
                 <div className="text-xs text-slate-400">Added bulk edit/delete functionality, improved form persistence, and better mobile responsiveness</div>

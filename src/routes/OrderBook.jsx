@@ -423,48 +423,6 @@ export default function OrderBook() {
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="orders" section="orderbook" showHubTab={true} />
 
-        {/* Search + meta */}
-        <div className={`${pageCard} mb-6`}>
-          <div className="grid grid-cols-1 gap-3 items-end">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg
-                  className="h-5 w-5 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search for orders"
-                className={`${inputSm} pl-10`}
-              />
-            </div>
-
-              {!!q && (
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setQ("")}
-                  className="h-9 px-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                >
-                  Clear search
-                </button>
-              </div>
-              )}
-          </div>
-        </div>
-
-
         {/* Day cards */}
         {isLoading && <div className="text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
@@ -490,6 +448,8 @@ export default function OrderBook() {
           orderRowRefs={orderRowRefs}
           formStates={formStates}
           setFormStates={setFormStates}
+          searchQuery={q}
+          setSearchQuery={setQ}
         />
       </div>
     </div>
@@ -517,10 +477,50 @@ function UnifiedOrderView({
   cancelNewRows,
   orderRowRefs,
   formStates,
-  setFormStates
+  setFormStates,
+  searchQuery,
+  setSearchQuery
 }) {
   return (
     <div className={`${pageCard}`}>
+      {/* Search Bar */}
+      <div className="mb-5">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg
+              className="h-5 w-5 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search for orders"
+            className={`${inputSm} pl-10`}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Header with View Toggle and Actions */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
         {/* Left side - View Toggle and Selection Count */}
