@@ -153,7 +153,7 @@ export default function Emails() {
   const { data: ships = [], refetch: refetchShips, isLoading: lo2 } = useQuery({ queryKey: ["email-shipments"], queryFn: getShipments });
 
   const connected = !!accounts.length;
-  const gmailAccounts = accounts.filter(acc => acc.provider === 'gmail');
+  const gmailAccounts = accounts.filter(acc => acc.provider.startsWith('gmail'));
 
   /* ------------------ controls ------------------ */
   const [scope, setScope] = useState("all"); // all | ordered | shipping | delivered
@@ -242,7 +242,7 @@ export default function Emails() {
         const { error } = await supabase
           .from("email_accounts")
           .delete()
-          .eq("provider", "gmail");
+          .like("provider", "gmail%");
         
         if (error) throw error;
         

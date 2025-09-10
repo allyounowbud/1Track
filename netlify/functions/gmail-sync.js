@@ -130,8 +130,9 @@ async function getAccounts() {
   const { data, error } = await supabase
     .from("email_accounts")
     .select(
-      "id, user_id, email_address, access_token, refresh_token, token_scope, expires_at"
+      "id, user_id, email_address, access_token, refresh_token, token_scope, expires_at, provider"
     )
+    .like("provider", "gmail%")
     .order("updated_at", { ascending: false });
   if (error) throw error;
   if (!data || !data.length) throw new Error("No connected Gmail accounts");

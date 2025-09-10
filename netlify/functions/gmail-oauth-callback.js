@@ -65,7 +65,7 @@ exports.handler = async (event) => {
     
     const accountData = {
       user_id: uid,
-      provider: "gmail",
+      provider: `gmail_${email.replace(/[^a-zA-Z0-9]/g, '_')}`, // Make provider unique per email
       email_address: email,
       access_token,
       refresh_token: refresh_token || null,
@@ -84,29 +84,43 @@ exports.handler = async (event) => {
       error = updateError;
     } else {
       // This is a new email - try to insert it
-      const { error: insertError } = await supabase
+      // We'll use upsert with the correct constraint to allow multiple Gmail accounts
+      const { error: upsertError } = await supabase
         .from("email_accounts")
-        .insert(accountData);
-      error = insertError;
+        .upsert(
+          accountData,
+          // Use email_address as the unique constraint to allow multiple Gmail accounts per user
+          { onConflict: "email_address" }
+        );
+      error = upsertError;
       
-      // If we still get a constraint error, it means the database constraint is too restrictive
-      // In that case, we'll need to handle it differently
-      if (error && error.message.includes("duplicate key value violates unique constraint")) {
-        // For now, we'll update the existing Gmail account with the new email
-        const { data: existingUserGmail, error: findError } = await supabase
+      // If the email_address constraint doesn't exist, try a different approach
+      if (error && error.message.includes("no unique or exclusion constraint")) {
+        // Try inserting without upsert - this might work if there's no email constraint
+        const { error: insertError } = await supabase
           .from("email_accounts")
-          .select("id")
-          .eq("user_id", uid)
-          .eq("provider", "gmail")
-          .single();
+          .insert(accountData);
+        error = insertError;
         
-        if (findError) throw findError;
-        
-        const { error: updateError } = await supabase
-          .from("email_accounts")
-          .update(accountData)
-          .eq("id", existingUserGmail.id);
-        error = updateError;
+        // If we still get a constraint error, the user_id,provider constraint is blocking us
+        if (error && error.message.includes("duplicate key value violates unique constraint")) {
+          // The database constraint prevents multiple Gmail accounts per user
+          // We'll need to update the existing account instead
+          const { data: existingUserGmail, error: findError } = await supabase
+            .from("email_accounts")
+            .select("id")
+            .eq("user_id", uid)
+            .eq("provider", "gmail")
+            .single();
+          
+          if (findError) throw findError;
+          
+          const { error: updateError } = await supabase
+            .from("email_accounts")
+            .update(accountData)
+            .eq("id", existingUserGmail.id);
+          error = updateError;
+        }
       }
     }
     if (error) throw error;
