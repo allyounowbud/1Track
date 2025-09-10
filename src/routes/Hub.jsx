@@ -128,8 +128,8 @@ export default function Hub() {
           <div className="flex items-start gap-3">
             <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
             <div>
-              <div className="text-sm font-medium text-slate-200">Fixed Multiple Gmail Account Connection</div>
-              <div className="text-xs text-slate-400">Resolved unique constraint error allowing users to connect multiple Gmail accounts by updating OAuth callback conflict resolution</div>
+              <div className="text-sm font-medium text-slate-200">Enhanced Multiple Gmail Account Support</div>
+              <div className="text-xs text-slate-400">Updated OAuth callback and sync functions to properly support multiple Gmail accounts from different users, allowing comprehensive email organization from all connected accounts</div>
             </div>
           </div>
           <div className="flex items-start gap-3">

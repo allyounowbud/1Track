@@ -420,7 +420,7 @@ export default function Emails() {
                 Emails
               </div>
               <p className="text-slate-400 text-sm mt-1">
-                Connect your mailbox to automatically import order confirmations and shipping updates. We link shipping emails to their orders by order # and tracking number.
+                Connect multiple Gmail accounts to automatically import order confirmations and shipping updates from all connected accounts. We link shipping emails to their orders by order # and tracking number.
               </p>
               {connected && (
                 <div className="mt-3 p-3 rounded-xl border border-slate-700 bg-slate-800/50">

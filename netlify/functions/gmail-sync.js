@@ -126,27 +126,25 @@ function unique(arr) {
 }
 
 /* ---------------------------- Gmail client ---------------------------- */
-async function getAccount() {
+async function getAccounts() {
   const { data, error } = await supabase
     .from("email_accounts")
     .select(
       "id, user_id, email_address, access_token, refresh_token, token_scope, expires_at"
     )
-    .order("updated_at", { ascending: false })
-    .limit(1);
+    .order("updated_at", { ascending: false });
   if (error) throw error;
-  if (!data || !data.length) throw new Error("No connected Gmail account");
-  return data[0];
+  if (!data || !data.length) throw new Error("No connected Gmail accounts");
+  return data;
 }
-async function getGmailClient() {
-  const acct = await getAccount();
+async function getGmailClient(account) {
   oauth2.setCredentials({
-    access_token: acct.access_token,
-    refresh_token: acct.refresh_token,
+    access_token: account.access_token,
+    refresh_token: account.refresh_token,
     scope:
-      acct.token_scope ||
+      account.token_scope ||
       "https://www.googleapis.com/auth/gmail.readonly",
-    expiry_date: acct.expires_at ? new Date(acct.expires_at).getTime() : undefined,
+    expiry_date: account.expires_at ? new Date(account.expires_at).getTime() : undefined,
   });
   oauth2.on("tokens", async (tokens) => {
     const patch = {};
@@ -1128,24 +1126,36 @@ exports.handler = async (event) => {
 
   try {
     const mode = (event.queryStringParameters?.mode || "").toLowerCase();
-    const gmail = await getGmailClient();
-    const acct = await getAccount(); // need user_id for composite keys
+    const accounts = await getAccounts(); // Get all connected accounts
+    
+    let totalImported = 0;
+    let totalUpdated = 0;
+    let totalSkipped = 0;
+    let totalErrors = 0;
+    let totalProcessed = 0;
+    const allProposed = [];
+    
+    // Process each connected Gmail account
+    for (const acct of accounts) {
+      console.log(`Processing Gmail account: ${acct.email_address}`);
+      
+      const gmail = await getGmailClient(acct);
     const ids = await listCandidateMessageIds(gmail);
 
     const proposed = [];
     let imported = 0;
     let updated = 0;
     let skipped_existing = 0;
-    let errors = 0;
-    let processed = 0;
-    const startTime = Date.now();
+      let errors = 0;
+      let processed = 0;
+      const startTime = Date.now();
 
-    // Add timeout protection - Netlify functions have 10s limit
-    const maxDuration = 8000; // 8 seconds to leave buffer for response
+      // Add timeout protection - Netlify functions have 10s limit
+      const maxDuration = 8000; // 8 seconds to leave buffer for response
     
-    // Step 1: Process order confirmations first
-    console.log("Step 1: Processing order confirmations...");
-    for (const id of ids) {
+      // Step 1: Process order confirmations first
+      console.log("Step 1: Processing order confirmations...");
+      for (const id of ids) {
       if (Date.now() - startTime > maxDuration) {
         console.log(`Timeout approaching, stopping at ${processed}/${ids.length} messages`);
         break;
@@ -1405,20 +1415,27 @@ exports.handler = async (event) => {
 
     const duration = Date.now() - startTime;
     const wasTimeout = processed < ids.length;
-    const stats = {
-      imported,
-      updated,
-      skipped_existing,
-      errors,
-      processed,
-      duration_ms: duration,
-      total_messages: ids.length,
-      incomplete: wasTimeout,
-      remaining: wasTimeout ? ids.length - processed : 0
+      // Accumulate results from this account
+      totalImported += imported;
+      totalUpdated += updated;
+      totalSkipped += skipped_existing;
+      totalErrors += errors;
+      totalProcessed += processed;
+      allProposed.push(...proposed);
+    }
+    
+    const totalStats = {
+      imported: totalImported,
+      updated: totalUpdated,
+      skipped_existing: totalSkipped,
+      errors: totalErrors,
+      processed: totalProcessed,
+      accounts_processed: accounts.length,
+      duration_ms: Date.now() - startTime
     };
 
-    if (mode === "preview") return json({ proposed, stats });
-    return json(stats);
+    if (mode === "preview") return json({ proposed: allProposed, stats: totalStats });
+    return json(totalStats);
   } catch (err) {
     console.error("gmail-sync error:", err);
     return json({ error: String(err?.message || err) }, 500);
