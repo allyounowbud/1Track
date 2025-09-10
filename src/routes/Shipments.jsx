@@ -124,17 +124,28 @@ export default function Shipments() {
       <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="shipments" showTabs={false} section="automations" />
 
-        {/* Back to Hub */}
+        {/* Navigation Tabs */}
         <div className="mb-6">
-          <Link 
-            to="/" 
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Hub
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link 
+              to="/" 
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Hub
+            </Link>
+            <Link 
+              to="/emails" 
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-600 bg-slate-800/60 text-slate-200 hover:bg-slate-700 hover:border-slate-500 transition"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Emails
+            </Link>
+          </div>
         </div>
 
         {/* Shipments Management */}
@@ -195,64 +206,189 @@ export default function Shipments() {
             </div>
           ) : (
             <div className="space-y-2">
-              {rows.map((row) => (
-                <div
-                  key={`${row.retailer}_${row.order_id}`}
-                  className="border border-slate-700 rounded-lg p-4 hover:border-slate-600 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-sm font-medium text-slate-200">
-                          {row.retailer} #{row.order_id}
-                        </span>
-                        {row.tracking_number && (
-                          <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">
-                            {row.tracking_number}
-                          </span>
-                        )}
-                        {row.status && (
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            row.status === 'delivered' ? 'bg-green-700 text-green-200' :
-                            row.status === 'in_transit' ? 'bg-blue-700 text-blue-200' :
-                            row.status === 'out_for_delivery' ? 'bg-yellow-700 text-yellow-200' :
-                            'bg-slate-700 text-slate-300'
-                          }`}>
-                            {row.status.replace('_', ' ')}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {row.item_name && (
-                        <div className="text-sm text-slate-300 mb-1">
-                          {row.item_name}
+              {rows.map((row) => {
+                const key = `${row.retailer}_${row.order_id}`;
+                const isExpanded = expanded.has(key);
+                
+                return (
+                  <div
+                    key={key}
+                    className="border border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
+                  >
+                    {/* Card Header - Clickable to expand/collapse */}
+                    <div 
+                      className="p-4 cursor-pointer"
+                      onClick={() => toggleExpanded(key)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="text-sm font-medium text-slate-200">
+                              {row.retailer} #{row.order_id}
+                            </span>
+                            {row.tracking_number && (
+                              <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">
+                                {row.tracking_number}
+                              </span>
+                            )}
+                            {row.status && (
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                row.status === 'delivered' ? 'bg-green-700 text-green-200' :
+                                row.status === 'in_transit' ? 'bg-blue-700 text-blue-200' :
+                                row.status === 'out_for_delivery' ? 'bg-yellow-700 text-yellow-200' :
+                                'bg-slate-700 text-slate-300'
+                              }`}>
+                                {row.status.replace('_', ' ')}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {row.item_name && (
+                            <div className="text-sm text-slate-300 mb-1 truncate">
+                              {row.item_name}
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center gap-4 text-xs text-slate-400">
+                            {row.order_date && (
+                              <span>Ordered: {formatDate(row.order_date)}</span>
+                            )}
+                            {row.shipped_at && (
+                              <span>Shipped: {formatDate(row.shipped_at)}</span>
+                            )}
+                            {row.delivered_at && (
+                              <span>Delivered: {formatDate(row.delivered_at)}</span>
+                            )}
+                            {row.total_cents && (
+                              <span>Total: {formatPrice(row.total_cents)}</span>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      
-                      <div className="flex items-center gap-4 text-xs text-slate-400">
-                        {row.order_date && (
-                          <span>Ordered: {formatDate(row.order_date)}</span>
-                        )}
-                        {row.shipped_at && (
-                          <span>Shipped: {formatDate(row.shipped_at)}</span>
-                        )}
-                        {row.delivered_at && (
-                          <span>Delivered: {formatDate(row.delivered_at)}</span>
-                        )}
-                        {row.total_cents && (
-                          <span>Total: {formatPrice(row.total_cents)}</span>
-                        )}
+                        
+                        <div className="flex items-center gap-3 ml-4">
+                          {row.carrier && (
+                            <div className="text-sm text-slate-400">
+                              {row.carrier}
+                            </div>
+                          )}
+                          <svg 
+                            className={`h-5 w-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
                     
-                    {row.carrier && (
-                      <div className="text-sm text-slate-400 ml-4">
-                        {row.carrier}
+                    {/* Expanded Content */}
+                    {isExpanded && (
+                      <div className="border-t border-slate-700 p-4 bg-slate-800/30">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Left Column - Image and Basic Info */}
+                          <div className="space-y-4">
+                            {row.image_url && (
+                              <div className="flex justify-center">
+                                <img 
+                                  src={row.image_url} 
+                                  alt={row.item_name || 'Product image'}
+                                  className="max-w-full h-48 object-contain rounded-lg border border-slate-600"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            )}
+                            
+                            <div className="space-y-2">
+                              <div className="text-sm">
+                                <span className="text-slate-400">Retailer:</span>
+                                <span className="ml-2 text-slate-200 font-medium">{row.retailer || '—'}</span>
+                              </div>
+                              <div className="text-sm">
+                                <span className="text-slate-400">Order ID:</span>
+                                <span className="ml-2 text-slate-200 font-medium">{row.order_id || '—'}</span>
+                              </div>
+                              {row.tracking_number && (
+                                <div className="text-sm">
+                                  <span className="text-slate-400">Tracking:</span>
+                                  <span className="ml-2 text-slate-200 font-medium">{row.tracking_number}</span>
+                                </div>
+                              )}
+                              {row.carrier && (
+                                <div className="text-sm">
+                                  <span className="text-slate-400">Carrier:</span>
+                                  <span className="ml-2 text-slate-200 font-medium">{row.carrier}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Right Column - Detailed Information */}
+                          <div className="space-y-4">
+                            {row.item_name && (
+                              <div>
+                                <span className="text-slate-400 text-sm">Item Name:</span>
+                                <div className="text-slate-200 font-medium mt-1">{row.item_name}</div>
+                              </div>
+                            )}
+                            
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              {row.quantity && (
+                                <div>
+                                  <span className="text-slate-400">Quantity:</span>
+                                  <div className="text-slate-200 font-medium">{row.quantity}</div>
+                                </div>
+                              )}
+                              {row.unit_price_cents && (
+                                <div>
+                                  <span className="text-slate-400">Unit Price:</span>
+                                  <div className="text-slate-200 font-medium">{formatPrice(row.unit_price_cents)}</div>
+                                </div>
+                              )}
+                              {row.total_cents && (
+                                <div>
+                                  <span className="text-slate-400">Total:</span>
+                                  <div className="text-slate-200 font-medium">{formatPrice(row.total_cents)}</div>
+                                </div>
+                              )}
+                              {row.status && (
+                                <div>
+                                  <span className="text-slate-400">Status:</span>
+                                  <div className="text-slate-200 font-medium capitalize">{row.status.replace('_', ' ')}</div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-2 text-sm">
+                              {row.order_date && (
+                                <div>
+                                  <span className="text-slate-400">Order Date:</span>
+                                  <span className="ml-2 text-slate-200">{formatDate(row.order_date)}</span>
+                                </div>
+                              )}
+                              {row.shipped_at && (
+                                <div>
+                                  <span className="text-slate-400">Shipped Date:</span>
+                                  <span className="ml-2 text-slate-200">{formatDate(row.shipped_at)}</span>
+                                </div>
+                              )}
+                              {row.delivered_at && (
+                                <div>
+                                  <span className="text-slate-400">Delivered Date:</span>
+                                  <span className="ml-2 text-slate-200">{formatDate(row.delivered_at)}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

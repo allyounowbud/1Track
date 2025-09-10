@@ -121,10 +121,24 @@ export default function Hub() {
         <div className={`${card}`}>
           <div className="mb-4">
             <h2 className="text-lg font-semibold">Changelog</h2>
-            <div className="text-xs text-slate-400/60">v0.0.1</div>
+            <div className="text-xs text-slate-400/60">v0.0.2</div>
           </div>
           
         <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Enhanced Shipments Page with Expandable Cards</div>
+              <div className="text-xs text-slate-400">Added expandable shipment cards with detailed information display, product images, and comprehensive order data in organized sections</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Added Cross-Navigation Between Emails and Shipments</div>
+              <div className="text-xs text-slate-400">Implemented navigation tabs on both emails and shipments pages for seamless switching between email management and shipment tracking</div>
+            </div>
+          </div>
           <div className="flex items-start gap-3">
             <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
             <div>

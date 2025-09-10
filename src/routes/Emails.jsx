@@ -127,17 +127,28 @@ export default function Emails() {
       <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="emails" showTabs={false} section="automations" />
 
-        {/* Back to Hub */}
+        {/* Navigation Tabs */}
         <div className="mb-6">
-          <Link 
-            to="/" 
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Hub
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link 
+              to="/" 
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Hub
+            </Link>
+            <Link 
+              to="/shipments" 
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-600 bg-slate-800/60 text-slate-200 hover:bg-slate-700 hover:border-slate-500 transition"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Shipments
+            </Link>
+          </div>
         </div>
 
         {/* Connect / Sync */}
