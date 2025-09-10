@@ -128,8 +128,8 @@ export default function Hub() {
           <div className="flex items-start gap-3">
             <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
             <div>
-              <div className="text-sm font-medium text-slate-200">Completely Redesigned Stats Page</div>
-              <div className="text-xs text-slate-400">Enhanced filters with time periods and searchable items, responsive charts, click-anywhere expandable cards, and grid/list view toggle</div>
+              <div className="text-sm font-medium text-slate-200">Enhanced Stats Page with Live Filtering</div>
+              <div className="text-xs text-slate-400">Combined filters with analytics, live search filtering, simplified charts, list-only view, and improved card content with last purchase/sale dates</div>
             </div>
           </div>
           <div className="flex items-start gap-3">
