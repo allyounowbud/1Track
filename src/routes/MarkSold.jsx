@@ -124,7 +124,7 @@ export default function MarkSold() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-6xl mx-auto p-4 sm:p-6">
+      <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
 
         {/* ======= SHARED HEADER + TABS ======= */}
         <HeaderWithTabs active="sold" section="orderbook" showHubTab={true} />
