@@ -51,7 +51,7 @@ exports.handler = async (event) => {
     if (!profRes.ok) throw new Error("Profile fetch failed");
     const email = profile.email;
 
-    // ---- upsert account (multi-user safe)
+    // ---- upsert account (multi-user safe, multiple emails per user)
     const { error } = await supabase
       .from("email_accounts")
       .upsert(
@@ -65,8 +65,8 @@ exports.handler = async (event) => {
           expires_at,
           updated_at: new Date().toISOString(),
         },
-        // requires a unique index/constraint on (user_id, provider, email_address)
-        { onConflict: "user_id,provider,email_address" }
+        // Allow multiple Gmail accounts per user by using email_address as the unique key
+        { onConflict: "email_address" }
       );
     if (error) throw error;
 
