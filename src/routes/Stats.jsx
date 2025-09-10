@@ -124,7 +124,7 @@ export default function Stats() {
   const kpis = useMemo(() => makeTopKpis(filtered), [filtered]);
 
   /* ------------------------------- Chart toggle ------------------------------- */
-  const [chartMode, setChartMode] = useState("PS"); // PS | CR
+  const [chartMode, setChartMode] = useState("performance"); // performance | profitability | activity | holdtime
 
   /* -------------------- Expandable item cards -------------------- */
   const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
@@ -146,16 +146,13 @@ export default function Stats() {
 
         {/* -------------------- Performance Analytics with Filters -------------------- */}
         <div className={`${card} relative z-[60]`}>
-          <div className="flex items-start justify-between gap-3 mb-6">
-            <div>
-              <div className="text-lg font-semibold">Performance Analytics</div>
-              <div className="text-slate-400 text-xs -mt-0.5">Monthly trends and insights</div>
-            </div>
-            <div className="text-slate-400 text-sm">{filtered.length} rows</div>
+          <div className="mb-6">
+            <div className="text-lg font-semibold">Performance Analytics</div>
+            <div className="text-slate-400 text-xs -mt-0.5">Monthly trends and insights</div>
           </div>
 
           {/* Filters */}
-          <div className="space-y-4 mb-6">
+          <div className="space-y-4 mb-8">
             {/* Time filter dropdown */}
             <Select
               value={timeFilter}
@@ -168,15 +165,6 @@ export default function Stats() {
                 { value: "custom", label: "Custom range" },
               ]}
               placeholder="All time"
-            />
-
-            {/* Item search */}
-            <SearchDropdown
-              value={itemSearchQuery}
-              onChange={setItemSearchQuery}
-              options={itemOptions}
-              placeholder="Search for products..."
-              onSelect={(item) => setItemSearchQuery(item)}
             />
 
             {/* Custom date range */}
@@ -198,6 +186,15 @@ export default function Stats() {
                 />
               </div>
             )}
+
+            {/* Item search */}
+            <SearchDropdown
+              value={itemSearchQuery}
+              onChange={setItemSearchQuery}
+              options={itemOptions}
+              placeholder="Search for products..."
+              onSelect={(item) => setItemSearchQuery(item)}
+            />
           </div>
 
           {/* KPI Cards */}
@@ -213,43 +210,31 @@ export default function Stats() {
             <Kpi title="Best ROI" value={pctStr(kpis.bestRoiPct)} hint={kpis.bestRoiName} />
           </div>
 
-          {/* Charts */}
+          {/* Item Analytics Charts */}
           <div className="mb-6">
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-md font-medium text-slate-200 mb-1">Performance Overview</h3>
-                <p className="text-sm text-slate-400">Key metrics and trends</p>
+                <h3 className="text-md font-medium text-slate-200 mb-1">Item Analytics</h3>
+                <p className="text-sm text-slate-400">Detailed insights for your top performing items</p>
               </div>
-              <IconTogglePSCR value={chartMode} onChange={setChartMode} />
+              <Select
+                value={chartMode}
+                onChange={setChartMode}
+                options={[
+                  { value: "performance", label: "Performance Metrics" },
+                  { value: "profitability", label: "Profitability Analysis" },
+                  { value: "activity", label: "Sales Activity" },
+                  { value: "holdtime", label: "Hold Time Analysis" }
+                ]}
+                placeholder="Select chart type"
+              />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Revenue vs Cost Chart */}
-              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-sm font-medium text-slate-300 mb-4">Revenue vs Cost</h4>
-                <div className="h-48">
-                  <SimpleBarChart
-                    data={[
-                      { label: "Revenue", value: kpis.revenueC, color: "#10b981" },
-                      { label: "Cost", value: kpis.spentC, color: "#ef4444" },
-                      { label: "Profit", value: kpis.realizedPlC, color: kpis.realizedPlC > 0 ? "#10b981" : "#ef4444" }
-                    ]}
-                    format="money"
-                  />
-                </div>
-              </div>
-
-              {/* Sales Activity Chart */}
-              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-sm font-medium text-slate-300 mb-4">Sales Activity</h4>
-                <div className="h-48">
-                  <SimpleBarChart
-                    data={[
-                      { label: "Total Sales", value: kpis.sold, color: "#3b82f6" },
-                      { label: "Best Seller", value: kpis.bestSellerCount, color: "#8b5cf6" }
-                    ]}
-                    format="number"
-                  />
-                </div>
+            <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
+              <div className="h-64">
+                <ItemAnalyticsChart 
+                  mode={chartMode} 
+                  itemGroups={itemGroups.slice(0, 10)} 
+                />
               </div>
             </div>
           </div>
@@ -334,7 +319,7 @@ export default function Stats() {
               return (
                 <div key={g.item} className="border border-slate-800 rounded-xl bg-slate-900/60">
                   <div 
-                    className="flex items-center justify-between gap-3 p-4 cursor-pointer hover:bg-slate-800/50 transition"
+                    className="flex items-center justify-between gap-3 p-4 cursor-pointer transition"
                     onClick={() => toggleItem(g.item)}
                   >
                     <div className="min-w-0 flex-1">
@@ -348,9 +333,6 @@ export default function Stats() {
                         ${centsToStr(g.realizedPlC)}
                       </div>
                       <div className="text-sm text-slate-400">Realized P/L</div>
-                    </div>
-                    <div className="text-right text-sm text-slate-400">
-                      #{itemOrders.length}
                     </div>
                     <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
                   </div>
@@ -392,59 +374,10 @@ export default function Stats() {
 /* --------------------------- small components --------------------------- */
 
 
-/* icon-only toggle (🛒 vs 🧮) */
-function IconTogglePSCR({ value, onChange }) {
-  const isPS = value === "PS";
-  const btn = (active, icon, aria, click) => (
-    <button
-      onClick={click}
-      aria-label={aria}
-      className={`p-2.5 rounded-full border ${
-        active
-          ? "bg-indigo-600 border-indigo-500 text-white"
-          : "border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-      }`}
-    >
-      {icon}
-    </button>
-  );
 
-  return (
-    <div className="inline-flex gap-2 rounded-full bg-slate-900/60 border border-slate-800 p-1">
-      {btn(isPS,
-        <CartIcon className="w-5 h-5" />,
-        "Purchases & Sales",
-        () => onChange("PS")
-      )}
-      {btn(!isPS,
-        <CalcIcon className="w-5 h-5" />,
-        "Cost & Revenue",
-        () => onChange("CR")
-      )}
-    </div>
-  );
-}
-function CartIcon({ className="" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="9" cy="21" r="1.5" /><circle cx="18" cy="21" r="1.5" />
-      <path d="M3 3h2l2.4 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5l1.4-6.5H7.2" />
-    </svg>
-  );
-}
-function CalcIcon({ className="" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="4" y="3" width="16" height="18" rx="2" />
-      <rect x="7" y="6" width="10" height="3" />
-      <path d="M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2" />
-    </svg>
-  );
-}
-
-/* --------------------- Simple Bar Chart for Stats --------------------- */
-function SimpleBarChart({ data = [], format = "number" }) {
-  if (!data.length || data.every(d => !d.value)) {
+/* --------------------- Item Analytics Chart --------------------- */
+function ItemAnalyticsChart({ mode = "performance", itemGroups = [] }) {
+  if (!itemGroups.length) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <div className="text-center">
@@ -455,44 +388,80 @@ function SimpleBarChart({ data = [], format = "number" }) {
     );
   }
 
+  const getChartData = () => {
+    switch (mode) {
+      case "performance":
+        return itemGroups.slice(0, 8).map(item => ({
+          label: item.item.length > 20 ? item.item.substring(0, 20) + "..." : item.item,
+          value: item.revenueC,
+          color: "#10b981",
+          format: "money"
+        }));
+      case "profitability":
+        return itemGroups.slice(0, 8).map(item => ({
+          label: item.item.length > 20 ? item.item.substring(0, 20) + "..." : item.item,
+          value: item.realizedPlC,
+          color: item.realizedPlC > 0 ? "#10b981" : "#ef4444",
+          format: "money"
+        }));
+      case "activity":
+        return itemGroups.slice(0, 8).map(item => ({
+          label: item.item.length > 20 ? item.item.substring(0, 20) + "..." : item.item,
+          value: item.sold,
+          color: "#3b82f6",
+          format: "number"
+        }));
+      case "holdtime":
+        return itemGroups.slice(0, 8).map(item => ({
+          label: item.item.length > 20 ? item.item.substring(0, 20) + "..." : item.item,
+          value: item.avgHoldDays,
+          color: "#8b5cf6",
+          format: "days"
+        }));
+      default:
+        return [];
+    }
+  };
+
+  const data = getChartData();
   const maxValue = Math.max(...data.map(d => Math.abs(d.value)));
-  const barHeight = 24;
-  const barSpacing = 8;
-  const totalHeight = data.length * (barHeight + barSpacing) - barSpacing;
 
   return (
-    <div className="w-full h-full flex flex-col justify-center">
-      <div className="space-y-2">
-        {data.map((item, index) => {
-          const width = maxValue > 0 ? (Math.abs(item.value) / maxValue) * 100 : 0;
-          const isNegative = item.value < 0;
-          
-          return (
-            <div key={index} className="flex items-center gap-3">
-              <div className="w-20 text-sm text-slate-300 text-right">
-                {item.label}
-              </div>
-              <div className="flex-1 relative">
-                <div className="h-6 bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      isNegative ? 'bg-red-500' : 'bg-emerald-500'
-                    }`}
-                    style={{ 
-                      width: `${width}%`,
-                      marginLeft: isNegative ? `${100 - width}%` : '0'
-                    }}
-                  />
+    <div className="w-full h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto">
+        <div className="space-y-3">
+          {data.map((item, index) => {
+            const width = maxValue > 0 ? (Math.abs(item.value) / maxValue) * 100 : 0;
+            const isNegative = item.value < 0;
+            
+            return (
+              <div key={index} className="flex items-center gap-3">
+                <div className="w-32 text-sm text-slate-300 text-right truncate" title={itemGroups[index]?.item}>
+                  {item.label}
                 </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-medium text-slate-100">
-                    {format === "money" ? `$${centsToStr(Math.abs(item.value))}` : formatNumber(Math.abs(item.value))}
-                  </span>
+                <div className="flex-1 relative">
+                  <div className="h-6 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${width}%`,
+                        marginLeft: isNegative ? `${100 - width}%` : '0',
+                        backgroundColor: item.color
+                      }}
+                    />
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xs font-medium text-slate-100">
+                      {item.format === "money" ? `$${centsToStr(Math.abs(item.value))}` : 
+                       item.format === "days" ? `${Math.round(item.value)}d` :
+                       formatNumber(Math.abs(item.value))}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

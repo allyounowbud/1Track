@@ -121,10 +121,17 @@ export default function Hub() {
         <div className={`${card}`}>
           <div className="mb-4">
             <h2 className="text-lg font-semibold">Changelog</h2>
-            <div className="text-xs text-slate-400/60">v0.0.2</div>
+            <div className="text-xs text-slate-400/60">v0.0.3</div>
           </div>
           
         <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Refined Stats Page Interface</div>
+              <div className="text-xs text-slate-400">Removed row counts, reordered filters, added item-specific analytics charts with dropdown selection, and improved spacing and layout</div>
+            </div>
+          </div>
           <div className="flex items-start gap-3">
             <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
             <div>
