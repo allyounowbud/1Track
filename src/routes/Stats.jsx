@@ -123,6 +123,9 @@ export default function Stats() {
   /* ------------------------------- KPIs -------------------------------- */
   const kpis = useMemo(() => makeTopKpis(filtered), [filtered]);
 
+  /* ------------------------------- Chart mode -------------------------------- */
+  const [chartMode, setChartMode] = useState("revenue"); // revenue | profit | sales | performance
+
 
   /* -------------------- Expandable item cards -------------------- */
   const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
@@ -197,7 +200,7 @@ export default function Stats() {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
             <Kpi title="Total Revenue" value={`$${centsToStr(kpis.revenueC)}`} />
             <Kpi title="Total Cost" value={`$${centsToStr(kpis.spentC)}`} />
             <Kpi title="Total Sales" value={`${kpis.sold}`} />
@@ -211,41 +214,18 @@ export default function Stats() {
 
           {/* Analytics Dashboard */}
           <div className="mb-6">
-            <div className="mb-4">
-              <h3 className="text-md font-medium text-slate-200 mb-1">Analytics Dashboard</h3>
-              <p className="text-sm text-slate-400">Comprehensive insights and performance metrics</p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-md font-medium text-slate-200 mb-1">Analytics Dashboard</h3>
+                <p className="text-sm text-slate-400">Comprehensive insights and performance metrics</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <ChartToggleButtons chartMode={chartMode} setChartMode={setChartMode} />
+              </div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top Performers Chart */}
-              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-sm font-medium text-slate-300 mb-3">Top Revenue Generators</h4>
-                <div className="h-48">
-                  <TopPerformersChart itemGroups={itemGroups.slice(0, 5)} />
-                </div>
-              </div>
-
-              {/* Profitability Overview */}
-              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-sm font-medium text-slate-300 mb-3">Profitability Overview</h4>
-                <div className="h-48">
-                  <ProfitabilityChart itemGroups={itemGroups.slice(0, 5)} />
-                </div>
-              </div>
-
-              {/* Sales Activity */}
-              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-sm font-medium text-slate-300 mb-3">Sales Activity</h4>
-                <div className="h-48">
-                  <SalesActivityChart itemGroups={itemGroups.slice(0, 5)} />
-                </div>
-              </div>
-
-              {/* Performance Metrics */}
-              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-sm font-medium text-slate-300 mb-3">Performance Metrics</h4>
-                <div className="h-48">
-                  <PerformanceMetricsChart itemGroups={itemGroups.slice(0, 5)} />
-                </div>
+            <div className="bg-slate-900/40 rounded-xl p-6 border border-slate-800">
+              <div className="h-80">
+                <AnalyticsChart chartMode={chartMode} itemGroups={itemGroups.slice(0, 8)} />
               </div>
             </div>
           </div>
@@ -352,7 +332,7 @@ export default function Stats() {
 
                   <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 'none' : 0 }}>
                     <div className="px-4 pb-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                         <MiniPill title="Bought" value={formatNumber(g.bought)} num={g.bought} sub="total purchases" />
                         <MiniPill title="Sold" value={formatNumber(g.sold)} num={g.sold} sub="total sold" />
                         <MiniPill title="On Hand" value={formatNumber(g.onHand)} num={g.onHand} sub="total inventory" />
@@ -390,62 +370,37 @@ export default function Stats() {
 
 /* --------------------- Analytics Chart Components --------------------- */
 
-// Top Performers Chart - Shows revenue with donut chart style
-function TopPerformersChart({ itemGroups = [] }) {
-  if (!itemGroups.length) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-slate-400 text-lg mb-2">📊</div>
-          <div className="text-slate-400 text-sm">No data available</div>
-        </div>
-      </div>
-    );
-  }
-
-  const totalRevenue = itemGroups.reduce((sum, item) => sum + item.revenueC, 0);
-  const colors = ["#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444"];
+// Chart Toggle Buttons
+function ChartToggleButtons({ chartMode, setChartMode }) {
+  const buttons = [
+    { mode: "revenue", icon: "💰", label: "Revenue" },
+    { mode: "profit", icon: "📈", label: "Profit" },
+    { mode: "sales", icon: "🛒", label: "Sales" },
+    { mode: "performance", icon: "⚡", label: "Performance" }
+  ];
 
   return (
-    <div className="w-full h-full flex items-center justify-center">
-      <div className="relative w-32 h-32">
-        <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-          {itemGroups.map((item, index) => {
-            const percentage = totalRevenue > 0 ? (item.revenueC / totalRevenue) * 100 : 0;
-            const strokeDasharray = `${percentage} ${100 - percentage}`;
-            const strokeDashoffset = itemGroups.slice(0, index).reduce((sum, prev) => 
-              sum + (totalRevenue > 0 ? (prev.revenueC / totalRevenue) * 100 : 0), 0
-            );
-            
-            return (
-              <circle
-                key={index}
-                cx="50"
-                cy="50"
-                r="40"
-                fill="none"
-                stroke={colors[index % colors.length]}
-                strokeWidth="8"
-                strokeDasharray={strokeDasharray}
-                strokeDashoffset={-strokeDashoffset}
-                className="transition-all duration-500"
-              />
-            );
-          })}
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-lg font-semibold text-slate-100">${centsToStr(totalRevenue)}</div>
-            <div className="text-xs text-slate-400">Total</div>
-          </div>
-        </div>
-      </div>
+    <div className="flex items-center gap-1 rounded-full bg-slate-900/60 border border-slate-800 p-1">
+      {buttons.map((button) => (
+        <button
+          key={button.mode}
+          onClick={() => setChartMode(button.mode)}
+          className={`px-3 py-2 rounded-full text-sm transition ${
+            chartMode === button.mode
+              ? "bg-indigo-600 text-white"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+          title={button.label}
+        >
+          {button.icon}
+        </button>
+      ))}
     </div>
   );
 }
 
-// Profitability Chart - Shows profit/loss with horizontal bars
-function ProfitabilityChart({ itemGroups = [] }) {
+// Main Analytics Chart
+function AnalyticsChart({ chartMode, itemGroups = [] }) {
   if (!itemGroups.length) {
     return (
       <div className="w-full h-full flex items-center justify-center">
@@ -457,21 +412,71 @@ function ProfitabilityChart({ itemGroups = [] }) {
     );
   }
 
+  switch (chartMode) {
+    case "revenue":
+      return <RevenueChart itemGroups={itemGroups} />;
+    case "profit":
+      return <ProfitChart itemGroups={itemGroups} />;
+    case "sales":
+      return <SalesChart itemGroups={itemGroups} />;
+    case "performance":
+      return <PerformanceChart itemGroups={itemGroups} />;
+    default:
+      return <RevenueChart itemGroups={itemGroups} />;
+  }
+}
+
+// Revenue Chart - Clear horizontal bars with item names and values
+function RevenueChart({ itemGroups = [] }) {
+  const maxRevenue = Math.max(...itemGroups.map(item => item.revenueC));
+
+  return (
+    <div className="w-full h-full flex flex-col justify-center space-y-4">
+      {itemGroups.map((item, index) => {
+        const width = maxRevenue > 0 ? (item.revenueC / maxRevenue) * 100 : 0;
+        
+        return (
+          <div key={index} className="flex items-center gap-4">
+            <div className="w-40 text-sm text-slate-300 truncate" title={item.item}>
+              {item.item}
+            </div>
+            <div className="flex-1 relative">
+              <div className="h-8 bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${width}%` }}
+                />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-sm font-medium text-slate-100">
+                  ${centsToStr(item.revenueC)}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Profit Chart - Shows profit/loss with clear indicators
+function ProfitChart({ itemGroups = [] }) {
   const maxValue = Math.max(...itemGroups.map(item => Math.abs(item.realizedPlC)));
 
   return (
-    <div className="w-full h-full flex flex-col justify-center space-y-2">
+    <div className="w-full h-full flex flex-col justify-center space-y-4">
       {itemGroups.map((item, index) => {
         const width = maxValue > 0 ? (Math.abs(item.realizedPlC) / maxValue) * 100 : 0;
         const isPositive = item.realizedPlC > 0;
         
         return (
-          <div key={index} className="flex items-center gap-2">
-            <div className="w-16 text-xs text-slate-300 truncate" title={item.item}>
-              {item.item.length > 12 ? item.item.substring(0, 12) + "..." : item.item}
+          <div key={index} className="flex items-center gap-4">
+            <div className="w-40 text-sm text-slate-300 truncate" title={item.item}>
+              {item.item}
             </div>
             <div className="flex-1 relative">
-              <div className="h-4 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-8 bg-slate-800 rounded-full overflow-hidden">
                 <div 
                   className={`h-full rounded-full transition-all duration-500 ${
                     isPositive ? 'bg-emerald-500' : 'bg-red-500'
@@ -480,7 +485,7 @@ function ProfitabilityChart({ itemGroups = [] }) {
                 />
               </div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xs font-medium text-slate-100">
+                <span className="text-sm font-medium text-slate-100">
                   ${centsToStr(Math.abs(item.realizedPlC))}
                 </span>
               </div>
@@ -492,35 +497,24 @@ function ProfitabilityChart({ itemGroups = [] }) {
   );
 }
 
-// Sales Activity Chart - Shows sales count with vertical bars
-function SalesActivityChart({ itemGroups = [] }) {
-  if (!itemGroups.length) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-slate-400 text-lg mb-2">📊</div>
-          <div className="text-slate-400 text-sm">No data available</div>
-        </div>
-      </div>
-    );
-  }
-
+// Sales Chart - Shows sales count with vertical bars
+function SalesChart({ itemGroups = [] }) {
   const maxSales = Math.max(...itemGroups.map(item => item.sold));
 
   return (
-    <div className="w-full h-full flex items-end justify-center gap-2 px-4">
+    <div className="w-full h-full flex items-end justify-center gap-6 px-8">
       {itemGroups.map((item, index) => {
         const height = maxSales > 0 ? (item.sold / maxSales) * 100 : 0;
         
         return (
-          <div key={index} className="flex flex-col items-center gap-1">
-            <div className="text-xs text-slate-300 font-medium">{item.sold}</div>
+          <div key={index} className="flex flex-col items-center gap-2">
+            <div className="text-sm text-slate-300 font-medium">{item.sold}</div>
             <div 
-              className="w-6 bg-blue-500 rounded-t transition-all duration-500"
-              style={{ height: `${height}%`, minHeight: '4px' }}
+              className="w-12 bg-blue-500 rounded-t transition-all duration-500"
+              style={{ height: `${height}%`, minHeight: '8px' }}
             />
-            <div className="text-xs text-slate-400 truncate w-8 text-center" title={item.item}>
-              {item.item.length > 6 ? item.item.substring(0, 6) + "..." : item.item}
+            <div className="text-xs text-slate-400 text-center max-w-16" title={item.item}>
+              {item.item.length > 12 ? item.item.substring(0, 12) + "..." : item.item}
             </div>
           </div>
         );
@@ -529,44 +523,35 @@ function SalesActivityChart({ itemGroups = [] }) {
   );
 }
 
-// Performance Metrics Chart - Shows multiple metrics in a compact format
-function PerformanceMetricsChart({ itemGroups = [] }) {
-  if (!itemGroups.length) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-slate-400 text-lg mb-2">📊</div>
-          <div className="text-slate-400 text-sm">No data available</div>
-        </div>
-      </div>
-    );
-  }
-
+// Performance Chart - Shows key metrics in a clean table format
+function PerformanceChart({ itemGroups = [] }) {
   return (
-    <div className="w-full h-full grid grid-cols-2 gap-3">
-      {itemGroups.slice(0, 4).map((item, index) => (
-        <div key={index} className="bg-slate-800/50 rounded-lg p-3">
-          <div className="text-xs text-slate-400 mb-1 truncate" title={item.item}>
-            {item.item.length > 15 ? item.item.substring(0, 15) + "..." : item.item}
+    <div className="w-full h-full overflow-y-auto">
+      <div className="space-y-3">
+        {itemGroups.map((item, index) => (
+          <div key={index} className="bg-slate-800/50 rounded-lg p-4">
+            <div className="text-sm font-medium text-slate-200 mb-3 truncate" title={item.item}>
+              {item.item}
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="text-center">
+                <div className="text-slate-400 text-xs">Revenue</div>
+                <div className="text-emerald-400 font-medium">${centsToStr(item.revenueC)}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-slate-400 text-xs">Sold</div>
+                <div className="text-blue-400 font-medium">{item.sold}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-slate-400 text-xs">ROI</div>
+                <div className={`font-medium ${item.roi > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {pctStr(item.roi)}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-slate-300">Revenue:</span>
-              <span className="text-emerald-400">${centsToStr(item.revenueC)}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-slate-300">Sold:</span>
-              <span className="text-blue-400">{item.sold}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-slate-300">ROI:</span>
-              <span className={item.roi > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                {pctStr(item.roi)}
-              </span>
-            </div>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
