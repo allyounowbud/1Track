@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 
 /**
  * Props:
- * - active: "orders" | "add" | "sold" | "stats" | "settings" | "emails"
+ * - active: "orders" | "add" | "sold" | "stats" | "database" | "emails"
  * - showTabs: boolean (default true)
  * - section: "orderbook" | "automations" (default "orderbook")
  * - showHubTab: boolean (default false) - adds Hub tab as first tab
@@ -113,7 +113,7 @@ export default function HeaderWithTabs({ active = "", showTabs = true, section =
               <NavLink to="/stats" end className={tabClass("stats")}>
                 Stats
               </NavLink>
-              <NavLink to="/settings" end className={tabClass("settings")}>
+              <NavLink to="/database" end className={tabClass("database")}>
                 Database
               </NavLink>
             </>

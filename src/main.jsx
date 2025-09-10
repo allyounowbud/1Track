@@ -25,7 +25,7 @@ const router = createBrowserRouter([
   { path: "/sold", element: <MarkSold /> },
   { path: "/inventory", element: <Inventory /> },
   { path: "/stats", element: <Stats /> },
-  { path: "/settings", element: <Settings /> },
+  { path: "/database", element: <Settings /> },
   { path: "/emails", element: <Emails /> },        // <-- NEW ROUTE
 
   // Legacy + fallback routes

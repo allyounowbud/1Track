@@ -231,7 +231,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="settings" showTabs section="orderbook" showHubTab={true} />
+        <HeaderWithTabs active="database" showTabs section="orderbook" showHubTab={true} />
 
         {/* ---------- Items ---------- */}
         <section className={`${pageCard} mb-6`}>

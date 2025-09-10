@@ -143,7 +143,7 @@ export default function Hub() {
             <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
             <div>
               <div className="text-sm font-medium text-slate-200">Enhanced Order Book Interface</div>
-              <div className="text-xs text-slate-400">Integrated search into order card, fixed input heights, replaced dropdowns with native selects, improved button layout, added mutual exclusion between search and add operations, and fixed checkbox alignment</div>
+              <div className="text-xs text-slate-400">Integrated search, fixed input heights, replaced dropdowns with native selects, improved button layout, and added a mutual exclusion between search and add operations.</div>
             </div>
           </div>
             
