@@ -128,6 +128,14 @@ export default function Hub() {
             <div className="flex items-start gap-3">
               <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
               <div>
+                <div className="text-sm font-medium text-slate-200">Improved Order Book Button Layout</div>
+                <div className="text-xs text-slate-400">Moved grid/list view buttons to far right, standardized all action button colors to neutral styling for cleaner interface</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
+              <div>
                 <div className="text-sm font-medium text-slate-200">Integrated Order Book Search</div>
                 <div className="text-xs text-slate-400">Moved search bar into order rows card for cleaner layout, matching Inventory page design pattern</div>
               </div>
