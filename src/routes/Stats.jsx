@@ -6,6 +6,7 @@ import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, rowCard } from "../utils/ui.js";
 import { Select } from "../components/Select.jsx";
+import { SearchDropdown } from "../components/SearchDropdown.jsx";
 
 /* ----------------------------- data helpers ---------------------------- */
 const cents = (n) => Math.round(Number(n || 0));
@@ -54,60 +55,41 @@ export default function Stats() {
 
 
   /* --------------------------- filter controls -------------------------- */
-  const [range, setRange] = useState("all"); // all | month | 30 | year | custom
+  const [timeFilter, setTimeFilter] = useState("all"); // all | 30 | 7 | today | custom
   const [fromStr, setFromStr] = useState("");
   const [toStr, setToStr] = useState("");
-
-  const [itemOpen, setItemOpen] = useState(false);
-  const [itemInput, setItemInput] = useState("All Items");
-  const comboRef = useRef(null);
-
-  useEffect(() => {
-    function onDocClick(e) {
-      if (!comboRef.current) return;
-      if (!comboRef.current.contains(e.target)) setItemOpen(false);
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, []);
+  const [itemSearchQuery, setItemSearchQuery] = useState("");
 
   const itemOptions = useMemo(() => {
     const names = items.map((i) => i.name).filter(Boolean);
     const uniq = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
-    return ["All Items", ...uniq];
+    return uniq;
   }, [items]);
 
-  const filteredItemOptions = useMemo(() => {
-    const q = (itemInput || "").toLowerCase();
-    if (!q || q === "all items") return itemOptions;
-    return itemOptions.filter((n) => n.toLowerCase().includes(q));
-  }, [itemOptions, itemInput]);
-
   // applied snapshot
-  const [applied, setApplied] = useState({ range: "all", from: null, to: null, item: "" });
-  const isDefaultApplied = applied.range === "all" && !applied.item && !applied.from && !applied.to;
+  const [applied, setApplied] = useState({ timeFilter: "all", from: null, to: null, item: "" });
+  const isDefaultApplied = applied.timeFilter === "all" && !applied.item && !applied.from && !applied.to;
 
   const { fromMs, toMs } = useMemo(() => {
-    if (applied.range === "custom") {
+    if (applied.timeFilter === "custom") {
       const f = applied.from ? new Date(applied.from).setHours(0,0,0,0) : null;
       const t = applied.to ? new Date(applied.to).setHours(23,59,59,999) : null;
       return { fromMs: f, toMs: t };
     }
-    if (applied.range === "month") {
+    if (applied.timeFilter === "today") {
       const now = new Date();
-      const f = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      const t = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999).getTime();
+      const f = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const t = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999).getTime();
       return { fromMs: f, toMs: t };
     }
-    if (applied.range === "30") {
+    if (applied.timeFilter === "7") {
+      const t = Date.now();
+      const f = t - 6 * 24 * 3600 * 1000;
+      return { fromMs: f, toMs: t };
+    }
+    if (applied.timeFilter === "30") {
       const t = Date.now();
       const f = t - 29 * 24 * 3600 * 1000;
-      return { fromMs: f, toMs: t };
-    }
-    if (applied.range === "year") {
-      const now = new Date();
-      const f = new Date(now.getFullYear(), 0, 1).getTime();
-      const t = new Date(now.getFullYear(), 11, 31, 23,59,59,999).getTime();
       return { fromMs: f, toMs: t };
     }
     return { fromMs: null, toMs: null };
@@ -127,10 +109,10 @@ export default function Stats() {
 
   /* ---------- filtered orders by time + item ---------- */
   const filtered = useMemo(() => {
-    const item = (applied.item || "").toLowerCase();
-    const useItem = !!item;
+    const itemQuery = (applied.item || "").toLowerCase();
+    const useItem = !!itemQuery;
     return orders.filter((o) => {
-      const matchesItem = !useItem || (o.item || "").toLowerCase().includes(item);
+      const matchesItem = !useItem || (o.item || "").toLowerCase().includes(itemQuery);
       const anyInWindow =
         within(o.order_date, fromMs, toMs) ||
         within(o.sale_date, fromMs, toMs) ||
@@ -188,9 +170,11 @@ export default function Stats() {
   ];
   const chart = { labels: series.months, series: usingPS ? psSeries : crSeries, money: !usingPS };
 
-  /* -------------------- Expandable item cards (unchanged) -------------------- */
+  /* -------------------- Expandable item cards and view mode -------------------- */
   const itemGroups = useMemo(() => makeItemGroups(filtered, marketByName), [filtered, marketByName]);
   const [openSet, setOpenSet] = useState(() => new Set());
+  const [viewMode, setViewMode] = useState("grid"); // grid | list
+  
   const toggleItem = (key) => {
     setOpenSet((prev) => {
       const next = new Set(prev);
@@ -212,23 +196,42 @@ export default function Stats() {
             <div className="text-slate-400 text-sm">{filtered.length} rows</div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {/* Date range dropdown */}
-            <Select
-              value={range}
-              onChange={setRange}
-              options={[
-                { value: "all", label: "All time" },
-                { value: "month", label: "This month" },
-                { value: "30", label: "Last 30 days" },
-                { value: "year", label: "This year" },
-                { value: "custom", label: "Custom…" },
-              ]}
-              placeholder="All time"
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Time filter dropdown */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Time Period</label>
+              <Select
+                value={timeFilter}
+                onChange={setTimeFilter}
+                options={[
+                  { value: "all", label: "All time" },
+                  { value: "30", label: "Last 30 days" },
+                  { value: "7", label: "Last 7 days" },
+                  { value: "today", label: "Today" },
+                  { value: "custom", label: "Custom range" },
+                ]}
+                placeholder="All time"
+              />
+            </div>
 
-            {range === "custom" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Item search */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Item Filter</label>
+              <SearchDropdown
+                value={itemSearchQuery}
+                onChange={setItemSearchQuery}
+                options={itemOptions}
+                placeholder="Search items..."
+                onSelect={(item) => setItemSearchQuery(item)}
+              />
+            </div>
+          </div>
+
+          {/* Custom date range */}
+          {timeFilter === "custom" && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">From Date</label>
                 <input
                   type="date"
                   value={fromStr}
@@ -236,6 +239,9 @@ export default function Stats() {
                   className={inputBase}
                   placeholder="Start date"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">To Date</label>
                 <input
                   type="date"
                   value={toStr}
@@ -244,75 +250,37 @@ export default function Stats() {
                   placeholder="End date"
                 />
               </div>
+            </div>
+          )}
+
+          {/* Apply button */}
+          <div className="flex items-center justify-end gap-3 mt-4">
+            {!isDefaultApplied && (
+              <button
+                onClick={() => {
+                  setTimeFilter("all");
+                  setFromStr(""); setToStr("");
+                  setItemSearchQuery("");
+                  setApplied({ timeFilter: "all", from: null, to: null, item: "" });
+                }}
+                className="px-5 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+              >
+                Clear
+              </button>
             )}
-
-            {/* Item filter combobox */}
-            <div ref={comboRef} className="relative isolate">
-              <label className="sr-only">Item filter</label>
-              <input
-                value={itemInput}
-                onChange={(e) => { setItemInput(e.target.value); setItemOpen(true); }}
-                onFocus={() => setItemOpen(true)}
-                placeholder="All Items"
-                className={`${inputBase} pr-10`}
-              />
-              <button
-                type="button"
-                onClick={() => setItemOpen((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                aria-label="Toggle items"
-              >
-                ▾
-              </button>
-
-              {itemOpen && (
-                <div className="absolute z-[80] left-0 right-0 mt-2 max-h-60 overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-                  {filteredItemOptions.map((name) => (
-                    <div
-                      key={name}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => { setItemInput(name); setItemOpen(false); }}
-                      className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-slate-100"
-                    >
-                      {name}
-                    </div>
-                  ))}
-                  {filteredItemOptions.length === 0 && (
-                    <div className="px-3 py-2 text-slate-400">No matches</div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Buttons */}
-            <div className="flex items-center justify-end gap-3">
-              {!isDefaultApplied && (
-                <button
-                  onClick={() => {
-                    setRange("all");
-                    setFromStr(""); setToStr("");
-                    setItemInput("All Items");
-                    setApplied({ range: "all", from: null, to: null, item: "" });
-                  }}
-                  className="px-5 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                >
-                  Clear
-                </button>
-              )}
-              <button
-                onClick={() =>
-                  setApplied({
-                    range,
-                    from: range === "custom" ? fromStr || null : null,
-                    to:   range === "custom" ? toStr   || null : null,
-                    item: normalizeItemFilter(itemInput),
-                  })
-                }
-                className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white"
-              >
-                Apply
-              </button>
-            </div>
+            <button
+              onClick={() =>
+                setApplied({
+                  timeFilter,
+                  from: timeFilter === "custom" ? fromStr || null : null,
+                  to:   timeFilter === "custom" ? toStr   || null : null,
+                  item: itemSearchQuery.trim(),
+                })
+              }
+              className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white"
+            >
+              Apply
+            </button>
           </div>
         </div>
 
@@ -332,67 +300,205 @@ export default function Stats() {
           </div>
         </div>
 
-        {/* -------------------- Chart -------------------- */}
+        {/* -------------------- Charts -------------------- */}
         <div className={`${card} mt-6`}>
-          <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex items-start justify-between gap-3 mb-6">
             <div>
-              <div className="text-lg font-semibold">{chartTitle}</div>
-              <div className="text-slate-400 text-xs -mt-0.5">by month</div>
+              <div className="text-lg font-semibold">Performance Analytics</div>
+              <div className="text-slate-400 text-xs -mt-0.5">Monthly trends and insights</div>
             </div>
             <IconTogglePSCR value={chartMode} onChange={setChartMode} />
           </div>
 
-          <BarsGrouped
-            labels={chart.labels}
-            series={chart.series}
-            money={chart.money}
-          />
-        </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Main Chart */}
+            <div className="lg:col-span-2">
+              <div className="mb-4">
+                <h3 className="text-md font-medium text-slate-200 mb-1">{chartTitle}</h3>
+                <p className="text-sm text-slate-400">Monthly breakdown of your trading activity</p>
+              </div>
+              <div className="h-80">
+                <BarsGrouped
+                  labels={chart.labels}
+                  series={chart.series}
+                  money={chart.money}
+                />
+              </div>
+            </div>
 
-        {/* -------------------- Expandable item cards (unchanged visuals) -------------------- */}
-        <div className="mt-6 space-y-4">
-          {itemGroups.map((g) => {
-            const open = openSet.has(g.item);
-            return (
-              <div key={g.item} className={rowCard}>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-lg font-semibold truncate">{g.item}</div>
-                  </div>
-                  <button
-                    onClick={() => toggleItem(g.item)}
-                    className="h-9 w-9 grid place-items-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 transition"
-                    aria-label={open ? "Collapse" : "Expand"}
-                  >
-                    <ChevronDown className={`h-5 w-5 transition-transform ${open ? "rotate-180" : ""}`} />
-                  </button>
-                </div>
-
-                <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 500 : 0 }}>
-                  <div className="mt-4 space-y-4">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      <MiniPill title="Bought" value={formatNumber(g.bought)} num={g.bought} sub="total purchases" />
-                      <MiniPill title="Sold" value={formatNumber(g.sold)} num={g.sold} sub="total sold" />
-                      <MiniPill title="On Hand" value={formatNumber(g.onHand)} num={g.onHand} sub="total inventory" />
-                      <MiniPill title="Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="total amt spent" />
-                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from marketplace" />
-                      <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} sub="from sales" />
-                      <MiniPill title="Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="total from sales" />
-                      <MiniPill title="Realized P/L" value={`$${centsToStr(g.realizedPlC)}`} num={g.realizedPlC} sub="after fees + ship" tone="realized" />
-                      <MiniPill title="ROI" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profit / cost" />
-                      <MiniPill title="Margin" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="profit / revenue" />
-                      <MiniPill title="Avg Hold" value={`${formatNumber(g.avgHoldDays.toFixed(0))}d`} num={g.avgHoldDays} sub="time in days" />
-                      <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} sub="average sale price" />
-                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from database" />
-                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on mkt price" tone="unrealized" />
+            {/* Summary Cards */}
+            <div className="space-y-4">
+              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
+                <h4 className="text-sm font-medium text-slate-300 mb-3">Top Performing Items</h4>
+                <div className="space-y-2">
+                  {itemGroups.slice(0, 3).map((item, idx) => (
+                    <div key={item.item} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                        <span className="text-sm text-slate-300 truncate">{item.item}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-slate-100">${centsToStr(item.revenueC)}</div>
+                        <div className="text-xs text-slate-400">{formatNumber(item.sold)} sold</div>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
+                <h4 className="text-sm font-medium text-slate-300 mb-3">Quick Stats</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-400">Total Items</span>
+                    <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.length)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-400">Items Sold</span>
+                    <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.sold, 0))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-400">Items On Hand</span>
+                    <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.onHand, 0))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-400">Avg ROI</span>
+                    <span className="text-sm font-medium text-slate-100">
+                      {(() => {
+                        const validRois = itemGroups.filter(item => Number.isFinite(item.roi) && item.roi !== 0);
+                        const avgRoi = validRois.length > 0 ? validRois.reduce((sum, item) => sum + item.roi, 0) / validRois.length : 0;
+                        return pctStr(avgRoi);
+                      })()}
+                    </span>
                   </div>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          </div>
+        </div>
+
+        {/* -------------------- Results with View Toggle -------------------- */}
+        <div className={`${card} mt-6`}>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h2 className="text-lg font-semibold">Results</h2>
+            <div className="flex items-center gap-2">
+              <div className="text-slate-400 text-sm">{itemGroups.length} items</div>
+              <div className="flex items-center gap-1 rounded-full bg-slate-900/60 border border-slate-800 p-1">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`px-3 py-1.5 rounded-full text-sm transition ${
+                    viewMode === "grid"
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Grid
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`px-3 py-1.5 rounded-full text-sm transition ${
+                    viewMode === "list"
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  List
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {viewMode === "grid" ? (
+            <div className="space-y-4">
+              {itemGroups.map((g) => {
+                const open = openSet.has(g.item);
+                return (
+                  <div key={g.item} className={rowCard}>
+                    <div 
+                      className="flex items-center justify-between gap-3 cursor-pointer"
+                      onClick={() => toggleItem(g.item)}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-lg font-semibold truncate">{g.item}</div>
+                      </div>
+                      <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+                    </div>
+
+                    <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 500 : 0 }}>
+                      <div className="mt-4 space-y-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                          <MiniPill title="Bought" value={formatNumber(g.bought)} num={g.bought} sub="total purchases" />
+                          <MiniPill title="Sold" value={formatNumber(g.sold)} num={g.sold} sub="total sold" />
+                          <MiniPill title="On Hand" value={formatNumber(g.onHand)} num={g.onHand} sub="total inventory" />
+                          <MiniPill title="Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="total amt spent" />
+                          <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from marketplace" />
+                          <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} sub="from sales" />
+                          <MiniPill title="Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="total from sales" />
+                          <MiniPill title="Realized P/L" value={`$${centsToStr(g.realizedPlC)}`} num={g.realizedPlC} sub="after fees + ship" tone="realized" />
+                          <MiniPill title="ROI" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profit / cost" />
+                          <MiniPill title="Margin" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="profit / revenue" />
+                          <MiniPill title="Avg Hold" value={`${formatNumber(g.avgHoldDays.toFixed(0))}d`} num={g.avgHoldDays} sub="time in days" />
+                          <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} sub="average sale price" />
+                          <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from database" />
+                          <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on mkt price" tone="unrealized" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {itemGroups.map((g) => {
+                const open = openSet.has(g.item);
+                return (
+                  <div key={g.item} className="border border-slate-800 rounded-xl bg-slate-900/60">
+                    <div 
+                      className="flex items-center justify-between gap-3 p-4 cursor-pointer hover:bg-slate-800/50 transition"
+                      onClick={() => toggleItem(g.item)}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-lg font-semibold truncate">{g.item}</div>
+                        <div className="text-sm text-slate-400 mt-1">
+                          {formatNumber(g.bought)} bought • {formatNumber(g.sold)} sold • {formatNumber(g.onHand)} on hand
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-semibold text-slate-100">${centsToStr(g.revenueC)}</div>
+                        <div className="text-sm text-slate-400">Revenue</div>
+                      </div>
+                      <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+                    </div>
+
+                    <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 500 : 0 }}>
+                      <div className="px-4 pb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                          <MiniPill title="Bought" value={formatNumber(g.bought)} num={g.bought} sub="total purchases" />
+                          <MiniPill title="Sold" value={formatNumber(g.sold)} num={g.sold} sub="total sold" />
+                          <MiniPill title="On Hand" value={formatNumber(g.onHand)} num={g.onHand} sub="total inventory" />
+                          <MiniPill title="Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="total amt spent" />
+                          <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from marketplace" />
+                          <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} sub="from sales" />
+                          <MiniPill title="Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="total from sales" />
+                          <MiniPill title="Realized P/L" value={`$${centsToStr(g.realizedPlC)}`} num={g.realizedPlC} sub="after fees + ship" tone="realized" />
+                          <MiniPill title="ROI" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profit / cost" />
+                          <MiniPill title="Margin" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="profit / revenue" />
+                          <MiniPill title="Avg Hold" value={`${formatNumber(g.avgHoldDays.toFixed(0))}d`} num={g.avgHoldDays} sub="time in days" />
+                          <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} sub="average sale price" />
+                          <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from database" />
+                          <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on mkt price" tone="unrealized" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {itemGroups.length === 0 && (
-            <div className={`${card} text-slate-400`}>No items in this view.</div>
+            <div className="text-slate-400 text-center py-8">No items in this view.</div>
           )}
         </div>
       </div>
@@ -453,7 +559,7 @@ function CalcIcon({ className="" }) {
   );
 }
 
-/* --------------------- Responsive grouped bar chart --------------------- */
+/* --------------------- Enhanced responsive chart --------------------- */
 function useContainerSize() {
   const ref = useRef(null);
   const [w, setW] = useState(0);
@@ -474,60 +580,85 @@ function BarsGrouped({ labels = [], series = [], money = false }) {
   // nothing to show
   const allVals = series.flatMap((s) => s.values);
   if (!allVals.length || allVals.every((v) => !v)) {
-    return <div ref={wrapRef} className="text-slate-400">No data in this view.</div>;
+    return (
+      <div ref={wrapRef} className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-slate-400 text-lg mb-2">📊</div>
+          <div className="text-slate-400">No data available for this time period</div>
+        </div>
+      </div>
+    );
   }
 
-  // responsive geometry (taller on small to avoid tiny chart)
-  const H = width < 420 ? 300 : 280;
-  const M = { l: 56, r: 18, t: 14, b: 40 };
-  const W = Math.max(260, width || 0);
+  // responsive geometry - better sizing for different screens
+  const H = 320; // Fixed height for consistency
+  const M = { l: 60, r: 20, t: 20, b: 50 };
+  const W = Math.max(400, width || 0);
   const innerW = W - M.l - M.r;
   const innerH = H - M.t - M.b;
 
   const groups = labels.length;
   const yMaxRaw = Math.max(1, ...allVals);
-  const yMax = roundNice(yMaxRaw * 1.5); // ~1.5× headroom
-  const yTicks = 4;
+  const yMax = roundNice(yMaxRaw * 1.1); // Less headroom for better data visibility
+  const yTicks = 5;
 
-  // label density: fewer labels on tiny screens
-  const desired = width < 360 ? 3 : width < 520 ? 5 : 8;
+  // Better label density
+  const desired = width < 480 ? 4 : width < 768 ? 6 : 8;
   const tickEvery = Math.max(1, Math.ceil(labels.length / desired));
 
-  // bar sizing
+  // Improved bar sizing
   const groupW = innerW / Math.max(1, groups);
-  const barGap = Math.min(10, Math.max(4, groupW * 0.22));
-  const barW = Math.max(6, Math.min(22, (groupW - barGap) / 2));
+  const barGap = Math.min(12, Math.max(6, groupW * 0.15));
+  const barW = Math.max(8, Math.min(24, (groupW - barGap) / 2));
 
   const scaleY = (v) => innerH - (v / yMax) * innerH;
 
   return (
-    <div ref={wrapRef} className="w-full">
-      {/* legend right, stacked with dots on right */}
-      <div className="flex justify-end gap-3 mb-2">
+    <div ref={wrapRef} className="w-full h-full">
+      {/* Enhanced legend */}
+      <div className="flex justify-center gap-6 mb-4">
         {series.map((s) => (
-          <div key={s.name} className="flex items-center gap-2 text-slate-300 text-xs">
-            <span>{s.name}</span>
-            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
+          <div key={s.name} className="flex items-center gap-2 text-slate-300 text-sm">
+            <span className="inline-block w-3 h-3 rounded-full" style={{ background: s.color }} />
+            <span className="font-medium">{s.name}</span>
           </div>
         ))}
       </div>
 
-      <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} className="rounded-xl border border-slate-800 bg-slate-900/40">
-        {/* horizontal grid + y labels (0 at bottom) */}
+      <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} className="rounded-xl">
+        {/* Background */}
+        <rect width={W} height={H} fill="#0f172a" rx="12" />
+        
+        {/* Grid lines */}
         {[...Array(yTicks + 1)].map((_, i) => {
           const y = M.t + (innerH / yTicks) * i;
           const val = yMax - (yMax / yTicks) * i;
           return (
             <g key={i}>
-              <line x1={M.l} x2={W - M.r} y1={y} y2={y} stroke="#1f2937" strokeWidth="1" />
-              <text x={M.l - 6} y={y + 4} textAnchor="end" fontSize="10" fill="#9ca3af">
+              <line 
+                x1={M.l} 
+                x2={W - M.r} 
+                y1={y} 
+                y2={y} 
+                stroke="#1e293b" 
+                strokeWidth="1" 
+                opacity="0.5"
+              />
+              <text 
+                x={M.l - 8} 
+                y={y + 4} 
+                textAnchor="end" 
+                fontSize="11" 
+                fill="#64748b"
+                className="font-medium"
+              >
                 {money ? `$${centsToStr(val * 100)}` : `${Math.round(val)}`}
               </text>
             </g>
           );
         })}
 
-        {/* grouped bars */}
+        {/* Bars with enhanced styling */}
         {labels.map((lab, idx) => {
           const x0 = M.l + groupW * idx + (groupW - (barW * 2 + barGap)) / 2;
           const [s0, s1] = series;
@@ -538,10 +669,38 @@ function BarsGrouped({ labels = [], series = [], money = false }) {
 
           return (
             <g key={idx}>
-              <rect x={x0} y={M.t + scaleY(v0)} width={barW} height={h0} rx="4" fill={s0.color} opacity="0.9" />
-              <rect x={x0 + barW + barGap} y={M.t + scaleY(v1)} width={barW} height={h1} rx="4" fill={s1.color} opacity="0.9" />
+              {/* Bar 1 */}
+              <rect 
+                x={x0} 
+                y={M.t + scaleY(v0)} 
+                width={barW} 
+                height={h0} 
+                rx="6" 
+                fill={s0.color} 
+                opacity="0.9"
+                className="hover:opacity-100 transition-opacity"
+              />
+              {/* Bar 2 */}
+              <rect 
+                x={x0 + barW + barGap} 
+                y={M.t + scaleY(v1)} 
+                width={barW} 
+                height={h1} 
+                rx="6" 
+                fill={s1.color} 
+                opacity="0.9"
+                className="hover:opacity-100 transition-opacity"
+              />
+              {/* Labels */}
               {idx % tickEvery === 0 && (
-                <text x={M.l + groupW * idx + groupW / 2} y={H - 12} textAnchor="middle" fontSize="10" fill="#9ca3af">
+                <text 
+                  x={M.l + groupW * idx + groupW / 2} 
+                  y={H - 15} 
+                  textAnchor="middle" 
+                  fontSize="11" 
+                  fill="#94a3b8"
+                  className="font-medium"
+                >
                   {lab}
                 </text>
               )}

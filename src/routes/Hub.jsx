@@ -126,6 +126,13 @@ export default function Hub() {
           
         <div className="space-y-3">
           <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Completely Redesigned Stats Page</div>
+              <div className="text-xs text-slate-400">Enhanced filters with time periods and searchable items, responsive charts, click-anywhere expandable cards, and grid/list view toggle</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
             <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
             <div>
               <div className="text-sm font-medium text-slate-200">Redesigned Emails Tab with Modern Interface</div>
