@@ -300,7 +300,7 @@ export default function Inventory() {
 
         {/* KPI pills (8) */}
         <div className={`${pageCard} mb-6`}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Kpi label="Inventory" value={formatNumber(kpis.totalUnits)} sub="units on hand" />
             <Kpi
               label="Total Cost"
@@ -350,7 +350,7 @@ export default function Inventory() {
 
         <div className={`${pageCard} overflow-hidden`}>
           {/* Search Bar */}
-          <div className="px-4 py-3 border-b border-slate-800">
+          <div className="px-4 py-3 pb-4 border-b border-slate-800">
             <SearchDropdown
               value={itemFilter}
               onChange={setItemFilter}
