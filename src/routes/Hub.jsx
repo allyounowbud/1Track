@@ -128,8 +128,22 @@ export default function Hub() {
           <div className="flex items-start gap-3">
             <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
             <div>
-              <div className="text-sm font-medium text-slate-200">Enhanced Shipments Page with Expandable Cards</div>
-              <div className="text-xs text-slate-400">Added expandable shipment cards with detailed information display, product images, and comprehensive order data in organized sections</div>
+              <div className="text-sm font-medium text-slate-200">Redesigned Emails Tab with Modern Interface</div>
+              <div className="text-xs text-slate-400">Complete redesign with selectable rows, bulk actions, search functionality, and consistent styling matching the rest of the app</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Enhanced Shipments Page with Optimized Layout</div>
+              <div className="text-xs text-slate-400">Improved expandable cards with smaller images, better space utilization, and organized information display in responsive grid layout</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Added Active Tab Highlighting</div>
+              <div className="text-xs text-slate-400">Implemented active tab highlighting for emails and shipments navigation with consistent visual feedback</div>
             </div>
           </div>
           <div className="flex items-start gap-3">

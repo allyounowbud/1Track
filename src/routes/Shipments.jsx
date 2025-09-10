@@ -145,6 +145,12 @@ export default function Shipments() {
               </svg>
               Emails
             </Link>
+            <div className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-500 bg-slate-700/60 text-slate-100">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Shipments
+            </div>
           </div>
         </div>
 
@@ -286,56 +292,44 @@ export default function Shipments() {
                     {/* Expanded Content */}
                     {isExpanded && (
                       <div className="border-t border-slate-700 p-4 bg-slate-800/30">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Left Column - Image and Basic Info */}
-                          <div className="space-y-4">
-                            {row.image_url && (
-                              <div className="flex justify-center">
-                                <img 
-                                  src={row.image_url} 
-                                  alt={row.item_name || 'Product image'}
-                                  className="max-w-full h-48 object-contain rounded-lg border border-slate-600"
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                  }}
-                                />
-                              </div>
-                            )}
-                            
-                            <div className="space-y-2">
-                              <div className="text-sm">
+                        <div className="flex gap-4">
+                          {/* Left Column - Compact Image */}
+                          {row.image_url && (
+                            <div className="flex-shrink-0">
+                              <img 
+                                src={row.image_url} 
+                                alt={row.item_name || 'Product image'}
+                                className="w-20 h-20 object-contain rounded-lg border border-slate-600"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Right Column - All Information */}
+                          <div className="flex-1 min-w-0">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                              <div>
                                 <span className="text-slate-400">Retailer:</span>
-                                <span className="ml-2 text-slate-200 font-medium">{row.retailer || '—'}</span>
+                                <div className="text-slate-200 font-medium">{row.retailer || '—'}</div>
                               </div>
-                              <div className="text-sm">
+                              <div>
                                 <span className="text-slate-400">Order ID:</span>
-                                <span className="ml-2 text-slate-200 font-medium">{row.order_id || '—'}</span>
+                                <div className="text-slate-200 font-medium">{row.order_id || '—'}</div>
                               </div>
                               {row.tracking_number && (
-                                <div className="text-sm">
+                                <div>
                                   <span className="text-slate-400">Tracking:</span>
-                                  <span className="ml-2 text-slate-200 font-medium">{row.tracking_number}</span>
+                                  <div className="text-slate-200 font-medium">{row.tracking_number}</div>
                                 </div>
                               )}
                               {row.carrier && (
-                                <div className="text-sm">
+                                <div>
                                   <span className="text-slate-400">Carrier:</span>
-                                  <span className="ml-2 text-slate-200 font-medium">{row.carrier}</span>
+                                  <div className="text-slate-200 font-medium">{row.carrier}</div>
                                 </div>
                               )}
-                            </div>
-                          </div>
-                          
-                          {/* Right Column - Detailed Information */}
-                          <div className="space-y-4">
-                            {row.item_name && (
-                              <div>
-                                <span className="text-slate-400 text-sm">Item Name:</span>
-                                <div className="text-slate-200 font-medium mt-1">{row.item_name}</div>
-                              </div>
-                            )}
-                            
-                            <div className="grid grid-cols-2 gap-4 text-sm">
                               {row.quantity && (
                                 <div>
                                   <span className="text-slate-400">Quantity:</span>
@@ -362,23 +356,30 @@ export default function Shipments() {
                               )}
                             </div>
                             
-                            <div className="space-y-2 text-sm">
+                            {row.item_name && (
+                              <div className="mt-4">
+                                <span className="text-slate-400 text-sm">Item Name:</span>
+                                <div className="text-slate-200 font-medium mt-1">{row.item_name}</div>
+                              </div>
+                            )}
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 text-sm">
                               {row.order_date && (
                                 <div>
                                   <span className="text-slate-400">Order Date:</span>
-                                  <span className="ml-2 text-slate-200">{formatDate(row.order_date)}</span>
+                                  <div className="text-slate-200">{formatDate(row.order_date)}</div>
                                 </div>
                               )}
                               {row.shipped_at && (
                                 <div>
                                   <span className="text-slate-400">Shipped Date:</span>
-                                  <span className="ml-2 text-slate-200">{formatDate(row.shipped_at)}</span>
+                                  <div className="text-slate-200">{formatDate(row.shipped_at)}</div>
                                 </div>
                               )}
                               {row.delivered_at && (
                                 <div>
                                   <span className="text-slate-400">Delivered Date:</span>
-                                  <span className="ml-2 text-slate-200">{formatDate(row.delivered_at)}</span>
+                                  <div className="text-slate-200">{formatDate(row.delivered_at)}</div>
                                 </div>
                               )}
                             </div>
