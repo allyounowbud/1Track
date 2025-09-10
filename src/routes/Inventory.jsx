@@ -321,7 +321,7 @@ export default function Inventory() {
               label="Unrealized P/L"
               value={`$${centsToStr(kpis.unrealized)}`}
               sub={kpis.unrealized >= 0 ? "gain" : "loss"}
-              tone={kpis.unrealized >= 0 ? "good" : "bad"}
+              tone={kpis.unrealized >= 0 ? "blue" : "bad"}
             />
             <Kpi
               label="Avg Hold Time"
@@ -355,7 +355,7 @@ export default function Inventory() {
 
         <div className={`${pageCard} overflow-hidden`}>
           {/* Search Bar */}
-          <div className="px-4 py-3 pb-4 border-b border-slate-800">
+          <div className="px-4 py-3 pb-5 border-b border-slate-800">
             <SearchDropdown
               value={itemFilter}
               onChange={setItemFilter}
@@ -488,6 +488,8 @@ function Kpi({ label, value, sub, tone = "neutral" }) {
       ? "text-emerald-300"
       : tone === "bad"
       ? "text-rose-300"
+      : tone === "blue"
+      ? "text-blue-300"
       : "text-slate-100";
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
