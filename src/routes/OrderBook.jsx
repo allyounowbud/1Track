@@ -521,11 +521,28 @@ function UnifiedOrderView({
         </div>
       </div>
 
-      {/* Header with View Toggle and Actions */}
+      {/* Page break line */}
+      <div className="border-b border-slate-700 mb-4"></div>
+
+      {/* Header with Selection Count and Actions */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
-        {/* Left side - View Toggle and Selection Count */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+        {/* Left side - Selection Count */}
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={selectedRows.size === filtered.length && filtered.length > 0}
+            onChange={toggleAllSelection}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          />
+          <span className="text-sm font-semibold text-slate-400">
+            {selectedRows.size}/{filtered.length} Selected
+          </span>
+        </div>
+
+        {/* Right side - View Toggle and Action Buttons */}
+        <div className="flex items-center gap-2">
+          {/* View Toggle Buttons */}
+          <div className="flex items-center gap-2 mr-2">
             <button
               onClick={() => setViewMode('grid')}
               className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
@@ -553,21 +570,7 @@ function UnifiedOrderView({
               </svg>
             </button>
           </div>
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={selectedRows.size === filtered.length && filtered.length > 0}
-              onChange={toggleAllSelection}
-              className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-            />
-            <span className="text-sm font-semibold text-slate-400">
-              {selectedRows.size}/{filtered.length} Selected
-            </span>
-          </div>
-        </div>
-
-        {/* Right side - Action Buttons */}
-        <div className="flex items-center gap-2">
+          
           {/* Determine button visibility based on selection state */}
           {(() => {
             const hasSelection = selectedRows.size > 0;
