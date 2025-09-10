@@ -506,9 +506,10 @@ function UnifiedOrderView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search for orders"
-            className={`${inputSm} pl-10`}
+            disabled={filtered.some(order => order.isNew)}
+            className={`${inputSm} pl-10 ${filtered.some(order => order.isNew) ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
-          {searchQuery && (
+          {searchQuery && !filtered.some(order => order.isNew) && (
             <button
               onClick={() => setSearchQuery("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
