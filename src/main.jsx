@@ -15,6 +15,7 @@ import Inventory from "./routes/Inventory.jsx";
 import Stats from "./routes/Stats.jsx";
 import OrderBook from "./routes/OrderBook.jsx";
 import Emails from "./routes/Emails.jsx";           // <-- NEW
+import Shipments from "./routes/Shipments.jsx";     // <-- NEW
 import AuthGuard from "./routes/AuthGuard.jsx";     // <-- RENAMED
 
 const router = createBrowserRouter([
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
   { path: "/stats", element: <Stats /> },
   { path: "/database", element: <Settings /> },
   { path: "/emails", element: <Emails /> },        // <-- NEW ROUTE
+  { path: "/shipments", element: <Shipments /> },  // <-- NEW ROUTE
 
   // Legacy + fallback routes
   { path: "/app", element: <Navigate to="/add" replace /> }, // old Quick Add path
