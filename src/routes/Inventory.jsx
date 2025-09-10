@@ -272,6 +272,14 @@ export default function Inventory() {
               options={onHandNames.map(name => ({ value: name, label: name }))}
               placeholder="Search inventory…"
               label=""
+              getOptionLabel={(option) => option.label || option}
+              getOptionValue={(option) => option.value || option}
+              filterOptions={(options, search) => {
+                if (!search.trim()) return options.slice(0, 20);
+                return options.filter(option => 
+                  (option.label || option).toLowerCase().includes(search.toLowerCase())
+                ).slice(0, 20);
+              }}
             />
           </div>
           

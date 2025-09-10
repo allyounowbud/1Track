@@ -47,22 +47,43 @@ export const SearchDropdown = ({
   const handleInputChange = (e) => {
     setSelected(null);
     setSearch(e.target.value);
-    onChange(""); // Clear the value when typing
+    onChange(e.target.value); // Pass the search value for live filtering
+  };
+
+  // Handle clear button
+  const handleClear = () => {
+    setSelected(null);
+    setSearch("");
+    onChange("");
+    setDropdownOpen(false);
   };
 
   return (
     <div className="min-w-0">
       <label className="text-slate-300 mb-1 block text-sm">{label}</label>
       <div ref={boxRef} className="relative">
-        <input
-          value={selected ? getOptionLabel(selected) : search}
-          onChange={handleInputChange}
-          onFocus={() => setDropdownOpen(true)}
-          placeholder={placeholder}
-          className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
-        />
+        <div className="relative">
+          <input
+            value={selected ? getOptionLabel(selected) : search}
+            onChange={handleInputChange}
+            onFocus={() => setDropdownOpen(true)}
+            placeholder={placeholder}
+            className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          {(search || selected) && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+              </svg>
+            </button>
+          )}
+        </div>
         {dropdownOpen && (
-          <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
+          <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
             {filtered.length === 0 && (
               <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
             )}
