@@ -135,6 +135,11 @@ export default function MarkSold() {
           onSubmit={markSold}
           className="relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden space-y-5"
         >
+          {/* SALE DETAILS TITLE */}
+          <div>
+            <h2 className="text-lg font-semibold">Sale details</h2>
+            <p className="text-slate-400 text-sm -mt-1">Mark an existing order as sold</p>
+          </div>
           {/* Open purchase (searchable) */}
           <SearchDropdown
             value={selected ? selected.id : ""}

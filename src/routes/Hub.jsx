@@ -124,14 +124,28 @@ export default function Hub() {
             <div className="text-xs text-slate-400/60">v0.0.1</div>
           </div>
           
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
-              <div>
-                <div className="text-sm font-medium text-slate-200">Enhanced Order Book Interface</div>
-                <div className="text-xs text-slate-400">Integrated search into order card, fixed input heights, replaced dropdowns with native selects, improved button layout, added mutual exclusion between search and add operations, and fixed checkbox alignment</div>
-              </div>
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Enhanced Mark as Sold Page</div>
+              <div className="text-xs text-slate-400">Added consistent title section with "Sale details" header and "Mark an existing order as sold" subtitle to match Quick Add page styling</div>
             </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-yellow-400/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Optimized Application Width</div>
+              <div className="text-xs text-slate-400">Increased application width from 60% to 95% of browser width across all pages for better desktop utilization and improved data display</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Enhanced Order Book Interface</div>
+              <div className="text-xs text-slate-400">Integrated search into order card, fixed input heights, replaced dropdowns with native selects, improved button layout, added mutual exclusion between search and add operations, and fixed checkbox alignment</div>
+            </div>
+          </div>
             
             <div className="flex items-start gap-3">
               <div className="h-2 w-2 rounded-full bg-pink-500/70 mt-2 flex-shrink-0"></div>
