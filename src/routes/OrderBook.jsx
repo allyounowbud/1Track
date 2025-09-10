@@ -539,10 +539,101 @@ function UnifiedOrderView({
           </span>
         </div>
 
-        {/* Right side - View Toggle and Action Buttons */}
+        {/* Right side - Action Buttons and View Toggle */}
         <div className="flex items-center gap-2">
-          {/* View Toggle Buttons */}
-          <div className="flex items-center gap-2 mr-2">
+          {/* Determine button visibility based on selection state */}
+          {(() => {
+            const hasSelection = selectedRows.size > 0;
+            const selectedOrders = filtered.filter(order => selectedRows.has(order.id));
+            const hasNewRowsInSelection = selectedOrders.some(order => order.isNew);
+            const hasNewRowsInSystem = filtered.some(order => order.isNew); // Check entire system
+            const hasExistingRows = selectedOrders.some(order => !order.isNew);
+            
+            // Default state: no selection - show only + add button
+            if (!hasSelection) {
+              return (
+                <button
+                  onClick={addNewRow}
+                  className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                  title="Add New Order"
+                >
+                  <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </button>
+              );
+            }
+            
+            // New rows only: show X cancel and save buttons
+            if (hasNewRowsInSelection && !hasExistingRows) {
+              return (
+                <>
+                  <button
+                    onClick={cancelNewRows}
+                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    title="Cancel Changes"
+                  >
+                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={bulkSaveSelected}
+                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    title="Save Changes"
+                  >
+                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                  </button>
+                </>
+              );
+            }
+            
+            // Existing rows selected (with or without new rows): show X cancel, save, and delete buttons
+            if (hasExistingRows) {
+              return (
+                <>
+                  <button
+                    onClick={cancelNewRows}
+                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    title="Cancel Changes"
+                  >
+                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={bulkSaveSelected}
+                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    title="Save Selected Orders"
+                  >
+                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                  </button>
+                  {/* Only show delete button if no new rows are present in the system */}
+                  {!hasNewRowsInSystem && (
+                    <button
+                      onClick={bulkDeleteSelected}
+                      className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                      title="Delete Selected Orders"
+                    >
+                      <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  )}
+                </>
+              );
+            }
+            
+            // Fallback (shouldn't happen)
+            return null;
+          })()}
+          
+          {/* View Toggle Buttons - positioned at the far right */}
+          <div className="flex items-center gap-2 ml-2">
             <button
               onClick={() => setViewMode('grid')}
               className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
@@ -570,97 +661,6 @@ function UnifiedOrderView({
               </svg>
             </button>
           </div>
-          
-          {/* Determine button visibility based on selection state */}
-          {(() => {
-            const hasSelection = selectedRows.size > 0;
-            const selectedOrders = filtered.filter(order => selectedRows.has(order.id));
-            const hasNewRowsInSelection = selectedOrders.some(order => order.isNew);
-            const hasNewRowsInSystem = filtered.some(order => order.isNew); // Check entire system
-            const hasExistingRows = selectedOrders.some(order => !order.isNew);
-            
-            // Default state: no selection - show only + add button
-            if (!hasSelection) {
-              return (
-                <button
-                  onClick={addNewRow}
-                  className="w-10 h-10 rounded-xl border border-green-500 bg-green-600/80 hover:bg-green-500 hover:border-green-400 text-white transition-all duration-200 flex items-center justify-center group"
-                  title="Add New Order"
-                >
-                  <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </button>
-              );
-            }
-            
-            // New rows only: show X cancel and save buttons
-            if (hasNewRowsInSelection && !hasExistingRows) {
-              return (
-                <>
-                  <button
-                    onClick={cancelNewRows}
-                    className="w-10 h-10 rounded-xl border border-red-500 bg-red-600/80 hover:bg-red-500 hover:border-red-400 text-white transition-all duration-200 flex items-center justify-center group"
-                    title="Cancel Changes"
-                  >
-                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={bulkSaveSelected}
-                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                    title="Save Changes"
-                  >
-                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
-                  </button>
-                </>
-              );
-            }
-            
-            // Existing rows selected (with or without new rows): show X cancel, save, and delete buttons
-            if (hasExistingRows) {
-              return (
-                <>
-                  <button
-                    onClick={cancelNewRows}
-                    className="w-10 h-10 rounded-xl border border-red-500 bg-red-600/80 hover:bg-red-500 hover:border-red-400 text-white transition-all duration-200 flex items-center justify-center group"
-                    title="Cancel Changes"
-                  >
-                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={bulkSaveSelected}
-                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                    title="Save Selected Orders"
-                  >
-                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
-                  </button>
-                  {/* Only show delete button if no new rows are present in the system */}
-                  {!hasNewRowsInSystem && (
-                    <button
-                      onClick={bulkDeleteSelected}
-                      className="w-10 h-10 rounded-xl border border-red-600/50 bg-red-900/30 hover:bg-red-800/50 hover:border-red-500 text-red-200 transition-all duration-200 flex items-center justify-center group"
-                      title="Delete Selected Orders"
-                    >
-                      <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  )}
-                </>
-              );
-            }
-            
-            // Fallback (shouldn't happen)
-            return null;
-          })()}
         </div>
       </div>
 
