@@ -62,7 +62,7 @@ export const SearchDropdown = ({
           className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
         />
         {dropdownOpen && (
-          <div className="absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
+          <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/90 backdrop-blur shadow-xl">
             {filtered.length === 0 && (
               <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
             )}
