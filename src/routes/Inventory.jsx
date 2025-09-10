@@ -169,7 +169,7 @@ export default function Inventory() {
 
   /* ---------------- KPIs ---------------- */
   const kpis = useMemo(() => {
-    const rows = Array.from(byItem.values());
+    const rows = filteredRows; // Use filtered results instead of all items
 
     const totalUnits = rows.reduce((s, r) => s + r.onHandQty, 0);
     const totalCost = rows.reduce((s, r) => s + r.onHandCostCents, 0);
@@ -201,7 +201,7 @@ export default function Inventory() {
       longestHold,
       avgHold: Math.round(avgHold || 0),
     };
-  }, [byItem]);
+  }, [filteredRows]);
 
   /* ---------------- Sorting ---------------- */
   const [sortKey, setSortKey] = useState("name");
