@@ -116,6 +116,48 @@ export default function Hub() {
             </div>
           </div>
         </div>
+
+        {/* Changelog */}
+        <div className={`${card}`}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Changelog</h2>
+            <div className="text-sm text-slate-400">v1.2.0</div>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="h-2 w-2 rounded-full bg-indigo-500 mt-2 flex-shrink-0"></div>
+              <div>
+                <div className="text-sm font-medium text-slate-200">Enhanced Inventory Dashboard</div>
+                <div className="text-xs text-slate-400">Added 8 comprehensive KPI pills with live filtering, improved search functionality, and better visual hierarchy</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 mt-2 flex-shrink-0"></div>
+              <div>
+                <div className="text-sm font-medium text-slate-200">Universal Search Dropdown</div>
+                <div className="text-xs text-slate-400">Standardized all dropdowns across the app with consistent styling, proper z-index layering, and live filtering</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+              <div>
+                <div className="text-sm font-medium text-slate-200">Improved Header Design</div>
+                <div className="text-xs text-slate-400">Replaced dashboard button with clickable avatar/username button for better navigation and visual balance</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="h-2 w-2 rounded-full bg-purple-500 mt-2 flex-shrink-0"></div>
+              <div>
+                <div className="text-sm font-medium text-slate-200">Enhanced Order Book</div>
+                <div className="text-xs text-slate-400">Added bulk edit/delete functionality, improved form persistence, and better mobile responsiveness</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
