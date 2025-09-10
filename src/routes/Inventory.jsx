@@ -190,6 +190,22 @@ export default function Inventory() {
       rows.reduce((a, r) => a + r.avgHold * (r.holdDays.length > 0 ? 1 : 0), 0) /
       Math.max(1, rows.filter((r) => r.holdDays.length > 0).length);
 
+    // Calculate last purchase and last sale dates
+    const today = new Date();
+    const lastPurchaseDays = rows.length > 0 ? 
+      Math.min(...rows.map(r => {
+        const lastOrder = orders.filter(o => o.item === r.name && o.status !== 'cancelled')
+          .sort((a, b) => new Date(b.order_date) - new Date(a.order_date))[0];
+        return lastOrder ? Math.floor((today - new Date(lastOrder.order_date)) / (1000 * 60 * 60 * 24)) : 0;
+      })) : 0;
+
+    const lastSaleDays = rows.length > 0 ?
+      Math.min(...rows.map(r => {
+        const lastSale = orders.filter(o => o.item === r.name && o.sale_date)
+          .sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date))[0];
+        return lastSale ? Math.floor((today - new Date(lastSale.sale_date)) / (1000 * 60 * 60 * 24)) : 0;
+      })) : 0;
+
     return {
       totalUnits,
       totalCost,
@@ -200,8 +216,10 @@ export default function Inventory() {
       bestRoi,
       longestHold,
       avgHold: Math.round(avgHold || 0),
+      lastPurchaseDays,
+      lastSaleDays,
     };
-  }, [filteredRows]);
+  }, [filteredRows, orders]);
 
   /* ---------------- Sorting ---------------- */
   const [sortKey, setSortKey] = useState("name");
@@ -236,7 +254,7 @@ export default function Inventory() {
 
         {/* KPI pills (8) */}
         <div className={`${pageCard} mb-6`}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
             <Kpi label="Inventory" value={formatNumber(kpis.totalUnits)} sub="units on hand" />
             <Kpi
               label="Total Cost"
@@ -253,6 +271,26 @@ export default function Inventory() {
               value={`$${centsToStr(kpis.unrealized)}`}
               sub={kpis.unrealized >= 0 ? "gain" : "loss"}
               tone={kpis.unrealized >= 0 ? "good" : "bad"}
+            />
+            <Kpi
+              label="Avg Hold Time"
+              value={formatNumber(kpis.avgHold)}
+              sub="days"
+            />
+            <Kpi
+              label="Longest Hold"
+              value={formatNumber(kpis.longestHold?.maxHold || 0)}
+              sub="days"
+            />
+            <Kpi
+              label="Last Purchase"
+              value={formatNumber(kpis.lastPurchaseDays)}
+              sub="days ago"
+            />
+            <Kpi
+              label="Last Sale"
+              value={formatNumber(kpis.lastSaleDays)}
+              sub="days ago"
             />
           </div>
         </div>
