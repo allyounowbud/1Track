@@ -123,8 +123,6 @@ export default function Stats() {
   /* ------------------------------- KPIs -------------------------------- */
   const kpis = useMemo(() => makeTopKpis(filtered), [filtered]);
 
-  /* ------------------------------- Chart mode -------------------------------- */
-  const [chartMode, setChartMode] = useState("revenue"); // revenue | profit | sales | performance
 
 
   /* -------------------- Expandable item cards -------------------- */
@@ -214,18 +212,42 @@ export default function Stats() {
 
           {/* Analytics Dashboard */}
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-md font-medium text-slate-200 mb-1">Analytics Dashboard</h3>
-                <p className="text-sm text-slate-400">Comprehensive insights and performance metrics</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <ChartToggleButtons chartMode={chartMode} setChartMode={setChartMode} />
-              </div>
+            <div className="mb-4">
+              <h3 className="text-md font-medium text-slate-200 mb-1">Analytics Dashboard</h3>
+              <p className="text-sm text-slate-400">Comprehensive insights and performance metrics</p>
             </div>
-            <div className="bg-slate-900/40 rounded-xl p-6 border border-slate-800">
-              <div className="h-80">
-                <AnalyticsChart chartMode={chartMode} itemGroups={itemGroups.slice(0, 8)} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Revenue Chart */}
+              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
+                <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+                  <span className="text-emerald-400">💰</span>
+                  Top Revenue Items
+                </h4>
+                <div className="h-64">
+                  <RevenueChart itemGroups={itemGroups.slice(0, 6)} />
+                </div>
+              </div>
+
+              {/* Profit Chart */}
+              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
+                <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+                  <span className="text-blue-400">📈</span>
+                  Profitability Analysis
+                </h4>
+                <div className="h-64">
+                  <ProfitChart itemGroups={itemGroups.slice(0, 6)} />
+                </div>
+              </div>
+
+              {/* Sales Activity Chart */}
+              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
+                <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+                  <span className="text-purple-400">🛒</span>
+                  Sales Activity
+                </h4>
+                <div className="h-64">
+                  <SalesActivityChart itemGroups={itemGroups.slice(0, 6)} />
+                </div>
               </div>
             </div>
           </div>
@@ -370,88 +392,41 @@ export default function Stats() {
 
 /* --------------------- Analytics Chart Components --------------------- */
 
-// Chart Toggle Buttons
-function ChartToggleButtons({ chartMode, setChartMode }) {
-  const buttons = [
-    { mode: "revenue", icon: "💰", label: "Revenue" },
-    { mode: "profit", icon: "📈", label: "Profit" },
-    { mode: "sales", icon: "🛒", label: "Sales" },
-    { mode: "performance", icon: "⚡", label: "Performance" }
-  ];
-
-  return (
-    <div className="flex items-center gap-1 rounded-full bg-slate-900/60 border border-slate-800 p-1">
-      {buttons.map((button) => (
-        <button
-          key={button.mode}
-          onClick={() => setChartMode(button.mode)}
-          className={`px-3 py-2 rounded-full text-sm transition ${
-            chartMode === button.mode
-              ? "bg-indigo-600 text-white"
-              : "text-slate-400 hover:text-slate-200"
-          }`}
-          title={button.label}
-        >
-          {button.icon}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// Main Analytics Chart
-function AnalyticsChart({ chartMode, itemGroups = [] }) {
+// Revenue Chart - Clean horizontal bars with better mobile layout
+function RevenueChart({ itemGroups = [] }) {
   if (!itemGroups.length) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <div className="text-center">
-          <div className="text-slate-400 text-lg mb-2">📊</div>
-          <div className="text-slate-400 text-sm">No data available</div>
+          <div className="text-slate-400 text-lg mb-2">💰</div>
+          <div className="text-slate-400 text-sm">No revenue data</div>
         </div>
       </div>
     );
   }
 
-  switch (chartMode) {
-    case "revenue":
-      return <RevenueChart itemGroups={itemGroups} />;
-    case "profit":
-      return <ProfitChart itemGroups={itemGroups} />;
-    case "sales":
-      return <SalesChart itemGroups={itemGroups} />;
-    case "performance":
-      return <PerformanceChart itemGroups={itemGroups} />;
-    default:
-      return <RevenueChart itemGroups={itemGroups} />;
-  }
-}
-
-// Revenue Chart - Clear horizontal bars with item names and values
-function RevenueChart({ itemGroups = [] }) {
   const maxRevenue = Math.max(...itemGroups.map(item => item.revenueC));
 
   return (
-    <div className="w-full h-full flex flex-col justify-center space-y-4">
+    <div className="w-full h-full space-y-3">
       {itemGroups.map((item, index) => {
         const width = maxRevenue > 0 ? (item.revenueC / maxRevenue) * 100 : 0;
         
         return (
-          <div key={index} className="flex items-center gap-4">
-            <div className="w-40 text-sm text-slate-300 truncate" title={item.item}>
-              {item.item}
+          <div key={index} className="space-y-1">
+            <div className="flex justify-between items-center">
+              <div className="text-xs text-slate-300 truncate flex-1 mr-2" title={item.item}>
+                {item.item}
+              </div>
+              <div className="text-xs font-medium text-emerald-400">
+                ${centsToStr(item.revenueC)}
+              </div>
             </div>
-            <div className="flex-1 relative">
-              <div className="h-8 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                  style={{ width: `${width}%` }}
-                />
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-sm font-medium text-slate-100">
-                  ${centsToStr(item.revenueC)}
-                </span>
-              </div>
+            <div className="w-full bg-slate-800 rounded-full h-2">
+              <div 
+                className="h-2 bg-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: `${width}%` }}
+              />
             </div>
           </div>
         );
@@ -460,35 +435,44 @@ function RevenueChart({ itemGroups = [] }) {
   );
 }
 
-// Profit Chart - Shows profit/loss with clear indicators
+// Profit Chart - Shows profit/loss with better visual design
 function ProfitChart({ itemGroups = [] }) {
+  if (!itemGroups.length) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-slate-400 text-lg mb-2">📈</div>
+          <div className="text-slate-400 text-sm">No profit data</div>
+        </div>
+      </div>
+    );
+  }
+
   const maxValue = Math.max(...itemGroups.map(item => Math.abs(item.realizedPlC)));
 
   return (
-    <div className="w-full h-full flex flex-col justify-center space-y-4">
+    <div className="w-full h-full space-y-3">
       {itemGroups.map((item, index) => {
         const width = maxValue > 0 ? (Math.abs(item.realizedPlC) / maxValue) * 100 : 0;
         const isPositive = item.realizedPlC > 0;
         
         return (
-          <div key={index} className="flex items-center gap-4">
-            <div className="w-40 text-sm text-slate-300 truncate" title={item.item}>
-              {item.item}
+          <div key={index} className="space-y-1">
+            <div className="flex justify-between items-center">
+              <div className="text-xs text-slate-300 truncate flex-1 mr-2" title={item.item}>
+                {item.item}
+              </div>
+              <div className={`text-xs font-medium ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                {isPositive ? '+' : ''}${centsToStr(item.realizedPlC)}
+              </div>
             </div>
-            <div className="flex-1 relative">
-              <div className="h-8 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    isPositive ? 'bg-emerald-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${width}%` }}
-                />
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-sm font-medium text-slate-100">
-                  ${centsToStr(Math.abs(item.realizedPlC))}
-                </span>
-              </div>
+            <div className="w-full bg-slate-800 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  isPositive ? 'bg-emerald-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${width}%` }}
+              />
             </div>
           </div>
         );
@@ -497,61 +481,39 @@ function ProfitChart({ itemGroups = [] }) {
   );
 }
 
-// Sales Chart - Shows sales count with vertical bars
-function SalesChart({ itemGroups = [] }) {
+// Sales Activity Chart - Vertical bars with better mobile layout
+function SalesActivityChart({ itemGroups = [] }) {
+  if (!itemGroups.length) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-slate-400 text-lg mb-2">🛒</div>
+          <div className="text-slate-400 text-sm">No sales data</div>
+        </div>
+      </div>
+    );
+  }
+
   const maxSales = Math.max(...itemGroups.map(item => item.sold));
 
   return (
-    <div className="w-full h-full flex items-end justify-center gap-6 px-8">
+    <div className="w-full h-full flex items-end justify-between px-2">
       {itemGroups.map((item, index) => {
         const height = maxSales > 0 ? (item.sold / maxSales) * 100 : 0;
         
         return (
-          <div key={index} className="flex flex-col items-center gap-2">
-            <div className="text-sm text-slate-300 font-medium">{item.sold}</div>
+          <div key={index} className="flex flex-col items-center gap-2 flex-1">
+            <div className="text-xs text-slate-300 font-medium">{item.sold}</div>
             <div 
-              className="w-12 bg-blue-500 rounded-t transition-all duration-500"
-              style={{ height: `${height}%`, minHeight: '8px' }}
+              className="w-full bg-purple-500 rounded-t transition-all duration-500"
+              style={{ height: `${height}%`, minHeight: '4px' }}
             />
-            <div className="text-xs text-slate-400 text-center max-w-16" title={item.item}>
-              {item.item.length > 12 ? item.item.substring(0, 12) + "..." : item.item}
+            <div className="text-xs text-slate-400 text-center leading-tight" title={item.item}>
+              {item.item.length > 8 ? item.item.substring(0, 8) + "..." : item.item}
             </div>
           </div>
         );
       })}
-    </div>
-  );
-}
-
-// Performance Chart - Shows key metrics in a clean table format
-function PerformanceChart({ itemGroups = [] }) {
-  return (
-    <div className="w-full h-full overflow-y-auto">
-      <div className="space-y-3">
-        {itemGroups.map((item, index) => (
-          <div key={index} className="bg-slate-800/50 rounded-lg p-4">
-            <div className="text-sm font-medium text-slate-200 mb-3 truncate" title={item.item}>
-              {item.item}
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="text-center">
-                <div className="text-slate-400 text-xs">Revenue</div>
-                <div className="text-emerald-400 font-medium">${centsToStr(item.revenueC)}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-slate-400 text-xs">Sold</div>
-                <div className="text-blue-400 font-medium">{item.sold}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-slate-400 text-xs">ROI</div>
-                <div className={`font-medium ${item.roi > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {pctStr(item.roi)}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
