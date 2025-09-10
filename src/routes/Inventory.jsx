@@ -265,7 +265,7 @@ export default function Inventory() {
 
         <div className={`${pageCard} overflow-hidden`}>
           {/* Search Bar */}
-          <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/40">
+          <div className="px-4 py-3 border-b border-slate-800">
             <SearchDropdown
               value={itemFilter}
               onChange={setItemFilter}
@@ -276,7 +276,7 @@ export default function Inventory() {
           </div>
           
           {/* Header */}
-          <div className="grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[3fr_0.7fr_0.7fr_0.7fr_0.7fr] gap-4 px-4 py-3 border-b border-slate-800 bg-slate-900/40 text-xs text-slate-400 font-medium">
+          <div className="grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[3fr_0.7fr_0.7fr_0.7fr_0.7fr] gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium">
             <button
               onClick={() => toggleSort("name")}
               className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
