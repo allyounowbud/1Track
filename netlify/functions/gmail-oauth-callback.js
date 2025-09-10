@@ -51,16 +51,17 @@ exports.handler = async (event) => {
     if (!profRes.ok) throw new Error("Profile fetch failed");
     const email = profile.email;
 
-    // ---- insert or update account (multi-user safe, multiple emails per user)
-    // First, try to find existing account with this email
-    const { data: existing, error: findError } = await supabase
+    // ---- handle Gmail account connection
+    // Check if user already has a Gmail account
+    const { data: existingGmail, error: checkError } = await supabase
       .from("email_accounts")
-      .select("id")
-      .eq("email_address", email)
+      .select("id, email_address")
+      .eq("user_id", uid)
+      .eq("provider", "gmail")
       .single();
     
-    if (findError && findError.code !== "PGRST116") {
-      throw findError;
+    if (checkError && checkError.code !== "PGRST116") {
+      throw checkError;
     }
     
     const accountData = {
@@ -75,15 +76,15 @@ exports.handler = async (event) => {
     };
     
     let error;
-    if (existing) {
-      // Update existing account
+    if (existingGmail) {
+      // User already has a Gmail account - update it with new email/tokens
       const { error: updateError } = await supabase
         .from("email_accounts")
         .update(accountData)
-        .eq("id", existing.id);
+        .eq("id", existingGmail.id);
       error = updateError;
     } else {
-      // Insert new account
+      // User doesn't have a Gmail account - insert new one
       const { error: insertError } = await supabase
         .from("email_accounts")
         .insert(accountData);
