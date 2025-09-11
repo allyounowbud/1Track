@@ -224,7 +224,7 @@ export default function Stats() {
               <h3 className="text-md font-medium text-slate-200 mb-1">Analytics Dashboard</h3>
               <p className="text-sm text-slate-400">Comprehensive insights and performance metrics</p>
             </div>
-            <DynamicCharts itemGroups={itemGroups} />
+            <DynamicCharts itemGroups={itemGroups} filteredOrders={filtered} />
         </div>
 
           {/* Summary Cards - Hide for single item */}
@@ -364,7 +364,7 @@ export default function Stats() {
 /* --------------------- Dynamic Charts Component --------------------- */
 
 // Dynamic Charts - Changes based on number of filtered items
-function DynamicCharts({ itemGroups = [] }) {
+function DynamicCharts({ itemGroups = [], filteredOrders = [] }) {
   const itemCount = itemGroups.length;
   
   if (itemCount === 0) {
@@ -384,7 +384,7 @@ function DynamicCharts({ itemGroups = [] }) {
           <span className="text-indigo-400">📊</span>
           Comprehensive Analysis: {itemGroups[0].item}
         </h4>
-        <SingleItemChart item={itemGroups[0]} filteredOrders={filtered} />
+        <SingleItemChart item={itemGroups[0]} filteredOrders={filteredOrders} />
     </div>
   );
 }
