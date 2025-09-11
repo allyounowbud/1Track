@@ -634,7 +634,9 @@ function FinancialTrendChart({ item, filteredOrders }) {
         revenue,
         profit,
         orderDates: monthOrderDates.length,
-        saleDates: monthSaleDates.length
+        saleDates: monthSaleDates.length,
+        orderDatesRaw: monthOrderDates.map(o => ({ date: o.order_date, price: o.buy_price_cents })),
+        saleDatesRaw: monthSaleDates.map(o => ({ date: o.sale_date, price: o.sale_price_cents }))
       });
       
       // Move to next month
@@ -647,11 +649,19 @@ function FinancialTrendChart({ item, filteredOrders }) {
 
   const monthlyData = generateMonthlyData();
   const maxValue = monthlyData.length > 0 ? Math.max(...monthlyData.flatMap(d => [d.cogs, d.revenue, Math.abs(d.profit)])) : 1000;
+  
+  console.log('Debug - Monthly Data Summary:', {
+    monthlyDataLength: monthlyData.length,
+    maxValue,
+    monthlyDataValues: monthlyData.map(d => ({ month: `${d.month} ${d.year}`, cogs: d.cogs, revenue: d.revenue, profit: d.profit }))
+  });
 
   // Helper function to get Y position for a value
   const getY = (value) => {
     if (maxValue === 0) return 100;
-    return 100 - (Math.abs(value) / maxValue) * 80;
+    const yPos = 100 - (Math.abs(value) / maxValue) * 80;
+    console.log(`Debug - getY(${value}) with maxValue=${maxValue} -> ${yPos}`);
+    return yPos;
   };
 
   // Helper function to create path for line
@@ -676,11 +686,11 @@ function FinancialTrendChart({ item, filteredOrders }) {
           return (
             <div key={i} className="text-xs text-slate-400 text-right pr-2">
               ${centsToStr(value)}
-            </div>
+          </div>
           );
         })}
       </div>
-      
+
       {/* Chart area */}
       <div className="ml-16 mr-4">
         <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -730,8 +740,8 @@ function FinancialTrendChart({ item, filteredOrders }) {
           {/* Data points */}
           {monthlyData.map((d, i) => {
             const x = monthlyData.length > 1 ? (i / (monthlyData.length - 1)) * 100 : 50;
-            return (
-              <g key={i}>
+          return (
+            <g key={i}>
                 {/* COGS point */}
                 <circle
                   cx={x}
@@ -759,9 +769,9 @@ function FinancialTrendChart({ item, filteredOrders }) {
                   stroke="rgb(15, 23, 42)"
                   strokeWidth="1"
                 />
-              </g>
-            );
-          })}
+            </g>
+          );
+        })}
         </svg>
       </div>
       
