@@ -656,12 +656,46 @@ function FinancialTrendChart({ item, filteredOrders }) {
     return `M ${points.join(' L ')}`;
   };
 
+  // Add padding months before and after
+  const extendedMonthlyData = useMemo(() => {
+    if (monthlyData.length === 0) return [];
+    
+    const firstMonth = new Date(monthlyData[0].year, monthlyData[0].month - 1);
+    const lastMonth = new Date(monthlyData[monthlyData.length - 1].year, monthlyData[monthlyData.length - 1].month - 1);
+    
+    // Add month before
+    const prevMonth = new Date(firstMonth);
+    prevMonth.setMonth(prevMonth.getMonth() - 1);
+    
+    // Add month after
+    const nextMonth = new Date(lastMonth);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    
+    const prevMonthData = {
+      month: prevMonth.toLocaleDateString('en-US', { month: 'short' }),
+      year: prevMonth.getFullYear().toString().slice(-2),
+      cogs: 0,
+      revenue: 0,
+      profit: 0
+    };
+    
+    const nextMonthData = {
+      month: nextMonth.toLocaleDateString('en-US', { month: 'short' }),
+      year: nextMonth.getFullYear().toString().slice(-2),
+      cogs: 0,
+      revenue: 0,
+      profit: 0
+    };
+    
+    return [prevMonthData, ...monthlyData, nextMonthData];
+  }, [monthlyData]);
+
   return (
-    <div className="w-full h-80 sm:h-96 lg:h-[24rem] relative">
+    <div className="w-full h-96 sm:h-[28rem] lg:h-[32rem] relative">
       {/* Chart Container */}
       <div className="w-full h-full relative bg-slate-900/30 rounded-lg p-4 overflow-hidden">
         {/* Y-axis labels on the left - 0 at bottom, max at top */}
-        <div className="absolute left-0 top-4 bottom-8 w-10 sm:w-12 flex flex-col justify-between">
+        <div className="absolute left-0 top-4 bottom-10 w-10 sm:w-12 flex flex-col justify-between">
           {[100, 75, 50, 25, 0].map((percentage, i) => {
             const value = maxValue > 0 ? Math.round((percentage / 100) * maxValue) : 0;
             const dollarValue = Math.round(value / 100); // Convert cents to dollars, no decimals
@@ -674,7 +708,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
         </div>
 
         {/* Chart area - FULL WIDTH with proper bottom margin */}
-        <div className="ml-10 sm:ml-12 mr-2 mt-4 mb-8 h-full">
+        <div className="ml-10 sm:ml-12 mr-2 mt-4 mb-10 h-full">
           <svg 
             className="w-full h-full" 
             viewBox="0 0 100 100" 
@@ -694,11 +728,11 @@ function FinancialTrendChart({ item, filteredOrders }) {
             ))}
             
             {/* COGS Line (Red) - Responsive sizing */}
-            {monthlyData.length > 1 && (
+            {extendedMonthlyData.length > 1 && (
               <>
                 <path
-                  d={monthlyData.map((d, i) => {
-                    const x = (i / (monthlyData.length - 1)) * 100;
+                  d={extendedMonthlyData.map((d, i) => {
+                    const x = (i / (extendedMonthlyData.length - 1)) * 100;
                     const y = maxValue > 0 ? 100 - ((d.cogs / maxValue) * 100) : 100;
                     return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
                   }).join(' ')}
@@ -708,8 +742,8 @@ function FinancialTrendChart({ item, filteredOrders }) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-                {monthlyData.map((d, i) => {
-                  const x = (i / (monthlyData.length - 1)) * 100;
+                {extendedMonthlyData.map((d, i) => {
+                  const x = (i / (extendedMonthlyData.length - 1)) * 100;
                   const y = maxValue > 0 ? 100 - ((d.cogs / maxValue) * 100) : 100;
                   return (
                     <circle
@@ -727,11 +761,11 @@ function FinancialTrendChart({ item, filteredOrders }) {
             )}
             
             {/* Revenue Line (Blue) - Responsive sizing */}
-            {monthlyData.length > 1 && (
+            {extendedMonthlyData.length > 1 && (
               <>
                 <path
-                  d={monthlyData.map((d, i) => {
-                    const x = (i / (monthlyData.length - 1)) * 100;
+                  d={extendedMonthlyData.map((d, i) => {
+                    const x = (i / (extendedMonthlyData.length - 1)) * 100;
                     const y = maxValue > 0 ? 100 - ((d.revenue / maxValue) * 100) : 100;
                     return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
                   }).join(' ')}
@@ -741,8 +775,8 @@ function FinancialTrendChart({ item, filteredOrders }) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-                {monthlyData.map((d, i) => {
-                  const x = (i / (monthlyData.length - 1)) * 100;
+                {extendedMonthlyData.map((d, i) => {
+                  const x = (i / (extendedMonthlyData.length - 1)) * 100;
                   const y = maxValue > 0 ? 100 - ((d.revenue / maxValue) * 100) : 100;
                   return (
                     <circle
@@ -760,11 +794,11 @@ function FinancialTrendChart({ item, filteredOrders }) {
             )}
             
             {/* Profit Line (Green) - Responsive sizing */}
-            {monthlyData.length > 1 && (
+            {extendedMonthlyData.length > 1 && (
               <>
                 <path
-                  d={monthlyData.map((d, i) => {
-                    const x = (i / (monthlyData.length - 1)) * 100;
+                  d={extendedMonthlyData.map((d, i) => {
+                    const x = (i / (extendedMonthlyData.length - 1)) * 100;
                     const y = maxValue > 0 ? 100 - ((d.profit / maxValue) * 100) : 100;
                     return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
                   }).join(' ')}
@@ -774,8 +808,8 @@ function FinancialTrendChart({ item, filteredOrders }) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-                {monthlyData.map((d, i) => {
-                  const x = (i / (monthlyData.length - 1)) * 100;
+                {extendedMonthlyData.map((d, i) => {
+                  const x = (i / (extendedMonthlyData.length - 1)) * 100;
                   const y = maxValue > 0 ? 100 - ((d.profit / maxValue) * 100) : 100;
                   return (
                     <circle
@@ -794,9 +828,9 @@ function FinancialTrendChart({ item, filteredOrders }) {
           </svg>
         </div>
 
-        {/* X-axis labels at bottom - Months from left to right with proper spacing */}
+        {/* X-axis labels at bottom - FULL WIDTH with padding months */}
         <div className="absolute bottom-2 left-10 sm:left-12 right-2 flex justify-between">
-          {monthlyData.map((d, i) => (
+          {extendedMonthlyData.map((d, i) => (
             <div key={i} className="text-xs text-slate-400 text-center flex-1">
               {d.month} {d.year}
             </div>
