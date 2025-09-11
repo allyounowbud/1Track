@@ -552,8 +552,14 @@ function FinancialTrendChart({ item, filteredOrders }) {
       return monthlyData;
     }
     
-    // Find the date range from first order to last order
-    const allDates = itemOrders.map(order => new Date(order.created_at));
+    // Get all order dates and sale dates
+    const orderDates = itemOrders.map(order => new Date(order.order_date)).filter(date => !isNaN(date.getTime()));
+    const saleDates = itemOrders.map(order => new Date(order.sale_date)).filter(date => !isNaN(date.getTime()));
+    
+    // Find the date range from first order to last sale
+    const allDates = [...orderDates, ...saleDates];
+    if (allDates.length === 0) return [];
+    
     const minDate = new Date(Math.min(...allDates));
     const maxDate = new Date(Math.max(...allDates));
     
@@ -561,22 +567,27 @@ function FinancialTrendChart({ item, filteredOrders }) {
     const currentDate = new Date(minDate);
     currentDate.setDate(1); // Start from first day of month
     
-    // Generate data for each month from first order to last order
+    // Generate data for each month from first order to last sale
     while (currentDate <= maxDate) {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
       
-      // Filter orders for this month
-      const monthOrders = itemOrders.filter(order => {
-        const orderDate = new Date(order.created_at);
-        return orderDate.getFullYear() === year && orderDate.getMonth() === month;
+      // Filter orders purchased in this month (COGS)
+      const monthOrderDates = itemOrders.filter(order => {
+        const orderDate = new Date(order.order_date);
+        return !isNaN(orderDate.getTime()) && orderDate.getFullYear() === year && orderDate.getMonth() === month;
+      });
+      
+      // Filter orders sold in this month (Revenue)
+      const monthSaleDates = itemOrders.filter(order => {
+        const saleDate = new Date(order.sale_date);
+        return !isNaN(saleDate.getTime()) && saleDate.getFullYear() === year && saleDate.getMonth() === month;
       });
       
       // Calculate metrics for this month
-      const cogs = monthOrders.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
-      const revenue = monthOrders.filter(o => cents(o.sale_price_cents) > 0).reduce((sum, o) => sum + cents(o.sale_price_cents), 0);
-      const soldMonthOrders = monthOrders.filter(o => cents(o.sale_price_cents) > 0);
-      const profit = revenue - soldMonthOrders.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
+      const cogs = monthOrderDates.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
+      const revenue = monthSaleDates.reduce((sum, o) => sum + cents(o.sale_price_cents), 0);
+      const profit = revenue - cogs; // Profit is revenue minus COGS for the month
       
       monthlyData.push({
         month: currentDate.toLocaleDateString('en-US', { month: 'short' }),

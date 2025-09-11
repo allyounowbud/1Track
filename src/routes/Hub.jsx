@@ -242,13 +242,20 @@ export default function Hub() {
               </div>
             </div>
             
-            <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
-              <div>
-                <div className="text-sm font-medium text-slate-200">Enhanced Order Book</div>
-                <div className="text-xs text-slate-400">Added bulk edit/delete functionality, improved form persistence, and better mobile responsiveness</div>
-              </div>
+          <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Fixed Financial Trend Chart Date Logic</div>
+              <div className="text-xs text-slate-400">Corrected chart to use order_date for COGS/buys, sale_date for revenue/sales, and calculate monthly profit as revenue minus COGS. Chart now shows accurate financial trends over time.</div>
             </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
+            <div>
+              <div className="text-sm font-medium text-slate-200">Enhanced Order Book</div>
+              <div className="text-xs text-slate-400">Added bulk edit/delete functionality, improved form persistence, and better mobile responsiveness</div>
+            </div>
+          </div>
           </div>
         </div>
       </div>
