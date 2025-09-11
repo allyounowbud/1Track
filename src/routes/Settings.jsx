@@ -238,6 +238,19 @@ export default function Settings() {
     setSelectedMarkets(new Set([newId]));
   }
 
+  /* ----- Clear Selection Functions ----- */
+  function clearItemsSelection() {
+    setSelectedItems(new Set());
+  }
+
+  function clearRetailersSelection() {
+    setSelectedRetailers(new Set());
+  }
+
+  function clearMarketsSelection() {
+    setSelectedMarkets(new Set());
+  }
+
   /* ----- Legacy Bulk Operations ----- */
   async function bulkSaveItems() {
     if (selectedItems.size === 0) return;
@@ -406,6 +419,7 @@ export default function Settings() {
           bulkDelete={bulkDeleteItems}
           cancelNewRows={cancelNewItemRows}
           addNewRow={addNewItemRow}
+          clearSelection={clearItemsSelection}
           data={items}
           newRowsData={newItemRows}
           onRowToggle={toggleItemSelection}
@@ -458,6 +472,7 @@ export default function Settings() {
           bulkDelete={bulkDeleteRetailers}
           cancelNewRows={cancelNewRetailerRows}
           addNewRow={addNewRetailerRow}
+          clearSelection={clearRetailersSelection}
           data={retailers}
           newRowsData={newRetailerRows}
           onRowToggle={toggleRetailerSelection}
@@ -501,6 +516,7 @@ export default function Settings() {
           bulkDelete={bulkDeleteMarkets}
           cancelNewRows={cancelNewMarketRows}
           addNewRow={addNewMarketRow}
+          clearSelection={clearMarketsSelection}
           data={markets}
           newRowsData={newMarketRows}
           onRowToggle={toggleMarketSelection}
@@ -557,6 +573,7 @@ function SettingsCard({
   bulkDelete, 
   cancelNewRows, 
   addNewRow, 
+  clearSelection,
   data, 
   newRowsData, 
   onRowToggle, 
@@ -572,14 +589,20 @@ function SettingsCard({
 
   return (
     <section className={`${pageCard} mb-6`}>
-      {/* Card Header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+      {/* Card Header - Clickable anywhere to expand */}
+      <div 
+        className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap cursor-pointer hover:bg-slate-800/30 rounded-xl p-2 -m-2 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <div className="min-w-0">
           <h2 className="text-lg font-semibold leading-[2.25rem]">{title}</h2>
           <p className="text-xs text-slate-400 -mt-1">Total: {totalCount}</p>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0">
+        <div 
+          className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0"
+          onClick={(e) => e.stopPropagation()} // Prevent expansion when clicking buttons
+        >
           {/* Bulk Actions - only show when expanded and items are selected */}
           {isExpanded && hasSelection && (
             <div className="flex items-center gap-2">
@@ -663,13 +686,9 @@ function SettingsCard({
           )}
           
           {/* Expand/Collapse button */}
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-            aria-label={isExpanded ? "Collapse" : "Expand"}
-          >
+          <div className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 text-slate-100">
             <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-          </button>
+          </div>
         </div>
       </div>
 
@@ -690,6 +709,59 @@ function SettingsCard({
                   <span className="text-sm font-semibold text-slate-400">
                     {selectedRows.size}/{data.length} Selected
                   </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Determine button visibility based on selection state */}
+                  {(() => {
+                    // New rows selected: show X cancel and save buttons
+                    if (hasNewRowsInSelection) {
+                      return (
+                        <>
+                          <button
+                            onClick={cancelNewRows}
+                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                          >
+                            ✕ Cancel
+                          </button>
+                          <button
+                            onClick={bulkSave}
+                            className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+                          >
+                            Save
+                          </button>
+                        </>
+                      );
+                    }
+                    
+                    // Existing rows selected: show X cancel, save, and delete buttons
+                    if (hasExistingRows) {
+                      return (
+                        <>
+                          <button
+                            onClick={clearSelection}
+                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                          >
+                            ✕ Cancel
+                          </button>
+                          <button
+                            onClick={bulkSave}
+                            className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={bulkDelete}
+                            className="px-3 py-1 text-xs bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
                 </div>
               </div>
             </div>
