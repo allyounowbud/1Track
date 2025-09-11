@@ -518,7 +518,7 @@ function SingleItemChart({ item, filteredOrders }) {
       {/* Line Chart for Key Metrics */}
       <div className="bg-slate-800/50 rounded-xl p-6">
         <h5 className="text-lg font-medium text-slate-300 mb-6 text-center">Financial Trend</h5>
-        <div className="h-64 sm:h-72 lg:h-80">
+        <div className="h-48 sm:h-56 lg:h-64">
           <FinancialTrendChart item={item} filteredOrders={ordersArray} />
         </div>
       </div>
@@ -528,14 +528,30 @@ function SingleItemChart({ item, filteredOrders }) {
 
 // Financial Trend Line Chart
 function FinancialTrendChart({ item, filteredOrders }) {
-  // Use the already filtered orders data instead of making a new query
+  // Use the already filtered orders data
+  const ordersArray = Array.isArray(filteredOrders) ? filteredOrders : [];
+  const itemOrders = ordersArray.filter(order => order.item === item.item);
+  
+  // Generate monthly data from orders
   const generateMonthlyData = () => {
-    const ordersArray = Array.isArray(filteredOrders) ? filteredOrders : [];
-    const itemOrders = ordersArray.filter(order => order.item === item.item);
+    if (itemOrders.length === 0) {
+      // Return default empty data for the last 6 months
+      const monthlyData = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        monthlyData.push({
+          month: date.toLocaleDateString('en-US', { month: 'short' }),
+          year: date.getFullYear().toString().slice(-2),
+          cogs: 0,
+          revenue: 0,
+          profit: 0
+        });
+      }
+      return monthlyData;
+    }
     
-    if (itemOrders.length === 0) return [];
-    
-    // Find the date range from first order to last order/sale
+    // Find the date range from first order to last order
     const allDates = itemOrders.map(order => new Date(order.created_at));
     const minDate = new Date(Math.min(...allDates));
     const maxDate = new Date(Math.max(...allDates));
@@ -577,7 +593,16 @@ function FinancialTrendChart({ item, filteredOrders }) {
   };
 
   const monthlyData = generateMonthlyData();
-  const maxValue = monthlyData.length > 0 ? Math.max(...monthlyData.flatMap(d => [d.cogs, d.revenue, Math.abs(d.profit)])) : 0;
+  const maxValue = monthlyData.length > 0 ? Math.max(...monthlyData.flatMap(d => [d.cogs, d.revenue, Math.abs(d.profit)])) : 1000;
+  
+  // Debug logging
+  console.log('FinancialTrendChart Debug:', {
+    itemName: item.item,
+    itemOrdersCount: itemOrders.length,
+    monthlyDataCount: monthlyData.length,
+    monthlyData: monthlyData,
+    maxValue: maxValue
+  });
 
   // Helper function to get Y position for a value
   const getY = (value) => {
@@ -597,119 +622,124 @@ function FinancialTrendChart({ item, filteredOrders }) {
   };
 
   return (
-    <div className="w-full h-full relative flex flex-col">
-      {/* Y-axis labels */}
-      <div className="absolute left-0 top-0 bottom-12 w-16 flex flex-col justify-between py-2">
-        {[0, 25, 50, 75, 100].map((y, i) => {
-          const value = maxValue > 0 ? Math.round((100 - y) / 100 * maxValue) : 0;
-          return (
-            <div key={i} className="text-xs text-slate-400 text-right pr-2">
-              ${centsToStr(value)}
-            </div>
-          );
-        })}
+    <div className="w-full h-full flex flex-col">
+      {/* Chart Container */}
+      <div className="flex-1 relative">
+        {/* Y-axis labels */}
+        <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-16 flex flex-col justify-between py-1">
+          {[0, 25, 50, 75, 100].map((y, i) => {
+            const value = maxValue > 0 ? Math.round((100 - y) / 100 * maxValue) : 0;
+            return (
+              <div key={i} className="text-xs text-slate-400 text-right pr-1">
+                ${centsToStr(value)}
+          </div>
+            );
+          })}
       </div>
-      
-      {/* SVG for the line chart */}
-      <svg className="w-full h-full ml-16 mb-12" viewBox="0 0 100 100" preserveAspectRatio="none">
-        {/* Grid lines */}
-        {[20, 40, 60, 80].map(y => (
-          <line
-            key={y}
-            x1="5"
-            y1={y}
-            x2="95"
-            y2={y}
-            stroke="rgb(51, 65, 85)"
-            strokeWidth="0.5"
-          />
-        ))}
-        
-        {/* COGS Line (Red) */}
-        <path
-          d={createPath('cogs', 'red')}
-          fill="none"
-          stroke="rgb(239, 68, 68)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        
-        {/* Revenue Line (Blue) */}
-        <path
-          d={createPath('revenue', 'blue')}
-          fill="none"
-          stroke="rgb(59, 130, 246)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        
-        {/* Profit Line (Green) */}
-        <path
-          d={createPath('profit', 'green')}
-          fill="none"
-          stroke="rgb(34, 197, 94)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        
-        {/* Data points */}
-        {monthlyData.map((d, i) => {
-          const x = (i / (monthlyData.length - 1)) * 90 + 5;
+
+        {/* SVG Chart Area */}
+        <div className="ml-12 sm:ml-16 mr-2 mt-2 mb-8 h-full">
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {/* Grid lines */}
+            {[20, 40, 60, 80].map(y => (
+              <line
+                key={y}
+                x1="5"
+                y1={y}
+                x2="95"
+                y2={y}
+                stroke="rgb(51, 65, 85)"
+                strokeWidth="0.5"
+              />
+            ))}
+            
+            {/* COGS Line (Red) */}
+            <path
+              d={createPath('cogs')}
+              fill="none"
+              stroke="rgb(239, 68, 68)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            
+            {/* Revenue Line (Blue) */}
+            <path
+              d={createPath('revenue')}
+              fill="none"
+              stroke="rgb(59, 130, 246)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            
+            {/* Profit Line (Green) */}
+            <path
+              d={createPath('profit')}
+              fill="none"
+              stroke="rgb(34, 197, 94)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            
+            {/* Data points */}
+            {monthlyData.map((d, i) => {
+              const x = monthlyData.length > 1 ? (i / (monthlyData.length - 1)) * 90 + 5 : 50;
           return (
             <g key={i}>
-              {/* COGS point */}
-              <circle
-                cx={x}
-                cy={getY(d.cogs)}
-                r="1"
-                fill="rgb(239, 68, 68)"
-              />
-              {/* Revenue point */}
-              <circle
-                cx={x}
-                cy={getY(d.revenue)}
-                r="1"
-                fill="rgb(59, 130, 246)"
-              />
-              {/* Profit point */}
-              <circle
-                cx={x}
-                cy={getY(d.profit)}
-                r="1"
-                fill="rgb(34, 197, 94)"
-              />
+                  {/* COGS point */}
+                  <circle
+                    cx={x}
+                    cy={getY(d.cogs)}
+                    r="1.5"
+                    fill="rgb(239, 68, 68)"
+                  />
+                  {/* Revenue point */}
+                  <circle
+                    cx={x}
+                    cy={getY(d.revenue)}
+                    r="1.5"
+                    fill="rgb(59, 130, 246)"
+                  />
+                  {/* Profit point */}
+                  <circle
+                    cx={x}
+                    cy={getY(d.profit)}
+                    r="1.5"
+                    fill="rgb(34, 197, 94)"
+                  />
             </g>
           );
         })}
-      </svg>
+          </svg>
+        </div>
+        
+        {/* Legend */}
+        <div className="absolute top-2 right-2 flex flex-col sm:flex-row gap-2 bg-slate-900/90 rounded-lg px-2 py-1">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-0.5 bg-red-500"></div>
+            <span className="text-xs text-slate-300">COGS</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-0.5 bg-blue-500"></div>
+            <span className="text-xs text-slate-300">Revenue</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-0.5 bg-green-500"></div>
+            <span className="text-xs text-slate-300">Profit</span>
+          </div>
+        </div>
+      </div>
       
       {/* Month labels */}
-      <div className="absolute bottom-0 left-16 right-0 h-12 flex justify-between items-end px-4 pb-2">
+      <div className="h-8 flex justify-between items-center px-12 sm:px-16">
         {monthlyData.map((d, i) => (
-          <div key={i} className="text-xs text-slate-400 text-center flex-shrink-0" style={{ width: `${100 / monthlyData.length}%` }}>
+          <div key={i} className="text-xs text-slate-400 text-center flex-shrink-0">
             <div className="font-medium">{d.month}</div>
             <div className="text-xs opacity-70">{d.year}</div>
           </div>
         ))}
-      </div>
-      
-      {/* Legend */}
-      <div className="absolute top-2 right-4 flex gap-3 bg-slate-900/80 rounded-lg px-3 py-2">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-0.5 bg-red-500"></div>
-          <span className="text-xs text-slate-300">COGS</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-0.5 bg-blue-500"></div>
-          <span className="text-xs text-slate-300">Revenue</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-0.5 bg-green-500"></div>
-          <span className="text-xs text-slate-300">Profit</span>
-        </div>
       </div>
     </div>
   );
