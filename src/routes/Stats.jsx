@@ -397,7 +397,7 @@ function DynamicCharts({ itemGroups = [], filteredOrders = [] }) {
       <div className="bg-slate-900/40 rounded-xl p-6 border border-slate-800">
         <h4 className="text-sm font-medium text-slate-300 mb-6 flex items-center gap-2">
           <span className="text-indigo-400">📊</span>
-          Comprehensive Analysis: {itemGroups[0].item}
+          {itemGroups[0].item}
         </h4>
         <SingleItemChart item={itemGroups[0]} filteredOrders={filteredOrders} />
     </div>
