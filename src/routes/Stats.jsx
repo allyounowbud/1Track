@@ -143,15 +143,15 @@ export default function Stats() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen discord-bg-primary discord-text-primary">
       <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="stats" showTabs section="orderbook" showHubTab={true} />
 
         {/* -------------------- Performance Analytics with Filters -------------------- */}
         <div className={`${card} relative z-[60]`}>
           <div className="mb-6">
-            <div className="text-lg font-semibold">Performance Analytics</div>
-            <div className="text-slate-400 text-xs -mt-0.5">Monthly trends and insights</div>
+            <div className="text-lg font-semibold discord-text-primary">Performance Analytics</div>
+            <div className="discord-text-muted text-xs -mt-0.5">Monthly trends and insights</div>
           </div>
 
           {/* Filters */}
@@ -221,8 +221,8 @@ export default function Stats() {
           {/* Analytics Dashboard */}
           <div className="mb-6">
             <div className="mb-4">
-              <h3 className="text-md font-medium text-slate-200 mb-1">Analytics Dashboard</h3>
-              <p className="text-sm text-slate-400">Comprehensive insights and performance metrics</p>
+              <h3 className="text-md font-medium discord-text-secondary mb-1">Analytics Dashboard</h3>
+              <p className="text-sm discord-text-muted">Comprehensive insights and performance metrics</p>
             </div>
             <DynamicCharts itemGroups={itemGroups} filteredOrders={filtered} />
         </div>
@@ -230,42 +230,42 @@ export default function Stats() {
           {/* Summary Cards - Hide for single item */}
           {itemGroups.length !== 1 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-              <h4 className="text-sm font-medium text-slate-300 mb-3">Top Performing Items</h4>
+            <div className="discord-bg-tertiary rounded-xl p-4 discord-border">
+              <h4 className="text-sm font-medium discord-text-secondary mb-3">Top Performing Items</h4>
               <div className="space-y-2">
                 {itemGroups.slice(0, 3).map((item, idx) => (
                   <div key={item.item} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                      <span className="text-sm text-slate-300 truncate">{item.item}</span>
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      <span className="text-sm discord-text-secondary truncate">{item.item}</span>
             </div>
                     <div className="text-right">
-                      <div className="text-sm font-medium text-slate-100">${centsToStr(item.revenueC)}</div>
-                      <div className="text-xs text-slate-400">{formatNumber(item.sold)} sold</div>
+                      <div className="text-sm font-medium discord-text-primary">${centsToStr(item.revenueC)}</div>
+                      <div className="text-xs discord-text-muted">{formatNumber(item.sold)} sold</div>
                     </div>
                   </div>
                 ))}
               </div>
           </div>
 
-            <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-              <h4 className="text-sm font-medium text-slate-300 mb-3">Quick Stats</h4>
+            <div className="discord-bg-tertiary rounded-xl p-4 discord-border">
+              <h4 className="text-sm font-medium discord-text-secondary mb-3">Quick Stats</h4>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-400">Total Items</span>
-                  <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.length)}</span>
+                  <span className="text-sm discord-text-muted">Total Items</span>
+                  <span className="text-sm font-medium discord-text-primary">{formatNumber(itemGroups.length)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-400">Items Bought</span>
-                  <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.bought, 0))}</span>
+                  <span className="text-sm discord-text-muted">Items Bought</span>
+                  <span className="text-sm font-medium discord-text-primary">{formatNumber(itemGroups.reduce((sum, item) => sum + item.bought, 0))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-400">Items Sold</span>
-                  <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.sold, 0))}</span>
+                  <span className="text-sm discord-text-muted">Items Sold</span>
+                  <span className="text-sm font-medium discord-text-primary">{formatNumber(itemGroups.reduce((sum, item) => sum + item.sold, 0))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-400">Items On Hand</span>
-                  <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.onHand, 0))}</span>
+                  <span className="text-sm discord-text-muted">Items On Hand</span>
+                  <span className="text-sm font-medium discord-text-primary">{formatNumber(itemGroups.reduce((sum, item) => sum + item.onHand, 0))}</span>
                 </div>
               </div>
             </div>
@@ -442,44 +442,44 @@ function SingleItemChart({ item, filteredOrders }) {
     <div className="space-y-6">
       {/* KPI Pills */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-          <div className="text-sm text-slate-400 mb-1">Total Revenue</div>
-          <div className="text-2xl font-bold text-white mb-1">${centsToStr(totalRevenue)}</div>
-          <div className="text-sm text-slate-400">{totalSold} sales</div>
+        <div className="discord-bg-secondary rounded-xl p-4 text-center">
+          <div className="text-sm discord-text-muted mb-1">Total Revenue</div>
+          <div className="text-2xl font-bold discord-text-primary mb-1">${centsToStr(totalRevenue)}</div>
+          <div className="text-sm discord-text-muted">{totalSold} sales</div>
         </div>
         
-        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-          <div className="text-sm text-slate-400 mb-1">Total COGS</div>
-          <div className="text-2xl font-bold text-white mb-1">${centsToStr(totalCogs)}</div>
-          <div className="text-sm text-slate-400">{totalBought} bought</div>
+        <div className="discord-bg-secondary rounded-xl p-4 text-center">
+          <div className="text-sm discord-text-muted mb-1">Total COGS</div>
+          <div className="text-2xl font-bold discord-text-primary mb-1">${centsToStr(totalCogs)}</div>
+          <div className="text-sm discord-text-muted">{totalBought} bought</div>
         </div>
         
-        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-          <div className="text-sm text-slate-400 mb-1">On Hand</div>
-          <div className="text-2xl font-bold text-white mb-1">{onHand}</div>
-          <div className="text-sm text-slate-400">${centsToStr(totalMarketValue)} market value</div>
+        <div className="discord-bg-secondary rounded-xl p-4 text-center">
+          <div className="text-sm discord-text-muted mb-1">On Hand</div>
+          <div className="text-2xl font-bold discord-text-primary mb-1">{onHand}</div>
+          <div className="text-sm discord-text-muted">${centsToStr(totalMarketValue)} market value</div>
         </div>
         
-        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-          <div className="text-sm text-slate-400 mb-1">Realized P/L</div>
+        <div className="discord-bg-secondary rounded-xl p-4 text-center">
+          <div className="text-sm discord-text-muted mb-1">Realized P/L</div>
           <div className="text-2xl font-bold text-green-400 mb-1">${centsToStr(realizedPl)}</div>
-          <div className="text-sm text-slate-400">${centsToStr(unrealizedPl)} unrealized</div>
+          <div className="text-sm discord-text-muted">${centsToStr(unrealizedPl)} unrealized</div>
         </div>
       </div>
       
       {/* Combined Performance Metrics */}
-      <div className="bg-slate-800/50 rounded-xl p-6">
-        <h5 className="text-lg font-medium text-slate-300 mb-6 text-center">Performance Overview</h5>
+      <div className="discord-bg-secondary rounded-xl p-6">
+        <h5 className="text-lg font-medium discord-text-secondary mb-6 text-center">Performance Overview</h5>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* ROI Section */}
           <div className="text-center">
-            <div className="text-sm text-slate-400 mb-2">Return on Investment</div>
+            <div className="text-sm discord-text-muted mb-2">Return on Investment</div>
             <div className="text-4xl font-bold mb-4">
               <span className={item.roi > 0 ? 'text-emerald-400' : 'text-red-400'}>
                 {pctStr(item.roi)}
               </span>
             </div>
-            <div className="w-full bg-slate-700 rounded-full h-4 mb-2">
+            <div className="w-full discord-bg-tertiary rounded-full h-4 mb-2">
               <div 
                 className={`h-4 rounded-full transition-all duration-700 ${
                   item.roi > 0 ? 'bg-emerald-500' : 'bg-red-500'
@@ -487,20 +487,20 @@ function SingleItemChart({ item, filteredOrders }) {
                 style={{ width: `${Math.min(Math.abs(item.roi) * 2 + 20, 100)}%` }}
               />
             </div>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs discord-text-muted">
               {item.roi > 0 ? 'Profitable' : 'Loss'}
             </div>
           </div>
           
           {/* Margin Section */}
           <div className="text-center">
-            <div className="text-sm text-slate-400 mb-2">Profit Margin</div>
+            <div className="text-sm discord-text-muted mb-2">Profit Margin</div>
             <div className="text-4xl font-bold mb-4">
               <span className={item.margin > 0 ? 'text-emerald-400' : 'text-red-400'}>
                 {pctStr(item.margin)}
               </span>
             </div>
-            <div className="w-full bg-slate-700 rounded-full h-4 mb-2">
+            <div className="w-full discord-bg-tertiary rounded-full h-4 mb-2">
               <div 
                 className={`h-4 rounded-full transition-all duration-700 ${
                   item.margin > 0 ? 'bg-emerald-500' : 'bg-red-500'
@@ -508,7 +508,7 @@ function SingleItemChart({ item, filteredOrders }) {
                 style={{ width: `${Math.min(Math.abs(item.margin) * 2 + 20, 100)}%` }}
               />
             </div>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs discord-text-muted">
               {item.margin > 0 ? 'Positive margin' : 'Negative margin'}
             </div>
           </div>
@@ -516,8 +516,8 @@ function SingleItemChart({ item, filteredOrders }) {
       </div>
       
       {/* Line Chart for Key Metrics */}
-      <div className="bg-slate-800/50 rounded-xl p-6">
-        <h5 className="text-lg font-medium text-slate-300 mb-6 text-center">Financial Trend</h5>
+      <div className="discord-bg-secondary rounded-xl p-6">
+        <h5 className="text-lg font-medium discord-text-secondary mb-6 text-center">Financial Trend</h5>
         <div className="h-48 sm:h-56 lg:h-64">
           <FinancialTrendChart item={item} filteredOrders={ordersArray} />
         </div>
@@ -621,7 +621,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
         {[0, 25, 50, 75, 100].map((y, i) => {
           const value = maxValue > 0 ? Math.round((100 - y) / 100 * maxValue) : 0;
           return (
-            <div key={i} className="text-xs text-slate-400 text-right pr-2">
+            <div key={i} className="text-xs discord-text-muted text-right pr-2">
               ${centsToStr(value)}
             </div>
           );
@@ -639,7 +639,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
               y1={y}
               x2="100"
               y2={y}
-              stroke="rgb(51, 65, 85)"
+              stroke="#40444b"
               strokeWidth="0.5"
             />
           ))}
@@ -715,7 +715,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
       {/* Month labels at bottom */}
       <div className="absolute bottom-0 left-16 right-4 flex justify-between">
         {monthlyData.map((d, i) => (
-          <div key={i} className="text-xs text-slate-400 text-center">
+          <div key={i} className="text-xs discord-text-muted text-center">
             <div>{d.month} {d.year}</div>
           </div>
         ))}
@@ -725,15 +725,15 @@ function FinancialTrendChart({ item, filteredOrders }) {
       <div className="absolute top-2 right-4 flex gap-4">
         <div className="flex items-center gap-2">
           <div className="w-3 h-0.5 bg-red-500"></div>
-          <span className="text-xs text-slate-400">COGS</span>
+          <span className="text-xs discord-text-muted">COGS</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-0.5 bg-blue-500"></div>
-          <span className="text-xs text-slate-400">Revenue</span>
+          <span className="text-xs discord-text-muted">Revenue</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-0.5 bg-green-500"></div>
-          <span className="text-xs text-slate-400">Profit</span>
+          <span className="text-xs discord-text-muted">Profit</span>
         </div>
       </div>
     </div>
@@ -873,13 +873,13 @@ function SalesActivityChart({ itemGroups = [] }) {
 function Kpi({ title, value, hint, tone }) {
   const toneClass =
     tone === "green" ? "text-emerald-400"
-      : tone === "blue" ? "text-indigo-400"
-      : "text-slate-100";
+      : tone === "blue" ? "text-blue-400"
+      : "discord-text-primary";
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-center">
-      <div className="text-slate-400 text-sm">{title}</div>
+    <div className="rounded-2xl discord-border discord-bg-secondary p-4 text-center">
+      <div className="discord-text-muted text-sm">{title}</div>
       <div className={`text-xl font-semibold mt-1 ${toneClass}`}>{value}</div>
-      {hint && <div className="text-slate-400 text-xs mt-1 truncate">{hint}</div>}
+      {hint && <div className="discord-text-muted text-xs mt-1 truncate">{hint}</div>}
     </div>
   );
 }
