@@ -110,7 +110,8 @@ export default function Stats() {
   const filtered = useMemo(() => {
     const itemQuery = (applied.item || "").toLowerCase();
     const useItem = !!itemQuery;
-    return (orders || []).filter((o) => {
+    const ordersArray = Array.isArray(orders) ? orders : [];
+    return ordersArray.filter((o) => {
       const matchesItem = !useItem || (o.item || "").toLowerCase().includes(itemQuery);
       const anyInWindow =
         within(o.order_date, fromMs, toMs) ||
@@ -416,7 +417,8 @@ function SingleItemChart({ item }) {
   });
 
   // Calculate actual metrics from order book data
-  const itemOrders = (orders || []).filter(order => order.item === item.item);
+  const ordersArray = Array.isArray(orders) ? orders : [];
+  const itemOrders = ordersArray.filter(order => order.item === item.item);
   const totalRevenue = itemOrders.filter(o => o.sale_price).reduce((sum, o) => sum + (o.sale_price || 0), 0);
   const totalCogs = itemOrders.reduce((sum, o) => sum + (o.cost || 0), 0);
   const totalSold = itemOrders.filter(o => o.sale_price).length;
@@ -529,7 +531,8 @@ function FinancialTrendChart({ item }) {
 
   // Generate monthly data for the last 12 months
   const generateMonthlyData = () => {
-    const itemOrders = (orders || []).filter(order => order.item === item.item);
+    const ordersArray = Array.isArray(orders) ? orders : [];
+    const itemOrders = ordersArray.filter(order => order.item === item.item);
     const monthlyData = [];
     
     // Get last 12 months
@@ -835,8 +838,9 @@ function Kpi({ title, value, hint, tone }) {
 
 /* --------------------- Aggregate KPIs for the top card --------------------- */
 function makeTopKpis(filtered) {
-  const purchases = (filtered || []).filter(o => o.order_date && (!o.sale_date || true)); // all purchases counted via order_date presence
-  const sales = (filtered || []).filter(o => cents(o.sale_price_cents) > 0);
+  const filteredArray = Array.isArray(filtered) ? filtered : [];
+  const purchases = filteredArray.filter(o => o.order_date && (!o.sale_date || true)); // all purchases counted via order_date presence
+  const sales = filteredArray.filter(o => cents(o.sale_price_cents) > 0);
 
   const spentC = purchases.reduce((a, o) => a + cents(o.buy_price_cents), 0);
   const revenueC = sales.reduce((a, o) => a + cents(o.sale_price_cents), 0);
@@ -894,7 +898,8 @@ function makeTopKpis(filtered) {
 /* -------------------------- per-item aggregation (cards) -------------------------- */
 function makeItemGroups(filtered, marketByName) {
   const m = new Map();
-  for (const o of (filtered || [])) {
+  const filteredArray = Array.isArray(filtered) ? filtered : [];
+  for (const o of filteredArray) {
     const key = o.item || "—";
     if (!m.has(key)) {
       m.set(key, {
