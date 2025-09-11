@@ -553,8 +553,31 @@ function FinancialTrendChart({ item, filteredOrders }) {
     }
     
     // Get all order dates and sale dates
-    const orderDates = itemOrders.map(order => new Date(order.order_date)).filter(date => !isNaN(date.getTime()));
-    const saleDates = itemOrders.map(order => new Date(order.sale_date)).filter(date => !isNaN(date.getTime()));
+    console.log('Debug - Raw order_date values:', itemOrders.map(o => o.order_date));
+    console.log('Debug - Raw sale_date values:', itemOrders.map(o => o.sale_date));
+    
+    const orderDates = itemOrders.map(order => {
+      const parsed = new Date(order.order_date);
+      console.log(`Debug - Parsing order_date "${order.order_date}" -> ${parsed.toISOString()}`);
+      return parsed;
+    }).filter(date => !isNaN(date.getTime()));
+    
+    const saleDates = itemOrders.map(order => {
+      const parsed = new Date(order.sale_date);
+      console.log(`Debug - Parsing sale_date "${order.sale_date}" -> ${parsed.toISOString()}`);
+      return parsed;
+    }).filter(date => !isNaN(date.getTime()));
+    
+    console.log('Debug - Item Orders:', itemOrders.map(o => ({
+      item: o.item,
+      order_date: o.order_date,
+      sale_date: o.sale_date,
+      buy_price_cents: o.buy_price_cents,
+      sale_price_cents: o.sale_price_cents
+    })));
+    
+    console.log('Debug - Order Dates:', orderDates);
+    console.log('Debug - Sale Dates:', saleDates);
     
     // Find the date range from first order to last sale
     const allDates = [...orderDates, ...saleDates];
@@ -562,6 +585,8 @@ function FinancialTrendChart({ item, filteredOrders }) {
     
     const minDate = new Date(Math.min(...allDates));
     const maxDate = new Date(Math.max(...allDates));
+    
+    console.log('Debug - Date Range:', { minDate, maxDate, allDatesCount: allDates.length });
     
     const monthlyData = [];
     const currentDate = new Date(minDate);
@@ -597,10 +622,21 @@ function FinancialTrendChart({ item, filteredOrders }) {
         profit
       });
       
+      console.log(`Debug - Month ${year}-${month + 1}:`, {
+        month: currentDate.toLocaleDateString('en-US', { month: 'short' }),
+        year: year.toString().slice(-2),
+        cogs,
+        revenue,
+        profit,
+        orderDates: monthOrderDates.length,
+        saleDates: monthSaleDates.length
+      });
+      
       // Move to next month
       currentDate.setMonth(currentDate.getMonth() + 1);
     }
     
+    console.log('Debug - Final Monthly Data:', monthlyData);
     return monthlyData;
   };
 
