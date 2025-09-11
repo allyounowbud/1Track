@@ -194,6 +194,18 @@ export default function Hub() {
           
         <div className="space-y-3">
           <ChangelogEntry
+            title="Removed Financial Trend Chart from Stats"
+            description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
+            color="bg-red-500/70"
+            linkTo={getChangelogLink("Removed Financial Trend Chart from Stats", "Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component.")}
+          />
+          <ChangelogEntry
+            title="Confirmed Settings Page Expandable Cards"
+            description="Verified that the Settings page (Database) already has full expandable card functionality with row selection, bulk actions, and inline editing. Each section (Products, Retailers, Marketplaces) can be expanded/collapsed with smooth animations, rows are selectable with checkboxes and highlighting, and bulk operations are available."
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Confirmed Settings Page Expandable Cards", "Verified that the Settings page Database already has full expandable card functionality with row selection, bulk actions, and inline editing. Each section Products, Retailers, Marketplaces can be expanded/collapsed with smooth animations, rows are selectable with checkboxes and highlighting, and bulk operations are available.")}
+          />
+          <ChangelogEntry
             title="Implemented Comprehensive Theme System"
             description="Created a unified theme system with consistent colors, components, and styling utilities. Includes pre-built themed components, semantic color mappings, and comprehensive documentation. Ensures all pages have identical styling and makes creating new pages much easier."
             color="bg-blue-500/70"
