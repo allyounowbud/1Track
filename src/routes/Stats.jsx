@@ -409,8 +409,27 @@ function DynamicCharts({ itemGroups = [] }) {
 
 // Single Item Comprehensive Chart
 function SingleItemChart({ item }) {
-  // Calculate unrealized P/L
-  const unrealizedPlC = item.unrealizedPlC || 0;
+  // Get actual order data for this item
+  const { data: orders } = useQuery({
+    queryKey: ["orders"],
+    queryFn: () => supabase.from("orders").select("*").order("created_at", { ascending: false }),
+  });
+
+  // Calculate actual metrics from order book data
+  const itemOrders = orders?.filter(order => order.item === item.item) || [];
+  const totalRevenue = itemOrders.filter(o => o.sale_price).reduce((sum, o) => sum + (o.sale_price || 0), 0);
+  const totalCogs = itemOrders.reduce((sum, o) => sum + (o.cost || 0), 0);
+  const totalSold = itemOrders.filter(o => o.sale_price).length;
+  const totalBought = itemOrders.length;
+  const onHand = itemOrders.filter(o => !o.sale_price).length;
+  
+  // Get market value from database
+  const marketValue = item.marketValueC || 0;
+  const totalMarketValue = onHand * marketValue;
+  
+  // Calculate realized and unrealized P/L
+  const realizedPl = totalRevenue - itemOrders.filter(o => o.sale_price).reduce((sum, o) => sum + (o.cost || 0), 0);
+  const unrealizedPl = totalMarketValue - itemOrders.filter(o => !o.sale_price).reduce((sum, o) => sum + (o.cost || 0), 0);
   
   return (
     <div className="space-y-6">
@@ -418,26 +437,26 @@ function SingleItemChart({ item }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800/50 rounded-xl p-4 text-center">
           <div className="text-sm text-slate-400 mb-1">Total Revenue</div>
-          <div className="text-2xl font-bold text-white mb-1">${centsToStr(item.revenueC)}</div>
-          <div className="text-sm text-slate-400">{item.sold} sales</div>
+          <div className="text-2xl font-bold text-white mb-1">${centsToStr(totalRevenue)}</div>
+          <div className="text-sm text-slate-400">{totalSold} sales</div>
         </div>
         
         <div className="bg-slate-800/50 rounded-xl p-4 text-center">
           <div className="text-sm text-slate-400 mb-1">Total COGS</div>
-          <div className="text-2xl font-bold text-white mb-1">${centsToStr(item.spentC)}</div>
-          <div className="text-sm text-slate-400">{item.bought || 0} bought</div>
+          <div className="text-2xl font-bold text-white mb-1">${centsToStr(totalCogs)}</div>
+          <div className="text-sm text-slate-400">{totalBought} bought</div>
         </div>
         
         <div className="bg-slate-800/50 rounded-xl p-4 text-center">
           <div className="text-sm text-slate-400 mb-1">On Hand</div>
-          <div className="text-2xl font-bold text-white mb-1">{item.onHand}</div>
-          <div className="text-sm text-slate-400">${centsToStr(item.marketValueC || 0)} market value</div>
+          <div className="text-2xl font-bold text-white mb-1">{onHand}</div>
+          <div className="text-sm text-slate-400">${centsToStr(totalMarketValue)} market value</div>
         </div>
         
         <div className="bg-slate-800/50 rounded-xl p-4 text-center">
           <div className="text-sm text-slate-400 mb-1">Realized P/L</div>
-          <div className="text-2xl font-bold text-green-400 mb-1">${centsToStr(item.realizedPlC)}</div>
-          <div className="text-sm text-slate-400">${centsToStr(unrealizedPlC)} unrealized</div>
+          <div className="text-2xl font-bold text-green-400 mb-1">${centsToStr(realizedPl)}</div>
+          <div className="text-sm text-slate-400">${centsToStr(unrealizedPl)} unrealized</div>
         </div>
       </div>
       
@@ -502,41 +521,170 @@ function SingleItemChart({ item }) {
 
 // Financial Trend Line Chart
 function FinancialTrendChart({ item }) {
-  // Create sample data points for the line chart
-  const dataPoints = [
-    { label: 'Cost', value: item.spentC, color: 'red' },
-    { label: 'Revenue', value: item.revenueC, color: 'emerald' },
-    { label: 'Profit', value: item.realizedPlC, color: item.realizedPlC > 0 ? 'emerald' : 'red' }
-  ];
-  
-  const maxValue = Math.max(...dataPoints.map(d => Math.abs(d.value)));
-  
+  // Get actual order data for this item
+  const { data: orders } = useQuery({
+    queryKey: ["orders"],
+    queryFn: () => supabase.from("orders").select("*").order("created_at", { ascending: false }),
+  });
+
+  // Generate monthly data for the last 12 months
+  const generateMonthlyData = () => {
+    const itemOrders = orders?.filter(order => order.item === item.item) || [];
+    const monthlyData = [];
+    
+    // Get last 12 months
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      
+      // Filter orders for this month
+      const monthOrders = itemOrders.filter(order => {
+        const orderDate = new Date(order.created_at);
+        return orderDate.getFullYear() === year && orderDate.getMonth() === month;
+      });
+      
+      // Calculate metrics for this month
+      const cogs = monthOrders.reduce((sum, o) => sum + (o.cost || 0), 0);
+      const revenue = monthOrders.filter(o => o.sale_price).reduce((sum, o) => sum + (o.sale_price || 0), 0);
+      const profit = revenue - monthOrders.filter(o => o.sale_price).reduce((sum, o) => sum + (o.cost || 0), 0);
+      
+      monthlyData.push({
+        month: date.toLocaleDateString('en-US', { month: 'short' }),
+        year: year.toString().slice(-2),
+        cogs,
+        revenue,
+        profit
+      });
+    }
+    
+    return monthlyData;
+  };
+
+  const monthlyData = generateMonthlyData();
+  const maxValue = Math.max(...monthlyData.flatMap(d => [d.cogs, d.revenue, Math.abs(d.profit)]));
+
+  // Helper function to get Y position for a value
+  const getY = (value) => {
+    if (maxValue === 0) return 100;
+    return 100 - (Math.abs(value) / maxValue) * 80;
+  };
+
+  // Helper function to create path for line
+  const createPath = (dataKey, color) => {
+    const points = monthlyData.map((d, i) => {
+      const x = (i / (monthlyData.length - 1)) * 90 + 5; // 5% margin on each side
+      const y = getY(d[dataKey]);
+      return `${x},${y}`;
+    });
+    
+    return `M ${points.join(' L ')}`;
+  };
+
   return (
-    <div className="w-full h-full flex items-end justify-center gap-8 px-4">
-      {dataPoints.map((point, index) => {
-        const height = maxValue > 0 ? (Math.abs(point.value) / maxValue) * 80 : 10;
-        const colorClass = point.color === 'red' ? 'bg-red-500' : 'bg-emerald-500';
+    <div className="w-full h-full relative">
+      {/* SVG for the line chart */}
+      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {/* Grid lines */}
+        {[20, 40, 60, 80].map(y => (
+          <line
+            key={y}
+            x1="5"
+            y1={y}
+            x2="95"
+            y2={y}
+            stroke="rgb(51, 65, 85)"
+            strokeWidth="0.5"
+          />
+        ))}
         
-        return (
-          <div key={index} className="flex flex-col items-center gap-3 flex-1">
-            {/* Value */}
-            <div className="text-sm font-medium text-slate-200">
-              ${centsToStr(point.value)}
-            </div>
-            
-            {/* Line Bar */}
-            <div 
-              className={`w-8 rounded-t transition-all duration-700 ${colorClass}`}
-              style={{ height: `${height}%`, minHeight: '8px' }}
-            />
-            
-            {/* Label */}
-            <div className="text-xs text-slate-400 text-center">
-              {point.label}
-            </div>
+        {/* COGS Line (Red) */}
+        <path
+          d={createPath('cogs', 'red')}
+          fill="none"
+          stroke="rgb(239, 68, 68)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        
+        {/* Revenue Line (Blue) */}
+        <path
+          d={createPath('revenue', 'blue')}
+          fill="none"
+          stroke="rgb(59, 130, 246)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        
+        {/* Profit Line (Green) */}
+        <path
+          d={createPath('profit', 'green')}
+          fill="none"
+          stroke="rgb(34, 197, 94)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        
+        {/* Data points */}
+        {monthlyData.map((d, i) => {
+          const x = (i / (monthlyData.length - 1)) * 90 + 5;
+          return (
+            <g key={i}>
+              {/* COGS point */}
+              <circle
+                cx={x}
+                cy={getY(d.cogs)}
+                r="1"
+                fill="rgb(239, 68, 68)"
+              />
+              {/* Revenue point */}
+              <circle
+                cx={x}
+                cy={getY(d.revenue)}
+                r="1"
+                fill="rgb(59, 130, 246)"
+              />
+              {/* Profit point */}
+              <circle
+                cx={x}
+                cy={getY(d.profit)}
+                r="1"
+                fill="rgb(34, 197, 94)"
+              />
+            </g>
+          );
+        })}
+      </svg>
+      
+      {/* Month labels */}
+      <div className="absolute bottom-0 left-0 right-0 flex justify-between px-2">
+        {monthlyData.map((d, i) => (
+          <div key={i} className="text-xs text-slate-400 text-center">
+            <div>{d.month}</div>
+            <div className="text-xs opacity-60">{d.year}</div>
           </div>
-        );
-      })}
+        ))}
+      </div>
+      
+      {/* Legend */}
+      <div className="absolute top-0 right-0 flex gap-4">
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-0.5 bg-red-500"></div>
+          <span className="text-xs text-slate-400">COGS</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-0.5 bg-blue-500"></div>
+          <span className="text-xs text-slate-400">Revenue</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-0.5 bg-green-500"></div>
+          <span className="text-xs text-slate-400">Profit</span>
+        </div>
+      </div>
     </div>
   );
 }
