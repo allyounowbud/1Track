@@ -194,6 +194,12 @@ export default function Hub() {
           
         <div className="space-y-3">
           <ChangelogEntry
+            title="Implemented Comprehensive Theme System"
+            description="Created a unified theme system with consistent colors, components, and styling utilities. Includes pre-built themed components, semantic color mappings, and comprehensive documentation. Ensures all pages have identical styling and makes creating new pages much easier."
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Implemented Comprehensive Theme System", "Created a unified theme system with consistent colors, components, and styling utilities. Includes pre-built themed components, semantic color mappings, and comprehensive documentation. Ensures all pages have identical styling and makes creating new pages much easier.")}
+          />
+          <ChangelogEntry
             title="Added Icons to Filter Components"
             description="Enhanced Stats page filter inputs with intuitive icons - calendar icon for date/time filters and package icon for product search. Improved visual clarity and user experience across filter components."
             color="bg-blue-500/70"
