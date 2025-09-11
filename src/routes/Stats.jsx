@@ -665,10 +665,10 @@ function FinancialTrendChart({ item, filteredOrders }) {
       
       {/* Chart Container */}
       <div className="w-full h-full relative bg-slate-900/30 rounded-lg p-6">
-        {/* Y-axis labels on the left */}
+        {/* Y-axis labels on the left - CORRECTED: 0 at bottom, max at top */}
         <div className="absolute left-0 top-6 bottom-6 w-12 sm:w-16 flex flex-col justify-between">
-          {[100, 75, 50, 25, 0].map((y, i) => {
-            const value = maxValue > 0 ? Math.round((y / 100) * maxValue) : 0;
+          {[0, 25, 50, 75, 100].map((percentage, i) => {
+            const value = maxValue > 0 ? Math.round((percentage / 100) * maxValue) : 0;
             const dollarValue = Math.round(value / 100); // Convert cents to dollars, no decimals
             return (
               <div key={i} className="text-xs text-slate-400 text-right pr-2">
@@ -694,13 +694,13 @@ function FinancialTrendChart({ item, filteredOrders }) {
               />
             ))}
             
-            {/* COGS Line (Red) */}
+            {/* COGS Line (Red) - CORRECTED: Invert Y coordinate */}
             {monthlyData.length > 1 && (
               <>
                 <path
                   d={monthlyData.map((d, i) => {
                     const x = (i / (monthlyData.length - 1)) * 100;
-                    const y = maxValue > 0 ? ((d.cogs / maxValue) * 100) : 0;
+                    const y = maxValue > 0 ? 100 - ((d.cogs / maxValue) * 100) : 100;
                     return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
                   }).join(' ')}
                   fill="none"
@@ -711,7 +711,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
                 />
                 {monthlyData.map((d, i) => {
                   const x = (i / (monthlyData.length - 1)) * 100;
-                  const y = maxValue > 0 ? ((d.cogs / maxValue) * 100) : 0;
+                  const y = maxValue > 0 ? 100 - ((d.cogs / maxValue) * 100) : 100;
                   return (
                     <circle
                       key={`cogs-${i}`}
@@ -727,13 +727,13 @@ function FinancialTrendChart({ item, filteredOrders }) {
               </>
             )}
             
-            {/* Revenue Line (Blue) */}
+            {/* Revenue Line (Blue) - CORRECTED: Invert Y coordinate */}
             {monthlyData.length > 1 && (
               <>
                 <path
                   d={monthlyData.map((d, i) => {
                     const x = (i / (monthlyData.length - 1)) * 100;
-                    const y = maxValue > 0 ? ((d.revenue / maxValue) * 100) : 0;
+                    const y = maxValue > 0 ? 100 - ((d.revenue / maxValue) * 100) : 100;
                     return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
                   }).join(' ')}
                   fill="none"
@@ -744,7 +744,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
                 />
                 {monthlyData.map((d, i) => {
                   const x = (i / (monthlyData.length - 1)) * 100;
-                  const y = maxValue > 0 ? ((d.revenue / maxValue) * 100) : 0;
+                  const y = maxValue > 0 ? 100 - ((d.revenue / maxValue) * 100) : 100;
                   return (
                     <circle
                       key={`revenue-${i}`}
@@ -760,13 +760,13 @@ function FinancialTrendChart({ item, filteredOrders }) {
               </>
             )}
             
-            {/* Profit Line (Green) */}
+            {/* Profit Line (Green) - CORRECTED: Invert Y coordinate */}
             {monthlyData.length > 1 && (
               <>
                 <path
                   d={monthlyData.map((d, i) => {
                     const x = (i / (monthlyData.length - 1)) * 100;
-                    const y = maxValue > 0 ? ((d.profit / maxValue) * 100) : 0;
+                    const y = maxValue > 0 ? 100 - ((d.profit / maxValue) * 100) : 100;
                     return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
                   }).join(' ')}
                   fill="none"
@@ -777,7 +777,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
                 />
                 {monthlyData.map((d, i) => {
                   const x = (i / (monthlyData.length - 1)) * 100;
-                  const y = maxValue > 0 ? ((d.profit / maxValue) * 100) : 0;
+                  const y = maxValue > 0 ? 100 - ((d.profit / maxValue) * 100) : 100;
                   return (
                     <circle
                       key={`profit-${i}`}
