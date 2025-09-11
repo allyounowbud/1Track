@@ -658,16 +658,11 @@ function FinancialTrendChart({ item, filteredOrders }) {
 
   return (
     <div className="w-full h-96 sm:h-[28rem] lg:h-[32rem] relative">
-      {/* Chart Title */}
-      <div className="text-center mb-4">
-        <h3 className="text-lg font-semibold text-slate-100">Financial Trend</h3>
-      </div>
-      
       {/* Chart Container */}
       <div className="w-full h-full relative bg-slate-900/30 rounded-lg p-6">
-        {/* Y-axis labels on the left - CORRECTED: 0 at bottom, max at top */}
+        {/* Y-axis labels on the left - 0 at bottom, max at top */}
         <div className="absolute left-0 top-6 bottom-6 w-12 sm:w-16 flex flex-col justify-between">
-          {[0, 25, 50, 75, 100].map((percentage, i) => {
+          {[100, 75, 50, 25, 0].map((percentage, i) => {
             const value = maxValue > 0 ? Math.round((percentage / 100) * maxValue) : 0;
             const dollarValue = Math.round(value / 100); // Convert cents to dollars, no decimals
             return (
@@ -690,11 +685,11 @@ function FinancialTrendChart({ item, filteredOrders }) {
                 x2="100"
                 y2={y}
                 stroke="rgb(51, 65, 85)"
-                strokeWidth="0.5"
+                strokeWidth="0.3"
               />
             ))}
             
-            {/* COGS Line (Red) - CORRECTED: Invert Y coordinate */}
+            {/* COGS Line (Red) - Smaller lines and points */}
             {monthlyData.length > 1 && (
               <>
                 <path
@@ -705,7 +700,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
                   }).join(' ')}
                   fill="none"
                   stroke="rgb(239, 68, 68)"
-                  strokeWidth="2"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -717,17 +712,17 @@ function FinancialTrendChart({ item, filteredOrders }) {
                       key={`cogs-${i}`}
                       cx={x}
                       cy={y}
-                      r="2"
+                      r="1.5"
                       fill="rgb(239, 68, 68)"
                       stroke="rgb(15, 23, 42)"
-                      strokeWidth="1"
+                      strokeWidth="0.5"
                     />
                   );
                 })}
               </>
             )}
             
-            {/* Revenue Line (Blue) - CORRECTED: Invert Y coordinate */}
+            {/* Revenue Line (Blue) - Smaller lines and points */}
             {monthlyData.length > 1 && (
               <>
                 <path
@@ -738,7 +733,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
                   }).join(' ')}
                   fill="none"
                   stroke="rgb(59, 130, 246)"
-                  strokeWidth="2"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -750,17 +745,17 @@ function FinancialTrendChart({ item, filteredOrders }) {
                       key={`revenue-${i}`}
                       cx={x}
                       cy={y}
-                      r="2"
+                      r="1.5"
                       fill="rgb(59, 130, 246)"
                       stroke="rgb(15, 23, 42)"
-                      strokeWidth="1"
+                      strokeWidth="0.5"
                     />
                   );
                 })}
               </>
             )}
             
-            {/* Profit Line (Green) - CORRECTED: Invert Y coordinate */}
+            {/* Profit Line (Green) - Smaller lines and points */}
             {monthlyData.length > 1 && (
               <>
                 <path
@@ -771,7 +766,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
                   }).join(' ')}
                   fill="none"
                   stroke="rgb(34, 197, 94)"
-                  strokeWidth="2"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -783,10 +778,10 @@ function FinancialTrendChart({ item, filteredOrders }) {
                       key={`profit-${i}`}
                       cx={x}
                       cy={y}
-                      r="2"
+                      r="1.5"
                       fill="rgb(34, 197, 94)"
                       stroke="rgb(15, 23, 42)"
-                      strokeWidth="1"
+                      strokeWidth="0.5"
                     />
                   );
                 })}
@@ -795,7 +790,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
           </svg>
         </div>
 
-        {/* Month labels at bottom */}
+        {/* X-axis labels at bottom - Months from left to right */}
         <div className="absolute bottom-0 left-12 sm:left-16 right-2 flex justify-between">
           {monthlyData.map((d, i) => (
             <div key={i} className="text-xs text-slate-400 text-center">
