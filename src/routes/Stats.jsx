@@ -45,7 +45,7 @@ async function getItems() {
 
 /* --------------------------------- page --------------------------------- */
 export default function Stats() {
-  const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
 
 
@@ -66,7 +66,7 @@ export default function Stats() {
     timeFilter,
     from: timeFilter === "custom" ? fromStr || null : null,
     to: timeFilter === "custom" ? toStr || null : null,
-    item: itemSearchQuery.trim(),
+    item: itemSearchQuery.trim() || null, // Use null instead of empty string for no filter
   }), [timeFilter, fromStr, toStr, itemSearchQuery]);
 
   const { fromMs, toMs } = useMemo(() => {
@@ -108,10 +108,11 @@ export default function Stats() {
 
   /* ---------- filtered orders by time + item ---------- */
   const filtered = useMemo(() => {
-    const itemQuery = (applied.item || "").toLowerCase();
-    const useItem = !!itemQuery;
+    const itemQuery = applied.item ? applied.item.toLowerCase() : "";
+    const useItem = !!applied.item; // Only filter by item if item is actually selected
     const ordersArray = Array.isArray(orders) ? orders : [];
-    return ordersArray.filter((o) => {
+    
+    const result = ordersArray.filter((o) => {
       const matchesItem = !useItem || (o.item || "").toLowerCase().includes(itemQuery);
       const anyInWindow =
         within(o.order_date, fromMs, toMs) ||
@@ -119,6 +120,8 @@ export default function Stats() {
         (!fromMs && !toMs);
       return matchesItem && anyInWindow;
     });
+    
+    return result;
   }, [orders, applied, fromMs, toMs]);
 
   /* ------------------------------- KPIs -------------------------------- */
