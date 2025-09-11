@@ -194,6 +194,12 @@ export default function Hub() {
           
         <div className="space-y-3">
           <ChangelogEntry
+            title="Fixed Financial Trend Chart Display"
+            description="Resolved chart rendering issues - chart now correctly displays COGS (red), Revenue (blue), and Profit (green) lines with proper date ranges and positive values. Chart shows monthly financial trends from first order to last sale date."
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Fixed Financial Trend Chart Display", "Resolved chart rendering issues - chart now correctly displays COGS red Revenue blue and Profit green lines with proper date ranges and positive values. Chart shows monthly financial trends from first order to last sale date.")}
+          />
+          <ChangelogEntry
             title="Made Changelog Entries Clickable"
             description="Added navigation functionality to changelog entries - click any entry to go directly to the page where the changes were made. Smart routing based on content type (stats, orders, emails, etc.)"
             color="bg-yellow-400/70"

@@ -553,36 +553,16 @@ function FinancialTrendChart({ item, filteredOrders }) {
     }
     
     // Get all order dates and sale dates
-    console.log('Debug - Raw order_date values:', itemOrders.map(o => o.order_date));
-    console.log('Debug - Raw sale_date values:', itemOrders.map(o => o.sale_date));
-    
-    const orderDates = itemOrders.map(order => {
-      const parsed = new Date(order.order_date);
-      console.log(`Debug - Parsing order_date "${order.order_date}" -> ${parsed.toISOString()}`);
-      return parsed;
-    }).filter(date => !isNaN(date.getTime()));
+    const orderDates = itemOrders.map(order => new Date(order.order_date)).filter(date => !isNaN(date.getTime()));
     
     const saleDates = itemOrders.map(order => {
       // Skip null, undefined, or empty sale dates
       if (!order.sale_date || order.sale_date === 'null' || order.sale_date.trim() === '') {
-        console.log(`Debug - Skipping null/empty sale_date: "${order.sale_date}"`);
         return null;
       }
       const parsed = new Date(order.sale_date);
-      console.log(`Debug - Parsing sale_date "${order.sale_date}" -> ${parsed.toISOString()}`);
       return parsed;
     }).filter(date => date !== null && !isNaN(date.getTime()));
-    
-    console.log('Debug - Item Orders:', itemOrders.map(o => ({
-      item: o.item,
-      order_date: o.order_date,
-      sale_date: o.sale_date,
-      buy_price_cents: o.buy_price_cents,
-      sale_price_cents: o.sale_price_cents
-    })));
-    
-    console.log('Debug - Order Dates:', orderDates);
-    console.log('Debug - Sale Dates:', saleDates);
     
     // Find the date range from first order to last sale
     const allDates = [...orderDates, ...saleDates];
@@ -590,8 +570,6 @@ function FinancialTrendChart({ item, filteredOrders }) {
     
     const minDate = new Date(Math.min(...allDates));
     const maxDate = new Date(Math.max(...allDates));
-    
-    console.log('Debug - Date Range:', { minDate, maxDate, allDatesCount: allDates.length });
     
     const monthlyData = [];
     const currentDate = new Date(minDate);
@@ -630,42 +608,22 @@ function FinancialTrendChart({ item, filteredOrders }) {
         profit: realizedProfit
       });
       
-      console.log(`Debug - Month ${year}-${month + 1}:`, {
-        month: currentDate.toLocaleDateString('en-US', { month: 'short' }),
-        year: year.toString().slice(-2),
-        cogs,
-        revenue,
-        profit: realizedProfit,
-        rawProfit: profit,
-        orderDates: monthOrderDates.length,
-        saleDates: monthSaleDates.length,
-        orderDatesRaw: monthOrderDates.map(o => ({ date: o.order_date, price: o.buy_price_cents })),
-        saleDatesRaw: monthSaleDates.map(o => ({ date: o.sale_date, price: o.sale_price_cents }))
-      });
       
       // Move to next month
       currentDate.setMonth(currentDate.getMonth() + 1);
     }
     
-    console.log('Debug - Final Monthly Data:', monthlyData);
     return monthlyData;
   };
 
   const monthlyData = generateMonthlyData();
   const maxValue = monthlyData.length > 0 ? Math.max(...monthlyData.flatMap(d => [d.cogs, d.revenue, Math.abs(d.profit)])) : 1000;
   
-  console.log('Debug - Monthly Data Summary:', {
-    monthlyDataLength: monthlyData.length,
-    maxValue,
-    monthlyDataValues: monthlyData.map(d => ({ month: `${d.month} ${d.year}`, cogs: d.cogs, revenue: d.revenue, profit: d.profit }))
-  });
 
   // Helper function to get Y position for a value
   const getY = (value) => {
     if (maxValue === 0) return 100;
-    const yPos = 100 - (Math.abs(value) / maxValue) * 80;
-    console.log(`Debug - getY(${value}) with maxValue=${maxValue} -> ${yPos}`);
-    return yPos;
+    return 100 - (Math.abs(value) / maxValue) * 80;
   };
 
   // Helper function to create path for line
@@ -675,13 +633,10 @@ function FinancialTrendChart({ item, filteredOrders }) {
     const points = monthlyData.map((d, i) => {
       const x = monthlyData.length > 1 ? (i / (monthlyData.length - 1)) * 100 : 50;
       const y = getY(d[dataKey]);
-      console.log(`Debug - createPath ${dataKey}[${i}]: x=${x}, y=${y}, value=${d[dataKey]}`);
       return `${x},${y}`;
     });
     
-    const pathString = `M ${points.join(' L ')}`;
-    console.log(`Debug - createPath ${dataKey} result:`, pathString);
-    return pathString;
+    return `M ${points.join(' L ')}`;
   };
 
   return (
