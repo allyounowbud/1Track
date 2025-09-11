@@ -657,25 +657,29 @@ function FinancialTrendChart({ item, filteredOrders }) {
   };
 
   return (
-    <div className="w-full h-96 sm:h-[28rem] lg:h-[32rem] relative">
+    <div className="w-full h-80 sm:h-96 lg:h-[24rem] relative">
       {/* Chart Container */}
-      <div className="w-full h-full relative bg-slate-900/30 rounded-lg p-6">
+      <div className="w-full h-full relative bg-slate-900/30 rounded-lg p-4 overflow-hidden">
         {/* Y-axis labels on the left - 0 at bottom, max at top */}
-        <div className="absolute left-0 top-6 bottom-6 w-12 sm:w-16 flex flex-col justify-between">
+        <div className="absolute left-0 top-4 bottom-4 w-10 sm:w-12 flex flex-col justify-between">
           {[100, 75, 50, 25, 0].map((percentage, i) => {
             const value = maxValue > 0 ? Math.round((percentage / 100) * maxValue) : 0;
             const dollarValue = Math.round(value / 100); // Convert cents to dollars, no decimals
             return (
-              <div key={i} className="text-xs text-slate-400 text-right pr-2">
+              <div key={i} className="text-xs text-slate-400 text-right pr-1">
                 ${dollarValue}
               </div>
             );
           })}
         </div>
 
-        {/* Chart area with proper margins */}
-        <div className="ml-12 sm:ml-16 mr-2 mt-6 mb-6 h-full">
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {/* Chart area with proper margins - RESPONSIVE */}
+        <div className="ml-10 sm:ml-12 mr-2 mt-4 mb-4 h-full">
+          <svg 
+            className="w-full h-full" 
+            viewBox="0 0 100 100" 
+            preserveAspectRatio="xMidYMid meet"
+          >
             {/* Grid lines */}
             {[0, 25, 50, 75, 100].map(y => (
               <line
@@ -685,11 +689,11 @@ function FinancialTrendChart({ item, filteredOrders }) {
                 x2="100"
                 y2={y}
                 stroke="rgb(51, 65, 85)"
-                strokeWidth="0.3"
+                strokeWidth="0.2"
               />
             ))}
             
-            {/* COGS Line (Red) - Smaller lines and points */}
+            {/* COGS Line (Red) - Responsive sizing */}
             {monthlyData.length > 1 && (
               <>
                 <path
@@ -700,7 +704,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
                   }).join(' ')}
                   fill="none"
                   stroke="rgb(239, 68, 68)"
-                  strokeWidth="1.5"
+                  strokeWidth="1"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -712,17 +716,17 @@ function FinancialTrendChart({ item, filteredOrders }) {
                       key={`cogs-${i}`}
                       cx={x}
                       cy={y}
-                      r="1.5"
+                      r="1"
                       fill="rgb(239, 68, 68)"
                       stroke="rgb(15, 23, 42)"
-                      strokeWidth="0.5"
+                      strokeWidth="0.3"
                     />
                   );
                 })}
               </>
             )}
             
-            {/* Revenue Line (Blue) - Smaller lines and points */}
+            {/* Revenue Line (Blue) - Responsive sizing */}
             {monthlyData.length > 1 && (
               <>
                 <path
@@ -733,7 +737,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
                   }).join(' ')}
                   fill="none"
                   stroke="rgb(59, 130, 246)"
-                  strokeWidth="1.5"
+                  strokeWidth="1"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -745,17 +749,17 @@ function FinancialTrendChart({ item, filteredOrders }) {
                       key={`revenue-${i}`}
                       cx={x}
                       cy={y}
-                      r="1.5"
+                      r="1"
                       fill="rgb(59, 130, 246)"
                       stroke="rgb(15, 23, 42)"
-                      strokeWidth="0.5"
+                      strokeWidth="0.3"
                     />
                   );
                 })}
               </>
             )}
             
-            {/* Profit Line (Green) - Smaller lines and points */}
+            {/* Profit Line (Green) - Responsive sizing */}
             {monthlyData.length > 1 && (
               <>
                 <path
@@ -766,7 +770,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
                   }).join(' ')}
                   fill="none"
                   stroke="rgb(34, 197, 94)"
-                  strokeWidth="1.5"
+                  strokeWidth="1"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -778,10 +782,10 @@ function FinancialTrendChart({ item, filteredOrders }) {
                       key={`profit-${i}`}
                       cx={x}
                       cy={y}
-                      r="1.5"
+                      r="1"
                       fill="rgb(34, 197, 94)"
                       stroke="rgb(15, 23, 42)"
-                      strokeWidth="0.5"
+                      strokeWidth="0.3"
                     />
                   );
                 })}
@@ -791,7 +795,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
         </div>
 
         {/* X-axis labels at bottom - Months from left to right */}
-        <div className="absolute bottom-0 left-12 sm:left-16 right-2 flex justify-between">
+        <div className="absolute bottom-0 left-10 sm:left-12 right-2 flex justify-between">
           {monthlyData.map((d, i) => (
             <div key={i} className="text-xs text-slate-400 text-center">
               {d.month} {d.year}
@@ -800,17 +804,17 @@ function FinancialTrendChart({ item, filteredOrders }) {
         </div>
 
         {/* Legend */}
-        <div className="absolute top-2 right-2 flex gap-4">
+        <div className="absolute top-2 right-2 flex gap-3">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-0.5 bg-red-500"></div>
+            <div className="w-2 h-0.5 bg-red-500"></div>
             <span className="text-xs text-slate-400">COGS</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-0.5 bg-blue-500"></div>
+            <div className="w-2 h-0.5 bg-blue-500"></div>
             <span className="text-xs text-slate-400">Revenue</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-0.5 bg-green-500"></div>
+            <div className="w-2 h-0.5 bg-green-500"></div>
             <span className="text-xs text-slate-400">Profit</span>
           </div>
         </div>
