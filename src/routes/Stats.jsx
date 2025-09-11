@@ -416,7 +416,7 @@ function SingleItemChart({ item }) {
   });
 
   // Calculate actual metrics from order book data
-  const itemOrders = orders?.filter(order => order.item === item.item) || [];
+  const itemOrders = (orders || []).filter(order => order.item === item.item);
   const totalRevenue = itemOrders.filter(o => o.sale_price).reduce((sum, o) => sum + (o.sale_price || 0), 0);
   const totalCogs = itemOrders.reduce((sum, o) => sum + (o.cost || 0), 0);
   const totalSold = itemOrders.filter(o => o.sale_price).length;
@@ -529,7 +529,7 @@ function FinancialTrendChart({ item }) {
 
   // Generate monthly data for the last 12 months
   const generateMonthlyData = () => {
-    const itemOrders = orders?.filter(order => order.item === item.item) || [];
+    const itemOrders = (orders || []).filter(order => order.item === item.item);
     const monthlyData = [];
     
     // Get last 12 months
@@ -563,7 +563,7 @@ function FinancialTrendChart({ item }) {
   };
 
   const monthlyData = generateMonthlyData();
-  const maxValue = Math.max(...monthlyData.flatMap(d => [d.cogs, d.revenue, Math.abs(d.profit)]));
+  const maxValue = monthlyData.length > 0 ? Math.max(...monthlyData.flatMap(d => [d.cogs, d.revenue, Math.abs(d.profit)])) : 0;
 
   // Helper function to get Y position for a value
   const getY = (value) => {
