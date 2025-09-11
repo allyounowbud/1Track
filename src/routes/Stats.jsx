@@ -563,10 +563,15 @@ function FinancialTrendChart({ item, filteredOrders }) {
     }).filter(date => !isNaN(date.getTime()));
     
     const saleDates = itemOrders.map(order => {
+      // Skip null, undefined, or empty sale dates
+      if (!order.sale_date || order.sale_date === 'null' || order.sale_date.trim() === '') {
+        console.log(`Debug - Skipping null/empty sale_date: "${order.sale_date}"`);
+        return null;
+      }
       const parsed = new Date(order.sale_date);
       console.log(`Debug - Parsing sale_date "${order.sale_date}" -> ${parsed.toISOString()}`);
       return parsed;
-    }).filter(date => !isNaN(date.getTime()));
+    }).filter(date => date !== null && !isNaN(date.getTime()));
     
     console.log('Debug - Item Orders:', itemOrders.map(o => ({
       item: o.item,
