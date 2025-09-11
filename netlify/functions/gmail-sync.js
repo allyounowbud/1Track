@@ -1156,7 +1156,7 @@ exports.handler = async (event) => {
     
       // Step 1: Process order confirmations first
       console.log("Step 1: Processing order confirmations...");
-      for (const id of ids) {
+    for (const id of ids) {
       if (Date.now() - startTime > maxDuration) {
         console.log(`Timeout approaching, stopping at ${processed}/${ids.length} messages`);
         break;

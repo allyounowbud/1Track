@@ -384,7 +384,7 @@ function DynamicCharts({ itemGroups = [] }) {
           <span className="text-indigo-400">📊</span>
           Comprehensive Analysis: {itemGroups[0].item}
         </h4>
-        <SingleItemChart item={itemGroups[0]} />
+        <SingleItemChart item={itemGroups[0]} filteredOrders={filtered} />
     </div>
   );
 }
@@ -418,15 +418,9 @@ function DynamicCharts({ itemGroups = [] }) {
 }
 
 // Single Item Comprehensive Chart
-function SingleItemChart({ item }) {
-  // Get actual order data for this item
-  const { data: orders } = useQuery({
-    queryKey: ["orders"],
-    queryFn: () => supabase.from("orders").select("*").order("created_at", { ascending: false }),
-  });
-
-  // Calculate actual metrics from order book data
-  const ordersArray = Array.isArray(orders) ? orders : [];
+function SingleItemChart({ item, filteredOrders }) {
+  // Use the already filtered orders data instead of making a new query
+  const ordersArray = Array.isArray(filteredOrders) ? filteredOrders : [];
   const itemOrders = ordersArray.filter(order => order.item === item.item);
   const totalRevenue = itemOrders.filter(o => cents(o.sale_price_cents) > 0).reduce((sum, o) => sum + cents(o.sale_price_cents), 0);
   const totalCogs = itemOrders.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
@@ -525,7 +519,7 @@ function SingleItemChart({ item }) {
       <div className="bg-slate-800/50 rounded-xl p-6">
         <h5 className="text-lg font-medium text-slate-300 mb-6 text-center">Financial Trend</h5>
         <div className="h-64">
-          <FinancialTrendChart item={item} />
+          <FinancialTrendChart item={item} filteredOrders={ordersArray} />
         </div>
       </div>
     </div>
@@ -533,16 +527,10 @@ function SingleItemChart({ item }) {
 }
 
 // Financial Trend Line Chart
-function FinancialTrendChart({ item }) {
-  // Get actual order data for this item
-  const { data: orders } = useQuery({
-    queryKey: ["orders"],
-    queryFn: () => supabase.from("orders").select("*").order("created_at", { ascending: false }),
-  });
-
-  // Generate monthly data for the last 12 months
+function FinancialTrendChart({ item, filteredOrders }) {
+  // Use the already filtered orders data instead of making a new query
   const generateMonthlyData = () => {
-    const ordersArray = Array.isArray(orders) ? orders : [];
+    const ordersArray = Array.isArray(filteredOrders) ? filteredOrders : [];
     const itemOrders = ordersArray.filter(order => order.item === item.item);
     const monthlyData = [];
     
