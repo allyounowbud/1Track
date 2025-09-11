@@ -8,6 +8,19 @@ import { card, inputBase, rowCard } from "../utils/ui.js";
 import { Select } from "../components/Select.jsx";
 import { SearchDropdown } from "../components/SearchDropdown.jsx";
 
+// Icons
+const CalendarIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clipRule="evenodd" />
+  </svg>
+);
+
+const PackageIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M10.5 1.75a.75.75 0 00-1 0L8.25 3H6.5a3 3 0 00-3 3v8a3 3 0 003 3h7a3 3 0 003-3V6a3 3 0 00-3-3h-1.75l-1.25-1.25zM8.25 4.5L9.5 3.25 10.75 4.5H8.25zM6.5 4.5h7a1.5 1.5 0 011.5 1.5v8a1.5 1.5 0 01-1.5 1.5h-7a1.5 1.5 0 01-1.5-1.5v-8a1.5 1.5 0 011.5-1.5z" />
+  </svg>
+);
+
 /* ----------------------------- data helpers ---------------------------- */
 const cents = (n) => Math.round(Number(n || 0));
 const pctStr = (p) => (Number.isFinite(p) ? `${(p * 100).toFixed(0)}%` : "—");
@@ -168,6 +181,7 @@ export default function Stats() {
                 { value: "custom", label: "Custom range" },
               ]}
               placeholder="All time"
+              icon={<CalendarIcon />}
             />
 
             {/* Custom date range */}
@@ -197,6 +211,7 @@ export default function Stats() {
               options={itemOptions}
               placeholder="All products"
               label=""
+              icon={<PackageIcon />}
               onSelect={setItemSearchQuery}
               getOptionLabel={(option) => option}
               getOptionValue={(option) => option}

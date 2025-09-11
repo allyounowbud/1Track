@@ -194,6 +194,12 @@ export default function Hub() {
           
         <div className="space-y-3">
           <ChangelogEntry
+            title="Added Icons to Filter Components"
+            description="Enhanced Stats page filter inputs with intuitive icons - calendar icon for date/time filters and package icon for product search. Improved visual clarity and user experience across filter components."
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Added Icons to Filter Components", "Enhanced Stats page filter inputs with intuitive icons - calendar icon for date/time filters and package icon for product search. Improved visual clarity and user experience across filter components.")}
+          />
+          <ChangelogEntry
             title="Fixed Financial Trend Chart Display"
             description="Resolved chart rendering issues - chart now correctly displays COGS (red), Revenue (blue), and Profit (green) lines with proper date ranges and positive values. Chart shows monthly financial trends from first order to last sale date."
             color="bg-blue-500/70"

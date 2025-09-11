@@ -7,6 +7,7 @@ export const SearchDropdown = ({
   options, 
   placeholder = "Type to search…", 
   label = "Search",
+  icon,
   getOptionLabel = (option) => option.label || option.name || option,
   getOptionValue = (option) => option.value || option.id || option,
   filterOptions = (options, search) => {
@@ -63,12 +64,17 @@ export const SearchDropdown = ({
       <label className="text-slate-300 mb-1 block text-sm">{label}</label>
       <div ref={boxRef} className="relative">
         <div className="relative">
+          {icon && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+              {icon}
+            </div>
+          )}
           <input
             value={selected ? getOptionLabel(selected) : search}
             onChange={handleInputChange}
             onFocus={() => setDropdownOpen(true)}
             placeholder={placeholder}
-            className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
+            className={`w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 ${icon ? 'pl-10' : 'px-4'}`}
           />
           {(search || selected) && (
             <button

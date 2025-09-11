@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { inputBase } from "../utils/ui.js";
 
-export const Select = ({ value, onChange, options, placeholder = "Select…", className = "" }) => {
+export const Select = ({ value, onChange, options, placeholder = "Select…", className = "", icon }) => {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -23,9 +23,16 @@ export const Select = ({ value, onChange, options, placeholder = "Select…", cl
         onClick={() => setOpen((v) => !v)}
         className={`${inputBase} flex items-center justify-between`}
       >
-        <span className={current ? "" : "text-slate-400"}>
-          {current ? current.label : placeholder}
-        </span>
+        <div className="flex items-center gap-2">
+          {icon && (
+            <div className="text-slate-400">
+              {icon}
+            </div>
+          )}
+          <span className={current ? "" : "text-slate-400"}>
+            {current ? current.label : placeholder}
+          </span>
+        </div>
         <svg className="w-4 h-4 opacity-70" viewBox="0 0 20 20" fill="currentColor">
           <path d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" />
         </svg>
