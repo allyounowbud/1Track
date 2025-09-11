@@ -617,14 +617,15 @@ function FinancialTrendChart({ item, filteredOrders }) {
   };
 
   const monthlyData = generateMonthlyData();
-  const maxValue = monthlyData.length > 0 ? Math.max(...monthlyData.flatMap(d => [d.cogs, d.revenue, Math.abs(d.profit)])) : 1000;
+  const maxValue = monthlyData.length > 0 ? Math.max(...monthlyData.flatMap(d => [d.cogs, d.revenue, d.profit])) : 1000;
   
 
   // Helper function to get Y position for a value
   const getY = (value) => {
-    if (maxValue === 0) return 100;
-    // Map value from 0-maxValue to 90-10 (leaving 10% margin at top and bottom)
-    return 90 - ((value / maxValue) * 80);
+    if (maxValue === 0) return 90; // Default to bottom of chart area
+    // Ensure value is never negative and map from 0-maxValue to 90-10
+    const safeValue = Math.max(0, value);
+    return 90 - ((safeValue / maxValue) * 80);
   };
 
   // Helper function to create path for line
@@ -645,12 +646,12 @@ function FinancialTrendChart({ item, filteredOrders }) {
       {/* Y-axis labels on the left */}
       <div className="absolute left-0 top-0 bottom-0 w-16 flex flex-col justify-between py-4">
         {[0, 25, 50, 75, 100].map((y, i) => {
-          // Map from 10-90 range back to 0-maxValue for labels
-          const value = maxValue > 0 ? Math.round(((90 - y) / 80) * maxValue) : 0;
+          // Map from 10-90 range back to 0-maxValue for labels, ensuring no negative values
+          const value = maxValue > 0 ? Math.max(0, Math.round(((90 - y) / 80) * maxValue)) : 0;
           return (
             <div key={i} className="text-xs text-slate-400 text-right pr-2">
               ${centsToStr(value)}
-          </div>
+            </div>
           );
         })}
       </div>
