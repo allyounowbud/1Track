@@ -657,110 +657,130 @@ function FinancialTrendChart({ item, filteredOrders }) {
   };
 
   return (
-    <div className="w-full h-full relative">
-      {/* Y-axis labels on the left */}
-      <div className="absolute left-0 top-0 bottom-0 w-16 flex flex-col justify-between py-4">
-        {[0, 25, 50, 75, 100].map((y, i) => {
-          const value = maxValue > 0 ? Math.round((y / 100) * maxValue) : 0;
-          return (
-            <div key={i} className="text-xs text-slate-400 text-right pr-2">
-              ${centsToStr(value)}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Chart area */}
-      <div className="ml-16 mr-4">
-        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {/* Grid lines */}
-          {[0, 25, 50, 75, 100].map(y => (
-            <line
-              key={y}
-              x1="0"
-              y1={y}
-              x2="100"
-              y2={y}
-              stroke="rgb(51, 65, 85)"
-              strokeWidth="0.5"
-            />
-          ))}
-          
-          {/* Stacked bars for each month */}
-          {monthlyData.map((d, i) => {
-            const barWidth = monthlyData.length > 1 ? 80 / monthlyData.length : 80;
-            const barX = monthlyData.length > 1 ? (i / monthlyData.length) * 80 + 10 : 10;
-            
-            // Calculate heights as percentages of max value
-            const cogsHeight = maxValue > 0 ? (d.cogs / maxValue) * 80 : 0;
-            const revenueHeight = maxValue > 0 ? (d.revenue / maxValue) * 80 : 0;
-            const profitHeight = maxValue > 0 ? (d.profit / maxValue) * 80 : 0;
-            
+    <div className="w-full h-64 sm:h-72 lg:h-80 relative bg-slate-900/30 rounded-lg p-4 overflow-hidden">
+      {/* Chart Container with proper boundaries */}
+      <div className="w-full h-full relative">
+        {/* Y-axis labels on the left */}
+        <div className="absolute left-0 top-0 bottom-8 w-12 sm:w-16 flex flex-col justify-between">
+          {[0, 25, 50, 75, 100].map((y, i) => {
+            const value = maxValue > 0 ? Math.round((y / 100) * maxValue) : 0;
             return (
-              <g key={i}>
-                {/* COGS bar (bottom, red) */}
-                {cogsHeight > 0 && (
-                  <rect
-                    x={barX}
-                    y={100 - cogsHeight}
-                    width={barWidth}
-                    height={cogsHeight}
-                    fill="rgb(239, 68, 68)"
-                    opacity="0.8"
-                  />
-                )}
-                
-                {/* Revenue bar (middle, blue) */}
-                {revenueHeight > 0 && (
-                  <rect
-                    x={barX}
-                    y={100 - cogsHeight - revenueHeight}
-                    width={barWidth}
-                    height={revenueHeight}
-                    fill="rgb(59, 130, 246)"
-                    opacity="0.8"
-                  />
-                )}
-                
-                {/* Profit bar (top, green) */}
-                {profitHeight > 0 && (
-                  <rect
-                    x={barX}
-                    y={100 - cogsHeight - revenueHeight - profitHeight}
-                    width={barWidth}
-                    height={profitHeight}
-                    fill="rgb(34, 197, 94)"
-                    opacity="0.8"
-                  />
-                )}
-              </g>
+              <div key={i} className="text-xs text-slate-400 text-right pr-2">
+                ${centsToStr(value)}
+              </div>
             );
           })}
-        </svg>
-      </div>
-      
-      {/* Month labels at bottom */}
-      <div className="absolute bottom-0 left-16 right-4 flex justify-between">
-        {monthlyData.map((d, i) => (
-          <div key={i} className="text-xs text-slate-400 text-center">
-            <div>{d.month} {d.year}</div>
+        </div>
+
+        {/* Chart area with proper margins and boundaries */}
+        <div className="ml-12 sm:ml-16 mr-2 mt-2 mb-8 h-full">
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {/* Grid lines - properly contained */}
+            {[0, 25, 50, 75, 100].map(y => (
+              <line
+                key={y}
+                x1="5"
+                y1={y}
+                x2="95"
+                y2={y}
+                stroke="rgb(51, 65, 85)"
+                strokeWidth="0.5"
+              />
+            ))}
+            
+            {/* Vertical grid lines for months */}
+            {monthlyData.map((_, i) => {
+              const x = 5 + (i / Math.max(1, monthlyData.length - 1)) * 90;
+              return (
+                <line
+                  key={i}
+                  x1={x}
+                  y1="0"
+                  x2={x}
+                  y2="100"
+                  stroke="rgb(51, 65, 85)"
+                  strokeWidth="0.25"
+                />
+              );
+            })}
+            
+            {/* Bars for each month - properly scaled and contained */}
+            {monthlyData.map((d, i) => {
+              const barCount = monthlyData.length;
+              const barWidth = barCount > 1 ? 70 / barCount : 50;
+              const barX = barCount > 1 ? 15 + (i / Math.max(1, barCount - 1)) * 70 : 25;
+              
+              // Calculate heights as percentages of max value, capped at 80%
+              const cogsHeight = maxValue > 0 ? Math.min((d.cogs / maxValue) * 80, 80) : 0;
+              const revenueHeight = maxValue > 0 ? Math.min((d.revenue / maxValue) * 80, 80) : 0;
+              const profitHeight = maxValue > 0 ? Math.min((d.profit / maxValue) * 80, 80) : 0;
+              
+              return (
+                <g key={i}>
+                  {/* COGS bar (bottom, red) */}
+                  {cogsHeight > 0 && (
+                    <rect
+                      x={barX}
+                      y={100 - cogsHeight}
+                      width={barWidth}
+                      height={Math.max(cogsHeight, 0.5)}
+                      fill="rgb(239, 68, 68)"
+                      opacity="0.8"
+                    />
+                  )}
+                  
+                  {/* Revenue bar (middle, blue) */}
+                  {revenueHeight > 0 && (
+                    <rect
+                      x={barX}
+                      y={100 - cogsHeight - revenueHeight}
+                      width={barWidth}
+                      height={Math.max(revenueHeight, 0.5)}
+                      fill="rgb(59, 130, 246)"
+                      opacity="0.8"
+                    />
+                  )}
+                  
+                  {/* Profit bar (top, green) */}
+                  {profitHeight > 0 && (
+                    <rect
+                      x={barX}
+                      y={100 - cogsHeight - revenueHeight - profitHeight}
+                      width={barWidth}
+                      height={Math.max(profitHeight, 0.5)}
+                      fill="rgb(34, 197, 94)"
+                      opacity="0.8"
+                    />
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
+        {/* Month labels at bottom - properly positioned */}
+        <div className="absolute bottom-0 left-12 sm:left-16 right-2 flex justify-between">
+          {monthlyData.map((d, i) => (
+            <div key={i} className="text-xs text-slate-400 text-center">
+              {d.month} {d.year}
+            </div>
+          ))}
+        </div>
+
+        {/* Legend - properly positioned */}
+        <div className="absolute top-2 right-2 flex flex-col sm:flex-row gap-2 bg-slate-900/90 rounded-lg px-2 py-1">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-red-500/80 rounded"></div>
+            <span className="text-xs text-slate-400">COGS</span>
           </div>
-        ))}
-      </div>
-      
-      {/* Legend */}
-      <div className="absolute top-2 right-4 flex gap-4">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-red-500/80"></div>
-          <span className="text-xs text-slate-400">COGS</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-blue-500/80"></div>
-          <span className="text-xs text-slate-400">Revenue</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-green-500/80"></div>
-          <span className="text-xs text-slate-400">Profit</span>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-blue-500/80 rounded"></div>
+            <span className="text-xs text-slate-400">Revenue</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-500/80 rounded"></div>
+            <span className="text-xs text-slate-400">Profit</span>
+          </div>
         </div>
       </div>
     </div>
