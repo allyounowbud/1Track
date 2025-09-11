@@ -46,38 +46,141 @@ export default function Settings() {
     queryFn: getMarkets,
   });
 
-  // Single card expansion - only one can be open at a time
-  const [openCard, setOpenCard] = useState(null); // 'items', 'retailers', 'markets', or null
+  // OrderBook-style state management
+  const [selectedRows, setSelectedRows] = useState(new Set());
+  const [bulkActionsVisible, setBulkActionsVisible] = useState(false);
+  const [newRows, setNewRows] = useState([]); // Array of temporary new rows
+  const [nextNewRowId, setNextNewRowId] = useState(-1); // Negative IDs for new rows
 
-  // Bulk selection state for each card
-  const [selectedItems, setSelectedItems] = useState(new Set());
-  const [selectedRetailers, setSelectedRetailers] = useState(new Set());
-  const [selectedMarkets, setSelectedMarkets] = useState(new Set());
+  // Update bulk actions visibility when selection changes
+  useEffect(() => {
+    setBulkActionsVisible(selectedRows.size > 0);
+  }, [selectedRows]);
 
-  // temp rows when adding - none needed now
+  // Helper function to check if there are new rows in the system
+  const hasNewRows = newRows.length > 0;
 
-  // Helper functions for single card expansion
-  const openItems = openCard === 'items';
-  const openRetailers = openCard === 'retailers';
-  const openMarkets = openCard === 'markets';
-
-  const toggleCard = (cardName) => {
-    if (openCard === cardName) {
-      setOpenCard(null);
-      // Clear selections when closing
-      if (cardName === 'items') setSelectedItems(new Set());
-      if (cardName === 'retailers') setSelectedRetailers(new Set());
-      if (cardName === 'markets') setSelectedMarkets(new Set());
+  /* ----- OrderBook-style Bulk Operations ----- */
+  function toggleRowSelection(rowId) {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(rowId)) {
+      // Check if this is a new row - prevent deselection
+      const isNewRow = rowId < 0;
+      if (isNewRow) {
+        return; // Don't allow deselection of new rows
+      }
+      newSelected.delete(rowId);
     } else {
-      setOpenCard(cardName);
-      // Clear other selections when opening a new card
-      setSelectedItems(new Set());
-      setSelectedRetailers(new Set());
-      setSelectedMarkets(new Set());
+      // If there are new rows, clear all selections first
+      if (hasNewRows) {
+        setSelectedRows(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
     }
-  };
+    setSelectedRows(newSelected);
+  }
 
-  /* ----- Bulk Operations ----- */
+  function toggleAllSelection() {
+    if (selectedRows.size === (items.length + retailers.length + markets.length)) {
+      // Check if there are new rows - prevent deselection
+      if (hasNewRows) {
+        return;
+      }
+      setSelectedRows(new Set());
+    } else {
+      // Select all existing rows
+      const allIds = [
+        ...items.map(item => item.id),
+        ...retailers.map(retailer => retailer.id),
+        ...markets.map(market => market.id)
+      ];
+      setSelectedRows(new Set(allIds));
+    }
+  }
+
+  async function bulkSaveSelected() {
+    if (selectedRows.size === 0) return;
+    
+    try {
+      // For now, just show a message since we need to collect form data
+      alert(`Saving ${selectedRows.size} selected items...`);
+      setSelectedRows(new Set());
+    } catch (e) {
+      alert(`Failed to save: ${e.message}`);
+    }
+  }
+
+  async function bulkDeleteSelected() {
+    if (!confirm(`Are you sure you want to delete ${selectedRows.size} item(s)?`)) {
+      return;
+    }
+
+    try {
+      const selectedIds = Array.from(selectedRows).filter(id => id > 0); // Only existing items
+      
+      if (selectedIds.length > 0) {
+        // Delete items
+        const itemIds = selectedIds.filter(id => items.some(item => item.id === id));
+        if (itemIds.length > 0) {
+          const { error: itemsError } = await supabase
+            .from("items")
+            .delete()
+            .in("id", itemIds);
+          if (itemsError) throw itemsError;
+        }
+
+        // Delete retailers
+        const retailerIds = selectedIds.filter(id => retailers.some(retailer => retailer.id === id));
+        if (retailerIds.length > 0) {
+          const { error: retailersError } = await supabase
+            .from("retailers")
+            .delete()
+            .in("id", retailerIds);
+          if (retailersError) throw retailersError;
+        }
+
+        // Delete markets
+        const marketIds = selectedIds.filter(id => markets.some(market => market.id === id));
+        if (marketIds.length > 0) {
+          const { error: marketsError } = await supabase
+            .from("marketplaces")
+            .delete()
+            .in("id", marketIds);
+          if (marketsError) throw marketsError;
+        }
+
+        // Refresh data
+        await Promise.all([refetchItems(), refetchRetailers(), refetchMarkets()]);
+      }
+
+      setSelectedRows(new Set());
+      setNewRows([]);
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
+  function cancelNewRows() {
+    setNewRows([]);
+    setSelectedRows(new Set());
+  }
+
+  function addNewRow(type) {
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    
+    const newRow = {
+      id: newId,
+      type: type, // 'item', 'retailer', 'market'
+      isNew: true
+    };
+    
+    setNewRows(prev => [...prev, newRow]);
+    setSelectedRows(new Set([newId]));
+  }
+
+  /* ----- Legacy Bulk Operations ----- */
   async function bulkSaveItems() {
     if (selectedItems.size === 0) return;
     
@@ -233,496 +336,184 @@ export default function Settings() {
       <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="database" showTabs section="orderbook" showHubTab={true} />
 
-        {/* ---------- Items ---------- */}
-        <section className={`${pageCard} mb-6`}>
-          <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-            <div className="min-w-0">
-              <h2 className="text-lg font-semibold leading-[2.25rem]">Products</h2>
-              <p className="text-xs text-slate-400 -mt-1">Total: {items.length}</p>
-            </div>
-
-            <div className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0">
-              {/* Bulk Actions - only show when items are selected */}
-              {openItems && selectedItems.size > 0 && (
+        {/* OrderBook-style unified interface */}
+        <div className={`${pageCard} overflow-hidden`}>
+          {/* Bulk Actions Bar - OrderBook style */}
+          {bulkActionsVisible && (
+            <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/30">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-400">
-                    {selectedItems.size} selected
-                  </span>
-                <button
-                    onClick={bulkSaveItems}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                    title="Save selected"
-                    aria-label="Save selected"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={bulkDeleteItems}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-rose-600 bg-rose-600 hover:bg-rose-500 text-white"
-                    title="Delete selected"
-                    aria-label="Delete selected"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                      <path d="M10 11v6M14 11v6" />
-                      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              {openItems && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const { error } = await supabase
-                        .from("items")
-                        .insert({ name: "New item name here", market_value_cents: 0 });
-                      if (error) throw error;
-                      await refetchItems();
-                    } catch (e) {
-                      alert(e.message || String(e));
-                    }
-                  }}
-                  className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                  aria-label="Add item"
-                  title="Add item"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </button>
-              )}
-              <button
-                onClick={() => toggleCard('items')}
-                className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                aria-label={openItems ? "Collapse" : "Expand"}
-              >
-                <ChevronDown className={`h-5 w-5 transition-transform ${openItems ? "rotate-180" : ""}`} />
-              </button>
-            </div>
-          </div>
-
-          {/* content */}
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openItems ? 1000 : 0 }}>
-            <div className="pt-5">
-              {/* Header row - text only */}
-              <div className="hidden sm:block">
-                <div className="grid grid-cols-[1fr_160px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 flex items-center justify-center">
-                      <input
-                        type="checkbox"
-                        checked={items.length > 0 && selectedItems.size === items.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            // Select all items
-                            const allItemIds = items.map(item => item.id);
-                            setSelectedItems(new Set(allItemIds));
-                          } else {
-                            // Deselect all items
-                            setSelectedItems(new Set());
-                          }
-                        }}
-                        className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                      />
-                    </div>
-                    <span className="text-xs text-slate-300 font-medium">Item</span>
-                  </div>
-                  <div className="text-xs text-slate-300 font-medium">Market value ($)</div>
-                </div>
-              </div>
-
-              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
-                {items
-                  .sort((a, b) => {
-                    // Put new items (with placeholder text) at the top
-                    const aIsNew = a.name === "New item name here";
-                    const bIsNew = b.name === "New item name here";
-                    if (aIsNew && !bIsNew) return -1;
-                    if (!aIsNew && bIsNew) return 1;
-                    // Then sort alphabetically
-                    return a.name.localeCompare(b.name);
-                  })
-                  .map((it) => (
-                  <ItemRow
-                    key={it.id}
-                    it={it}
-                    isNew={it.name === "New item name here"}
-                    isSelected={selectedItems.has(it.id)}
-                    onToggleSelection={() => {
-                      const newSelected = new Set(selectedItems);
-                      if (newSelected.has(it.id)) {
-                        newSelected.delete(it.id);
-                      } else {
-                        newSelected.add(it.id);
-                      }
-                      setSelectedItems(newSelected);
-                    }}
-                    onDelete={() => deleteItem(it.id)}
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === (items.length + retailers.length + markets.length) && (items.length + retailers.length + markets.length) > 0}
+                    onChange={toggleAllSelection}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
                   />
-                ))}
-                {!items.length && (
-                  <div className="text-slate-400">No items yet.</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
+                  <span className="text-sm font-semibold text-slate-400">
+                    {selectedRows.size}/{items.length + retailers.length + markets.length} Selected
+                  </span>
+                </div>
 
-        {/* ---------- Retailers ---------- */}
-        <section className={`${pageCard} mb-6`}>
-          <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-            <div className="min-w-0">
-              <h2 className="text-lg font-semibold leading-[2.25rem]">Retailers</h2>
-              <p className="text-xs text-slate-400 -mt-1">Total: {retailers.length}</p>
-            </div>
-
-            <div className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0">
-              {/* Bulk Actions - only show when retailers are selected */}
-              {openRetailers && selectedRetailers.size > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-400">
-                    {selectedRetailers.size} selected
-                  </span>
-                <button
-                    onClick={bulkSaveRetailers}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                    title="Save selected"
-                    aria-label="Save selected"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={bulkDeleteRetailers}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-rose-600 bg-rose-600 hover:bg-rose-500 text-white"
-                    title="Delete selected"
-                    aria-label="Delete selected"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                      <path d="M10 11v6M14 11v6" />
-                      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              {openRetailers && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const { error } = await supabase
-                        .from("retailers")
-                        .insert({ name: "New retailer name here" });
-                      if (error) throw error;
-                      await refetchRetailers();
-                    } catch (e) {
-                      alert(e.message || String(e));
+                  {/* Determine button visibility based on selection state */}
+                  {(() => {
+                    const hasSelection = selectedRows.size > 0;
+                    const selectedItems = Array.from(selectedRows);
+                    const hasNewRowsInSelection = selectedItems.some(id => id < 0);
+                    const hasExistingRows = selectedItems.some(id => id > 0);
+                    
+                    // Default state: no selection - show only + add buttons
+                    if (!hasSelection) {
+                      return (
+                        <>
+                          <button
+                            onClick={() => addNewRow('item')}
+                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                          >
+                            + Add Item
+                          </button>
+                          <button
+                            onClick={() => addNewRow('retailer')}
+                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                          >
+                            + Add Retailer
+                          </button>
+                          <button
+                            onClick={() => addNewRow('market')}
+                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                          >
+                            + Add Marketplace
+                          </button>
+                        </>
+                      );
                     }
-                  }}
-                  className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                  aria-label="Add retailer"
-                  title="Add retailer"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </button>
-              )}
-              <button
-                onClick={() => toggleCard('retailers')}
-                className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                aria-label={openRetailers ? "Collapse" : "Expand"}
-              >
-                <ChevronDown className={`h-5 w-5 transition-transform ${openRetailers ? "rotate-180" : ""}`} />
-              </button>
-            </div>
-          </div>
-
-          {/* content */}
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openRetailers ? 1000 : 0 }}>
-            <div className="pt-5">
-              {/* Header row - text only */}
-              <div className="hidden sm:block">
-                <div className="grid grid-cols-[1fr] gap-2 items-center min-w-0 px-3 py-2 mb-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 flex items-center justify-center">
-                      <input
-                        type="checkbox"
-                        checked={retailers.length > 0 && selectedRetailers.size === retailers.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            // Select all retailers
-                            const allRetailerIds = retailers.map(retailer => retailer.id);
-                            setSelectedRetailers(new Set(allRetailerIds));
-                          } else {
-                            // Deselect all retailers
-                            setSelectedRetailers(new Set());
-                          }
-                        }}
-                        className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                      />
-                    </div>
-                    <span className="text-xs text-slate-300 font-medium">Retailer</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
-                {retailers
-                  .sort((a, b) => {
-                    // Put new retailers (with placeholder text) at the top
-                    const aIsNew = a.name === "New retailer name here";
-                    const bIsNew = b.name === "New retailer name here";
-                    if (aIsNew && !bIsNew) return -1;
-                    if (!aIsNew && bIsNew) return 1;
-                    // Then sort alphabetically
-                    return a.name.localeCompare(b.name);
-                  })
-                  .map((r) => (
-                  <RetailerRow
-                    key={r.id}
-                    r={r}
-                    isNew={r.name === "New retailer name here"}
-                    isSelected={selectedRetailers.has(r.id)}
-                    onToggleSelection={() => {
-                      const newSelected = new Set(selectedRetailers);
-                      if (newSelected.has(r.id)) {
-                        newSelected.delete(r.id);
-                      } else {
-                        newSelected.add(r.id);
-                      }
-                      setSelectedRetailers(newSelected);
-                    }}
-                    onDelete={() => deleteRetailer(r.id)}
-                  />
-                ))}
-                {!retailers.length && (
-                  <div className="text-slate-400">No retailers yet.</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ---------- Marketplaces ---------- */}
-        <section className={`${pageCard}`}>
-          <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-            <div className="min-w-0">
-              <h2 className="text-lg font-semibold leading-[2.25rem]">Marketplaces</h2>
-              <p className="text-xs text-slate-400 -mt-1">Total: {markets.length}</p>
-            </div>
-
-            <div className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0">
-              {/* Bulk Actions - only show when markets are selected */}
-              {openMarkets && selectedMarkets.size > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-400">
-                    {selectedMarkets.size} selected
-                  </span>
-                <button
-                    onClick={bulkSaveMarkets}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                    title="Save selected"
-                    aria-label="Save selected"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={bulkDeleteMarkets}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-rose-600 bg-rose-600 hover:bg-rose-500 text-white"
-                    title="Delete selected"
-                    aria-label="Delete selected"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                      <path d="M10 11v6M14 11v6" />
-                      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              {openMarkets && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const { error } = await supabase
-                        .from("marketplaces")
-                        .insert({ name: "New marketplace name here", default_fees_pct: 0 });
-                      if (error) throw error;
-                      await refetchMarkets();
-                    } catch (e) {
-                      alert(e.message || String(e));
+                    
+                    // New rows selected: show X cancel, save, and delete buttons
+                    if (hasNewRowsInSelection) {
+                      return (
+                        <>
+                          <button
+                            onClick={cancelNewRows}
+                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                          >
+                            ✕ Cancel
+                          </button>
+                          <button
+                            onClick={bulkSaveSelected}
+                            className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+                          >
+                            Save
+                          </button>
+                        </>
+                      );
                     }
-                  }}
-                  className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                  aria-label="Add marketplace"
-                  title="Add marketplace"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </button>
-              )}
-              <button
-                onClick={() => toggleCard('markets')}
-                className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
-                aria-label={openMarkets ? "Collapse" : "Expand"}
-              >
-                <ChevronDown className={`h-5 w-5 transition-transform ${openMarkets ? "rotate-180" : ""}`} />
-              </button>
-            </div>
-          </div>
-
-          {/* content */}
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: openMarkets ? 1000 : 0 }}>
-            <div className="pt-5">
-              {/* Header row - text only */}
-              <div className="hidden sm:block">
-                <div className="grid grid-cols-[1fr_140px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 flex items-center justify-center">
-                      <input
-                        type="checkbox"
-                        checked={markets.length > 0 && selectedMarkets.size === markets.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            // Select all markets
-                            const allMarketIds = markets.map(market => market.id);
-                            setSelectedMarkets(new Set(allMarketIds));
-                          } else {
-                            // Deselect all markets
-                            setSelectedMarkets(new Set());
-                          }
-                        }}
-                        className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                      />
-                    </div>
-                    <span className="text-xs text-slate-300 font-medium">Marketplace</span>
-                  </div>
-                  <div className="text-xs text-slate-300 font-medium">Fee %</div>
+                    
+                    // Existing rows selected: show X cancel, save, and delete buttons
+                    if (hasExistingRows) {
+                      return (
+                        <>
+                          <button
+                            onClick={() => setSelectedRows(new Set())}
+                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                          >
+                            ✕ Cancel
+                          </button>
+                          <button
+                            onClick={bulkSaveSelected}
+                            className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={bulkDeleteSelected}
+                            className="px-3 py-1 text-xs bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
                 </div>
               </div>
-
-              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
-                {markets
-                  .sort((a, b) => {
-                    // Put new marketplaces (with placeholder text) at the top
-                    const aIsNew = a.name === "New marketplace name here";
-                    const bIsNew = b.name === "New marketplace name here";
-                    if (aIsNew && !bIsNew) return -1;
-                    if (!aIsNew && bIsNew) return 1;
-                    // Then sort alphabetically
-                    return a.name.localeCompare(b.name);
-                  })
-                  .map((m) => (
-                  <MarketRow
-                    key={m.id}
-                    m={m}
-                    isNew={m.name === "New marketplace name here"}
-                    isSelected={selectedMarkets.has(m.id)}
-                    onToggleSelection={() => {
-                      const newSelected = new Set(selectedMarkets);
-                      if (newSelected.has(m.id)) {
-                        newSelected.delete(m.id);
-                      } else {
-                        newSelected.add(m.id);
-                      }
-                      setSelectedMarkets(newSelected);
-                    }}
-                    onDelete={() => deleteMarket(m.id)}
-                  />
-                ))}
-                {!markets.length && (
-                  <div className="text-slate-400">No marketplaces yet.</div>
-                )}
-              </div>
             </div>
+          )}
+
+          {/* Header */}
+          <div className="grid grid-cols-[auto_2fr_1fr] gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium">
+            <div className="w-6"></div>
+            <div className="text-left">Name</div>
+            <div className="text-left">Details</div>
           </div>
-        </section>
+
+          {/* Rows */}
+          <div className="space-y-2">
+            {/* New rows first */}
+            {newRows.map((newRow) => (
+              <NewRowComponent
+                key={newRow.id}
+                row={newRow}
+                isSelected={selectedRows.has(newRow.id)}
+                onToggleSelection={() => toggleRowSelection(newRow.id)}
+                onSave={(data) => {
+                  // Handle saving new row
+                  console.log('Saving new row:', data);
+                  setNewRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedRows(new Set());
+                  // Refresh appropriate data
+                  if (newRow.type === 'item') refetchItems();
+                  if (newRow.type === 'retailer') refetchRetailers();
+                  if (newRow.type === 'market') refetchMarkets();
+                }}
+                onCancel={() => {
+                  setNewRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedRows(new Set());
+                }}
+              />
+            ))}
+
+            {/* Existing items */}
+            {items.map((item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                isSelected={selectedRows.has(item.id)}
+                onToggleSelection={() => toggleRowSelection(item.id)}
+                onSave={() => refetchItems()}
+              />
+            ))}
+
+            {/* Existing retailers */}
+            {retailers.map((retailer) => (
+              <RetailerRow
+                key={retailer.id}
+                retailer={retailer}
+                isSelected={selectedRows.has(retailer.id)}
+                onToggleSelection={() => toggleRowSelection(retailer.id)}
+                onSave={() => refetchRetailers()}
+              />
+            ))}
+
+            {/* Existing markets */}
+            {markets.map((market) => (
+              <MarketRow
+                key={market.id}
+                market={market}
+                isSelected={selectedRows.has(market.id)}
+                onToggleSelection={() => toggleRowSelection(market.id)}
+                onSave={() => refetchMarkets()}
+              />
+            ))}
+
+            {items.length === 0 && retailers.length === 0 && markets.length === 0 && newRows.length === 0 && (
+              <div className="px-4 py-8 text-center text-slate-400">
+                No items found. Click the + buttons above to add new items.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -738,11 +529,157 @@ function ChevronDown({ className = "h-5 w-5" }) {
   );
 }
 
-/* ---------- Row components ---------- */
+/* ---------- OrderBook-style Row Components ---------- */
 
-function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onDelete }) {
-  const [name, setName] = useState(it?.name ?? "");
-  const [mv, setMv] = useState(centsToStr(it?.market_value_cents ?? 0));
+function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel }) {
+  const [name, setName] = useState("");
+  const [details, setDetails] = useState("");
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const handleSave = async () => {
+    if (busy) return;
+    setBusy(true);
+    setStatus("Saving…");
+    
+    try {
+      if (row.type === 'item') {
+        const market_value_cents = moneyToCents(details);
+        const { error } = await supabase
+          .from("items")
+          .insert({ name: name.trim(), market_value_cents });
+        if (error) throw error;
+      } else if (row.type === 'retailer') {
+        const { error } = await supabase
+          .from("retailers")
+          .insert({ name: name.trim() });
+        if (error) throw error;
+      } else if (row.type === 'market') {
+        const feeNum = Number(String(details ?? "").replace("%", ""));
+        const default_fees_pct = isNaN(feeNum) ? 0 : feeNum > 1 ? feeNum / 100 : feeNum;
+        const { error } = await supabase
+          .from("marketplaces")
+          .insert({ name: name.trim(), default_fees_pct });
+        if (error) throw error;
+      }
+      
+      setStatus("Saved ✓");
+      setTimeout(() => {
+        onSave({ name, details });
+      }, 500);
+    } catch (e) {
+      setStatus(String(e.message || e));
+      setTimeout(() => setStatus(""), 2000);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const getPlaceholder = () => {
+    switch (row.type) {
+      case 'item': return 'Item name';
+      case 'retailer': return 'Retailer name';
+      case 'market': return 'Marketplace name';
+      default: return 'Name';
+    }
+  };
+
+  const getDetailsPlaceholder = () => {
+    switch (row.type) {
+      case 'item': return 'Market value ($)';
+      case 'retailer': return '';
+      case 'market': return 'Fee %';
+      default: return 'Details';
+    }
+  };
+
+  return (
+    <div 
+      className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
+        isSelected
+          ? 'border-indigo-500 bg-indigo-500/10' 
+          : 'border-slate-800 hover:bg-slate-800/50'
+      }`}
+      onClick={onToggleSelection}
+    >
+      <div className="grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggleSelection();
+          }}
+          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+        />
+        
+        <input
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          value={name}
+          onChange={(e) => {
+            e.stopPropagation();
+            setName(e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          placeholder={getPlaceholder()}
+        />
+        
+        {row.type !== 'retailer' && (
+          <input
+            className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            value={details}
+            onChange={(e) => {
+              e.stopPropagation();
+              setDetails(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder={getDetailsPlaceholder()}
+          />
+        )}
+        
+        {row.type === 'retailer' && (
+          <div className="flex gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSave();
+              }}
+              disabled={busy || !name.trim()}
+              className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            >
+              {busy ? "Saving..." : "Save"}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCancel();
+              }}
+              className="px-3 py-1 text-xs bg-slate-600 hover:bg-slate-500 text-white rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+      
+      {status && (
+        <div
+          className={`text-right text-sm mt-1 ${
+            status.startsWith("Saved")
+              ? "text-emerald-400"
+              : "text-rose-400"
+          }`}
+        >
+          {status}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ItemRow({ item, isSelected, onToggleSelection, onSave }) {
+  const [name, setName] = useState(item?.name ?? "");
+  const [mv, setMv] = useState(centsToStr(item?.market_value_cents ?? 0));
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -755,54 +692,53 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onD
       const { error } = await supabase
         .from("items")
         .update({ name: name.trim(), market_value_cents })
-        .eq("id", it.id);
+        .eq("id", item.id);
       if (error) throw error;
       setStatus("Saved ✓");
       setTimeout(() => setStatus(""), 1500);
+      onSave();
     } catch (e) {
       setStatus(String(e.message || e));
       setTimeout(() => setStatus(""), 2000);
     } finally {
-    setBusy(false);
+      setBusy(false);
     }
   }
 
   return (
     <div 
-      className={`${rowCard} cursor-pointer transition-all ${
-        isSelected || isNew
+      className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
+        isSelected
           ? 'border-indigo-500 bg-indigo-500/10' 
           : 'border-slate-800 hover:bg-slate-800/50'
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-2 items-center min-w-0">
-        <div className="flex items-center gap-2">
-          <div className="w-6 flex items-center justify-center">
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={(e) => {
-                e.stopPropagation();
-                onToggleSelection();
-              }}
-              className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-            />
-          </div>
+      <div className="grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
         <input
-          className={inputSm}
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggleSelection();
+          }}
+          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+        />
+        
+        <input
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
           value={name}
-            onChange={(e) => {
-              e.stopPropagation();
-              setName(e.target.value);
-            }}
-            onBlur={updateItem}
-            onClick={(e) => e.stopPropagation()}
-            placeholder={isNew ? "New item name here" : "Item name…"}
-          />
-        </div>
+          onChange={(e) => {
+            e.stopPropagation();
+            setName(e.target.value);
+          }}
+          onBlur={updateItem}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="Item name…"
+        />
+        
         <input
-          className={`${inputSm} sm:w-[160px]`}
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
           value={mv}
           onChange={(e) => {
             e.stopPropagation();
@@ -810,17 +746,16 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onD
           }}
           onBlur={updateItem}
           onClick={(e) => e.stopPropagation()}
-          placeholder="e.g. 129.99"
+          placeholder="Market value ($)"
         />
       </div>
+      
       {status && (
         <div
           className={`text-right text-sm mt-1 ${
             status.startsWith("Saved")
               ? "text-emerald-400"
-              : status === "Error"
-              ? "text-rose-400"
-              : "text-slate-400"
+              : "text-rose-400"
           }`}
         >
           {status}
@@ -830,8 +765,8 @@ function ItemRow({ it, isNew = false, isSelected = false, onToggleSelection, onD
   );
 }
 
-function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, onDelete }) {
-  const [name, setName] = useState(r?.name ?? "");
+function RetailerRow({ retailer, isSelected, onToggleSelection, onSave }) {
+  const [name, setName] = useState(retailer?.name ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -843,42 +778,41 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
       const { error } = await supabase
         .from("retailers")
         .update({ name: name.trim() })
-        .eq("id", r.id);
+        .eq("id", retailer.id);
       if (error) throw error;
       setStatus("Saved ✓");
       setTimeout(() => setStatus(""), 1500);
+      onSave();
     } catch (e) {
       setStatus(String(e.message || e));
       setTimeout(() => setStatus(""), 2000);
     } finally {
-    setBusy(false);
+      setBusy(false);
     }
   }
 
   return (
     <div 
-      className={`${rowCard} cursor-pointer transition-all ${
-        isSelected || isNew
+      className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
+        isSelected
           ? 'border-indigo-500 bg-indigo-500/10' 
           : 'border-slate-800 hover:bg-slate-800/50'
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr] gap-2 items-center min-w-0">
-        <div className="flex items-center gap-2">
-          <div className="w-6 flex items-center justify-center">
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={(e) => {
-                e.stopPropagation();
-                onToggleSelection();
-              }}
-              className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-            />
-          </div>
+      <div className="grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
         <input
-          className={inputSm}
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggleSelection();
+          }}
+          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+        />
+        
+        <input
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
           value={name}
           onChange={(e) => {
             e.stopPropagation();
@@ -886,18 +820,18 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
           }}
           onBlur={updateRetailer}
           onClick={(e) => e.stopPropagation()}
-          placeholder={isNew ? "New retailer name here" : "Retailer name…"}
+          placeholder="Retailer name…"
         />
-        </div>
+        
+        <div></div>
       </div>
+      
       {status && (
         <div
           className={`text-right text-sm mt-1 ${
             status.startsWith("Saved")
               ? "text-emerald-400"
-              : status === "Error"
-              ? "text-rose-400"
-              : "text-slate-400"
+              : "text-rose-400"
           }`}
         >
           {status}
@@ -907,9 +841,9 @@ function RetailerRow({ r, isNew = false, isSelected = false, onToggleSelection, 
   );
 }
 
-function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, onDelete }) {
-  const [name, setName] = useState(m?.name ?? "");
-  const [fee, setFee] = useState(((m?.default_fees_pct ?? 0) * 100).toString());
+function MarketRow({ market, isSelected, onToggleSelection, onSave }) {
+  const [name, setName] = useState(market?.name ?? "");
+  const [fee, setFee] = useState(((market?.default_fees_pct ?? 0) * 100).toString());
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -922,42 +856,41 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
       const { error } = await supabase
         .from("marketplaces")
         .update({ name: name.trim(), default_fees_pct })
-        .eq("id", m.id);
+        .eq("id", market.id);
       if (error) throw error;
       setStatus("Saved ✓");
       setTimeout(() => setStatus(""), 1500);
+      onSave();
     } catch (e) {
       setStatus(String(e.message || e));
       setTimeout(() => setStatus(""), 2000);
     } finally {
-    setBusy(false);
+      setBusy(false);
     }
   }
 
   return (
     <div 
-      className={`${rowCard} cursor-pointer transition-all ${
-        isSelected || isNew
+      className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
+        isSelected
           ? 'border-indigo-500 bg-indigo-500/10' 
           : 'border-slate-800 hover:bg-slate-800/50'
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-2 items-center min-w-0">
-        <div className="flex items-center gap-2">
-          <div className="w-6 flex items-center justify-center">
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={(e) => {
-                e.stopPropagation();
-                onToggleSelection();
-              }}
-              className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-            />
-          </div>
+      <div className="grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
         <input
-          className={inputSm}
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggleSelection();
+          }}
+          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+        />
+        
+        <input
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
           value={name}
           onChange={(e) => {
             e.stopPropagation();
@@ -965,11 +898,11 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
           }}
           onBlur={updateMarket}
           onClick={(e) => e.stopPropagation()}
-          placeholder={isNew ? "New marketplace name here" : "Marketplace name…"}
+          placeholder="Marketplace name…"
         />
-        </div>
+        
         <input
-          className={`${inputSm} sm:w-[140px]`}
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
           value={fee}
           onChange={(e) => {
             e.stopPropagation();
@@ -980,14 +913,13 @@ function MarketRow({ m, isNew = false, isSelected = false, onToggleSelection, on
           placeholder="Fee %"
         />
       </div>
+      
       {status && (
         <div
           className={`text-right text-sm mt-1 ${
             status.startsWith("Saved")
               ? "text-emerald-400"
-              : status === "Error"
-              ? "text-rose-400"
-              : "text-slate-400"
+              : "text-rose-400"
           }`}
         >
           {status}
