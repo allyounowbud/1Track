@@ -532,9 +532,23 @@ function FinancialTrendChart({ item, filteredOrders }) {
   const ordersArray = Array.isArray(filteredOrders) ? filteredOrders : [];
   const itemOrders = ordersArray.filter(order => order.item === item.item);
   
+  // Debug logging
+  console.log('FinancialTrendChart Debug:', {
+    itemName: item.item,
+    filteredOrdersCount: ordersArray.length,
+    itemOrdersCount: itemOrders.length,
+    itemOrders: itemOrders.map(o => ({
+      item: o.item,
+      created_at: o.created_at,
+      buy_price_cents: o.buy_price_cents,
+      sale_price_cents: o.sale_price_cents
+    }))
+  });
+  
   // Generate monthly data from orders
   const generateMonthlyData = () => {
     if (itemOrders.length === 0) {
+      console.log('No item orders found, returning empty data');
       // Return default empty data for the last 6 months
       const monthlyData = [];
       for (let i = 5; i >= 0; i--) {
@@ -555,6 +569,8 @@ function FinancialTrendChart({ item, filteredOrders }) {
     const allDates = itemOrders.map(order => new Date(order.created_at));
     const minDate = new Date(Math.min(...allDates));
     const maxDate = new Date(Math.max(...allDates));
+    
+    console.log('Date range:', { minDate, maxDate });
     
     const monthlyData = [];
     const currentDate = new Date(minDate);
@@ -577,6 +593,13 @@ function FinancialTrendChart({ item, filteredOrders }) {
       const soldMonthOrders = monthOrders.filter(o => cents(o.sale_price_cents) > 0);
       const profit = revenue - soldMonthOrders.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
       
+      console.log(`Month ${year}-${month + 1}:`, {
+        monthOrders: monthOrders.length,
+        cogs,
+        revenue,
+        profit
+      });
+      
       monthlyData.push({
         month: currentDate.toLocaleDateString('en-US', { month: 'short' }),
         year: year.toString().slice(-2),
@@ -594,6 +617,9 @@ function FinancialTrendChart({ item, filteredOrders }) {
 
   const monthlyData = generateMonthlyData();
   const maxValue = monthlyData.length > 0 ? Math.max(...monthlyData.flatMap(d => [d.cogs, d.revenue, Math.abs(d.profit)])) : 1000;
+  
+  console.log('Final monthly data:', monthlyData);
+  console.log('Max value:', maxValue);
 
   // Helper function to get Y position for a value
   const getY = (value) => {
