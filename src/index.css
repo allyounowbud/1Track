@@ -1,76 +1,19 @@
 @import "tailwindcss";
 
-/* Dark app base - Discord theme */
+/* Dark app base */
 :root { color-scheme: dark; }
 html, body, #root { height: 100%; }
-body { background-color: #202225; color: #dcddde; }
-
-/* Discord theme colors */
-.discord-bg-primary { background-color: #202225; }
-.discord-bg-secondary { background-color: #292b2f; }
-.discord-bg-tertiary { background-color: #2f3136; }
-.discord-bg-quaternary { background-color: #40444b; }
-.discord-text-primary { color: #dcddde; }
-.discord-text-secondary { color: #b9bbbe; }
-.discord-text-muted { color: #72767d; }
-.discord-border { border-color: #40444b; }
+body { @apply bg-slate-950 text-slate-100; }
 
 /* Reusable components */
-.card { 
-  background-color: rgba(47, 49, 54, 0.8); 
-  backdrop-filter: blur(10px); 
-  border: 1px solid #40444b; 
-  border-radius: 20px; 
-  box-shadow: 0 10px 30px rgba(0,0,0,.35); 
-}
-.card-header { color: #dcddde; font-weight: 600; }
-.input { 
-  width: 100%; 
-  background-color: rgba(47, 49, 54, 0.8); 
-  border: 1px solid #40444b; 
-  border-radius: 12px; 
-  padding: 12px 16px; 
-  color: #dcddde; 
-  outline: none; 
-}
-.input::placeholder { color: #72767d; }
-.input:focus { 
-  border-color: #5865f2; 
-  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3); 
-}
-.label { color: #b9bbbe; margin-bottom: 4px; display: block; font-size: 14px; }
-.btn { 
-  display: inline-flex; 
-  align-items: center; 
-  justify-content: center; 
-  padding: 8px 16px; 
-  border-radius: 12px; 
-  border: 1px solid #40444b; 
-  background-color: rgba(47, 49, 54, 0.8); 
-  color: #dcddde;
-  transition: all 0.2s;
-}
-.btn:hover { background-color: #2f3136; }
-.btn-primary { 
-  background-color: #5865f2; 
-  border-color: #5865f2; 
-  color: white; 
-}
-.btn-primary:hover { background-color: #4752c4; }
-.tab { 
-  padding: 8px 16px; 
-  border-radius: 9999px; 
-  border: 1px solid #40444b; 
-  background-color: rgba(47, 49, 54, 0.8); 
-  color: #dcddde; 
-  transition: all 0.2s;
-}
-.tab:hover { background-color: #2f3136; }
-.tab-active { 
-  background-color: #5865f2; 
-  color: white; 
-  border-color: #5865f2; 
-}
+.card { @apply bg-slate-900/60 backdrop-blur border border-slate-800 rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,.35)]; }
+.card-header { @apply text-slate-200 font-semibold; }
+.input { @apply w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-slate-700; }
+.label { @apply text-slate-300 mb-1 block text-sm; }
+.btn { @apply inline-flex items-center justify-center px-4 py-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 transition; }
+.btn-primary { @apply bg-indigo-600 hover:bg-indigo-500 text-white border-none; }
+.tab { @apply px-4 py-2 rounded-full border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900; }
+.tab-active { @apply bg-indigo-600 text-white border-indigo-600; }
 
 /* Custom scrollbar styles */
 .scrollbar-thin {
@@ -82,17 +25,17 @@ body { background-color: #202225; color: #dcddde; }
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
-  background: #2f3136; /* Discord tertiary */
+  background: rgb(30 41 59); /* slate-800 */
   border-radius: 3px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #40444b; /* Discord quaternary */
+  background: rgb(71 85 105); /* slate-600 */
   border-radius: 3px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #72767d; /* Discord muted */
+  background: rgb(94 106 125); /* slate-500 */
 }
 
 /* Fix date input sizing on mobile and iOS */
