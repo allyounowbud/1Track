@@ -646,8 +646,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
       {/* Y-axis labels on the left */}
       <div className="absolute left-0 top-0 bottom-0 w-16 flex flex-col justify-between py-4">
         {[0, 25, 50, 75, 100].map((y, i) => {
-          // Map from 10-90 range back to 0-maxValue for labels, ensuring no negative values
-          const value = maxValue > 0 ? Math.max(0, Math.round(((90 - y) / 80) * maxValue)) : 0;
+          const value = maxValue > 0 ? Math.round((y / 100) * maxValue) : 0;
           return (
             <div key={i} className="text-xs text-slate-400 text-right pr-2">
               ${centsToStr(value)}
@@ -660,7 +659,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
       <div className="ml-16 mr-4">
         <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
           {/* Grid lines */}
-          {[10, 25, 50, 75, 90].map(y => (
+          {[0, 25, 50, 75, 100].map(y => (
             <line
               key={y}
               x1="0"
@@ -672,71 +671,56 @@ function FinancialTrendChart({ item, filteredOrders }) {
             />
           ))}
           
-          {/* COGS Line (Red) */}
-          <path
-            d={createPath('cogs')}
-            fill="none"
-            stroke="rgb(239, 68, 68)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          
-          {/* Revenue Line (Blue) */}
-          <path
-            d={createPath('revenue')}
-            fill="none"
-            stroke="rgb(59, 130, 246)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          
-          {/* Profit Line (Green) */}
-          <path
-            d={createPath('profit')}
-            fill="none"
-            stroke="rgb(34, 197, 94)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          
-          {/* Data points */}
+          {/* Stacked bars for each month */}
           {monthlyData.map((d, i) => {
-            const x = monthlyData.length > 1 ? (i / (monthlyData.length - 1)) * 100 : 50;
-          return (
-            <g key={i}>
-                {/* COGS point */}
-                <circle
-                  cx={x}
-                  cy={getY(d.cogs)}
-                  r="2"
-                  fill="rgb(239, 68, 68)"
-                  stroke="rgb(15, 23, 42)"
-                  strokeWidth="1"
-                />
-                {/* Revenue point */}
-                <circle
-                  cx={x}
-                  cy={getY(d.revenue)}
-                  r="2"
-                  fill="rgb(59, 130, 246)"
-                  stroke="rgb(15, 23, 42)"
-                  strokeWidth="1"
-                />
-                {/* Profit point */}
-                <circle
-                  cx={x}
-                  cy={getY(d.profit)}
-                  r="2"
-                  fill="rgb(34, 197, 94)"
-                  stroke="rgb(15, 23, 42)"
-                  strokeWidth="1"
-                />
-            </g>
-          );
-        })}
+            const barWidth = monthlyData.length > 1 ? 80 / monthlyData.length : 80;
+            const barX = monthlyData.length > 1 ? (i / monthlyData.length) * 80 + 10 : 10;
+            
+            // Calculate heights as percentages of max value
+            const cogsHeight = maxValue > 0 ? (d.cogs / maxValue) * 80 : 0;
+            const revenueHeight = maxValue > 0 ? (d.revenue / maxValue) * 80 : 0;
+            const profitHeight = maxValue > 0 ? (d.profit / maxValue) * 80 : 0;
+            
+            return (
+              <g key={i}>
+                {/* COGS bar (bottom, red) */}
+                {cogsHeight > 0 && (
+                  <rect
+                    x={barX}
+                    y={100 - cogsHeight}
+                    width={barWidth}
+                    height={cogsHeight}
+                    fill="rgb(239, 68, 68)"
+                    opacity="0.8"
+                  />
+                )}
+                
+                {/* Revenue bar (middle, blue) */}
+                {revenueHeight > 0 && (
+                  <rect
+                    x={barX}
+                    y={100 - cogsHeight - revenueHeight}
+                    width={barWidth}
+                    height={revenueHeight}
+                    fill="rgb(59, 130, 246)"
+                    opacity="0.8"
+                  />
+                )}
+                
+                {/* Profit bar (top, green) */}
+                {profitHeight > 0 && (
+                  <rect
+                    x={barX}
+                    y={100 - cogsHeight - revenueHeight - profitHeight}
+                    width={barWidth}
+                    height={profitHeight}
+                    fill="rgb(34, 197, 94)"
+                    opacity="0.8"
+                  />
+                )}
+              </g>
+            );
+          })}
         </svg>
       </div>
       
@@ -751,16 +735,16 @@ function FinancialTrendChart({ item, filteredOrders }) {
       
       {/* Legend */}
       <div className="absolute top-2 right-4 flex gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-0.5 bg-red-500"></div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-red-500/80"></div>
           <span className="text-xs text-slate-400">COGS</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-0.5 bg-blue-500"></div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-blue-500/80"></div>
           <span className="text-xs text-slate-400">Revenue</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-0.5 bg-green-500"></div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-green-500/80"></div>
           <span className="text-xs text-slate-400">Profit</span>
         </div>
       </div>
