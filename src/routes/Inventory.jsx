@@ -46,6 +46,34 @@ export default function Inventory() {
     return m;
   }, [items]);
 
+  /* bulk selection state */
+  const [selectedRows, setSelectedRows] = useState(new Set());
+  const [bulkActionsVisible, setBulkActionsVisible] = useState(false);
+  
+  // Update bulk actions visibility when selection changes
+  useEffect(() => {
+    setBulkActionsVisible(selectedRows.size > 0);
+  }, [selectedRows]);
+
+  /* bulk action functions */
+  function toggleRowSelection(rowName) {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(rowName)) {
+      newSelected.delete(rowName);
+    } else {
+      newSelected.add(rowName);
+    }
+    setSelectedRows(newSelected);
+  }
+
+  function toggleAllSelection() {
+    if (selectedRows.size === sortedRows.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(sortedRows.map(r => r.name)));
+    }
+  }
+
   // Aggregate orders into inventory rows by item
   const byItem = useMemo(() => {
     const map = new Map();
@@ -372,9 +400,40 @@ export default function Inventory() {
               }}
             />
           </div>
+
+          {/* Bulk Actions Bar */}
+          {bulkActionsVisible && (
+            <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === sortedRows.length && sortedRows.length > 0}
+                    onChange={toggleAllSelection}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  />
+                  <span className="text-sm font-semibold text-slate-400">
+                    {selectedRows.size}/{sortedRows.length} Selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to clear selection?`)) {
+                        setSelectedRows(new Set());
+                      }
+                    }}
+                    className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                  >
+                    Clear Selection
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Header */}
-          <div className="grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[3fr_0.7fr_0.7fr_0.7fr_0.7fr] gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium">
+          <div className="grid grid-cols-[auto_3fr_1fr_1fr] lg:grid-cols-[auto_3fr_0.7fr_0.7fr_0.7fr_0.7fr] gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium">
             <button
               onClick={() => toggleSort("name")}
               className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
@@ -455,18 +514,15 @@ export default function Inventory() {
           {/* Rows */}
           <div>
             {sortedRows.map((r, index) => (
-              <div
+              <InventoryRow
                 key={r.name}
-                className={`grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[3fr_0.7fr_0.7fr_0.7fr_0.7fr] gap-4 px-4 py-3 border-b border-slate-800/50 hover:bg-slate-900/20 transition-colors ${
-                  index % 2 === 0 ? "bg-slate-900/10" : "bg-slate-900/5"
-                }`}
-              >
-                <div className="text-slate-100 font-medium truncate pr-2">{r.name}</div>
-                <div className="text-slate-200">{formatNumber(r.onHandQty)}</div>
-                <div className="text-slate-200">${centsToStr(r.onHandAvgCostCents)}</div>
-                <div className="hidden lg:block text-slate-200">${centsToStr(r.onHandCostCents)}</div>
-                <div className="hidden lg:block text-slate-100 font-semibold">${centsToStr(r.estValueCents)}</div>
-              </div>
+                row={r}
+                index={index}
+                isSelected={selectedRows.has(r.name)}
+                onToggleSelection={() => toggleRowSelection(r.name)}
+                orders={orders}
+                items={items}
+              />
             ))}
 
             {!isLoading && sortedRows.length === 0 && (
@@ -477,6 +533,184 @@ export default function Inventory() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ---------- Inventory Row Component ---------- */
+function InventoryRow({ row, index, isSelected, onToggleSelection, orders, items }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Get orders for this specific item
+  const itemOrders = orders.filter(order => order.item === row.name);
+  const soldOrders = itemOrders.filter(order => order.status === 'sold' || Number(order.sale_price_cents || 0) > 0);
+  const onHandOrders = itemOrders.filter(order => order.status !== 'cancelled' && (!order.sale_date || order.sale_date === 'null'));
+
+  const handleRowClick = (e) => {
+    // Don't expand if clicking on checkbox
+    if (e.target.type === 'checkbox') return;
+    setIsExpanded(!isExpanded);
+  };
+
+  return (
+    <div className={`border-b border-slate-800/50 transition-all duration-200 ${
+      index % 2 === 0 ? "bg-slate-900/10" : "bg-slate-900/5"
+    } ${isSelected ? "bg-indigo-500/10 border-indigo-500/30" : "hover:bg-slate-900/20"}`}>
+      {/* Main Row */}
+      <div
+        className={`grid grid-cols-[auto_3fr_1fr_1fr] lg:grid-cols-[auto_3fr_0.7fr_0.7fr_0.7fr_0.7fr] gap-4 px-4 py-3 cursor-pointer transition-colors ${
+          isSelected ? "bg-indigo-500/10" : "hover:bg-slate-900/20"
+        }`}
+        onClick={handleRowClick}
+      >
+        {/* Selection checkbox */}
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggleSelection();
+          }}
+          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+        />
+
+        <div className="text-slate-100 font-medium truncate pr-2 flex items-center gap-2">
+          {row.name}
+          <svg 
+            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+              isExpanded ? 'rotate-180' : ''
+            }`} 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        <div className="text-slate-200">{formatNumber(row.onHandQty)}</div>
+        <div className="text-slate-200">${centsToStr(row.onHandAvgCostCents)}</div>
+        <div className="hidden lg:block text-slate-200">${centsToStr(row.onHandCostCents)}</div>
+        <div className="hidden lg:block text-slate-100 font-semibold">${centsToStr(row.estValueCents)}</div>
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="px-4 pb-4 bg-slate-900/20 border-t border-slate-800/30">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+            {/* Sales History */}
+            <div className="bg-slate-800/30 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                <span className="text-emerald-400">💰</span>
+                Sales History ({soldOrders.length})
+              </h4>
+              <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+                {soldOrders.length > 0 ? (
+                  soldOrders.map((order, idx) => {
+                    const buyPrice = centsToStr(order.buy_price_cents || 0);
+                    const salePrice = centsToStr(order.sale_price_cents || 0);
+                    const profit = centsToStr((order.sale_price_cents || 0) - (order.buy_price_cents || 0));
+                    const holdDays = order.order_date && order.sale_date ? 
+                      Math.max(0, Math.floor((new Date(order.sale_date) - new Date(order.order_date)) / (1000 * 60 * 60 * 24))) : 0;
+                    
+                    return (
+                      <div key={idx} className="bg-slate-700/30 rounded p-2 text-xs">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-slate-400">Sold:</span>
+                            <span className="text-slate-200 ml-1">${salePrice}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Profit:</span>
+                            <span className="text-emerald-400 ml-1">${profit}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Hold:</span>
+                            <span className="text-slate-200 ml-1">{holdDays}d</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Date:</span>
+                            <span className="text-slate-200 ml-1">
+                              {order.sale_date ? new Date(order.sale_date).toLocaleDateString() : 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-slate-400 text-center py-4">No sales yet</div>
+                )}
+              </div>
+            </div>
+
+            {/* Current Inventory */}
+            <div className="bg-slate-800/30 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                <span className="text-blue-400">📦</span>
+                Current Inventory ({onHandOrders.length})
+              </h4>
+              <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+                {onHandOrders.length > 0 ? (
+                  onHandOrders.map((order, idx) => {
+                    const buyPrice = centsToStr(order.buy_price_cents || 0);
+                    const daysSincePurchase = order.order_date ? 
+                      Math.floor((new Date() - new Date(order.order_date)) / (1000 * 60 * 60 * 24)) : 0;
+                    
+                    return (
+                      <div key={idx} className="bg-slate-700/30 rounded p-2 text-xs">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-slate-400">Cost:</span>
+                            <span className="text-slate-200 ml-1">${buyPrice}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Hold:</span>
+                            <span className="text-slate-200 ml-1">{daysSincePurchase}d</span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-slate-400">Purchased:</span>
+                            <span className="text-slate-200 ml-1">
+                              {order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-slate-400 text-center py-4">No inventory on hand</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Summary Stats */}
+          <div className="mt-4 bg-slate-800/30 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+              <span className="text-indigo-400">📊</span>
+              Performance Summary
+            </h4>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+              <div>
+                <div className="text-slate-400">Total Revenue</div>
+                <div className="text-slate-100 font-semibold">${centsToStr(row.totalSalesCents || 0)}</div>
+              </div>
+              <div>
+                <div className="text-slate-400">Total Profit</div>
+                <div className="text-emerald-400 font-semibold">${centsToStr(row.totalProfitCents || 0)}</div>
+              </div>
+              <div>
+                <div className="text-slate-400">Avg ROI</div>
+                <div className="text-slate-100 font-semibold">{((row.roi || 0) * 100).toFixed(1)}%</div>
+              </div>
+              <div>
+                <div className="text-slate-400">Avg Hold Time</div>
+                <div className="text-slate-100 font-semibold">{row.avgHold || 0} days</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
