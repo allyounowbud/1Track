@@ -671,10 +671,13 @@ function FinancialTrendChart({ item, filteredOrders }) {
     const points = monthlyData.map((d, i) => {
       const x = monthlyData.length > 1 ? (i / (monthlyData.length - 1)) * 100 : 50;
       const y = getY(d[dataKey]);
+      console.log(`Debug - createPath ${dataKey}[${i}]: x=${x}, y=${y}, value=${d[dataKey]}`);
       return `${x},${y}`;
     });
     
-    return `M ${points.join(' L ')}`;
+    const pathString = `M ${points.join(' L ')}`;
+    console.log(`Debug - createPath ${dataKey} result:`, pathString);
+    return pathString;
   };
 
   return (
