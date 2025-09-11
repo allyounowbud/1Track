@@ -661,7 +661,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
       {/* Chart Container */}
       <div className="w-full h-full relative bg-slate-900/30 rounded-lg p-4 overflow-hidden">
         {/* Y-axis labels on the left - 0 at bottom, max at top */}
-        <div className="absolute left-0 top-4 bottom-4 w-10 sm:w-12 flex flex-col justify-between">
+        <div className="absolute left-0 top-4 bottom-8 w-10 sm:w-12 flex flex-col justify-between">
           {[100, 75, 50, 25, 0].map((percentage, i) => {
             const value = maxValue > 0 ? Math.round((percentage / 100) * maxValue) : 0;
             const dollarValue = Math.round(value / 100); // Convert cents to dollars, no decimals
@@ -673,8 +673,8 @@ function FinancialTrendChart({ item, filteredOrders }) {
           })}
         </div>
 
-        {/* Chart area with proper margins - RESPONSIVE */}
-        <div className="ml-10 sm:ml-12 mr-2 mt-4 mb-4 h-full">
+        {/* Chart area - FULL WIDTH with proper bottom margin */}
+        <div className="ml-10 sm:ml-12 mr-2 mt-4 mb-8 h-full">
           <svg 
             className="w-full h-full" 
             viewBox="0 0 100 100" 
@@ -794,10 +794,10 @@ function FinancialTrendChart({ item, filteredOrders }) {
           </svg>
         </div>
 
-        {/* X-axis labels at bottom - Months from left to right */}
-        <div className="absolute bottom-0 left-10 sm:left-12 right-2 flex justify-between">
+        {/* X-axis labels at bottom - Months from left to right with proper spacing */}
+        <div className="absolute bottom-2 left-10 sm:left-12 right-2 flex justify-between">
           {monthlyData.map((d, i) => (
-            <div key={i} className="text-xs text-slate-400 text-center">
+            <div key={i} className="text-xs text-slate-400 text-center flex-1">
               {d.month} {d.year}
             </div>
           ))}
