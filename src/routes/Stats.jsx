@@ -518,7 +518,7 @@ function SingleItemChart({ item, filteredOrders }) {
       {/* Line Chart for Key Metrics */}
       <div className="bg-slate-800/50 rounded-xl p-6">
         <h5 className="text-lg font-medium text-slate-300 mb-6 text-center">Financial Trend</h5>
-        <div className="h-64">
+        <div className="h-64 sm:h-72 lg:h-80">
           <FinancialTrendChart item={item} filteredOrders={ordersArray} />
         </div>
       </div>
@@ -597,9 +597,9 @@ function FinancialTrendChart({ item, filteredOrders }) {
   };
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative flex flex-col">
       {/* Y-axis labels */}
-      <div className="absolute left-0 top-0 bottom-0 w-12 flex flex-col justify-between py-4">
+      <div className="absolute left-0 top-0 bottom-12 w-16 flex flex-col justify-between py-2">
         {[0, 25, 50, 75, 100].map((y, i) => {
           const value = maxValue > 0 ? Math.round((100 - y) / 100 * maxValue) : 0;
           return (
@@ -611,7 +611,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
       </div>
       
       {/* SVG for the line chart */}
-      <svg className="w-full h-full ml-12" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <svg className="w-full h-full ml-16 mb-12" viewBox="0 0 100 100" preserveAspectRatio="none">
         {/* Grid lines */}
         {[20, 40, 60, 80].map(y => (
           <line
@@ -687,28 +687,28 @@ function FinancialTrendChart({ item, filteredOrders }) {
       </svg>
       
       {/* Month labels */}
-      <div className="absolute bottom-0 left-0 right-0 flex justify-between px-2">
+      <div className="absolute bottom-0 left-16 right-0 h-12 flex justify-between items-end px-4 pb-2">
         {monthlyData.map((d, i) => (
-          <div key={i} className="text-xs text-slate-400 text-center">
-            <div>{d.month}</div>
-            <div className="text-xs opacity-60">{d.year}</div>
+          <div key={i} className="text-xs text-slate-400 text-center flex-shrink-0" style={{ width: `${100 / monthlyData.length}%` }}>
+            <div className="font-medium">{d.month}</div>
+            <div className="text-xs opacity-70">{d.year}</div>
           </div>
         ))}
       </div>
       
       {/* Legend */}
-      <div className="absolute top-0 right-0 flex gap-4">
+      <div className="absolute top-2 right-4 flex gap-3 bg-slate-900/80 rounded-lg px-3 py-2">
         <div className="flex items-center gap-1">
           <div className="w-3 h-0.5 bg-red-500"></div>
-          <span className="text-xs text-slate-400">COGS</span>
+          <span className="text-xs text-slate-300">COGS</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-0.5 bg-blue-500"></div>
-          <span className="text-xs text-slate-400">Revenue</span>
+          <span className="text-xs text-slate-300">Revenue</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-0.5 bg-green-500"></div>
-          <span className="text-xs text-slate-400">Profit</span>
+          <span className="text-xs text-slate-300">Profit</span>
         </div>
       </div>
     </div>
