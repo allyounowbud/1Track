@@ -439,6 +439,7 @@ export default function Settings() {
               isSelected={selectedItems.has(item.id)}
               onToggleSelection={() => toggleItemSelection(item.id)}
               onSave={() => refetchItems()}
+              disabled={hasNewItemRows}
             />
           )}
           renderNewRow={(newRow) => (
@@ -483,6 +484,7 @@ export default function Settings() {
               isSelected={selectedRetailers.has(retailer.id)}
               onToggleSelection={() => toggleRetailerSelection(retailer.id)}
               onSave={() => refetchRetailers()}
+              disabled={hasNewRetailerRows}
             />
           )}
           renderNewRow={(newRow) => (
@@ -527,6 +529,7 @@ export default function Settings() {
               isSelected={selectedMarkets.has(market.id)}
               onToggleSelection={() => toggleMarketSelection(market.id)}
               onSave={() => refetchMarkets()}
+              disabled={hasNewMarketRows}
             />
           )}
           renderNewRow={(newRow) => (
@@ -612,47 +615,62 @@ function SettingsCard({
               
               {/* Determine button visibility based on selection state */}
               {(() => {
-                // New rows selected: show X cancel and save buttons
+                // New rows selected: show cancel and save buttons
                 if (hasNewRowsInSelection) {
                   return (
                     <>
                       <button
                         onClick={cancelNewRows}
-                        className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Cancel Changes"
                       >
-                        ✕ Cancel
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                       <button
                         onClick={bulkSave}
-                        className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Save Changes"
                       >
-                        Save
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
                       </button>
                     </>
                   );
                 }
                 
-                // Existing rows selected: show X cancel, save, and delete buttons
+                // Existing rows selected: show cancel, save, and delete buttons
                 if (hasExistingRows) {
                   return (
                     <>
                       <button
-                        onClick={() => selectedRows.clear()}
-                        className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                        onClick={clearSelection}
+                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Cancel Selection"
                       >
-                        ✕ Cancel
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                       <button
                         onClick={bulkSave}
-                        className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Save Selected"
                       >
-                        Save
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
                       </button>
                       <button
                         onClick={bulkDelete}
-                        className="px-3 py-1 text-xs bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors"
+                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Delete Selected"
                       >
-                        Delete
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </>
                   );
@@ -663,110 +681,28 @@ function SettingsCard({
             </div>
           )}
 
-          {/* Add button - only show when expanded */}
-          {isExpanded && (
+          {/* Add button - only show when expanded and no existing rows selected */}
+          {isExpanded && !hasExistingRows && (
             <button
               onClick={addNewRow}
-              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+              className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
               aria-label={`Add ${title.slice(0, -1).toLowerCase()}`}
               title={`Add ${title.slice(0, -1).toLowerCase()}`}
             >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 5v14M5 12h14" />
+              <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
               </svg>
             </button>
           )}
           
-          {/* Expand/Collapse button */}
-          <div className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 text-slate-100">
-            <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-          </div>
+          {/* Expand/Collapse chevron - no button wrapper, just the icon */}
+          <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
         </div>
       </div>
 
       {/* Expanded Content */}
       {isExpanded && (
         <div className="pt-5 border-t border-slate-800 mt-4">
-          {/* Bulk Actions Bar - OrderBook style */}
-          {hasSelection && (
-            <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/30 mb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.size === data.length && data.length > 0}
-                    onChange={toggleAllSelection}
-                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                  />
-                  <span className="text-sm font-semibold text-slate-400">
-                    {selectedRows.size}/{data.length} Selected
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* Determine button visibility based on selection state */}
-                  {(() => {
-                    // New rows selected: show X cancel and save buttons
-                    if (hasNewRowsInSelection) {
-                      return (
-                        <>
-                          <button
-                            onClick={cancelNewRows}
-                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
-                          >
-                            ✕ Cancel
-                          </button>
-                          <button
-                            onClick={bulkSave}
-                            className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
-                          >
-                            Save
-                          </button>
-                        </>
-                      );
-                    }
-                    
-                    // Existing rows selected: show X cancel, save, and delete buttons
-                    if (hasExistingRows) {
-                      return (
-                        <>
-                          <button
-                            onClick={clearSelection}
-                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
-                          >
-                            ✕ Cancel
-                          </button>
-                          <button
-                            onClick={bulkSave}
-                            className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={bulkDelete}
-                            className="px-3 py-1 text-xs bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </>
-                      );
-                    }
-                    
-                    return null;
-                  })()}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Header */}
           <div className="grid grid-cols-[auto_2fr_1fr] gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium">
             <div className="w-6"></div>
@@ -774,8 +710,8 @@ function SettingsCard({
             <div className="text-left">Details</div>
           </div>
 
-          {/* Rows */}
-          <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
+          {/* Rows - No scroll, show all data */}
+          <div className="space-y-2">
             {/* New rows first */}
             {newRowsData.map(renderNewRow)}
 
@@ -942,14 +878,14 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
   );
 }
 
-function ItemRow({ item, isSelected, onToggleSelection, onSave }) {
+function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false }) {
   const [name, setName] = useState(item?.name ?? "");
   const [mv, setMv] = useState(centsToStr(item?.market_value_cents ?? 0));
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function updateItem() {
-    if (busy) return;
+    if (busy || disabled) return;
     setBusy(true);
     setStatus("Saving…");
     try {
@@ -1030,13 +966,13 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave }) {
   );
 }
 
-function RetailerRow({ retailer, isSelected, onToggleSelection, onSave }) {
+function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled = false }) {
   const [name, setName] = useState(retailer?.name ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function updateRetailer() {
-    if (busy) return;
+    if (busy || disabled) return;
     setBusy(true);
     setStatus("Saving…");
     try {
@@ -1106,14 +1042,14 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave }) {
   );
 }
 
-function MarketRow({ market, isSelected, onToggleSelection, onSave }) {
+function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = false }) {
   const [name, setName] = useState(market?.name ?? "");
   const [fee, setFee] = useState(((market?.default_fees_pct ?? 0) * 100).toString());
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function updateMarket() {
-    if (busy) return;
+    if (busy || disabled) return;
     setBusy(true);
     setStatus("Saving…");
     try {
