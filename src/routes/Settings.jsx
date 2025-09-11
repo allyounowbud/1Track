@@ -46,138 +46,196 @@ export default function Settings() {
     queryFn: getMarkets,
   });
 
-  // OrderBook-style state management
-  const [selectedRows, setSelectedRows] = useState(new Set());
-  const [bulkActionsVisible, setBulkActionsVisible] = useState(false);
-  const [newRows, setNewRows] = useState([]); // Array of temporary new rows
-  const [nextNewRowId, setNextNewRowId] = useState(-1); // Negative IDs for new rows
+  // Separate state for each card (OrderBook-style)
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [selectedRetailers, setSelectedRetailers] = useState(new Set());
+  const [selectedMarkets, setSelectedMarkets] = useState(new Set());
+  
+  const [newItemRows, setNewItemRows] = useState([]);
+  const [newRetailerRows, setNewRetailerRows] = useState([]);
+  const [newMarketRows, setNewMarketRows] = useState([]);
+  
+  const [nextNewRowId, setNextNewRowId] = useState(-1);
 
-  // Update bulk actions visibility when selection changes
+  // Update bulk actions visibility for each card
   useEffect(() => {
-    setBulkActionsVisible(selectedRows.size > 0);
-  }, [selectedRows]);
+    // Each card manages its own bulk actions visibility
+  }, [selectedItems, selectedRetailers, selectedMarkets]);
 
-  // Helper function to check if there are new rows in the system
-  const hasNewRows = newRows.length > 0;
+  // Helper functions to check if there are new rows in each system
+  const hasNewItemRows = newItemRows.length > 0;
+  const hasNewRetailerRows = newRetailerRows.length > 0;
+  const hasNewMarketRows = newMarketRows.length > 0;
 
-  /* ----- OrderBook-style Bulk Operations ----- */
-  function toggleRowSelection(rowId) {
-    const newSelected = new Set(selectedRows);
+  /* ----- Items Card Operations ----- */
+  function toggleItemSelection(rowId) {
+    const newSelected = new Set(selectedItems);
     if (newSelected.has(rowId)) {
-      // Check if this is a new row - prevent deselection
       const isNewRow = rowId < 0;
-      if (isNewRow) {
-        return; // Don't allow deselection of new rows
-      }
+      if (isNewRow) return; // Don't allow deselection of new rows
       newSelected.delete(rowId);
     } else {
-      // If there are new rows, clear all selections first
-      if (hasNewRows) {
-        setSelectedRows(new Set([rowId]));
+      if (hasNewItemRows) {
+        setSelectedItems(new Set([rowId]));
         return;
       }
       newSelected.add(rowId);
     }
-    setSelectedRows(newSelected);
+    setSelectedItems(newSelected);
   }
 
-  function toggleAllSelection() {
-    if (selectedRows.size === (items.length + retailers.length + markets.length)) {
-      // Check if there are new rows - prevent deselection
-      if (hasNewRows) {
-        return;
-      }
-      setSelectedRows(new Set());
+  function toggleAllItemsSelection() {
+    if (selectedItems.size === items.length) {
+      if (hasNewItemRows) return;
+      setSelectedItems(new Set());
     } else {
-      // Select all existing rows
-      const allIds = [
-        ...items.map(item => item.id),
-        ...retailers.map(retailer => retailer.id),
-        ...markets.map(market => market.id)
-      ];
-      setSelectedRows(new Set(allIds));
+      setSelectedItems(new Set(items.map(item => item.id)));
     }
   }
 
-  async function bulkSaveSelected() {
-    if (selectedRows.size === 0) return;
+  async function bulkSaveItems() {
+    if (selectedItems.size === 0) return;
+    alert(`Saving ${selectedItems.size} selected items...`);
+    setSelectedItems(new Set());
+  }
+
+  async function bulkDeleteItems() {
+    if (!confirm(`Are you sure you want to delete ${selectedItems.size} item(s)?`)) return;
     
-    try {
-      // For now, just show a message since we need to collect form data
-      alert(`Saving ${selectedRows.size} selected items...`);
-      setSelectedRows(new Set());
-    } catch (e) {
-      alert(`Failed to save: ${e.message}`);
+    const selectedIds = Array.from(selectedItems).filter(id => id > 0);
+    if (selectedIds.length > 0) {
+      const { error } = await supabase.from("items").delete().in("id", selectedIds);
+      if (error) throw error;
+      await refetchItems();
     }
+    setSelectedItems(new Set());
+    setNewItemRows([]);
   }
 
-  async function bulkDeleteSelected() {
-    if (!confirm(`Are you sure you want to delete ${selectedRows.size} item(s)?`)) {
-      return;
-    }
-
-    try {
-      const selectedIds = Array.from(selectedRows).filter(id => id > 0); // Only existing items
-      
-      if (selectedIds.length > 0) {
-        // Delete items
-        const itemIds = selectedIds.filter(id => items.some(item => item.id === id));
-        if (itemIds.length > 0) {
-          const { error: itemsError } = await supabase
-            .from("items")
-            .delete()
-            .in("id", itemIds);
-          if (itemsError) throw itemsError;
-        }
-
-        // Delete retailers
-        const retailerIds = selectedIds.filter(id => retailers.some(retailer => retailer.id === id));
-        if (retailerIds.length > 0) {
-          const { error: retailersError } = await supabase
-            .from("retailers")
-            .delete()
-            .in("id", retailerIds);
-          if (retailersError) throw retailersError;
-        }
-
-        // Delete markets
-        const marketIds = selectedIds.filter(id => markets.some(market => market.id === id));
-        if (marketIds.length > 0) {
-          const { error: marketsError } = await supabase
-            .from("marketplaces")
-            .delete()
-            .in("id", marketIds);
-          if (marketsError) throw marketsError;
-        }
-
-        // Refresh data
-        await Promise.all([refetchItems(), refetchRetailers(), refetchMarkets()]);
-      }
-
-      setSelectedRows(new Set());
-      setNewRows([]);
-    } catch (e) {
-      alert(`Failed to delete: ${e.message}`);
-    }
+  function cancelNewItemRows() {
+    setNewItemRows([]);
+    setSelectedItems(new Set());
   }
 
-  function cancelNewRows() {
-    setNewRows([]);
-    setSelectedRows(new Set());
-  }
-
-  function addNewRow(type) {
+  function addNewItemRow() {
     const newId = nextNewRowId;
     setNextNewRowId(newId - 1);
+    setNewItemRows(prev => [...prev, { id: newId, type: 'item', isNew: true }]);
+    setSelectedItems(new Set([newId]));
+  }
+
+  /* ----- Retailers Card Operations ----- */
+  function toggleRetailerSelection(rowId) {
+    const newSelected = new Set(selectedRetailers);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (hasNewRetailerRows) {
+        setSelectedRetailers(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedRetailers(newSelected);
+  }
+
+  function toggleAllRetailersSelection() {
+    if (selectedRetailers.size === retailers.length) {
+      if (hasNewRetailerRows) return;
+      setSelectedRetailers(new Set());
+    } else {
+      setSelectedRetailers(new Set(retailers.map(retailer => retailer.id)));
+    }
+  }
+
+  async function bulkSaveRetailers() {
+    if (selectedRetailers.size === 0) return;
+    alert(`Saving ${selectedRetailers.size} selected retailers...`);
+    setSelectedRetailers(new Set());
+  }
+
+  async function bulkDeleteRetailers() {
+    if (!confirm(`Are you sure you want to delete ${selectedRetailers.size} retailer(s)?`)) return;
     
-    const newRow = {
-      id: newId,
-      type: type, // 'item', 'retailer', 'market'
-      isNew: true
-    };
+    const selectedIds = Array.from(selectedRetailers).filter(id => id > 0);
+    if (selectedIds.length > 0) {
+      const { error } = await supabase.from("retailers").delete().in("id", selectedIds);
+      if (error) throw error;
+      await refetchRetailers();
+    }
+    setSelectedRetailers(new Set());
+    setNewRetailerRows([]);
+  }
+
+  function cancelNewRetailerRows() {
+    setNewRetailerRows([]);
+    setSelectedRetailers(new Set());
+  }
+
+  function addNewRetailerRow() {
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewRetailerRows(prev => [...prev, { id: newId, type: 'retailer', isNew: true }]);
+    setSelectedRetailers(new Set([newId]));
+  }
+
+  /* ----- Markets Card Operations ----- */
+  function toggleMarketSelection(rowId) {
+    const newSelected = new Set(selectedMarkets);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (hasNewMarketRows) {
+        setSelectedMarkets(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedMarkets(newSelected);
+  }
+
+  function toggleAllMarketsSelection() {
+    if (selectedMarkets.size === markets.length) {
+      if (hasNewMarketRows) return;
+      setSelectedMarkets(new Set());
+    } else {
+      setSelectedMarkets(new Set(markets.map(market => market.id)));
+    }
+  }
+
+  async function bulkSaveMarkets() {
+    if (selectedMarkets.size === 0) return;
+    alert(`Saving ${selectedMarkets.size} selected marketplaces...`);
+    setSelectedMarkets(new Set());
+  }
+
+  async function bulkDeleteMarkets() {
+    if (!confirm(`Are you sure you want to delete ${selectedMarkets.size} marketplace(s)?`)) return;
     
-    setNewRows(prev => [...prev, newRow]);
-    setSelectedRows(new Set([newId]));
+    const selectedIds = Array.from(selectedMarkets).filter(id => id > 0);
+    if (selectedIds.length > 0) {
+      const { error } = await supabase.from("marketplaces").delete().in("id", selectedIds);
+      if (error) throw error;
+      await refetchMarkets();
+    }
+    setSelectedMarkets(new Set());
+    setNewMarketRows([]);
+  }
+
+  function cancelNewMarketRows() {
+    setNewMarketRows([]);
+    setSelectedMarkets(new Set());
+  }
+
+  function addNewMarketRow() {
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewMarketRows(prev => [...prev, { id: newId, type: 'market', isNew: true }]);
+    setSelectedMarkets(new Set([newId]));
   }
 
   /* ----- Legacy Bulk Operations ----- */
@@ -336,106 +394,302 @@ export default function Settings() {
       <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
         <HeaderWithTabs active="database" showTabs section="orderbook" showHubTab={true} />
 
-        {/* OrderBook-style unified interface */}
-        <div className={`${pageCard} overflow-hidden`}>
+        {/* Items Card */}
+        <SettingsCard
+          title="Products"
+          totalCount={items.length}
+          selectedRows={selectedItems}
+          newRows={newItemRows}
+          hasNewRows={hasNewItemRows}
+          toggleAllSelection={toggleAllItemsSelection}
+          bulkSave={bulkSaveItems}
+          bulkDelete={bulkDeleteItems}
+          cancelNewRows={cancelNewItemRows}
+          addNewRow={addNewItemRow}
+          data={items}
+          newRowsData={newItemRows}
+          onRowToggle={toggleItemSelection}
+          onNewRowSave={(data) => {
+            setNewItemRows(prev => prev.filter(row => row.id !== data.id));
+            setSelectedItems(new Set());
+            refetchItems();
+          }}
+          onNewRowCancel={(data) => {
+            setNewItemRows(prev => prev.filter(row => row.id !== data.id));
+            setSelectedItems(new Set());
+          }}
+          renderRow={(item) => (
+            <ItemRow
+              key={item.id}
+              item={item}
+              isSelected={selectedItems.has(item.id)}
+              onToggleSelection={() => toggleItemSelection(item.id)}
+              onSave={() => refetchItems()}
+            />
+          )}
+          renderNewRow={(newRow) => (
+            <NewRowComponent
+              key={newRow.id}
+              row={newRow}
+              isSelected={selectedItems.has(newRow.id)}
+              onToggleSelection={() => toggleItemSelection(newRow.id)}
+              onSave={(data) => {
+                setNewItemRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedItems(new Set());
+                refetchItems();
+              }}
+              onCancel={() => {
+                setNewItemRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedItems(new Set());
+              }}
+            />
+          )}
+        />
+
+        {/* Retailers Card */}
+        <SettingsCard
+          title="Retailers"
+          totalCount={retailers.length}
+          selectedRows={selectedRetailers}
+          newRows={newRetailerRows}
+          hasNewRows={hasNewRetailerRows}
+          toggleAllSelection={toggleAllRetailersSelection}
+          bulkSave={bulkSaveRetailers}
+          bulkDelete={bulkDeleteRetailers}
+          cancelNewRows={cancelNewRetailerRows}
+          addNewRow={addNewRetailerRow}
+          data={retailers}
+          newRowsData={newRetailerRows}
+          onRowToggle={toggleRetailerSelection}
+          renderRow={(retailer) => (
+            <RetailerRow
+              key={retailer.id}
+              retailer={retailer}
+              isSelected={selectedRetailers.has(retailer.id)}
+              onToggleSelection={() => toggleRetailerSelection(retailer.id)}
+              onSave={() => refetchRetailers()}
+            />
+          )}
+          renderNewRow={(newRow) => (
+            <NewRowComponent
+              key={newRow.id}
+              row={newRow}
+              isSelected={selectedRetailers.has(newRow.id)}
+              onToggleSelection={() => toggleRetailerSelection(newRow.id)}
+              onSave={(data) => {
+                setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedRetailers(new Set());
+                refetchRetailers();
+              }}
+              onCancel={() => {
+                setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedRetailers(new Set());
+              }}
+            />
+          )}
+        />
+
+        {/* Markets Card */}
+        <SettingsCard
+          title="Marketplaces"
+          totalCount={markets.length}
+          selectedRows={selectedMarkets}
+          newRows={newMarketRows}
+          hasNewRows={hasNewMarketRows}
+          toggleAllSelection={toggleAllMarketsSelection}
+          bulkSave={bulkSaveMarkets}
+          bulkDelete={bulkDeleteMarkets}
+          cancelNewRows={cancelNewMarketRows}
+          addNewRow={addNewMarketRow}
+          data={markets}
+          newRowsData={newMarketRows}
+          onRowToggle={toggleMarketSelection}
+          renderRow={(market) => (
+            <MarketRow
+              key={market.id}
+              market={market}
+              isSelected={selectedMarkets.has(market.id)}
+              onToggleSelection={() => toggleMarketSelection(market.id)}
+              onSave={() => refetchMarkets()}
+            />
+          )}
+          renderNewRow={(newRow) => (
+            <NewRowComponent
+              key={newRow.id}
+              row={newRow}
+              isSelected={selectedMarkets.has(newRow.id)}
+              onToggleSelection={() => toggleMarketSelection(newRow.id)}
+              onSave={(data) => {
+                setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedMarkets(new Set());
+                refetchMarkets();
+              }}
+              onCancel={() => {
+                setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedMarkets(new Set());
+              }}
+            />
+          )}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Components ---------- */
+
+function ChevronDown({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+function SettingsCard({ 
+  title, 
+  totalCount, 
+  selectedRows, 
+  newRows, 
+  hasNewRows, 
+  toggleAllSelection, 
+  bulkSave, 
+  bulkDelete, 
+  cancelNewRows, 
+  addNewRow, 
+  data, 
+  newRowsData, 
+  onRowToggle, 
+  renderRow, 
+  renderNewRow 
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const hasSelection = selectedRows.size > 0;
+  const selectedItems = Array.from(selectedRows);
+  const hasNewRowsInSelection = selectedItems.some(id => id < 0);
+  const hasExistingRows = selectedItems.some(id => id > 0);
+
+  return (
+    <section className={`${pageCard} mb-6`}>
+      {/* Card Header */}
+      <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold leading-[2.25rem]">{title}</h2>
+          <p className="text-xs text-slate-400 -mt-1">Total: {totalCount}</p>
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0">
+          {/* Bulk Actions - only show when expanded and items are selected */}
+          {isExpanded && hasSelection && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">
+                {selectedRows.size} selected
+              </span>
+              
+              {/* Determine button visibility based on selection state */}
+              {(() => {
+                // New rows selected: show X cancel and save buttons
+                if (hasNewRowsInSelection) {
+                  return (
+                    <>
+                      <button
+                        onClick={cancelNewRows}
+                        className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                      >
+                        ✕ Cancel
+                      </button>
+                      <button
+                        onClick={bulkSave}
+                        className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+                      >
+                        Save
+                      </button>
+                    </>
+                  );
+                }
+                
+                // Existing rows selected: show X cancel, save, and delete buttons
+                if (hasExistingRows) {
+                  return (
+                    <>
+                      <button
+                        onClick={() => selectedRows.clear()}
+                        className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                      >
+                        ✕ Cancel
+                      </button>
+                      <button
+                        onClick={bulkSave}
+                        className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={bulkDelete}
+                        className="px-3 py-1 text-xs bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  );
+                }
+                
+                return null;
+              })()}
+            </div>
+          )}
+
+          {/* Add button - only show when expanded */}
+          {isExpanded && (
+            <button
+              onClick={addNewRow}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+              aria-label={`Add ${title.slice(0, -1).toLowerCase()}`}
+              title={`Add ${title.slice(0, -1).toLowerCase()}`}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          )}
+          
+          {/* Expand/Collapse button */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-slate-100"
+            aria-label={isExpanded ? "Collapse" : "Expand"}
+          >
+            <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="pt-5 border-t border-slate-800 mt-4">
           {/* Bulk Actions Bar - OrderBook style */}
-          {bulkActionsVisible && (
-            <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/30">
+          {hasSelection && (
+            <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/30 mb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={selectedRows.size === (items.length + retailers.length + markets.length) && (items.length + retailers.length + markets.length) > 0}
+                    checked={selectedRows.size === data.length && data.length > 0}
                     onChange={toggleAllSelection}
                     className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
                   />
                   <span className="text-sm font-semibold text-slate-400">
-                    {selectedRows.size}/{items.length + retailers.length + markets.length} Selected
+                    {selectedRows.size}/{data.length} Selected
                   </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* Determine button visibility based on selection state */}
-                  {(() => {
-                    const hasSelection = selectedRows.size > 0;
-                    const selectedItems = Array.from(selectedRows);
-                    const hasNewRowsInSelection = selectedItems.some(id => id < 0);
-                    const hasExistingRows = selectedItems.some(id => id > 0);
-                    
-                    // Default state: no selection - show only + add buttons
-                    if (!hasSelection) {
-                      return (
-                        <>
-                          <button
-                            onClick={() => addNewRow('item')}
-                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
-                          >
-                            + Add Item
-                          </button>
-                          <button
-                            onClick={() => addNewRow('retailer')}
-                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
-                          >
-                            + Add Retailer
-                          </button>
-                          <button
-                            onClick={() => addNewRow('market')}
-                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
-                          >
-                            + Add Marketplace
-                          </button>
-                        </>
-                      );
-                    }
-                    
-                    // New rows selected: show X cancel, save, and delete buttons
-                    if (hasNewRowsInSelection) {
-                      return (
-                        <>
-                          <button
-                            onClick={cancelNewRows}
-                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
-                          >
-                            ✕ Cancel
-                          </button>
-                          <button
-                            onClick={bulkSaveSelected}
-                            className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
-                          >
-                            Save
-                          </button>
-                        </>
-                      );
-                    }
-                    
-                    // Existing rows selected: show X cancel, save, and delete buttons
-                    if (hasExistingRows) {
-                      return (
-                        <>
-                          <button
-                            onClick={() => setSelectedRows(new Set())}
-                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
-                          >
-                            ✕ Cancel
-                          </button>
-                          <button
-                            onClick={bulkSaveSelected}
-                            className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={bulkDeleteSelected}
-                            className="px-3 py-1 text-xs bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </>
-                      );
-                    }
-                    
-                    return null;
-                  })()}
                 </div>
               </div>
             </div>
@@ -449,83 +703,22 @@ export default function Settings() {
           </div>
 
           {/* Rows */}
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-2">
             {/* New rows first */}
-            {newRows.map((newRow) => (
-              <NewRowComponent
-                key={newRow.id}
-                row={newRow}
-                isSelected={selectedRows.has(newRow.id)}
-                onToggleSelection={() => toggleRowSelection(newRow.id)}
-                onSave={(data) => {
-                  // Handle saving new row
-                  console.log('Saving new row:', data);
-                  setNewRows(prev => prev.filter(row => row.id !== newRow.id));
-                  setSelectedRows(new Set());
-                  // Refresh appropriate data
-                  if (newRow.type === 'item') refetchItems();
-                  if (newRow.type === 'retailer') refetchRetailers();
-                  if (newRow.type === 'market') refetchMarkets();
-                }}
-                onCancel={() => {
-                  setNewRows(prev => prev.filter(row => row.id !== newRow.id));
-                  setSelectedRows(new Set());
-                }}
-              />
-            ))}
+            {newRowsData.map(renderNewRow)}
 
-            {/* Existing items */}
-            {items.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                isSelected={selectedRows.has(item.id)}
-                onToggleSelection={() => toggleRowSelection(item.id)}
-                onSave={() => refetchItems()}
-              />
-            ))}
+            {/* Existing rows */}
+            {data.map(renderRow)}
 
-            {/* Existing retailers */}
-            {retailers.map((retailer) => (
-              <RetailerRow
-                key={retailer.id}
-                retailer={retailer}
-                isSelected={selectedRows.has(retailer.id)}
-                onToggleSelection={() => toggleRowSelection(retailer.id)}
-                onSave={() => refetchRetailers()}
-              />
-            ))}
-
-            {/* Existing markets */}
-            {markets.map((market) => (
-              <MarketRow
-                key={market.id}
-                market={market}
-                isSelected={selectedRows.has(market.id)}
-                onToggleSelection={() => toggleRowSelection(market.id)}
-                onSave={() => refetchMarkets()}
-              />
-            ))}
-
-            {items.length === 0 && retailers.length === 0 && markets.length === 0 && newRows.length === 0 && (
+            {data.length === 0 && newRowsData.length === 0 && (
               <div className="px-4 py-8 text-center text-slate-400">
-                No items found. Click the + buttons above to add new items.
+                No {title.toLowerCase()} yet. Click the + button above to add new {title.slice(0, -1).toLowerCase()}.
               </div>
             )}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Components ---------- */
-
-function ChevronDown({ className = "h-5 w-5" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M6 9l6 6 6-6" />
-    </svg>
+      )}
+    </section>
   );
 }
 
