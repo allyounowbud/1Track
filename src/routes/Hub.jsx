@@ -121,15 +121,15 @@ export default function Hub() {
         <div className={`${card}`}>
           <div className="mb-4">
             <h2 className="text-lg font-semibold">Changelog</h2>
-            <div className="text-xs text-slate-400/60">v0.0.4</div>
+            <div className="text-xs text-slate-400/60">v0.0.5</div>
           </div>
           
         <div className="space-y-3">
           <div className="flex items-start gap-3">
             <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
             <div>
-              <div className="text-sm font-medium text-slate-200">Redesigned Stats Charts</div>
-              <div className="text-xs text-slate-400">Replaced complex charts with 3 clean, mobile-friendly charts: Revenue bars, Profit analysis, and Sales activity with better visual design and responsiveness</div>
+              <div className="text-sm font-medium text-slate-200">Dynamic Stats Charts</div>
+              <div className="text-xs text-slate-400">Charts now adapt based on filtered results: 3 comparison charts for multiple items, comprehensive single chart for one item, removed avg ROI from quick stats</div>
             </div>
           </div>
           <div className="flex items-start gap-3">

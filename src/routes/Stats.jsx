@@ -216,40 +216,7 @@ export default function Stats() {
               <h3 className="text-md font-medium text-slate-200 mb-1">Analytics Dashboard</h3>
               <p className="text-sm text-slate-400">Comprehensive insights and performance metrics</p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Revenue Chart */}
-              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
-                  <span className="text-emerald-400">💰</span>
-                  Top Revenue Items
-                </h4>
-                <div className="h-64">
-                  <RevenueChart itemGroups={itemGroups.slice(0, 6)} />
-                </div>
-              </div>
-
-              {/* Profit Chart */}
-              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
-                  <span className="text-blue-400">📈</span>
-                  Profitability Analysis
-                </h4>
-                <div className="h-64">
-                  <ProfitChart itemGroups={itemGroups.slice(0, 6)} />
-                </div>
-              </div>
-
-              {/* Sales Activity Chart */}
-              <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
-                  <span className="text-purple-400">🛒</span>
-                  Sales Activity
-                </h4>
-                <div className="h-64">
-                  <SalesActivityChart itemGroups={itemGroups.slice(0, 6)} />
-                </div>
-              </div>
-            </div>
+            <DynamicCharts itemGroups={itemGroups} />
           </div>
 
           {/* Summary Cards - Full Width */}
@@ -286,16 +253,6 @@ export default function Stats() {
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-400">Items On Hand</span>
                   <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.onHand, 0))}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-400">Avg ROI</span>
-                  <span className="text-sm font-medium text-slate-100">
-                    {(() => {
-                      const validRois = itemGroups.filter(item => Number.isFinite(item.roi) && item.roi !== 0);
-                      const avgRoi = validRois.length > 0 ? validRois.reduce((sum, item) => sum + item.roi, 0) / validRois.length : 0;
-                      return pctStr(avgRoi);
-                    })()}
-                  </span>
                 </div>
               </div>
             </div>
@@ -389,6 +346,180 @@ export default function Stats() {
 /* --------------------------- small components --------------------------- */
 
 
+
+/* --------------------- Dynamic Charts Component --------------------- */
+
+// Dynamic Charts - Changes based on number of filtered items
+function DynamicCharts({ itemGroups = [] }) {
+  const itemCount = itemGroups.length;
+  
+  if (itemCount === 0) {
+    return (
+      <div className="bg-slate-900/40 rounded-xl p-8 border border-slate-800 text-center">
+        <div className="text-slate-400 text-lg mb-2">📊</div>
+        <div className="text-slate-400">No data available for the selected filters</div>
+      </div>
+    );
+  }
+  
+  if (itemCount === 1) {
+    // Single item - Show comprehensive single chart
+    return (
+      <div className="bg-slate-900/40 rounded-xl p-6 border border-slate-800">
+        <h4 className="text-sm font-medium text-slate-300 mb-6 flex items-center gap-2">
+          <span className="text-indigo-400">📊</span>
+          Comprehensive Analysis: {itemGroups[0].item}
+        </h4>
+        <SingleItemChart item={itemGroups[0]} />
+      </div>
+    );
+  }
+  
+  // Multiple items - Show 3 comparison charts
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Revenue Chart */}
+      <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
+        <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+          <span className="text-emerald-400">💰</span>
+          Top Revenue Items
+        </h4>
+        <div className="h-64">
+          <RevenueChart itemGroups={itemGroups.slice(0, 8)} />
+        </div>
+      </div>
+
+      {/* Profit Chart */}
+      <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
+        <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+          <span className="text-blue-400">📈</span>
+          Profitability Analysis
+        </h4>
+        <div className="h-64">
+          <ProfitChart itemGroups={itemGroups.slice(0, 8)} />
+        </div>
+      </div>
+
+      {/* Sales Activity Chart */}
+      <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
+        <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+          <span className="text-purple-400">🛒</span>
+          Sales Activity
+        </h4>
+        <div className="h-64">
+          <SalesActivityChart itemGroups={itemGroups.slice(0, 8)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Single Item Comprehensive Chart
+function SingleItemChart({ item }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Left Side - Key Metrics */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-emerald-400">${centsToStr(item.revenueC)}</div>
+            <div className="text-sm text-slate-400">Total Revenue</div>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-blue-400">${centsToStr(item.realizedPlC)}</div>
+            <div className="text-sm text-slate-400">Realized P/L</div>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-purple-400">{item.sold}</div>
+            <div className="text-sm text-slate-400">Items Sold</div>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-orange-400">{item.onHand}</div>
+            <div className="text-sm text-slate-400">On Hand</div>
+          </div>
+        </div>
+        
+        {/* Performance Indicators */}
+        <div className="bg-slate-800/50 rounded-lg p-4">
+          <h5 className="text-sm font-medium text-slate-300 mb-3">Performance Metrics</h5>
+          <div className="space-y-3">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-slate-400">ROI</span>
+                <span className={`font-medium ${item.roi > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {pctStr(item.roi)}
+                </span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    item.roi > 0 ? 'bg-emerald-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${Math.min(Math.abs(item.roi) * 2, 100)}%` }}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-slate-400">Margin</span>
+                <span className={`font-medium ${item.margin > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {pctStr(item.margin)}
+                </span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    item.margin > 0 ? 'bg-emerald-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${Math.min(Math.abs(item.margin) * 2, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Right Side - Visual Chart */}
+      <div className="bg-slate-800/50 rounded-lg p-4">
+        <h5 className="text-sm font-medium text-slate-300 mb-4">Revenue Breakdown</h5>
+        <div className="space-y-4">
+          <div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-slate-400">Total Cost</span>
+              <span className="text-red-400">${centsToStr(item.spentC)}</span>
+            </div>
+            <div className="w-full bg-slate-700 rounded-full h-3">
+              <div 
+                className="h-3 bg-red-500 rounded-full transition-all duration-500"
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+          <div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-slate-400">Total Revenue</span>
+              <span className="text-emerald-400">${centsToStr(item.revenueC)}</span>
+            </div>
+            <div className="w-full bg-slate-700 rounded-full h-3">
+              <div 
+                className="h-3 bg-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+          <div className="pt-2 border-t border-slate-700">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400">Net Result</span>
+              <span className={`font-medium ${item.realizedPlC > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {item.realizedPlC > 0 ? '+' : ''}${centsToStr(item.realizedPlC)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* --------------------- Analytics Chart Components --------------------- */
 
