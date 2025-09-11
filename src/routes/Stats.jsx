@@ -108,10 +108,11 @@ export default function Stats() {
 
   /* ---------- filtered orders by time + item ---------- */
   const filtered = useMemo(() => {
-    const itemQuery = (applied.item || "").toLowerCase();
-    const useItem = !!itemQuery;
+    const itemQuery = applied.item ? applied.item.toLowerCase() : "";
+    const useItem = applied.item && applied.item.trim() !== ""; // Only filter if there's actual text
     const ordersArray = Array.isArray(orders) ? orders : [];
-    return ordersArray.filter((o) => {
+    
+    const result = ordersArray.filter((o) => {
       const matchesItem = !useItem || (o.item || "").toLowerCase().includes(itemQuery);
       const anyInWindow =
         within(o.order_date, fromMs, toMs) ||
@@ -119,6 +120,8 @@ export default function Stats() {
         (!fromMs && !toMs);
       return matchesItem && anyInWindow;
     });
+    
+    return result;
   }, [orders, applied, fromMs, toMs]);
 
   /* ------------------------------- KPIs -------------------------------- */
@@ -251,6 +254,10 @@ export default function Stats() {
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-400">Total Items</span>
                   <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.length)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-400">Items Bought</span>
+                  <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.bought, 0))}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-400">Items Sold</span>
