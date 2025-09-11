@@ -428,8 +428,8 @@ function SingleItemChart({ item, filteredOrders }) {
   const totalBought = itemOrders.length;
   const onHand = itemOrders.filter(o => cents(o.sale_price_cents) === 0).length;
   
-  // Get market value from database
-  const marketValue = item.marketValueC || 0;
+  // Get market value from item data (same as shown in expanded card)
+  const marketValue = item.unitMarketC || 0;
   const totalMarketValue = onHand * marketValue;
   
   // Calculate realized and unrealized P/L
@@ -484,7 +484,7 @@ function SingleItemChart({ item, filteredOrders }) {
                 className={`h-4 rounded-full transition-all duration-700 ${
                   item.roi > 0 ? 'bg-emerald-500' : 'bg-red-500'
                 }`}
-                style={{ width: `${Math.min(Math.abs(item.roi) * 5, 100)}%` }}
+                style={{ width: `${Math.min(Math.abs(item.roi) * 2 + 20, 100)}%` }}
               />
             </div>
             <div className="text-xs text-slate-400">
@@ -505,7 +505,7 @@ function SingleItemChart({ item, filteredOrders }) {
                 className={`h-4 rounded-full transition-all duration-700 ${
                   item.margin > 0 ? 'bg-emerald-500' : 'bg-red-500'
                 }`}
-                style={{ width: `${Math.min(Math.abs(item.margin) * 5, 100)}%` }}
+                style={{ width: `${Math.min(Math.abs(item.margin) * 2 + 20, 100)}%` }}
               />
             </div>
             <div className="text-xs text-slate-400">
@@ -532,14 +532,22 @@ function FinancialTrendChart({ item, filteredOrders }) {
   const generateMonthlyData = () => {
     const ordersArray = Array.isArray(filteredOrders) ? filteredOrders : [];
     const itemOrders = ordersArray.filter(order => order.item === item.item);
-    const monthlyData = [];
     
-    // Get last 12 months
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const year = date.getFullYear();
-      const month = date.getMonth();
+    if (itemOrders.length === 0) return [];
+    
+    // Find the date range from first order to last order/sale
+    const allDates = itemOrders.map(order => new Date(order.created_at));
+    const minDate = new Date(Math.min(...allDates));
+    const maxDate = new Date(Math.max(...allDates));
+    
+    const monthlyData = [];
+    const currentDate = new Date(minDate);
+    currentDate.setDate(1); // Start from first day of month
+    
+    // Generate data for each month from first order to last order
+    while (currentDate <= maxDate) {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
       
       // Filter orders for this month
       const monthOrders = itemOrders.filter(order => {
@@ -554,12 +562,15 @@ function FinancialTrendChart({ item, filteredOrders }) {
       const profit = revenue - soldMonthOrders.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
       
       monthlyData.push({
-        month: date.toLocaleDateString('en-US', { month: 'short' }),
+        month: currentDate.toLocaleDateString('en-US', { month: 'short' }),
         year: year.toString().slice(-2),
         cogs,
         revenue,
         profit
       });
+      
+      // Move to next month
+      currentDate.setMonth(currentDate.getMonth() + 1);
     }
     
     return monthlyData;
@@ -587,8 +598,20 @@ function FinancialTrendChart({ item, filteredOrders }) {
 
   return (
     <div className="w-full h-full relative">
+      {/* Y-axis labels */}
+      <div className="absolute left-0 top-0 bottom-0 w-12 flex flex-col justify-between py-4">
+        {[0, 25, 50, 75, 100].map((y, i) => {
+          const value = maxValue > 0 ? Math.round((100 - y) / 100 * maxValue) : 0;
+          return (
+            <div key={i} className="text-xs text-slate-400 text-right pr-2">
+              ${centsToStr(value)}
+            </div>
+          );
+        })}
+      </div>
+      
       {/* SVG for the line chart */}
-      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <svg className="w-full h-full ml-12" viewBox="0 0 100 100" preserveAspectRatio="none">
         {/* Grid lines */}
         {[20, 40, 60, 80].map(y => (
           <line
