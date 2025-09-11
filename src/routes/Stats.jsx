@@ -619,12 +619,15 @@ function FinancialTrendChart({ item, filteredOrders }) {
       const revenue = monthSaleDates.reduce((sum, o) => sum + cents(o.sale_price_cents), 0);
       const profit = revenue - cogs; // Profit is revenue minus COGS for the month
       
+      // Only show realized profit (positive or 0), and display COGS as positive (it's a cost)
+      const realizedProfit = Math.max(0, profit);
+      
       monthlyData.push({
         month: currentDate.toLocaleDateString('en-US', { month: 'short' }),
         year: year.toString().slice(-2),
         cogs,
         revenue,
-        profit
+        profit: realizedProfit
       });
       
       console.log(`Debug - Month ${year}-${month + 1}:`, {
@@ -632,7 +635,8 @@ function FinancialTrendChart({ item, filteredOrders }) {
         year: year.toString().slice(-2),
         cogs,
         revenue,
-        profit,
+        profit: realizedProfit,
+        rawProfit: profit,
         orderDates: monthOrderDates.length,
         saleDates: monthSaleDates.length,
         orderDatesRaw: monthOrderDates.map(o => ({ date: o.order_date, price: o.buy_price_cents })),
