@@ -66,7 +66,7 @@ export default function Stats() {
     timeFilter,
     from: timeFilter === "custom" ? fromStr || null : null,
     to: timeFilter === "custom" ? toStr || null : null,
-    item: itemSearchQuery.trim() || null, // Use null instead of empty string for no filter
+    item: itemSearchQuery.trim(),
   }), [timeFilter, fromStr, toStr, itemSearchQuery]);
 
   const { fromMs, toMs } = useMemo(() => {
@@ -108,11 +108,10 @@ export default function Stats() {
 
   /* ---------- filtered orders by time + item ---------- */
   const filtered = useMemo(() => {
-    const itemQuery = applied.item ? applied.item.toLowerCase() : "";
-    const useItem = !!applied.item; // Only filter by item if item is actually selected
+    const itemQuery = (applied.item || "").toLowerCase();
+    const useItem = !!itemQuery;
     const ordersArray = Array.isArray(orders) ? orders : [];
-    
-    const result = ordersArray.filter((o) => {
+    return ordersArray.filter((o) => {
       const matchesItem = !useItem || (o.item || "").toLowerCase().includes(itemQuery);
       const anyInWindow =
         within(o.order_date, fromMs, toMs) ||
@@ -120,8 +119,6 @@ export default function Stats() {
         (!fromMs && !toMs);
       return matchesItem && anyInWindow;
     });
-    
-    return result;
   }, [orders, applied, fromMs, toMs]);
 
   /* ------------------------------- KPIs -------------------------------- */
@@ -199,21 +196,21 @@ export default function Stats() {
               label=""
               onSelect={(item) => setItemSearchQuery(item)}
             />
-          </div>
+            </div>
 
           {/* KPI Cards - Hide for single item */}
           {itemGroups.length !== 1 && (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-              <Kpi title="Total Revenue" value={`$${centsToStr(kpis.revenueC)}`} />
-              <Kpi title="Total Cost" value={`$${centsToStr(kpis.spentC)}`} />
-              <Kpi title="Total Sales" value={`${kpis.sold}`} />
-              <Kpi title="Realized P/L" value={`$${centsToStr(kpis.realizedPlC)}`} tone="green" />
+            <Kpi title="Total Revenue" value={`$${centsToStr(kpis.revenueC)}`} />
+            <Kpi title="Total Cost" value={`$${centsToStr(kpis.spentC)}`} />
+            <Kpi title="Total Sales" value={`${kpis.sold}`} />
+            <Kpi title="Realized P/L" value={`$${centsToStr(kpis.realizedPlC)}`} tone="green" />
 
-              <Kpi title="Longest Hold" value={`${kpis.longestHoldDays}d`} hint={kpis.longestHoldName} />
-              <Kpi title="Best Seller" value={`${kpis.bestSellerCount}`} hint={kpis.bestSellerName} />
-              <Kpi title="Highest Margins" value={pctStr(kpis.bestMarginPct)} hint={kpis.bestMarginName} />
-              <Kpi title="Best ROI" value={pctStr(kpis.bestRoiPct)} hint={kpis.bestRoiName} />
-            </div>
+            <Kpi title="Longest Hold" value={`${kpis.longestHoldDays}d`} hint={kpis.longestHoldName} />
+            <Kpi title="Best Seller" value={`${kpis.bestSellerCount}`} hint={kpis.bestSellerName} />
+            <Kpi title="Highest Margins" value={pctStr(kpis.bestMarginPct)} hint={kpis.bestMarginName} />
+            <Kpi title="Best ROI" value={pctStr(kpis.bestRoiPct)} hint={kpis.bestRoiName} />
+          </div>
           )}
 
           {/* Analytics Dashboard */}
@@ -223,7 +220,7 @@ export default function Stats() {
               <p className="text-sm text-slate-400">Comprehensive insights and performance metrics</p>
             </div>
             <DynamicCharts itemGroups={itemGroups} />
-          </div>
+        </div>
 
           {/* Summary Cards - Hide for single item */}
           {itemGroups.length !== 1 && (
@@ -236,7 +233,7 @@ export default function Stats() {
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
                       <span className="text-sm text-slate-300 truncate">{item.item}</span>
-                    </div>
+            </div>
                     <div className="text-right">
                       <div className="text-sm font-medium text-slate-100">${centsToStr(item.revenueC)}</div>
                       <div className="text-xs text-slate-400">{formatNumber(item.sold)} sold</div>
@@ -244,7 +241,7 @@ export default function Stats() {
                   </div>
                 ))}
               </div>
-            </div>
+          </div>
 
             <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
               <h4 className="text-sm font-medium text-slate-300 mb-3">Quick Stats</h4>
@@ -275,8 +272,8 @@ export default function Stats() {
           </div>
 
           <div className="space-y-2">
-            {itemGroups.map((g) => {
-              const open = openSet.has(g.item);
+          {itemGroups.map((g) => {
+            const open = openSet.has(g.item);
               
               // Calculate last purchase and last sale dates
               const itemOrders = filtered.filter(o => o.item === g.item);
@@ -294,7 +291,7 @@ export default function Stats() {
                 ? new Date(lastSale.sale_date).toLocaleDateString()
                 : "—";
 
-              return (
+            return (
                 <div key={g.item} className="border border-slate-800 rounded-xl bg-slate-900/60">
                   <div 
                     className="flex items-center justify-between gap-3 p-4 cursor-pointer transition"
@@ -315,7 +312,7 @@ export default function Stats() {
                       </div>
                     )}
                     <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
-                  </div>
+                </div>
 
                   <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 'none' : 0 }}>
                     <div className="px-4 pb-4">
@@ -323,23 +320,23 @@ export default function Stats() {
                         <MiniPill title="Bought" value={formatNumber(g.bought)} num={g.bought} sub="total purchases" />
                         <MiniPill title="Sold" value={formatNumber(g.sold)} num={g.sold} sub="total sold" />
                         <MiniPill title="On Hand" value={formatNumber(g.onHand)} num={g.onHand} sub="total inventory" />
-                        <MiniPill title="Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="total amt spent" />
-                        <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from marketplace" />
-                        <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} sub="from sales" />
-                        <MiniPill title="Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="total from sales" />
-                        <MiniPill title="Realized P/L" value={`$${centsToStr(g.realizedPlC)}`} num={g.realizedPlC} sub="after fees + ship" tone="realized" />
-                        <MiniPill title="ROI" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profit / cost" />
-                        <MiniPill title="Margin" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="profit / revenue" />
+                      <MiniPill title="Cost" value={`$${centsToStr(g.totalCostC)}`} num={g.totalCostC} sub="total amt spent" />
+                      <MiniPill title="Fees" value={`$${centsToStr(g.feesC)}`} num={g.feesC} sub="from marketplace" />
+                      <MiniPill title="Shipping" value={`$${centsToStr(g.shipC)}`} num={g.shipC} sub="from sales" />
+                      <MiniPill title="Revenue" value={`$${centsToStr(g.revenueC)}`} num={g.revenueC} sub="total from sales" />
+                      <MiniPill title="Realized P/L" value={`$${centsToStr(g.realizedPlC)}`} num={g.realizedPlC} sub="after fees + ship" tone="realized" />
+                      <MiniPill title="ROI" value={pctStr(g.roi)} num={Number.isFinite(g.roi) ? g.roi : 0} sub="profit / cost" />
+                      <MiniPill title="Margin" value={pctStr(g.margin)} num={Number.isFinite(g.margin) ? g.margin : 0} sub="profit / revenue" />
                         <MiniPill title="Avg Hold" value={`${formatNumber(g.avgHoldDays.toFixed(0))}d`} num={g.avgHoldDays} sub="time in days" />
-                        <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} sub="average sale price" />
-                        <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from database" />
-                        <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on mkt price" tone="unrealized" />
-                      </div>
+                      <MiniPill title="ASP" value={`$${centsToStr(g.aspC)}`} num={g.aspC} sub="average sale price" />
+                      <MiniPill title="Market Price" value={`$${centsToStr(g.unitMarketC)}`} num={g.unitMarketC} sub="from database" />
+                      <MiniPill title="Est. Value" value={`$${centsToStr(g.onHandMarketC)}`} num={g.onHandMarketC} sub="based on mkt price" tone="unrealized" />
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                  </div>
+              </div>
+            );
+          })}
           </div>
 
           {itemGroups.length === 0 && (
@@ -366,22 +363,22 @@ function DynamicCharts({ itemGroups = [] }) {
       <div className="bg-slate-900/40 rounded-xl p-8 border border-slate-800 text-center">
         <div className="text-slate-400 text-lg mb-2">📊</div>
         <div className="text-slate-400">No data available for the selected filters</div>
-      </div>
-    );
-  }
-  
+    </div>
+  );
+}
+
   if (itemCount === 1) {
     // Single item - Show comprehensive single chart
-    return (
+  return (
       <div className="bg-slate-900/40 rounded-xl p-6 border border-slate-800">
         <h4 className="text-sm font-medium text-slate-300 mb-6 flex items-center gap-2">
           <span className="text-indigo-400">📊</span>
           Comprehensive Analysis: {itemGroups[0].item}
         </h4>
         <SingleItemChart item={itemGroups[0]} />
-      </div>
-    );
-  }
+    </div>
+  );
+}
   
   // Multiple items - Show 2 comparison charts
   return (
@@ -422,19 +419,21 @@ function SingleItemChart({ item }) {
   // Calculate actual metrics from order book data
   const ordersArray = Array.isArray(orders) ? orders : [];
   const itemOrders = ordersArray.filter(order => order.item === item.item);
-  const totalRevenue = itemOrders.filter(o => o.sale_price).reduce((sum, o) => sum + (o.sale_price || 0), 0);
-  const totalCogs = itemOrders.reduce((sum, o) => sum + (o.cost || 0), 0);
-  const totalSold = itemOrders.filter(o => o.sale_price).length;
+  const totalRevenue = itemOrders.filter(o => cents(o.sale_price_cents) > 0).reduce((sum, o) => sum + cents(o.sale_price_cents), 0);
+  const totalCogs = itemOrders.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
+  const totalSold = itemOrders.filter(o => cents(o.sale_price_cents) > 0).length;
   const totalBought = itemOrders.length;
-  const onHand = itemOrders.filter(o => !o.sale_price).length;
+  const onHand = itemOrders.filter(o => cents(o.sale_price_cents) === 0).length;
   
   // Get market value from database
   const marketValue = item.marketValueC || 0;
   const totalMarketValue = onHand * marketValue;
   
   // Calculate realized and unrealized P/L
-  const realizedPl = totalRevenue - itemOrders.filter(o => o.sale_price).reduce((sum, o) => sum + (o.cost || 0), 0);
-  const unrealizedPl = totalMarketValue - itemOrders.filter(o => !o.sale_price).reduce((sum, o) => sum + (o.cost || 0), 0);
+  const soldOrders = itemOrders.filter(o => cents(o.sale_price_cents) > 0);
+  const realizedPl = totalRevenue - soldOrders.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
+  const onHandOrders = itemOrders.filter(o => cents(o.sale_price_cents) === 0);
+  const unrealizedPl = totalMarketValue - onHandOrders.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
   
   return (
     <div className="space-y-6">
@@ -552,9 +551,10 @@ function FinancialTrendChart({ item }) {
       });
       
       // Calculate metrics for this month
-      const cogs = monthOrders.reduce((sum, o) => sum + (o.cost || 0), 0);
-      const revenue = monthOrders.filter(o => o.sale_price).reduce((sum, o) => sum + (o.sale_price || 0), 0);
-      const profit = revenue - monthOrders.filter(o => o.sale_price).reduce((sum, o) => sum + (o.cost || 0), 0);
+      const cogs = monthOrders.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
+      const revenue = monthOrders.filter(o => cents(o.sale_price_cents) > 0).reduce((sum, o) => sum + cents(o.sale_price_cents), 0);
+      const soldMonthOrders = monthOrders.filter(o => cents(o.sale_price_cents) > 0);
+      const profit = revenue - soldMonthOrders.reduce((sum, o) => sum + cents(o.buy_price_cents), 0);
       
       monthlyData.push({
         month: date.toLocaleDateString('en-US', { month: 'short' }),
@@ -700,7 +700,7 @@ function FinancialTrendChart({ item }) {
 // Revenue Chart - Clean horizontal bars with better mobile layout
 function RevenueChart({ itemGroups = [] }) {
   if (!itemGroups.length) {
-    return (
+          return (
       <div className="w-full h-full flex items-center justify-center">
         <div className="text-center">
           <div className="text-slate-400 text-lg mb-2">💰</div>
@@ -734,8 +734,8 @@ function RevenueChart({ itemGroups = [] }) {
               />
             </div>
           </div>
-        );
-      })}
+          );
+        })}
     </div>
   );
 }
