@@ -121,15 +121,15 @@ export default function Hub() {
         <div className={`${card}`}>
           <div className="mb-4">
             <h2 className="text-lg font-semibold">Changelog</h2>
-            <div className="text-xs text-slate-400/60">v0.0.5</div>
+            <div className="text-xs text-slate-400/60">v0.0.6</div>
           </div>
           
         <div className="space-y-3">
           <div className="flex items-start gap-3">
             <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
             <div>
-              <div className="text-sm font-medium text-slate-200">Dynamic Stats Charts</div>
-              <div className="text-xs text-slate-400">Charts now adapt based on filtered results: 3 comparison charts for multiple items, comprehensive single chart for one item, removed avg ROI from quick stats</div>
+              <div className="text-sm font-medium text-slate-200">Enhanced Single Item Analytics</div>
+              <div className="text-xs text-slate-400">Redesigned single item view with KPI-style pills, improved performance metrics, financial trend chart, and simplified multiple item view (2 charts instead of 3)</div>
             </div>
           </div>
           <div className="flex items-start gap-3">

@@ -197,18 +197,20 @@ export default function Stats() {
             />
           </div>
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-            <Kpi title="Total Revenue" value={`$${centsToStr(kpis.revenueC)}`} />
-            <Kpi title="Total Cost" value={`$${centsToStr(kpis.spentC)}`} />
-            <Kpi title="Total Sales" value={`${kpis.sold}`} />
-            <Kpi title="Realized P/L" value={`$${centsToStr(kpis.realizedPlC)}`} tone="green" />
+          {/* KPI Cards - Hide for single item */}
+          {itemGroups.length !== 1 && (
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+              <Kpi title="Total Revenue" value={`$${centsToStr(kpis.revenueC)}`} />
+              <Kpi title="Total Cost" value={`$${centsToStr(kpis.spentC)}`} />
+              <Kpi title="Total Sales" value={`${kpis.sold}`} />
+              <Kpi title="Realized P/L" value={`$${centsToStr(kpis.realizedPlC)}`} tone="green" />
 
-            <Kpi title="Longest Hold" value={`${kpis.longestHoldDays}d`} hint={kpis.longestHoldName} />
-            <Kpi title="Best Seller" value={`${kpis.bestSellerCount}`} hint={kpis.bestSellerName} />
-            <Kpi title="Highest Margins" value={pctStr(kpis.bestMarginPct)} hint={kpis.bestMarginName} />
-            <Kpi title="Best ROI" value={pctStr(kpis.bestRoiPct)} hint={kpis.bestRoiName} />
-          </div>
+              <Kpi title="Longest Hold" value={`${kpis.longestHoldDays}d`} hint={kpis.longestHoldName} />
+              <Kpi title="Best Seller" value={`${kpis.bestSellerCount}`} hint={kpis.bestSellerName} />
+              <Kpi title="Highest Margins" value={pctStr(kpis.bestMarginPct)} hint={kpis.bestMarginName} />
+              <Kpi title="Best ROI" value={pctStr(kpis.bestRoiPct)} hint={kpis.bestRoiName} />
+            </div>
+          )}
 
           {/* Analytics Dashboard */}
           <div className="mb-6">
@@ -219,8 +221,9 @@ export default function Stats() {
             <DynamicCharts itemGroups={itemGroups} />
           </div>
 
-          {/* Summary Cards - Full Width */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Summary Cards - Hide for single item */}
+          {itemGroups.length !== 1 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
               <h4 className="text-sm font-medium text-slate-300 mb-3">Top Performing Items</h4>
               <div className="space-y-2">
@@ -257,6 +260,7 @@ export default function Stats() {
               </div>
             </div>
           </div>
+          )}
         </div>
 
         {/* -------------------- Results -------------------- */}
@@ -375,9 +379,9 @@ function DynamicCharts({ itemGroups = [] }) {
     );
   }
   
-  // Multiple items - Show 3 comparison charts
+  // Multiple items - Show 2 comparison charts
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Revenue Chart */}
       <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
         <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
@@ -393,21 +397,10 @@ function DynamicCharts({ itemGroups = [] }) {
       <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
         <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
           <span className="text-blue-400">📈</span>
-          Profitability Analysis
+          Most Profitable Items
         </h4>
         <div className="h-64">
           <ProfitChart itemGroups={itemGroups.slice(0, 8)} />
-        </div>
-      </div>
-
-      {/* Sales Activity Chart */}
-      <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-        <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
-          <span className="text-purple-400">🛒</span>
-          Sales Activity
-        </h4>
-        <div className="h-64">
-          <SalesActivityChart itemGroups={itemGroups.slice(0, 8)} />
         </div>
       </div>
     </div>
@@ -416,107 +409,134 @@ function DynamicCharts({ itemGroups = [] }) {
 
 // Single Item Comprehensive Chart
 function SingleItemChart({ item }) {
+  // Calculate unrealized P/L
+  const unrealizedPlC = item.unrealizedPlC || 0;
+  
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Left Side - Key Metrics */}
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-emerald-400">${centsToStr(item.revenueC)}</div>
-            <div className="text-sm text-slate-400">Total Revenue</div>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-blue-400">${centsToStr(item.realizedPlC)}</div>
-            <div className="text-sm text-slate-400">Realized P/L</div>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-purple-400">{item.sold}</div>
-            <div className="text-sm text-slate-400">Items Sold</div>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-orange-400">{item.onHand}</div>
-            <div className="text-sm text-slate-400">On Hand</div>
-          </div>
+    <div className="space-y-6">
+      {/* KPI Pills */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+          <div className="text-sm text-slate-400 mb-1">Total Revenue</div>
+          <div className="text-2xl font-bold text-white mb-1">${centsToStr(item.revenueC)}</div>
+          <div className="text-sm text-slate-400">{item.sold} sales</div>
         </div>
         
-        {/* Performance Indicators */}
-        <div className="bg-slate-800/50 rounded-lg p-4">
-          <h5 className="text-sm font-medium text-slate-300 mb-3">Performance Metrics</h5>
-          <div className="space-y-3">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-400">ROI</span>
-                <span className={`font-medium ${item.roi > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {pctStr(item.roi)}
-                </span>
-              </div>
-              <div className="w-full bg-slate-700 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-500 ${
-                    item.roi > 0 ? 'bg-emerald-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${Math.min(Math.abs(item.roi) * 2, 100)}%` }}
-                />
-              </div>
+        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+          <div className="text-sm text-slate-400 mb-1">Total COGS</div>
+          <div className="text-2xl font-bold text-white mb-1">${centsToStr(item.spentC)}</div>
+          <div className="text-sm text-slate-400">{item.bought || 0} bought</div>
+        </div>
+        
+        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+          <div className="text-sm text-slate-400 mb-1">On Hand</div>
+          <div className="text-2xl font-bold text-white mb-1">{item.onHand}</div>
+          <div className="text-sm text-slate-400">${centsToStr(item.marketValueC || 0)} market value</div>
+        </div>
+        
+        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+          <div className="text-sm text-slate-400 mb-1">Realized P/L</div>
+          <div className="text-2xl font-bold text-green-400 mb-1">${centsToStr(item.realizedPlC)}</div>
+          <div className="text-sm text-slate-400">${centsToStr(unrealizedPlC)} unrealized</div>
+        </div>
+      </div>
+      
+      {/* Combined Performance Metrics */}
+      <div className="bg-slate-800/50 rounded-xl p-6">
+        <h5 className="text-lg font-medium text-slate-300 mb-6 text-center">Performance Overview</h5>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* ROI Section */}
+          <div className="text-center">
+            <div className="text-sm text-slate-400 mb-2">Return on Investment</div>
+            <div className="text-4xl font-bold mb-4">
+              <span className={item.roi > 0 ? 'text-emerald-400' : 'text-red-400'}>
+                {pctStr(item.roi)}
+              </span>
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-400">Margin</span>
-                <span className={`font-medium ${item.margin > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {pctStr(item.margin)}
-                </span>
-              </div>
-              <div className="w-full bg-slate-700 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-500 ${
-                    item.margin > 0 ? 'bg-emerald-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${Math.min(Math.abs(item.margin) * 2, 100)}%` }}
-                />
-              </div>
+            <div className="w-full bg-slate-700 rounded-full h-4 mb-2">
+              <div 
+                className={`h-4 rounded-full transition-all duration-700 ${
+                  item.roi > 0 ? 'bg-emerald-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${Math.min(Math.abs(item.roi) * 5, 100)}%` }}
+              />
+            </div>
+            <div className="text-xs text-slate-400">
+              {item.roi > 0 ? 'Profitable' : 'Loss'}
+            </div>
+          </div>
+          
+          {/* Margin Section */}
+          <div className="text-center">
+            <div className="text-sm text-slate-400 mb-2">Profit Margin</div>
+            <div className="text-4xl font-bold mb-4">
+              <span className={item.margin > 0 ? 'text-emerald-400' : 'text-red-400'}>
+                {pctStr(item.margin)}
+              </span>
+            </div>
+            <div className="w-full bg-slate-700 rounded-full h-4 mb-2">
+              <div 
+                className={`h-4 rounded-full transition-all duration-700 ${
+                  item.margin > 0 ? 'bg-emerald-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${Math.min(Math.abs(item.margin) * 5, 100)}%` }}
+              />
+            </div>
+            <div className="text-xs text-slate-400">
+              {item.margin > 0 ? 'Positive margin' : 'Negative margin'}
             </div>
           </div>
         </div>
       </div>
       
-      {/* Right Side - Visual Chart */}
-      <div className="bg-slate-800/50 rounded-lg p-4">
-        <h5 className="text-sm font-medium text-slate-300 mb-4">Revenue Breakdown</h5>
-        <div className="space-y-4">
-          <div>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-400">Total Cost</span>
-              <span className="text-red-400">${centsToStr(item.spentC)}</span>
-            </div>
-            <div className="w-full bg-slate-700 rounded-full h-3">
-              <div 
-                className="h-3 bg-red-500 rounded-full transition-all duration-500"
-                style={{ width: '100%' }}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-400">Total Revenue</span>
-              <span className="text-emerald-400">${centsToStr(item.revenueC)}</span>
-            </div>
-            <div className="w-full bg-slate-700 rounded-full h-3">
-              <div 
-                className="h-3 bg-emerald-500 rounded-full transition-all duration-500"
-                style={{ width: '100%' }}
-              />
-            </div>
-          </div>
-          <div className="pt-2 border-t border-slate-700">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Net Result</span>
-              <span className={`font-medium ${item.realizedPlC > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {item.realizedPlC > 0 ? '+' : ''}${centsToStr(item.realizedPlC)}
-              </span>
-            </div>
-          </div>
+      {/* Line Chart for Key Metrics */}
+      <div className="bg-slate-800/50 rounded-xl p-6">
+        <h5 className="text-lg font-medium text-slate-300 mb-6 text-center">Financial Trend</h5>
+        <div className="h-64">
+          <FinancialTrendChart item={item} />
         </div>
       </div>
+    </div>
+  );
+}
+
+// Financial Trend Line Chart
+function FinancialTrendChart({ item }) {
+  // Create sample data points for the line chart
+  const dataPoints = [
+    { label: 'Cost', value: item.spentC, color: 'red' },
+    { label: 'Revenue', value: item.revenueC, color: 'emerald' },
+    { label: 'Profit', value: item.realizedPlC, color: item.realizedPlC > 0 ? 'emerald' : 'red' }
+  ];
+  
+  const maxValue = Math.max(...dataPoints.map(d => Math.abs(d.value)));
+  
+  return (
+    <div className="w-full h-full flex items-end justify-center gap-8 px-4">
+      {dataPoints.map((point, index) => {
+        const height = maxValue > 0 ? (Math.abs(point.value) / maxValue) * 80 : 10;
+        const colorClass = point.color === 'red' ? 'bg-red-500' : 'bg-emerald-500';
+        
+        return (
+          <div key={index} className="flex flex-col items-center gap-3 flex-1">
+            {/* Value */}
+            <div className="text-sm font-medium text-slate-200">
+              ${centsToStr(point.value)}
+            </div>
+            
+            {/* Line Bar */}
+            <div 
+              className={`w-8 rounded-t transition-all duration-700 ${colorClass}`}
+              style={{ height: `${height}%`, minHeight: '8px' }}
+            />
+            
+            {/* Label */}
+            <div className="text-xs text-slate-400 text-center">
+              {point.label}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
