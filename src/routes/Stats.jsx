@@ -192,9 +192,11 @@ export default function Stats() {
               value={itemSearchQuery}
               onChange={setItemSearchQuery}
               options={itemOptions}
-              placeholder="Search for products..."
+              placeholder="All products"
               label=""
-              onSelect={(item) => setItemSearchQuery(item)}
+              onSelect={setItemSearchQuery}
+              getOptionLabel={(option) => option}
+              getOptionValue={(option) => option}
             />
             </div>
 
