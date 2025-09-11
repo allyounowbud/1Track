@@ -15,6 +15,74 @@ export default function Hub() {
     window.location.href = "/login";
   }
 
+  // Helper function to determine which page a changelog entry should link to
+  const getChangelogLink = (title, description) => {
+    const titleLower = title.toLowerCase();
+    const descLower = description.toLowerCase();
+    
+    // Order Book related
+    if (titleLower.includes('order book') || titleLower.includes('mark as sold') || 
+        descLower.includes('order book') || descLower.includes('orders')) {
+      return '/orders';
+    }
+    
+    // Stats related
+    if (titleLower.includes('stats') || titleLower.includes('analytics') || 
+        titleLower.includes('kpi') || titleLower.includes('financial trend') ||
+        descLower.includes('stats') || descLower.includes('analytics') || 
+        descLower.includes('kpi') || descLower.includes('chart')) {
+      return '/stats';
+    }
+    
+    // Inventory related
+    if (titleLower.includes('inventory') || descLower.includes('inventory')) {
+      return '/inventory';
+    }
+    
+    // Emails related
+    if (titleLower.includes('email') || titleLower.includes('gmail') || 
+        descLower.includes('email') || descLower.includes('gmail')) {
+      return '/emails';
+    }
+    
+    // Shipments related
+    if (titleLower.includes('shipment') || descLower.includes('shipment')) {
+      return '/shipments';
+    }
+    
+    // Settings/Database related
+    if (titleLower.includes('database') || titleLower.includes('settings') || 
+        descLower.includes('database') || descLower.includes('settings')) {
+      return '/database';
+    }
+    
+    // Default to hub for general app updates
+    return null;
+  };
+
+  // Changelog entry component
+  const ChangelogEntry = ({ title, description, color, linkTo }) => {
+    const content = (
+      <div className="flex items-start gap-3">
+        <div className={`h-2 w-2 rounded-full ${color} mt-2 flex-shrink-0`}></div>
+        <div>
+          <div className="text-sm font-medium text-slate-200">{title}</div>
+          <div className="text-xs text-slate-400">{description}</div>
+        </div>
+      </div>
+    );
+
+    if (linkTo) {
+      return (
+        <Link to={linkTo} className="block hover:bg-slate-800/30 rounded-lg p-2 -m-2 transition-colors">
+          {content}
+        </Link>
+      );
+    }
+
+    return content;
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
@@ -125,137 +193,125 @@ export default function Hub() {
           </div>
           
         <div className="space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Fixed Single Item Stats Display</div>
-              <div className="text-xs text-slate-400">Corrected data flow in SingleItemChart and FinancialTrendChart to use properly filtered data, added Items Bought to Quick Stats, and fixed filtering logic for dropdown selection</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Accurate Single Item Analytics</div>
-              <div className="text-xs text-slate-400">KPI pills now use actual order book data instead of filtered results, added proper monthly line graph showing COGS (red), Revenue (blue), and Profit (green) trends over time</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Enhanced Stats Page Interface</div>
-              <div className="text-xs text-slate-400">Combined filters with analytics, live search filtering, improved mobile grid layout (2 columns), and better spacing throughout the page</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Redesigned Emails Tab with Modern Interface</div>
-              <div className="text-xs text-slate-400">Complete redesign with selectable rows, bulk actions, search functionality, and consistent styling matching the rest of the app</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Enhanced Shipments Page with Optimized Layout</div>
-              <div className="text-xs text-slate-400">Improved expandable cards with smaller images, better space utilization, and organized information display in responsive grid layout</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Added Active Tab Highlighting</div>
-              <div className="text-xs text-slate-400">Implemented active tab highlighting for emails and shipments navigation with consistent visual feedback</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Added Cross-Navigation Between Emails and Shipments</div>
-              <div className="text-xs text-slate-400">Implemented navigation tabs on both emails and shipments pages for seamless switching between email management and shipment tracking</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Split Emails and Shipments into Separate Tabs</div>
-              <div className="text-xs text-slate-400">Created new /shipments tab for managing order shipments and tracking, while keeping /emails focused on Gmail account management and connection</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-green-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Enhanced Multiple Gmail Account Support</div>
-              <div className="text-xs text-slate-400">Updated OAuth callback and sync functions to properly support multiple Gmail accounts from different users, allowing comprehensive email organization from all connected accounts</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Enhanced Mark as Sold Page</div>
-              <div className="text-xs text-slate-400">Added consistent title section with "Sale details" header and "Mark an existing order as sold" subtitle to match Quick Add page styling</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-yellow-400/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Optimized Application Width</div>
-              <div className="text-xs text-slate-400">Increased application width from 60% to 95% of browser width across all pages for better desktop utilization and improved data display</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Enhanced Order Book Interface</div>
-              <div className="text-xs text-slate-400">Integrated search, fixed input heights, replaced dropdowns with native selects, improved button layout, and added a mutual exclusion between search and add operations.</div>
-            </div>
-          </div>
+          <ChangelogEntry
+            title="Made Changelog Entries Clickable"
+            description="Added navigation functionality to changelog entries - click any entry to go directly to the page where the changes were made. Smart routing based on content type (stats, orders, emails, etc.)"
+            color="bg-yellow-400/70"
+            linkTo={getChangelogLink("Made Changelog Entries Clickable", "Added navigation functionality to changelog entries - click any entry to go directly to the page where the changes were made. Smart routing based on content type stats orders emails etc.")}
+          />
+          <ChangelogEntry
+            title="Fixed Single Item Stats Display"
+            description="Corrected data flow in SingleItemChart and FinancialTrendChart to use properly filtered data, added Items Bought to Quick Stats, and fixed filtering logic for dropdown selection"
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Fixed Single Item Stats Display", "Corrected data flow in SingleItemChart and FinancialTrendChart to use properly filtered data, added Items Bought to Quick Stats, and fixed filtering logic for dropdown selection")}
+          />
+          <ChangelogEntry
+            title="Accurate Single Item Analytics"
+            description="KPI pills now use actual order book data instead of filtered results, added proper monthly line graph showing COGS (red), Revenue (blue), and Profit (green) trends over time"
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Accurate Single Item Analytics", "KPI pills now use actual order book data instead of filtered results, added proper monthly line graph showing COGS red Revenue blue and Profit green trends over time")}
+          />
+          <ChangelogEntry
+            title="Enhanced Stats Page Interface"
+            description="Combined filters with analytics, live search filtering, improved mobile grid layout (2 columns), and better spacing throughout the page"
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Enhanced Stats Page Interface", "Combined filters with analytics, live search filtering, improved mobile grid layout 2 columns and better spacing throughout the page")}
+          />
+          <ChangelogEntry
+            title="Redesigned Emails Tab with Modern Interface"
+            description="Complete redesign with selectable rows, bulk actions, search functionality, and consistent styling matching the rest of the app"
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Redesigned Emails Tab with Modern Interface", "Complete redesign with selectable rows, bulk actions, search functionality, and consistent styling matching the rest of the app")}
+          />
+          <ChangelogEntry
+            title="Enhanced Shipments Page with Optimized Layout"
+            description="Improved expandable cards with smaller images, better space utilization, and organized information display in responsive grid layout"
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Enhanced Shipments Page with Optimized Layout", "Improved expandable cards with smaller images, better space utilization, and organized information display in responsive grid layout")}
+          />
+          <ChangelogEntry
+            title="Added Active Tab Highlighting"
+            description="Implemented active tab highlighting for emails and shipments navigation with consistent visual feedback"
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Added Active Tab Highlighting", "Implemented active tab highlighting for emails and shipments navigation with consistent visual feedback")}
+          />
+          <ChangelogEntry
+            title="Added Cross-Navigation Between Emails and Shipments"
+            description="Implemented navigation tabs on both emails and shipments pages for seamless switching between email management and shipment tracking"
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Added Cross-Navigation Between Emails and Shipments", "Implemented navigation tabs on both emails and shipments pages for seamless switching between email management and shipment tracking")}
+          />
+          <ChangelogEntry
+            title="Split Emails and Shipments into Separate Tabs"
+            description="Created new /shipments tab for managing order shipments and tracking, while keeping /emails focused on Gmail account management and connection"
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Split Emails and Shipments into Separate Tabs", "Created new shipments tab for managing order shipments and tracking, while keeping emails focused on Gmail account management and connection")}
+          />
+          <ChangelogEntry
+            title="Enhanced Multiple Gmail Account Support"
+            description="Updated OAuth callback and sync functions to properly support multiple Gmail accounts from different users, allowing comprehensive email organization from all connected accounts"
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Enhanced Multiple Gmail Account Support", "Updated OAuth callback and sync functions to properly support multiple Gmail accounts from different users, allowing comprehensive email organization from all connected accounts")}
+          />
+          <ChangelogEntry
+            title="Enhanced Mark as Sold Page"
+            description="Added consistent title section with Sale details header and Mark an existing order as sold subtitle to match Quick Add page styling"
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Enhanced Mark as Sold Page", "Added consistent title section with Sale details header and Mark an existing order as sold subtitle to match Quick Add page styling")}
+          />
+          <ChangelogEntry
+            title="Optimized Application Width"
+            description="Increased application width from 60% to 95% of browser width across all pages for better desktop utilization and improved data display"
+            color="bg-yellow-400/70"
+            linkTo={getChangelogLink("Optimized Application Width", "Increased application width from 60% to 95% of browser width across all pages for better desktop utilization and improved data display")}
+          />
+          <ChangelogEntry
+            title="Enhanced Order Book Interface"
+            description="Integrated search, fixed input heights, replaced dropdowns with native selects, improved button layout, and added a mutual exclusion between search and add operations."
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Enhanced Order Book Interface", "Integrated search, fixed input heights, replaced dropdowns with native selects, improved button layout, and added a mutual exclusion between search and add operations.")}
+          />
             
-            <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-pink-500/70 mt-2 flex-shrink-0"></div>
-              <div>
-                <div className="text-sm font-medium text-slate-200">Added Profiles Card to Hub</div>
-                <div className="text-xs text-slate-400">New "Profiles" card added to main hub with "Coming soon" status for future user profile management</div>
-              </div>
-            </div>
+            <ChangelogEntry
+              title="Added Profiles Card to Hub"
+              description="New Profiles card added to main hub with Coming soon status for future user profile management"
+              color="bg-pink-500/70"
+              linkTo={getChangelogLink("Added Profiles Card to Hub", "New Profiles card added to main hub with Coming soon status for future user profile management")}
+            />
             
-            <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
-              <div>
-                <div className="text-sm font-medium text-slate-200">Enhanced Inventory Dashboard</div>
-                <div className="text-xs text-slate-400">Added 8 comprehensive KPI pills with live filtering, improved search functionality, and better visual hierarchy</div>
-              </div>
-            </div>
+            <ChangelogEntry
+              title="Enhanced Inventory Dashboard"
+              description="Added 8 comprehensive KPI pills with live filtering, improved search functionality, and better visual hierarchy"
+              color="bg-blue-500/70"
+              linkTo={getChangelogLink("Enhanced Inventory Dashboard", "Added 8 comprehensive KPI pills with live filtering, improved search functionality, and better visual hierarchy")}
+            />
             
-            <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-yellow-400/70 mt-2 flex-shrink-0"></div>
-              <div>
-                <div className="text-sm font-medium text-slate-200">Universal Search Dropdown</div>
-                <div className="text-xs text-slate-400">Standardized all dropdowns across the app with consistent styling, proper layering, and live filtering</div>
-              </div>
-            </div>
+            <ChangelogEntry
+              title="Universal Search Dropdown"
+              description="Standardized all dropdowns across the app with consistent styling, proper layering, and live filtering"
+              color="bg-yellow-400/70"
+              linkTo={getChangelogLink("Universal Search Dropdown", "Standardized all dropdowns across the app with consistent styling, proper layering, and live filtering")}
+            />
             
-            <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-yellow-400/70 mt-2 flex-shrink-0"></div>
-              <div>
-                <div className="text-sm font-medium text-slate-200">Improved Header Design</div>
-                <div className="text-xs text-slate-400">Replaced dashboard button with clickable avatar/username button for better navigation and visual balance</div>
-              </div>
-            </div>
+            <ChangelogEntry
+              title="Improved Header Design"
+              description="Replaced dashboard button with clickable avatar/username button for better navigation and visual balance"
+              color="bg-yellow-400/70"
+              linkTo={getChangelogLink("Improved Header Design", "Replaced dashboard button with clickable avatar/username button for better navigation and visual balance")}
+            />
             
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Fixed Financial Trend Chart Date Logic</div>
-              <div className="text-xs text-slate-400">Corrected chart to use order_date for COGS/buys, sale_date for revenue/sales, and calculate monthly profit as revenue minus COGS. Chart now shows accurate financial trends over time.</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-blue-500/70 mt-2 flex-shrink-0"></div>
-            <div>
-              <div className="text-sm font-medium text-slate-200">Enhanced Order Book</div>
-              <div className="text-xs text-slate-400">Added bulk edit/delete functionality, improved form persistence, and better mobile responsiveness</div>
-            </div>
-          </div>
+          <ChangelogEntry
+            title="Fixed Financial Trend Chart Date Logic"
+            description="Corrected chart to use order_date for COGS/buys, sale_date for revenue/sales, and calculate monthly profit as revenue minus COGS. Chart now shows accurate financial trends over time."
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Fixed Financial Trend Chart Date Logic", "Corrected chart to use order_date for COGS/buys, sale_date for revenue/sales, and calculate monthly profit as revenue minus COGS. Chart now shows accurate financial trends over time.")}
+          />
+          <ChangelogEntry
+            title="Enhanced Order Book"
+            description="Added bulk edit/delete functionality, improved form persistence, and better mobile responsiveness"
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Enhanced Order Book", "Added bulk edit/delete functionality, improved form persistence, and better mobile responsiveness")}
+          />
           </div>
         </div>
       </div>
