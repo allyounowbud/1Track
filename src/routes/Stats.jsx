@@ -623,7 +623,8 @@ function FinancialTrendChart({ item, filteredOrders }) {
   // Helper function to get Y position for a value
   const getY = (value) => {
     if (maxValue === 0) return 100;
-    return 100 - (Math.abs(value) / maxValue) * 80;
+    // Map value from 0-maxValue to 90-10 (leaving 10% margin at top and bottom)
+    return 90 - ((value / maxValue) * 80);
   };
 
   // Helper function to create path for line
@@ -644,7 +645,8 @@ function FinancialTrendChart({ item, filteredOrders }) {
       {/* Y-axis labels on the left */}
       <div className="absolute left-0 top-0 bottom-0 w-16 flex flex-col justify-between py-4">
         {[0, 25, 50, 75, 100].map((y, i) => {
-          const value = maxValue > 0 ? Math.round((100 - y) / 100 * maxValue) : 0;
+          // Map from 10-90 range back to 0-maxValue for labels
+          const value = maxValue > 0 ? Math.round(((90 - y) / 80) * maxValue) : 0;
           return (
             <div key={i} className="text-xs text-slate-400 text-right pr-2">
               ${centsToStr(value)}
@@ -657,7 +659,7 @@ function FinancialTrendChart({ item, filteredOrders }) {
       <div className="ml-16 mr-4">
         <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
           {/* Grid lines */}
-          {[20, 40, 60, 80].map(y => (
+          {[10, 25, 50, 75, 90].map(y => (
             <line
               key={y}
               x1="0"
