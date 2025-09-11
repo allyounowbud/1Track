@@ -657,108 +657,145 @@ function FinancialTrendChart({ item, filteredOrders }) {
   };
 
   return (
-    <div className="w-full h-64 sm:h-72 lg:h-80 relative bg-slate-900/30 rounded-lg p-4 overflow-hidden">
-      {/* Chart Container with proper boundaries */}
-      <div className="w-full h-full relative">
+    <div className="w-full h-80 sm:h-96 lg:h-[28rem] relative">
+      {/* Chart Title */}
+      <div className="text-center mb-4">
+        <h3 className="text-lg font-semibold text-slate-100">Financial Trend</h3>
+      </div>
+      
+      {/* Chart Container */}
+      <div className="w-full h-full relative bg-slate-900/30 rounded-lg p-6">
         {/* Y-axis labels on the left */}
-        <div className="absolute left-0 top-0 bottom-8 w-12 sm:w-16 flex flex-col justify-between">
+        <div className="absolute left-0 top-6 bottom-6 w-12 sm:w-16 flex flex-col justify-between">
           {[0, 25, 50, 75, 100].map((y, i) => {
             const value = maxValue > 0 ? Math.round((y / 100) * maxValue) : 0;
+            const dollarValue = Math.round(value / 100); // Convert cents to dollars, no decimals
             return (
               <div key={i} className="text-xs text-slate-400 text-right pr-2">
-                ${centsToStr(value)}
+                ${dollarValue}
               </div>
             );
           })}
         </div>
 
-        {/* Chart area with proper margins and boundaries */}
-        <div className="ml-12 sm:ml-16 mr-2 mt-2 mb-8 h-full">
+        {/* Chart area with proper margins */}
+        <div className="ml-12 sm:ml-16 mr-2 mt-6 mb-6 h-full">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {/* Grid lines - properly contained */}
+            {/* Grid lines */}
             {[0, 25, 50, 75, 100].map(y => (
               <line
                 key={y}
-                x1="5"
+                x1="0"
                 y1={y}
-                x2="95"
+                x2="100"
                 y2={y}
                 stroke="rgb(51, 65, 85)"
                 strokeWidth="0.5"
               />
             ))}
             
-            {/* Vertical grid lines for months */}
-            {monthlyData.map((_, i) => {
-              const x = 5 + (i / Math.max(1, monthlyData.length - 1)) * 90;
-              return (
-                <line
-                  key={i}
-                  x1={x}
-                  y1="0"
-                  x2={x}
-                  y2="100"
-                  stroke="rgb(51, 65, 85)"
-                  strokeWidth="0.25"
+            {/* COGS Line (Red) */}
+            {monthlyData.length > 1 && (
+              <>
+                <path
+                  d={monthlyData.map((d, i) => {
+                    const x = (i / (monthlyData.length - 1)) * 100;
+                    const y = maxValue > 0 ? 100 - ((d.cogs / maxValue) * 100) : 100;
+                    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                  }).join(' ')}
+                  fill="none"
+                  stroke="rgb(239, 68, 68)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
-              );
-            })}
-            
-            {/* Bars for each month - properly scaled and contained */}
-            {monthlyData.map((d, i) => {
-              const barCount = monthlyData.length;
-              const barWidth = barCount > 1 ? 70 / barCount : 50;
-              const barX = barCount > 1 ? 15 + (i / Math.max(1, barCount - 1)) * 70 : 25;
-              
-              // Calculate heights as percentages of max value, capped at 80%
-              const cogsHeight = maxValue > 0 ? Math.min((d.cogs / maxValue) * 80, 80) : 0;
-              const revenueHeight = maxValue > 0 ? Math.min((d.revenue / maxValue) * 80, 80) : 0;
-              const profitHeight = maxValue > 0 ? Math.min((d.profit / maxValue) * 80, 80) : 0;
-              
-              return (
-                <g key={i}>
-                  {/* COGS bar (bottom, red) */}
-                  {cogsHeight > 0 && (
-                    <rect
-                      x={barX}
-                      y={100 - cogsHeight}
-                      width={barWidth}
-                      height={Math.max(cogsHeight, 0.5)}
+                {monthlyData.map((d, i) => {
+                  const x = (i / (monthlyData.length - 1)) * 100;
+                  const y = maxValue > 0 ? 100 - ((d.cogs / maxValue) * 100) : 100;
+                  return (
+                    <circle
+                      key={`cogs-${i}`}
+                      cx={x}
+                      cy={y}
+                      r="2"
                       fill="rgb(239, 68, 68)"
-                      opacity="0.8"
+                      stroke="rgb(15, 23, 42)"
+                      strokeWidth="1"
                     />
-                  )}
-                  
-                  {/* Revenue bar (middle, blue) */}
-                  {revenueHeight > 0 && (
-                    <rect
-                      x={barX}
-                      y={100 - cogsHeight - revenueHeight}
-                      width={barWidth}
-                      height={Math.max(revenueHeight, 0.5)}
+                  );
+                })}
+              </>
+            )}
+            
+            {/* Revenue Line (Blue) */}
+            {monthlyData.length > 1 && (
+              <>
+                <path
+                  d={monthlyData.map((d, i) => {
+                    const x = (i / (monthlyData.length - 1)) * 100;
+                    const y = maxValue > 0 ? 100 - ((d.revenue / maxValue) * 100) : 100;
+                    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                  }).join(' ')}
+                  fill="none"
+                  stroke="rgb(59, 130, 246)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {monthlyData.map((d, i) => {
+                  const x = (i / (monthlyData.length - 1)) * 100;
+                  const y = maxValue > 0 ? 100 - ((d.revenue / maxValue) * 100) : 100;
+                  return (
+                    <circle
+                      key={`revenue-${i}`}
+                      cx={x}
+                      cy={y}
+                      r="2"
                       fill="rgb(59, 130, 246)"
-                      opacity="0.8"
+                      stroke="rgb(15, 23, 42)"
+                      strokeWidth="1"
                     />
-                  )}
-                  
-                  {/* Profit bar (top, green) */}
-                  {profitHeight > 0 && (
-                    <rect
-                      x={barX}
-                      y={100 - cogsHeight - revenueHeight - profitHeight}
-                      width={barWidth}
-                      height={Math.max(profitHeight, 0.5)}
+                  );
+                })}
+              </>
+            )}
+            
+            {/* Profit Line (Green) */}
+            {monthlyData.length > 1 && (
+              <>
+                <path
+                  d={monthlyData.map((d, i) => {
+                    const x = (i / (monthlyData.length - 1)) * 100;
+                    const y = maxValue > 0 ? 100 - ((d.profit / maxValue) * 100) : 100;
+                    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                  }).join(' ')}
+                  fill="none"
+                  stroke="rgb(34, 197, 94)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {monthlyData.map((d, i) => {
+                  const x = (i / (monthlyData.length - 1)) * 100;
+                  const y = maxValue > 0 ? 100 - ((d.profit / maxValue) * 100) : 100;
+                  return (
+                    <circle
+                      key={`profit-${i}`}
+                      cx={x}
+                      cy={y}
+                      r="2"
                       fill="rgb(34, 197, 94)"
-                      opacity="0.8"
+                      stroke="rgb(15, 23, 42)"
+                      strokeWidth="1"
                     />
-                  )}
-                </g>
-              );
-            })}
+                  );
+                })}
+              </>
+            )}
           </svg>
         </div>
 
-        {/* Month labels at bottom - properly positioned */}
+        {/* Month labels at bottom */}
         <div className="absolute bottom-0 left-12 sm:left-16 right-2 flex justify-between">
           {monthlyData.map((d, i) => (
             <div key={i} className="text-xs text-slate-400 text-center">
@@ -767,18 +804,18 @@ function FinancialTrendChart({ item, filteredOrders }) {
           ))}
         </div>
 
-        {/* Legend - properly positioned */}
-        <div className="absolute top-2 right-2 flex flex-col sm:flex-row gap-2 bg-slate-900/90 rounded-lg px-2 py-1">
+        {/* Legend */}
+        <div className="absolute top-2 right-2 flex gap-4">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-red-500/80 rounded"></div>
+            <div className="w-3 h-0.5 bg-red-500"></div>
             <span className="text-xs text-slate-400">COGS</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-blue-500/80 rounded"></div>
+            <div className="w-3 h-0.5 bg-blue-500"></div>
             <span className="text-xs text-slate-400">Revenue</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-green-500/80 rounded"></div>
+            <div className="w-3 h-0.5 bg-green-500"></div>
             <span className="text-xs text-slate-400">Profit</span>
           </div>
         </div>
