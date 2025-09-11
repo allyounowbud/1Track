@@ -110,7 +110,7 @@ export default function Stats() {
   const filtered = useMemo(() => {
     const itemQuery = (applied.item || "").toLowerCase();
     const useItem = !!itemQuery;
-    return orders.filter((o) => {
+    return (orders || []).filter((o) => {
       const matchesItem = !useItem || (o.item || "").toLowerCase().includes(itemQuery);
       const anyInWindow =
         within(o.order_date, fromMs, toMs) ||
@@ -835,8 +835,8 @@ function Kpi({ title, value, hint, tone }) {
 
 /* --------------------- Aggregate KPIs for the top card --------------------- */
 function makeTopKpis(filtered) {
-  const purchases = filtered.filter(o => o.order_date && (!o.sale_date || true)); // all purchases counted via order_date presence
-  const sales = filtered.filter(o => cents(o.sale_price_cents) > 0);
+  const purchases = (filtered || []).filter(o => o.order_date && (!o.sale_date || true)); // all purchases counted via order_date presence
+  const sales = (filtered || []).filter(o => cents(o.sale_price_cents) > 0);
 
   const spentC = purchases.reduce((a, o) => a + cents(o.buy_price_cents), 0);
   const revenueC = sales.reduce((a, o) => a + cents(o.sale_price_cents), 0);
@@ -894,7 +894,7 @@ function makeTopKpis(filtered) {
 /* -------------------------- per-item aggregation (cards) -------------------------- */
 function makeItemGroups(filtered, marketByName) {
   const m = new Map();
-  for (const o of filtered) {
+  for (const o of (filtered || [])) {
     const key = o.item || "—";
     if (!m.has(key)) {
       m.set(key, {
