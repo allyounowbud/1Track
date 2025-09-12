@@ -665,11 +665,19 @@ function SettingsCard({
           {/* Action buttons - only show when expanded */}
           {isExpanded && (
             <div className="flex items-center gap-2">
-              {/* Show selection count when rows are selected */}
-              {hasSelection && (
-                <span className="text-sm text-slate-400">
-                  {selectedRows.size} selected
-                </span>
+              {/* Show selection count and select all button when expanded */}
+              {!hasNewRows && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === data.length && data.length > 0}
+                    onChange={toggleAllSelection}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  />
+                  <span className="text-sm text-slate-400">
+                    {selectedRows.size}/{data.length} selected
+                  </span>
+                </div>
               )}
               
               {/* Determine button visibility based on selection state */}
@@ -772,8 +780,8 @@ function SettingsCard({
             {/* New rows first */}
             {newRowsData.map(renderNewRow)}
 
-            {/* Existing rows */}
-            {data.map(renderRow)}
+            {/* Existing rows - hide when new rows are present */}
+            {!hasNewRows && data.map(renderRow)}
 
             {data.length === 0 && newRowsData.length === 0 && (
               <div className="px-4 py-8 text-center text-slate-400">
@@ -895,29 +903,11 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
           />
         )}
         
-        {row.type === 'retailer' && (
-          <div className="flex gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSave();
-              }}
-              disabled={busy || !name.trim()}
-              className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-            >
-              {busy ? "Saving..." : "Save"}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onCancel();
-              }}
-              className="px-3 py-1 text-xs bg-slate-600 hover:bg-slate-500 text-white rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
+                    {row.type === 'retailer' && (
+                      <div className="text-slate-400 text-xs">
+                        Use header buttons to save/cancel
+                      </div>
+                    )}
       </div>
       
       {status && (

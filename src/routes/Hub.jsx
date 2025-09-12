@@ -212,6 +212,12 @@ export default function Hub() {
             linkTo={getChangelogLink("Advanced Settings Page Functionality", "Implemented single card expansion only one card open at a time multiple row selection for bulk operations confirmation dialogs with item previews and proper button placement.")}
           />
           <ChangelogEntry
+            title="Final Settings Page Polish"
+            description="Removed duplicate save/cancel buttons from individual rows (only header buttons remain), hide existing rows when adding new ones to prevent conflicts, added select/deselect all checkbox in header, and ensured multiple row selection works perfectly for bulk operations."
+            color="bg-indigo-500/70"
+            linkTo={getChangelogLink("Final Settings Page Polish", "Removed duplicate save/cancel buttons from individual rows only header buttons remain hide existing rows when adding new ones and added select/deselect all checkbox in header.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"
