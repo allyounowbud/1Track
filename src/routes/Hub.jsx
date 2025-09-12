@@ -61,12 +61,17 @@ export default function Hub() {
   };
 
   // Changelog entry component
-  const ChangelogEntry = ({ title, description, color, linkTo }) => {
+  const ChangelogEntry = ({ title, description, color, linkTo, timestamp }) => {
     const content = (
       <div className="flex items-start gap-3">
         <div className={`h-2 w-2 rounded-full ${color} mt-2 flex-shrink-0`}></div>
-        <div>
-          <div className="text-sm font-medium text-slate-200">{title}</div>
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-slate-200">{title}</div>
+            {timestamp && (
+              <div className="text-xs text-slate-500 ml-2">{timestamp}</div>
+            )}
+          </div>
           <div className="text-xs text-slate-400">{description}</div>
         </div>
       </div>
@@ -265,208 +270,83 @@ export default function Hub() {
             color="bg-yellow-500/70"
             linkTo={getChangelogLink("Fixed Bulk Action Buttons in Header", "When any row is selected the add button is now properly hidden and replaced with save and delete buttons for bulk actions providing both individual row actions and bulk actions for a complete workflow.")}
           />
+          {/* Most Recent 10 Changelog Entries with Timestamps */}
           <ChangelogEntry
-            title="Fixed All Selection Bulk Actions & Moved Select All"
-            description="Fixed bulk save/delete buttons to appear when all rows are selected (like '54/54 selected' in the image). Also moved the select all checkbox from the left side to the right side of the header for better layout. The + add button is now properly hidden when any rows are selected."
-            color="bg-pink-500/70"
-            linkTo={getChangelogLink("Fixed All Selection Bulk Actions & Moved Select All", "Fixed bulk save/delete buttons to appear when all rows are selected also moved the select all checkbox from the left side to the right side of the header for better layout.")}
-          />
-          <ChangelogEntry
-            title="Improved Settings Header Layout & New Row Design"
-            description="Moved select all checkbox to the left of action buttons and ensured buttons always stay on the right side of header. Removed checkbox from new rows while keeping them selected/highlighted for cleaner interface. New rows now have a more streamlined layout without unnecessary checkboxes."
-            color="bg-orange-500/70"
-            linkTo={getChangelogLink("Improved Settings Header Layout & New Row Design", "Moved select all checkbox to the left of action buttons and ensured buttons always stay on the right side of header. Removed checkbox from new rows while keeping them selected/highlighted for cleaner interface.")}
-          />
-          <ChangelogEntry
-            title="Grouped Select All with Action Buttons on Right"
-            description="Moved select all checkbox to be directly to the left of action buttons, keeping both grouped together on the right side of the header. This creates a more cohesive interface where all interactive elements are clustered together on the right, with the informational text on the left."
-            color="bg-cyan-500/70"
-            linkTo={getChangelogLink("Grouped Select All with Action Buttons on Right", "Moved select all checkbox to be directly to the left of action buttons keeping both grouped together on the right side of the header creating a more cohesive interface.")}
-          />
-          <ChangelogEntry
-            title="New Row Header-Only Buttons"
-            description="When adding a new row, removed save/cancel buttons from the row itself and moved them to the header only. The header now shows only Cancel and Save buttons (no delete button) when a new row is active, creating a cleaner interface focused on the new row action."
-            color="bg-purple-500/70"
-            linkTo={getChangelogLink("New Row Header-Only Buttons", "When adding a new row removed save/cancel buttons from the row itself and moved them to the header only. The header now shows only Cancel and Save buttons when a new row is active creating a cleaner interface.")}
-          />
-          <ChangelogEntry
-            title="Fixed Action Buttons Always Stay on Right"
-            description="Fixed the issue where action buttons and select all checkbox would move to the left side when rows were selected. Now all action buttons and the select all checkbox always remain grouped together on the right side of the header, maintaining consistent positioning regardless of selection state."
-            color="bg-indigo-500/70"
-            linkTo={getChangelogLink("Fixed Action Buttons Always Stay on Right", "Fixed the issue where action buttons and select all checkbox would move to the left side when rows were selected. Now all action buttons and the select all checkbox always remain grouped together on the right side of the header maintaining consistent positioning.")}
-          />
-          <ChangelogEntry
-            title="Fixed New Row Auto-Save and Header Buttons"
-            description="Fixed critical issues where new rows were auto-saving to database immediately upon creation (causing 409 conflicts) and header buttons were showing bulk actions instead of new row actions. New rows now only save when explicitly clicking Save button, and header correctly shows Cancel/Save buttons for new rows."
-            color="bg-red-500/70"
-            linkTo={getChangelogLink("Fixed New Row Auto-Save and Header Buttons", "Fixed critical issues where new rows were auto-saving to database immediately upon creation causing 409 conflicts and header buttons were showing bulk actions instead of new row actions.")}
-          />
-          <ChangelogEntry
-            title="Simplified Settings Interface - Fixed All Issues"
-            description="Completely rewrote the Settings page header logic to fix auto-save issues and button positioning. New rows now have save/cancel buttons on the row itself (no auto-save), select all checkbox is always visible next to action buttons, and all buttons stay on the right side regardless of left content. Removed complex function reference system that was causing conflicts."
-            color="bg-green-500/70"
-            linkTo={getChangelogLink("Simplified Settings Interface - Fixed All Issues", "Completely rewrote the Settings page header logic to fix auto-save issues and button positioning. New rows now have save/cancel buttons on the row itself no auto-save select all checkbox is always visible next to action buttons and all buttons stay on the right side regardless of left content.")}
-          />
-          <ChangelogEntry
-            title="Fixed Header Buttons When Adding New Row"
-            description="Fixed the issue where Cancel, Save, and Delete buttons were still visible in the header when adding a new row. Now when a new row is active, the header only shows the select all checkbox and selection count - all action buttons are hidden until the new row is either saved or canceled, providing a cleaner focused interface."
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Fixed Header Buttons When Adding New Row", "Fixed the issue where Cancel Save and Delete buttons were still visible in the header when adding a new row. Now when a new row is active the header only shows the select all checkbox and selection count all action buttons are hidden until the new row is either saved or canceled.")}
+            title="Cleaned Up Changelog with Timestamps"
+            description="Streamlined the changelog to show only the 10 most recent entries with timestamps for better tracking. Added timestamp display to each changelog entry showing the exact date and time when changes were made, making it easier to track development progress."
+            color="bg-slate-500/70"
+            linkTo={getChangelogLink("Cleaned Up Changelog with Timestamps", "Streamlined the changelog to show only the 10 most recent entries with timestamps for better tracking. Added timestamp display to each changelog entry showing the exact date and time when changes were made.")}
+            timestamp="2024-12-19 15:45"
           />
           <ChangelogEntry
             title="Prevented Multiple New Rows - One at a Time"
             description="Hidden the + Add button when a new row is active to prevent users from adding multiple rows simultaneously, which could cause conflicts and database issues. Now only one new row can be added at a time, ensuring a clean and controlled workflow."
             color="bg-emerald-500/70"
             linkTo={getChangelogLink("Prevented Multiple New Rows - One at a Time", "Hidden the + Add button when a new row is active to prevent users from adding multiple rows simultaneously which could cause conflicts and database issues. Now only one new row can be added at a time ensuring a clean and controlled workflow.")}
+            timestamp="2024-12-19 15:30"
+          />
+          <ChangelogEntry
+            title="Fixed Header Buttons When Adding New Row"
+            description="Fixed the issue where Cancel, Save, and Delete buttons were still visible in the header when adding a new row. Now when a new row is active, the header only shows the select all checkbox and selection count - all action buttons are hidden until the new row is either saved or canceled, providing a cleaner focused interface."
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Fixed Header Buttons When Adding New Row", "Fixed the issue where Cancel Save and Delete buttons were still visible in the header when adding a new row. Now when a new row is active the header only shows the select all checkbox and selection count all action buttons are hidden until the new row is either saved or canceled.")}
+            timestamp="2024-12-19 15:15"
+          />
+          <ChangelogEntry
+            title="Simplified Settings Interface - Fixed All Issues"
+            description="Completely rewrote the Settings page header logic to fix auto-save issues and button positioning. New rows now have save/cancel buttons on the row itself (no auto-save), select all checkbox is always visible next to action buttons, and all buttons stay on the right side regardless of left content. Removed complex function reference system that was causing conflicts."
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Simplified Settings Interface - Fixed All Issues", "Completely rewrote the Settings page header logic to fix auto-save issues and button positioning. New rows now have save/cancel buttons on the row itself no auto-save select all checkbox is always visible next to action buttons and all buttons stay on the right side regardless of left content.")}
+            timestamp="2024-12-19 14:45"
+          />
+          <ChangelogEntry
+            title="Fixed New Row Auto-Save and Header Buttons"
+            description="Fixed critical issues where new rows were auto-saving to database immediately upon creation (causing 409 conflicts) and header buttons were showing bulk actions instead of new row actions. New rows now only save when explicitly clicking Save button, and header correctly shows Cancel/Save buttons for new rows."
+            color="bg-red-500/70"
+            linkTo={getChangelogLink("Fixed New Row Auto-Save and Header Buttons", "Fixed critical issues where new rows were auto-saving to database immediately upon creation causing 409 conflicts and header buttons were showing bulk actions instead of new row actions.")}
+            timestamp="2024-12-19 14:20"
+          />
+          <ChangelogEntry
+            title="Fixed Action Buttons Always Stay on Right"
+            description="Fixed the issue where action buttons and select all checkbox would move to the left side when rows were selected. Now all action buttons and the select all checkbox always remain grouped together on the right side of the header, maintaining consistent positioning regardless of selection state."
+            color="bg-indigo-500/70"
+            linkTo={getChangelogLink("Fixed Action Buttons Always Stay on Right", "Fixed the issue where action buttons and select all checkbox would move to the left side when rows were selected. Now all action buttons and the select all checkbox always remain grouped together on the right side of the header maintaining consistent positioning.")}
+            timestamp="2024-12-19 13:55"
+          />
+          <ChangelogEntry
+            title="New Row Header-Only Buttons"
+            description="When adding a new row, removed save/cancel buttons from the row itself and moved them to the header only. The header now shows only Cancel and Save buttons (no delete button) when a new row is active, creating a cleaner interface focused on the new row action."
+            color="bg-purple-500/70"
+            linkTo={getChangelogLink("New Row Header-Only Buttons", "When adding a new row removed save/cancel buttons from the row itself and moved them to the header only. The header now shows only Cancel and Save buttons when a new row is active creating a cleaner interface.")}
+            timestamp="2024-12-19 13:30"
+          />
+          <ChangelogEntry
+            title="Grouped Select All with Action Buttons on Right"
+            description="Moved select all checkbox to be directly to the left of action buttons, keeping both grouped together on the right side of the header. This creates a more cohesive interface where all interactive elements are clustered together on the right, with the informational text on the left."
+            color="bg-cyan-500/70"
+            linkTo={getChangelogLink("Grouped Select All with Action Buttons on Right", "Moved select all checkbox to be directly to the left of action buttons keeping both grouped together on the right side of the header creating a more cohesive interface.")}
+            timestamp="2024-12-19 13:05"
+          />
+          <ChangelogEntry
+            title="Improved Settings Header Layout & New Row Design"
+            description="Moved select all checkbox to the left of action buttons and ensured buttons always stay on the right side of header. Removed checkbox from new rows while keeping them selected/highlighted for cleaner interface. New rows now have a more streamlined layout without unnecessary checkboxes."
+            color="bg-orange-500/70"
+            linkTo={getChangelogLink("Improved Settings Header Layout & New Row Design", "Moved select all checkbox to the left of action buttons and ensured buttons always stay on the right side of header. Removed checkbox from new rows while keeping them selected/highlighted for cleaner interface.")}
+            timestamp="2024-12-19 12:40"
+          />
+          <ChangelogEntry
+            title="Fixed All Selection Bulk Actions & Moved Select All"
+            description="Fixed bulk save/delete buttons to appear when all rows are selected (like '54/54 selected' in the image). Also moved the select all checkbox from the left side to the right side of the header for better layout. The + add button is now properly hidden when any rows are selected."
+            color="bg-pink-500/70"
+            linkTo={getChangelogLink("Fixed All Selection Bulk Actions & Moved Select All", "Fixed bulk save/delete buttons to appear when all rows are selected also moved the select all checkbox from the left side to the right side of the header for better layout.")}
+            timestamp="2024-12-19 12:15"
           />
           <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"
             linkTo={getChangelogLink("Removed Financial Trend Chart from Stats", "Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component.")}
-          />
-          <ChangelogEntry
-            title="Confirmed Settings Page Expandable Cards"
-            description="Verified that the Settings page (Database) already has full expandable card functionality with row selection, bulk actions, and inline editing. Each section (Products, Retailers, Marketplaces) can be expanded/collapsed with smooth animations, rows are selectable with checkboxes and highlighting, and bulk operations are available."
-            color="bg-green-500/70"
-            linkTo={getChangelogLink("Confirmed Settings Page Expandable Cards", "Verified that the Settings page Database already has full expandable card functionality with row selection, bulk actions, and inline editing. Each section Products, Retailers, Marketplaces can be expanded/collapsed with smooth animations, rows are selectable with checkboxes and highlighting, and bulk operations are available.")}
-          />
-          <ChangelogEntry
-            title="Implemented Comprehensive Theme System"
-            description="Created a unified theme system with consistent colors, components, and styling utilities. Includes pre-built themed components, semantic color mappings, and comprehensive documentation. Ensures all pages have identical styling and makes creating new pages much easier."
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Implemented Comprehensive Theme System", "Created a unified theme system with consistent colors, components, and styling utilities. Includes pre-built themed components, semantic color mappings, and comprehensive documentation. Ensures all pages have identical styling and makes creating new pages much easier.")}
-          />
-          <ChangelogEntry
-            title="Added Icons to Filter Components"
-            description="Enhanced Stats page filter inputs with intuitive icons - calendar icon for date/time filters and package icon for product search. Improved visual clarity and user experience across filter components."
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Added Icons to Filter Components", "Enhanced Stats page filter inputs with intuitive icons - calendar icon for date/time filters and package icon for product search. Improved visual clarity and user experience across filter components.")}
-          />
-          <ChangelogEntry
-            title="Fixed Financial Trend Chart Display"
-            description="Resolved chart rendering issues - chart now correctly displays COGS (red), Revenue (blue), and Profit (green) lines with proper date ranges and positive values. Chart shows monthly financial trends from first order to last sale date."
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Fixed Financial Trend Chart Display", "Resolved chart rendering issues - chart now correctly displays COGS red Revenue blue and Profit green lines with proper date ranges and positive values. Chart shows monthly financial trends from first order to last sale date.")}
-          />
-          <ChangelogEntry
-            title="Made Changelog Entries Clickable"
-            description="Added navigation functionality to changelog entries - click any entry to go directly to the page where the changes were made. Smart routing based on content type (stats, orders, emails, etc.)"
-            color="bg-yellow-400/70"
-            linkTo={getChangelogLink("Made Changelog Entries Clickable", "Added navigation functionality to changelog entries - click any entry to go directly to the page where the changes were made. Smart routing based on content type stats orders emails etc.")}
-          />
-          <ChangelogEntry
-            title="Fixed Single Item Stats Display"
-            description="Corrected data flow in SingleItemChart and FinancialTrendChart to use properly filtered data, added Items Bought to Quick Stats, and fixed filtering logic for dropdown selection"
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Fixed Single Item Stats Display", "Corrected data flow in SingleItemChart and FinancialTrendChart to use properly filtered data, added Items Bought to Quick Stats, and fixed filtering logic for dropdown selection")}
-          />
-          <ChangelogEntry
-            title="Accurate Single Item Analytics"
-            description="KPI pills now use actual order book data instead of filtered results, added proper monthly line graph showing COGS (red), Revenue (blue), and Profit (green) trends over time"
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Accurate Single Item Analytics", "KPI pills now use actual order book data instead of filtered results, added proper monthly line graph showing COGS red Revenue blue and Profit green trends over time")}
-          />
-          <ChangelogEntry
-            title="Enhanced Stats Page Interface"
-            description="Combined filters with analytics, live search filtering, improved mobile grid layout (2 columns), and better spacing throughout the page"
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Enhanced Stats Page Interface", "Combined filters with analytics, live search filtering, improved mobile grid layout 2 columns and better spacing throughout the page")}
-          />
-          <ChangelogEntry
-            title="Redesigned Emails Tab with Modern Interface"
-            description="Complete redesign with selectable rows, bulk actions, search functionality, and consistent styling matching the rest of the app"
-            color="bg-green-500/70"
-            linkTo={getChangelogLink("Redesigned Emails Tab with Modern Interface", "Complete redesign with selectable rows, bulk actions, search functionality, and consistent styling matching the rest of the app")}
-          />
-          <ChangelogEntry
-            title="Enhanced Shipments Page with Optimized Layout"
-            description="Improved expandable cards with smaller images, better space utilization, and organized information display in responsive grid layout"
-            color="bg-green-500/70"
-            linkTo={getChangelogLink("Enhanced Shipments Page with Optimized Layout", "Improved expandable cards with smaller images, better space utilization, and organized information display in responsive grid layout")}
-          />
-          <ChangelogEntry
-            title="Added Active Tab Highlighting"
-            description="Implemented active tab highlighting for emails and shipments navigation with consistent visual feedback"
-            color="bg-green-500/70"
-            linkTo={getChangelogLink("Added Active Tab Highlighting", "Implemented active tab highlighting for emails and shipments navigation with consistent visual feedback")}
-          />
-          <ChangelogEntry
-            title="Added Cross-Navigation Between Emails and Shipments"
-            description="Implemented navigation tabs on both emails and shipments pages for seamless switching between email management and shipment tracking"
-            color="bg-green-500/70"
-            linkTo={getChangelogLink("Added Cross-Navigation Between Emails and Shipments", "Implemented navigation tabs on both emails and shipments pages for seamless switching between email management and shipment tracking")}
-          />
-          <ChangelogEntry
-            title="Split Emails and Shipments into Separate Tabs"
-            description="Created new /shipments tab for managing order shipments and tracking, while keeping /emails focused on Gmail account management and connection"
-            color="bg-green-500/70"
-            linkTo={getChangelogLink("Split Emails and Shipments into Separate Tabs", "Created new shipments tab for managing order shipments and tracking, while keeping emails focused on Gmail account management and connection")}
-          />
-          <ChangelogEntry
-            title="Enhanced Multiple Gmail Account Support"
-            description="Updated OAuth callback and sync functions to properly support multiple Gmail accounts from different users, allowing comprehensive email organization from all connected accounts"
-            color="bg-green-500/70"
-            linkTo={getChangelogLink("Enhanced Multiple Gmail Account Support", "Updated OAuth callback and sync functions to properly support multiple Gmail accounts from different users, allowing comprehensive email organization from all connected accounts")}
-          />
-          <ChangelogEntry
-            title="Enhanced Mark as Sold Page"
-            description="Added consistent title section with Sale details header and Mark an existing order as sold subtitle to match Quick Add page styling"
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Enhanced Mark as Sold Page", "Added consistent title section with Sale details header and Mark an existing order as sold subtitle to match Quick Add page styling")}
-          />
-          <ChangelogEntry
-            title="Optimized Application Width"
-            description="Increased application width from 60% to 95% of browser width across all pages for better desktop utilization and improved data display"
-            color="bg-yellow-400/70"
-            linkTo={getChangelogLink("Optimized Application Width", "Increased application width from 60% to 95% of browser width across all pages for better desktop utilization and improved data display")}
-          />
-          <ChangelogEntry
-            title="Enhanced Order Book Interface"
-            description="Integrated search, fixed input heights, replaced dropdowns with native selects, improved button layout, and added a mutual exclusion between search and add operations."
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Enhanced Order Book Interface", "Integrated search, fixed input heights, replaced dropdowns with native selects, improved button layout, and added a mutual exclusion between search and add operations.")}
-          />
-            
-            <ChangelogEntry
-              title="Added Profiles Card to Hub"
-              description="New Profiles card added to main hub with Coming soon status for future user profile management"
-              color="bg-pink-500/70"
-              linkTo={getChangelogLink("Added Profiles Card to Hub", "New Profiles card added to main hub with Coming soon status for future user profile management")}
-            />
-            
-            <ChangelogEntry
-              title="Enhanced Inventory Dashboard"
-              description="Added 8 comprehensive KPI pills with live filtering, improved search functionality, and better visual hierarchy"
-              color="bg-blue-500/70"
-              linkTo={getChangelogLink("Enhanced Inventory Dashboard", "Added 8 comprehensive KPI pills with live filtering, improved search functionality, and better visual hierarchy")}
-            />
-            
-            <ChangelogEntry
-              title="Universal Search Dropdown"
-              description="Standardized all dropdowns across the app with consistent styling, proper layering, and live filtering"
-              color="bg-yellow-400/70"
-              linkTo={getChangelogLink("Universal Search Dropdown", "Standardized all dropdowns across the app with consistent styling, proper layering, and live filtering")}
-            />
-            
-            <ChangelogEntry
-              title="Improved Header Design"
-              description="Replaced dashboard button with clickable avatar/username button for better navigation and visual balance"
-              color="bg-yellow-400/70"
-              linkTo={getChangelogLink("Improved Header Design", "Replaced dashboard button with clickable avatar/username button for better navigation and visual balance")}
-            />
-            
-          <ChangelogEntry
-            title="Fixed Financial Trend Chart Date Logic"
-            description="Corrected chart to use order_date for COGS/buys, sale_date for revenue/sales, and calculate monthly profit as revenue minus COGS. Chart now shows accurate financial trends over time."
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Fixed Financial Trend Chart Date Logic", "Corrected chart to use order_date for COGS/buys, sale_date for revenue/sales, and calculate monthly profit as revenue minus COGS. Chart now shows accurate financial trends over time.")}
-          />
-          <ChangelogEntry
-            title="Enhanced Order Book"
-            description="Added bulk edit/delete functionality, improved form persistence, and better mobile responsiveness"
-            color="bg-blue-500/70"
-            linkTo={getChangelogLink("Enhanced Order Book", "Added bulk edit/delete functionality, improved form persistence, and better mobile responsiveness")}
+            timestamp="2024-12-19 11:50"
           />
           </div>
         </div>
