@@ -719,14 +719,29 @@ function SettingsCard({
         >
           {/* Header with Selection Count and Actions */}
           <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
-            {/* Left side - Empty when rows are selected */}
-            {!hasSelection && (
-              <div className="text-sm text-slate-400">
-                Select rows to perform bulk actions
-              </div>
-            )}
+            {/* Left side - Select all checkbox and prompt */}
+            <div className="flex items-center gap-4">
+              {!hasNewRows && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === data.length && data.length > 0}
+                    onChange={toggleAllSelection}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  />
+                  <span className="text-sm text-slate-400">
+                    {selectedRows.size}/{data.length} selected
+                  </span>
+                </div>
+              )}
+              {!hasSelection && (
+                <div className="text-sm text-slate-400">
+                  Select rows to perform bulk actions
+                </div>
+              )}
+            </div>
 
-            {/* Right side - Action buttons and select all */}
+            {/* Right side - Action buttons (always stay on right) */}
             <div className="flex items-center gap-2">
               {/* Determine button visibility based on selection state */}
               {(() => {
@@ -778,21 +793,6 @@ function SettingsCard({
                   </button>
                 );
               })()}
-              
-              {/* Select all checkbox - moved to right side */}
-              {!hasNewRows && (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.size === data.length && data.length > 0}
-                    onChange={toggleAllSelection}
-                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                  />
-                  <span className="text-sm text-slate-400">
-                    {selectedRows.size}/{data.length} selected
-                  </span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -903,19 +903,9 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
     >
       <div className={`grid gap-4 items-center min-w-0 ${
         row.type === 'retailer' 
-          ? 'grid-cols-[auto_1fr_auto]' 
-          : 'grid-cols-[auto_2fr_1fr]'
+          ? 'grid-cols-[1fr_auto]' 
+          : 'grid-cols-[2fr_1fr]'
       }`}>
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={(e) => {
-            e.stopPropagation();
-            onToggleSelection();
-          }}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-        />
-        
         <input
           className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
           value={name}

@@ -272,6 +272,12 @@ export default function Hub() {
             linkTo={getChangelogLink("Fixed All Selection Bulk Actions & Moved Select All", "Fixed bulk save/delete buttons to appear when all rows are selected also moved the select all checkbox from the left side to the right side of the header for better layout.")}
           />
           <ChangelogEntry
+            title="Improved Settings Header Layout & New Row Design"
+            description="Moved select all checkbox to the left of action buttons and ensured buttons always stay on the right side of header. Removed checkbox from new rows while keeping them selected/highlighted for cleaner interface. New rows now have a more streamlined layout without unnecessary checkboxes."
+            color="bg-orange-500/70"
+            linkTo={getChangelogLink("Improved Settings Header Layout & New Row Design", "Moved select all checkbox to the left of action buttons and ensured buttons always stay on the right side of header. Removed checkbox from new rows while keeping them selected/highlighted for cleaner interface.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"
