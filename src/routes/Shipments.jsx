@@ -17,7 +17,7 @@ const TruckIcon = ({ className }) => (
 async function getOrders() {
   const { data, error } = await supabase
     .from("email_orders")
-    .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, shipped_at, delivered_at, status, source_message_id, created_at")
+    .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, shipped_at, delivered_at, status, source_message_id, source_email, created_at")
     .order("order_date", { ascending: false })
     .limit(3000);
   if (error) throw error;
@@ -110,6 +110,7 @@ export default function Shipments() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [testing, setTesting] = useState(false);
+  const [emailPreview, setEmailPreview] = useState(null); // { order, messageId }
 
   const rowsAll = useMemo(() => stitch(orders, ships), [orders, ships]);
 
@@ -159,8 +160,30 @@ export default function Shipments() {
   };
 
   const getEmailForOrder = (order) => {
-    const account = emailAccounts.find(acc => acc.user_id === order.user_id);
-    return account?.email_address || 'Unknown';
+    return order.source_email || 'Unknown';
+  };
+
+  const previewEmail = async (order) => {
+    if (!order.source_message_id) return;
+    
+    try {
+      // Fetch email content from our Gmail sync function
+      const response = await fetch(`/.netlify/functions/gmail-sync?preview=${order.source_message_id}`);
+      const result = await response.json();
+      
+      if (result.error) {
+        console.error('Error fetching email:', result.error);
+        return;
+      }
+      
+      setEmailPreview({
+        order,
+        content: result,
+        messageId: order.source_message_id
+      });
+    } catch (error) {
+      console.error('Error previewing email:', error);
+    }
   };
 
   const syncEmails = async () => {
@@ -362,17 +385,6 @@ export default function Shipments() {
                                 {row.tracking_number}
                               </span>
                             )}
-                            {row.status && (
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                row.status === 'delivered' ? 'bg-green-700 text-green-200' :
-                                row.status === 'in_transit' ? 'bg-blue-700 text-blue-200' :
-                                row.status === 'out_for_delivery' ? 'bg-yellow-700 text-yellow-200' :
-                                row.status === 'canceled' ? 'bg-red-700 text-red-200' :
-                                'bg-slate-700 text-slate-300'
-                              }`}>
-                                {row.status.replace('_', ' ')}
-                              </span>
-                            )}
                           </div>
                           
                           {cleanItemName(row.item_name) && (
@@ -402,6 +414,18 @@ export default function Shipments() {
                             <div className="text-sm text-slate-400">
                               {row.carrier}
                             </div>
+                          )}
+                          {row.status && (
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              row.status === 'delivered' ? 'bg-green-700 text-green-200' :
+                              row.status === 'in_transit' ? 'bg-blue-700 text-blue-200' :
+                              row.status === 'out_for_delivery' ? 'bg-yellow-700 text-yellow-200' :
+                              row.status === 'canceled' ? 'bg-red-700 text-red-200' :
+                              row.status === 'ordered' ? 'bg-slate-700 text-slate-300' :
+                              'bg-slate-700 text-slate-300'
+                            }`}>
+                              {row.status === 'ordered' ? 'Order Placed' : row.status.replace('_', ' ')}
+                            </span>
                           )}
                           <svg 
                             className={`h-5 w-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -502,18 +526,16 @@ export default function Shipments() {
                                 <span className="text-slate-400 text-sm">Email Source:</span>
                                 <div className="text-slate-200 font-medium mt-1">{getEmailForOrder(row)}</div>
                               </div>
-                              {getGmailLink(row.source_message_id) && (
-                                <a
-                                  href={getGmailLink(row.source_message_id)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                              {row.source_message_id && (
+                                <button
+                                  onClick={() => previewEmail(row)}
                                   className="inline-flex items-center gap-2 h-8 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium transition-colors"
                                 >
                                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                   </svg>
                                   View Email
-                                </a>
+                                </button>
                               )}
                             </div>
                             
@@ -547,6 +569,57 @@ export default function Shipments() {
             </div>
           )}
         </div>
+
+        {/* Email Preview Modal */}
+        {emailPreview && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-slate-700">
+                <h3 className="text-lg font-semibold text-slate-200">
+                  Email Preview - {emailPreview.order.retailer} #{emailPreview.order.order_id}
+                </h3>
+                <button
+                  onClick={() => setEmailPreview(null)}
+                  className="text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="p-4 border-b border-slate-700 bg-slate-900/50">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-slate-400">From:</span>
+                    <div className="text-slate-200 font-medium">{emailPreview.content.from}</div>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Subject:</span>
+                    <div className="text-slate-200 font-medium">{emailPreview.content.subject}</div>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Date:</span>
+                    <div className="text-slate-200 font-medium">{emailPreview.content.date}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 overflow-auto max-h-[60vh]">
+                {emailPreview.content.html ? (
+                  <div 
+                    className="prose prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: emailPreview.content.html }}
+                  />
+                ) : (
+                  <div className="whitespace-pre-wrap text-slate-300 font-mono text-sm">
+                    {emailPreview.content.text}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

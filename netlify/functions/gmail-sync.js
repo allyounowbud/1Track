@@ -1148,6 +1148,41 @@ exports.handler = async (event) => {
     }
   }
 
+  // Preview specific email by message ID
+  if (event?.queryStringParameters?.preview) {
+    try {
+      const messageId = event.queryStringParameters.preview;
+      const accounts = await getAccounts();
+      
+      for (const account of accounts) {
+        try {
+          const gmail = await getGmailClient(account);
+          const message = await getMessageFull(gmail, messageId);
+          const headers = headersToObj(message.payload?.headers || []);
+          const { html, text } = extractBodyParts(message.payload || {});
+          
+          return json({
+            success: true,
+            messageId,
+            subject: headers.subject || '',
+            from: headers.from || '',
+            date: headers.date || '',
+            html: html || '',
+            text: text || '',
+            account: account.email_address
+          });
+        } catch (err) {
+          // Try next account if this one fails
+          continue;
+        }
+      }
+      
+      return json({ error: "Message not found in any connected account" }, 404);
+    } catch (error) {
+      return json({ error: error.message }, 500);
+    }
+  }
+
   try {
     const mode = (event.queryStringParameters?.mode || "").toLowerCase();
     const debug = event.queryStringParameters?.debug === "1";
@@ -1295,6 +1330,7 @@ exports.handler = async (event) => {
           delivered_at: null,
           status: "ordered",
           source_message_id: msg.id,
+          source_email: account.email_address,
         };
         await upsertOrder(row);
         if (exists) skipped_existing++;
