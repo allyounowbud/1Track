@@ -492,6 +492,7 @@ export default function Settings() {
         <HeaderWithTabs active="database" showTabs section="orderbook" showHubTab={true} />
 
         {/* Items Card */}
+        {!(hasNewRetailerRows || hasNewMarketRows) && (
         <SettingsCard
           title="Products"
           totalCount={items.length}
@@ -547,8 +548,10 @@ export default function Settings() {
           isExpanded={expandedCard === 'items'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'items' ? null : 'items')}
         />
+        )}
 
         {/* Retailers Card */}
+        {!(hasNewItemRows || hasNewMarketRows) && (
         <SettingsCard
           title="Retailers"
           totalCount={retailers.length}
@@ -595,8 +598,10 @@ export default function Settings() {
           isExpanded={expandedCard === 'retailers'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'retailers' ? null : 'retailers')}
         />
+        )}
 
         {/* Markets Card */}
+        {!(hasNewItemRows || hasNewRetailerRows) && (
         <SettingsCard
           title="Marketplaces"
           totalCount={markets.length}
@@ -643,6 +648,7 @@ export default function Settings() {
           isExpanded={expandedCard === 'markets'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'markets' ? null : 'markets')}
         />
+        )}
       </div>
     </div>
   );
@@ -686,11 +692,13 @@ function SettingsCard({
   const hasExistingRows = selectedItems.some(id => id > 0);
 
   return (
-    <section className={`${pageCard} mb-6`}>
-      {/* Card Header - Clickable anywhere to expand */}
+    <section 
+      className={`${pageCard} mb-6 cursor-pointer hover:bg-slate-800/20 transition-colors`}
+      onClick={onToggleExpansion}
+    >
+      {/* Card Header */}
       <div 
-        className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap cursor-pointer hover:bg-slate-800/20 rounded-xl p-2 -m-2 transition-colors"
-        onClick={onToggleExpansion}
+        className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap rounded-xl p-2 -m-2"
       >
         <div className="min-w-0">
           <h2 className="text-lg font-semibold leading-[2.25rem]">{title}</h2>
@@ -705,85 +713,93 @@ function SettingsCard({
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="pt-5 border-t border-slate-800 mt-4">
+        <div 
+          className="pt-5 border-t border-slate-800 mt-4"
+          onClick={(e) => e.stopPropagation()} // Prevent card expansion when clicking in expanded area
+        >
           {/* Header with Selection Count and Actions */}
           <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
-            {/* Left side - Selection Count */}
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={selectedRows.size === data.length && data.length > 0}
-                onChange={toggleAllSelection}
-                className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-              />
-              <span className="text-sm text-slate-400">
-                {selectedRows.size}/{data.length} selected
-              </span>
-            </div>
+            {/* Left side - Selection Count (hide when new rows are being added) */}
+            {!hasNewRows && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedRows.size === data.length && data.length > 0}
+                  onChange={toggleAllSelection}
+                  className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                />
+                <span className="text-sm text-slate-400">
+                  {selectedRows.size}/{data.length} selected
+                </span>
+              </div>
+            )}
 
             {/* Right side - Action buttons */}
             <div className="flex items-center gap-2">
               {/* Determine button visibility based on selection state */}
               {(() => {
-                // New rows selected: show cancel and save buttons
-                if (hasNewRowsInSelection) {
-                  return (
-                    <>
-                      <button
-                        onClick={cancelNewRows}
-                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                        title="Cancel Changes"
-                      >
-                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={bulkSave}
-                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                        title="Save Changes"
-                      >
-                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                        </svg>
-                      </button>
-                    </>
-                  );
-                }
-                
-                // Existing rows selected: show cancel, save, and delete buttons
-                if (hasExistingRows) {
-                  return (
-                    <>
-                      <button
-                        onClick={clearSelection}
-                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                        title="Cancel Selection"
-                      >
-                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={bulkSave}
-                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                        title="Save Selected"
-                      >
-                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={bulkDelete}
-                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                        title="Delete Selected"
-                      >
-                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </>
-                  );
+                // Any rows selected: show appropriate action buttons (hide + add button)
+                if (hasSelection) {
+                  // New rows selected: show cancel and save buttons
+                  if (hasNewRowsInSelection) {
+                    return (
+                      <>
+                        <button
+                          onClick={cancelNewRows}
+                          className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                          title="Cancel Changes"
+                        >
+                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={bulkSave}
+                          className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                          title="Save Changes"
+                        >
+                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                          </svg>
+                        </button>
+                      </>
+                    );
+                  }
+                  
+                  // Existing rows selected: show cancel, save, and delete buttons
+                  if (hasExistingRows) {
+                    return (
+                      <>
+                        <button
+                          onClick={clearSelection}
+                          className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                          title="Cancel Selection"
+                        >
+                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={bulkSave}
+                          className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                          title="Save Selected"
+                        >
+                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={bulkDelete}
+                          className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                          title="Delete Selected"
+                        >
+                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </>
+                    );
+                  }
                 }
                 
                 // No selection: show add button

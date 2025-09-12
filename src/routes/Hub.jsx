@@ -236,6 +236,24 @@ export default function Hub() {
             linkTo={getChangelogLink("Fixed Settings Page Expandable Cards", "Restructured Settings page to match OrderBook behavior exactly header stays as card with clickable area expanded dropdown is not clickable bulk actions properly replace add button and list refreshes correctly.")}
           />
           <ChangelogEntry
+            title="Fixed Full Card Clickable Area"
+            description="Made entire Settings card clickable for expand/collapse functionality, matching OrderBook behavior exactly. The whole card from border to border is now clickable, with proper event handling to prevent conflicts in the expanded content area."
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Fixed Full Card Clickable Area", "Made entire Settings card clickable for expand/collapse functionality matching OrderBook behavior exactly the whole card from border to border is now clickable with proper event handling.")}
+          />
+          <ChangelogEntry
+            title="Enhanced New Row Focus Mode"
+            description="When adding a new row, the select all checkbox is hidden and all other unexpanded cards are hidden. This creates a focused workspace where users can only see the new row they're working on until it's either saved or canceled, reducing distractions and improving workflow."
+            color="bg-purple-500/70"
+            linkTo={getChangelogLink("Enhanced New Row Focus Mode", "When adding a new row the select all checkbox is hidden and all other unexpanded cards are hidden creating a focused workspace where users can only see the new row they're working on until it's either saved or canceled.")}
+          />
+          <ChangelogEntry
+            title="Fixed Add Button Logic for Selected Rows"
+            description="When any row is selected (like in the image), the + add button is now hidden and replaced with save and delete icon buttons for bulk actions. This prevents users from adding new rows while having existing rows selected and provides convenient bulk action buttons in the header."
+            color="bg-orange-500/70"
+            linkTo={getChangelogLink("Fixed Add Button Logic for Selected Rows", "When any row is selected the add button is now hidden and replaced with save and delete icon buttons for bulk actions preventing users from adding new rows while having existing rows selected.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"
