@@ -152,13 +152,13 @@ async function getGmailClient(account) {
     if (tokens.access_token) patch.access_token = tokens.access_token;
     if (tokens.expiry_date) patch.expires_at = new Date(tokens.expiry_date).toISOString();
     if (Object.keys(patch).length) {
-      await supabase.from("email_accounts").update(patch).eq("id", acct.id);
+      await supabase.from("email_accounts").update(patch).eq("id", account.id);
     }
   });
   try {
     await oauth2.getAccessToken();
   } catch {
-    if (!acct.refresh_token) throw new Error("Expired Gmail token (no refresh_token)");
+    if (!account.refresh_token) throw new Error("Expired Gmail token (no refresh_token)");
     const { credentials } = await oauth2.refreshAccessToken();
     oauth2.setCredentials(credentials);
   }
@@ -1133,12 +1133,12 @@ exports.handler = async (event) => {
         return json({ error: "No connected Gmail accounts found" }, 400);
       }
       
-      const acct = accounts[0];
-      const gmail = await getGmailClient(acct);
+      const account = accounts[0];
+      const gmail = await getGmailClient(account);
       const ids = await listCandidateMessageIds(gmail);
       
       return json({ 
-        account: acct.email_address,
+        account: account.email_address,
         messageCount: ids.length,
         sampleIds: ids.slice(0, 3),
         query: 'newer_than:90d in:inbox (from:amazon.com OR from:target.com OR from:macys.com OR from:nike.com OR subject:order OR subject:shipped OR subject:delivered OR subject:cancel)'
@@ -1166,12 +1166,12 @@ exports.handler = async (event) => {
     const allProposed = [];
     
     // Process each connected Gmail account
-    for (const acct of accounts) {
-      console.log(`Processing Gmail account: ${acct.email_address}`);
+    for (const account of accounts) {
+      console.log(`Processing Gmail account: ${account.email_address}`);
       
-      const gmail = await getGmailClient(acct);
+      const gmail = await getGmailClient(account);
     const ids = await listCandidateMessageIds(gmail);
-    console.log(`Found ${ids.length} candidate message IDs for account ${acct.email_address}`);
+    console.log(`Found ${ids.length} candidate message IDs for account ${account.email_address}`);
     
     if (debug && ids.length > 0) {
       console.log("Sample message IDs:", ids.slice(0, 5));
@@ -1263,7 +1263,7 @@ exports.handler = async (event) => {
         }
 
       if (mode === "preview") {
-        const exists = await getOrderIdExists(acct.user_id, retailer.name, order_id);
+        const exists = await getOrderIdExists(account.user_id, retailer.name, order_id);
           if (!exists) {
           proposed.push({
             retailer: retailer.name,
@@ -1280,9 +1280,9 @@ exports.handler = async (event) => {
       }
 
         // Create or update order
-        const exists = await getOrderIdExists(acct.user_id, retailer.name, order_id);
+        const exists = await getOrderIdExists(account.user_id, retailer.name, order_id);
         const row = {
-          user_id: acct.user_id,
+          user_id: account.user_id,
           retailer: retailer.name,
           order_id: order_id,
           order_date: ymd(messageDate),
@@ -1348,7 +1348,7 @@ exports.handler = async (event) => {
         if (!order_id) continue;
 
         // Only process if corresponding order exists
-        const orderExists = await getOrderIdExists(acct.user_id, retailer.name, order_id);
+        const orderExists = await getOrderIdExists(account.user_id, retailer.name, order_id);
         if (!orderExists) {
           console.log(`No existing order found for shipping update: ${order_id}`);
           continue;
@@ -1356,7 +1356,7 @@ exports.handler = async (event) => {
 
         // Create shipment record
         const ship = {
-          user_id: acct.user_id,
+          user_id: account.user_id,
           retailer: retailer.name,
           order_id: order_id,
           tracking_number: parsed.tracking_number || null,
@@ -1369,7 +1369,7 @@ exports.handler = async (event) => {
         
         // Update order status to in_transit
           await upsertOrder({
-            user_id: acct.user_id,
+            user_id: account.user_id,
             retailer: retailer.name,
             order_id,
             shipped_at: messageDate.toISOString(),
@@ -1425,7 +1425,7 @@ exports.handler = async (event) => {
         const { data: existingOrder } = await supabase
           .from("email_orders")
           .select("status")
-          .eq("user_id", acct.user_id)
+          .eq("user_id", account.user_id)
           .eq("retailer", retailer.name)
           .eq("order_id", order_id)
           .maybeSingle();
@@ -1437,7 +1437,7 @@ exports.handler = async (event) => {
 
         // Update order to delivered
           await upsertOrder({
-            user_id: acct.user_id,
+            user_id: account.user_id,
             retailer: retailer.name,
             order_id,
             delivered_at: messageDate.toISOString(),
