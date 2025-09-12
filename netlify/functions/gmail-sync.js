@@ -167,24 +167,28 @@ async function getGmailClient(account) {
 
 /* ---------------------------- Gmail listing ---------------------------- */
 async function listCandidateMessageIds(gmail) {
-  // Broader query to catch more retailers and email types
+  // Much broader query to catch more retailers and email types
   const q =
-    'newer_than:90d in:inbox (from:amazon.com OR from:target.com OR from:macys.com OR from:nike.com OR subject:order OR subject:shipped OR subject:delivered OR subject:cancel)';
+    'newer_than:90d in:inbox (from:amazon.com OR from:target.com OR from:macys.com OR from:nike.com OR from:orders.amazon.com OR from:auto-confirm@amazon.com OR from:shipment-tracking@amazon.com OR from:order-update@amazon.com OR from:oe.target.com OR from:oe1.target.com OR from:oes.macys.com OR from:noreply.macys.com OR from:ship.notifications.nike.com OR subject:order OR subject:shipped OR subject:delivered OR subject:cancel OR subject:confirmation OR subject:tracking OR subject:shipment)';
+  
+  console.log("Gmail query:", q);
   const ids = [];
   let pageToken;
-  // cap at 200 msgs per invocation
-  for (let i = 0; i < 4; i++) {
+  // cap at 500 msgs per invocation to catch more emails
+  for (let i = 0; i < 10; i++) {
     const res = await gmail.users.messages.list({
       userId: "me",
       q,
       maxResults: 50,
       pageToken,
     });
+    console.log(`Page ${i + 1}: Found ${(res.data.messages || []).length} messages`);
     (res.data.messages || []).forEach((m) => ids.push(m.id));
     pageToken = res.data.nextPageToken;
-    if (!pageToken || ids.length >= 200) break;
+    if (!pageToken || ids.length >= 500) break;
   }
-  return unique(ids).slice(0, 200);
+  console.log(`Total candidate messages found: ${ids.length}`);
+  return unique(ids).slice(0, 500);
 }
 async function getMessageFull(gmail, id) {
   const res = await gmail.users.messages.get({
@@ -228,14 +232,25 @@ function classifyRetailer(from) {
 }
 function classifyType(retailer, subject) {
   const s = (subject || "").toLowerCase();
+  
+  // More comprehensive order detection
   if (retailer.orderSubject?.test(s)) return "order";
+  if (/thanks for your order|order confirmation|order placed|your order|order received|order has been placed|order summary|order details/.test(s)) return "order";
+  if (/confirmation|confirm/.test(s) && !/cancel/.test(s)) return "order";
+  
+  // More comprehensive shipping detection
   if (retailer.shipSubject?.test(s)) return "shipping";
+  if (/shipped|on (?:its|the) way|track package|shipment|tracking|out for delivery|in transit|label created/.test(s)) return "shipping";
+  
+  // More comprehensive delivery detection
   if (retailer.deliverSubject?.test(s)) return "delivered";
+  if (/delivered|arrived|received your package/.test(s)) return "delivered";
+  
+  // More comprehensive cancellation detection
   if (retailer.cancelSubject?.test(s)) return "canceled";
-  if (/thanks for your order|order confirmation/.test(s)) return "order";
-  if (/shipped|on (?:its|the) way|track package/.test(s)) return "shipping";
-  if (/delivered/.test(s)) return "delivered";
-  if (/cancel/.test(s)) return "canceled";
+  if (/cancel|cancelled|cancellation/.test(s)) return "canceled";
+  
+  console.log(`No type match for subject: "${s}" with retailer: ${retailer.name}`);
   return null;
 }
 
@@ -1192,6 +1207,7 @@ exports.handler = async (event) => {
     if (debug) {
       console.log("=== DEBUG MODE ENABLED ===");
       console.log("Connected accounts:", accounts.map(a => a.email_address));
+      console.log("Total accounts to process:", accounts.length);
     }
     
     let totalImported = 0;
@@ -1221,7 +1237,7 @@ exports.handler = async (event) => {
       let processed = 0;
 
       // Add timeout protection - Netlify functions have 10s limit
-      const maxDuration = 8000; // 8 seconds to leave buffer for response
+      const maxDuration = 9000; // 9 seconds to leave buffer for response
     
       // Step 1: Process order confirmations first
       console.log("Step 1: Processing order confirmations...");
@@ -1257,6 +1273,12 @@ exports.handler = async (event) => {
         console.log(`Processing email from: ${from}, retailer: ${retailer.name}, type: ${type}`);
         console.log(`Email subject: ${subject}`);
         
+        if (debug) {
+          console.log(`Email date: ${messageDate.toISOString()}`);
+          console.log(`Retailer classification: ${retailer.name}`);
+          console.log(`Type classification: ${type}`);
+        }
+        
         // Only process order confirmations in this step
         if (type !== "order") {
           console.log(`Skipping non-order email: ${type} - ${subject}`);
@@ -1276,7 +1298,11 @@ exports.handler = async (event) => {
         ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
           ((subject.match(/order\s*number\s*([0-9\-]+)/i) || [])[1]) ||
           ((subject.match(/([0-9]{10,})/) || [])[1]) || // long numbers
+          ((subject.match(/([0-9]{3}-[0-9]{7}-[0-9]{7})/) || [])[1]) || // Amazon format
+          ((subject.match(/([A-Z0-9]{10,})/) || [])[1]) || // Alphanumeric IDs
         null;
+          
+        console.log(`Extracted order ID: "${order_id}" from subject: "${subject}"`);
         
         // Add debug info to the response for browser visibility
         if (!parsed.item_name || parsed.item_name.includes('...')) {
@@ -1291,9 +1317,9 @@ exports.handler = async (event) => {
           continue;
         }
 
-        // Additional validation - ensure we have meaningful data
-        if (!parsed.item_name && !parsed.total_cents) {
-          console.log(`Insufficient data for order ${order_id}: no item name or price`);
+        // More relaxed validation - only require order_id and some basic data
+        if (!parsed.item_name && !parsed.total_cents && !parsed.quantity) {
+          console.log(`Insufficient data for order ${order_id}: no item name, price, or quantity`);
           continue;
         }
 
@@ -1472,12 +1498,12 @@ exports.handler = async (event) => {
         }
 
         // Update order to canceled
-        await upsertOrder({
+          await upsertOrder({
           user_id: account.user_id,
-          retailer: retailer.name,
-          order_id,
+            retailer: retailer.name,
+            order_id,
           status: "canceled",
-        });
+          });
         
         updated++;
         
@@ -1573,6 +1599,15 @@ exports.handler = async (event) => {
       accounts_processed: accounts.length,
       duration_ms: Date.now() - startTime
     };
+
+    console.log("=== SYNC SUMMARY ===");
+    console.log(`Total accounts processed: ${accounts.length}`);
+    console.log(`Total messages processed: ${totalProcessed}`);
+    console.log(`Orders imported: ${totalImported}`);
+    console.log(`Orders updated: ${totalUpdated}`);
+    console.log(`Orders skipped (existing): ${totalSkipped}`);
+    console.log(`Errors: ${totalErrors}`);
+    console.log(`Duration: ${totalStats.duration_ms}ms`);
 
     if (mode === "preview") return json({ proposed: allProposed, stats: totalStats });
     return json(totalStats);
