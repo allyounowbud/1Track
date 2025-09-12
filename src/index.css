@@ -3,8 +3,6 @@
 /* Global background coverage for mobile */
 html, body {
   background-color: rgb(15 23 42) !important; /* slate-900 */
-  min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height for mobile */
   margin: 0;
   padding: 0;
   overflow-x: hidden;
@@ -13,55 +11,19 @@ html, body {
 /* Ensure root element covers full viewport */
 #root {
   background-color: rgb(15 23 42) !important; /* slate-900 */
-  min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height for mobile */
   width: 100%;
 }
 
-/* Ensure sidebar maintains fixed positioning and doesn't scroll */
+/* Simple, reliable sidebar positioning */
 .sidebar-fixed {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  min-height: 100vh !important;
-  min-height: 100dvh !important;
+  bottom: 0 !important;
   z-index: 30 !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
-  max-height: 100vh !important;
-  max-height: 100dvh !important;
-}
-
-/* Ensure sidebar content doesn't scroll */
-.sidebar-fixed * {
-  overflow: visible !important;
-}
-
-/* Mobile-specific sidebar fixes */
-@media (max-width: 768px) {
-  .sidebar-fixed {
-    height: 100vh !important;
-    height: 100dvh !important;
-    height: -webkit-fill-available !important;
-    min-height: 100vh !important;
-    min-height: 100dvh !important;
-    min-height: -webkit-fill-available !important;
-    max-height: 100vh !important;
-    max-height: 100dvh !important;
-    max-height: -webkit-fill-available !important;
-  }
-}
-
-/* iOS Safari specific sidebar fixes */
-@supports (-webkit-touch-callout: none) {
-  .sidebar-fixed {
-    height: -webkit-fill-available !important;
-    min-height: -webkit-fill-available !important;
-    max-height: -webkit-fill-available !important;
-  }
 }
 
 /* Mobile-specific background fixes */
