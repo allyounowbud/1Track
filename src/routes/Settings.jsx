@@ -300,10 +300,21 @@ export default function Settings() {
   async function bulkSaveItems() {
     if (selectedItems.size === 0) return;
     
-    // For now, just show a message since we don't have a way to get the edited data
-    // In a real implementation, you'd need to track the edited data
-    alert(`Saving ${selectedItems.size} selected items...`);
-    setSelectedItems(new Set());
+    const selectedIds = Array.from(selectedItems);
+    const newRowIds = selectedIds.filter(id => id < 0);
+    const existingRowIds = selectedIds.filter(id => id > 0);
+    
+    if (newRowIds.length > 0) {
+      // Handle new rows - they should be saved individually by the NewRowComponent
+      // Just clear the selection after they're saved
+      setSelectedItems(new Set());
+      await refetchItems();
+    } else if (existingRowIds.length > 0) {
+      // For existing rows, individual saves are handled by the row components
+      // Just clear the selection
+      setSelectedItems(new Set());
+      await refetchItems();
+    }
   }
 
   async function bulkDeleteItems() {
@@ -325,8 +336,22 @@ export default function Settings() {
 
   async function bulkSaveRetailers() {
     if (selectedRetailers.size === 0) return;
-    alert(`Saving ${selectedRetailers.size} selected retailers...`);
-    setSelectedRetailers(new Set());
+    
+    const selectedIds = Array.from(selectedRetailers);
+    const newRowIds = selectedIds.filter(id => id < 0);
+    const existingRowIds = selectedIds.filter(id => id > 0);
+    
+    if (newRowIds.length > 0) {
+      // Handle new rows - they should be saved individually by the NewRowComponent
+      // Just clear the selection after they're saved
+      setSelectedRetailers(new Set());
+      await refetchRetailers();
+    } else if (existingRowIds.length > 0) {
+      // For existing rows, individual saves are handled by the row components
+      // Just clear the selection
+      setSelectedRetailers(new Set());
+      await refetchRetailers();
+    }
   }
 
   async function bulkDeleteRetailers() {
@@ -348,8 +373,22 @@ export default function Settings() {
 
   async function bulkSaveMarkets() {
     if (selectedMarkets.size === 0) return;
-    alert(`Saving ${selectedMarkets.size} selected marketplaces...`);
-    setSelectedMarkets(new Set());
+    
+    const selectedIds = Array.from(selectedMarkets);
+    const newRowIds = selectedIds.filter(id => id < 0);
+    const existingRowIds = selectedIds.filter(id => id > 0);
+    
+    if (newRowIds.length > 0) {
+      // Handle new rows - they should be saved individually by the NewRowComponent
+      // Just clear the selection after they're saved
+      setSelectedMarkets(new Set());
+      await refetchMarkets();
+    } else if (existingRowIds.length > 0) {
+      // For existing rows, individual saves are handled by the row components
+      // Just clear the selection
+      setSelectedMarkets(new Set());
+      await refetchMarkets();
+    }
   }
 
   async function bulkDeleteMarkets() {
@@ -647,41 +686,43 @@ function SettingsCard({
   const hasExistingRows = selectedItems.some(id => id > 0);
 
   return (
-    <section 
-      className={`${pageCard} mb-6 cursor-pointer hover:bg-slate-800/20 transition-colors`}
-      onClick={onToggleExpansion}
-    >
+    <section className={`${pageCard} mb-6`}>
       {/* Card Header - Clickable anywhere to expand */}
       <div 
-        className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap rounded-xl p-2 -m-2"
+        className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap cursor-pointer hover:bg-slate-800/20 rounded-xl p-2 -m-2 transition-colors"
+        onClick={onToggleExpansion}
       >
         <div className="min-w-0">
           <h2 className="text-lg font-semibold leading-[2.25rem]">{title}</h2>
           <p className="text-xs text-slate-400 -mt-1">Total: {totalCount}</p>
         </div>
 
-        <div 
-          className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0"
-          onClick={(e) => e.stopPropagation()} // Prevent expansion when clicking buttons
-        >
-          {/* Action buttons - only show when expanded */}
-          {isExpanded && (
+        {/* Expand/Collapse chevron */}
+        <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform duration-200 ${
+          isExpanded ? 'rotate-180' : ''
+        }`} />
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="pt-5 border-t border-slate-800 mt-4">
+          {/* Header with Selection Count and Actions */}
+          <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
+            {/* Left side - Selection Count */}
             <div className="flex items-center gap-2">
-              {/* Show selection count and select all button when expanded */}
-              {!hasNewRows && (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.size === data.length && data.length > 0}
-                    onChange={toggleAllSelection}
-                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                  />
-                  <span className="text-sm text-slate-400">
-                    {selectedRows.size}/{data.length} selected
-                  </span>
-                </div>
-              )}
-              
+              <input
+                type="checkbox"
+                checked={selectedRows.size === data.length && data.length > 0}
+                onChange={toggleAllSelection}
+                className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+              />
+              <span className="text-sm text-slate-400">
+                {selectedRows.size}/{data.length} selected
+              </span>
+            </div>
+
+            {/* Right side - Action buttons */}
+            <div className="flex items-center gap-2">
               {/* Determine button visibility based on selection state */}
               {(() => {
                 // New rows selected: show cancel and save buttons
@@ -750,27 +791,18 @@ function SettingsCard({
                   <button
                     onClick={addNewRow}
                     className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                    aria-label={`Add ${title.slice(0, -1).toLowerCase()}`}
-                    title={`Add ${title.slice(0, -1).toLowerCase()}`}
+                    title="Add New"
                   >
                     <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   </button>
                 );
               })()}
             </div>
-          )}
-          
-          {/* Expand/Collapse chevron - no button wrapper, just the icon */}
-          <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-        </div>
-      </div>
+          </div>
 
-      {/* Expanded Content */}
-      {isExpanded && (
-        <div className="pt-5 border-t border-slate-800 mt-4">
-          {/* Header */}
+          {/* Column Headers */}
           <div className={`grid gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium ${
             cardType === 'retailers' 
               ? 'grid-cols-[auto_1fr_auto]' 

@@ -230,6 +230,12 @@ export default function Hub() {
             linkTo={getChangelogLink("Full Card Clickable Area", "Made entire Settings card clickable for expand/collapse functionality. Previously only a small section was clickable now the entire card from border to border responds to clicks for better user experience.")}
           />
           <ChangelogEntry
+            title="Fixed Settings Page Expandable Cards"
+            description="Restructured Settings page to match OrderBook behavior exactly. Header stays as card with clickable area, expanded dropdown is not clickable, bulk actions properly replace + add button when rows are selected, and list refreshes correctly after save/cancel operations."
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Fixed Settings Page Expandable Cards", "Restructured Settings page to match OrderBook behavior exactly header stays as card with clickable area expanded dropdown is not clickable bulk actions properly replace add button and list refreshes correctly.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"
