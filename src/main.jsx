@@ -17,30 +17,82 @@ import OrderBook from "./routes/OrderBook.jsx";
 import Emails from "./routes/Emails.jsx";           // <-- NEW
 import Shipments from "./routes/Shipments.jsx";     // <-- NEW
 import AuthGuard from "./routes/AuthGuard.jsx";     // <-- RENAMED
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import ErrorElement from "./components/ErrorElement.jsx";
 
 const router = createBrowserRouter([
-  { path: "/", element: <Hub /> },                 // Hub is now the root
-  { path: "/login", element: <Login /> },
-  { path: "/add", element: <QuickAdd /> },         // Quick Add lives at /add
-  { path: "/orders", element: <OrderBook /> },
-  { path: "/sold", element: <MarkSold /> },
-  { path: "/inventory", element: <Inventory /> },
-  { path: "/stats", element: <Stats /> },
-  { path: "/database", element: <Settings /> },
-  { path: "/emails", element: <Emails /> },        // <-- NEW ROUTE
-  { path: "/shipments", element: <Shipments /> },  // <-- NEW ROUTE
+  { 
+    path: "/", 
+    element: <Hub />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/login", 
+    element: <Login />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/add", 
+    element: <QuickAdd />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/orders", 
+    element: <OrderBook />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/sold", 
+    element: <MarkSold />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/inventory", 
+    element: <Inventory />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/stats", 
+    element: <Stats />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/database", 
+    element: <Settings />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/emails", 
+    element: <Emails />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/shipments", 
+    element: <Shipments />,
+    errorElement: <ErrorElement />
+  },
 
   // Legacy + fallback routes
-  { path: "/app", element: <Navigate to="/add" replace /> }, // old Quick Add path
-  { path: "*", element: <Navigate to="/add" replace /> },
+  { 
+    path: "/app", 
+    element: <Navigate to="/add" replace />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "*", 
+    element: <Navigate to="/add" replace />,
+    errorElement: <ErrorElement />
+  },
 ]);
 
 const qc = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <QueryClientProvider client={qc}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={qc}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
