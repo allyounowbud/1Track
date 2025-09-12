@@ -738,71 +738,42 @@ function SettingsCard({
             <div className="flex items-center gap-2">
               {/* Determine button visibility based on selection state */}
               {(() => {
-                // Any rows selected: show appropriate action buttons (hide + add button)
-                if (hasSelection) {
-                  // New rows selected: show cancel and save buttons
-                  if (hasNewRowsInSelection) {
-                    return (
-                      <>
-                        <button
-                          onClick={cancelNewRows}
-                          className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                          title="Cancel Changes"
-                        >
-                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={bulkSave}
-                          className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                          title="Save Changes"
-                        >
-                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                          </svg>
-                        </button>
-                      </>
-                    );
-                  }
-                  
-                  // Existing rows selected: show cancel, save, and delete buttons
-                  if (hasExistingRows) {
-                    return (
-                      <>
-                        <button
-                          onClick={clearSelection}
-                          className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                          title="Cancel Selection"
-                        >
-                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={bulkSave}
-                          className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                          title="Save Selected"
-                        >
-                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={bulkDelete}
-                          className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                          title="Delete Selected"
-                        >
-                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </>
-                    );
-                  }
+                // Only show header buttons for existing rows (not new rows)
+                if (hasSelection && hasExistingRows) {
+                  return (
+                    <>
+                      <button
+                        onClick={clearSelection}
+                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Cancel Selection"
+                      >
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={bulkSave}
+                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Save Selected"
+                      >
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={bulkDelete}
+                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Delete Selected"
+                      >
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </>
+                  );
                 }
                 
-                // No selection: show add button
+                // No selection or only new rows: show add button (new rows handle their own save/cancel)
                 return (
                   <button
                     onClick={addNewRow}
@@ -923,7 +894,11 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
+      <div className={`grid gap-4 items-center min-w-0 ${
+        row.type === 'retailer' 
+          ? 'grid-cols-[auto_1fr_auto]' 
+          : 'grid-cols-[auto_2fr_1fr]'
+      }`}>
         <input
           type="checkbox"
           checked={isSelected}
@@ -945,24 +920,49 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
           placeholder={getPlaceholder()}
         />
         
-        {row.type !== 'retailer' && (
-          <input
-            className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
-            value={details}
-            onChange={(e) => {
-              e.stopPropagation();
-              setDetails(e.target.value);
-            }}
-            onClick={(e) => e.stopPropagation()}
-            placeholder={getDetailsPlaceholder()}
-          />
-        )}
-        
-                    {row.type === 'retailer' && (
-                      <div className="text-slate-400 text-xs">
-                        Use header buttons to save/cancel
-                      </div>
-                    )}
+        <div className="flex items-center gap-2">
+          {row.type !== 'retailer' && (
+            <input
+              className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+              value={details}
+              onChange={(e) => {
+                e.stopPropagation();
+                setDetails(e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={getDetailsPlaceholder()}
+            />
+          )}
+          
+          {/* Row action buttons */}
+          <div className="flex gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSave();
+              }}
+              disabled={busy}
+              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Save New Row"
+            >
+              <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCancel();
+              }}
+              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+              title="Cancel New Row"
+            >
+              <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
       
       {status && (

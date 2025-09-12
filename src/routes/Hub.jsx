@@ -254,6 +254,12 @@ export default function Hub() {
             linkTo={getChangelogLink("Fixed Add Button Logic for Selected Rows", "When any row is selected the add button is now hidden and replaced with save and delete icon buttons for bulk actions preventing users from adding new rows while having existing rows selected.")}
           />
           <ChangelogEntry
+            title="Moved New Row Buttons to Individual Rows"
+            description="Removed save and delete buttons from the header for new rows and moved them directly to each new row itself, just like existing rows. This provides a more consistent and intuitive interface where each row has its own action buttons, whether it's new or existing."
+            color="bg-teal-500/70"
+            linkTo={getChangelogLink("Moved New Row Buttons to Individual Rows", "Removed save and delete buttons from the header for new rows and moved them directly to each new row itself just like existing rows providing a more consistent and intuitive interface.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"
