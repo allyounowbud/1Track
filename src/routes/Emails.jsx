@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import HeaderWithTabs from "../components/HeaderWithTabs";
+import { card } from "../utils/ui";
 
 // Icons
 const MailIcon = ({ className }) => (
@@ -180,7 +181,7 @@ export default function Emails() {
         if (error) throw error;
         
         await refetchAccounts();
-      } catch (e) {
+    } catch (e) {
         alert(`Failed to disconnect: ${e.message}`);
       }
     }
@@ -215,9 +216,9 @@ export default function Emails() {
             </Link>
             <div className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-500 bg-slate-700/60 text-slate-100">
               <MailIcon className="h-4 w-4" />
-              Emails
+                Emails
+              </div>
             </div>
-          </div>
         </div>
 
         {/* Stats Cards */}
@@ -227,40 +228,40 @@ export default function Emails() {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
                   <MailIcon className="h-5 w-5 text-slate-300" />
-                </div>
+            </div>
                 <div>
                   <div className="text-2xl font-bold text-slate-100">{connected ? gmailAccounts.length : 0}</div>
                   <div className="text-sm text-slate-400">Connected Accounts</div>
-                </div>
-              </div>
             </div>
-            
+          </div>
+        </div>
+
             <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
-              <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
                   <SyncIcon className="h-5 w-5 text-slate-300" />
-                </div>
+                    </div>
                 <div>
                   <div className="text-2xl font-bold text-slate-100">{totalProcessed}</div>
                   <div className="text-sm text-slate-400">Emails Processed</div>
-                </div>
-              </div>
-            </div>
-            
+                      </div>
+                    </div>
+                  </div>
+
             <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
                   <svg className="h-5 w-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                </div>
-                <div>
+                      </div>
+                          <div>
                   <div className="text-2xl font-bold text-slate-100">{todayProcessed}</div>
                   <div className="text-sm text-slate-400">Today</div>
-                </div>
-              </div>
-            </div>
-          </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
         )}
 
         {/* Email Management */}
@@ -295,10 +296,10 @@ export default function Emails() {
                   </svg>
                   Open Gmail
                 </button>
-              )}
-            </div>
-          </div>
-        </div>
+                          )}
+                        </div>
+                        </div>
+                      </div>
 
         {/* Connected Accounts */}
         {connected ? (
@@ -325,8 +326,8 @@ export default function Emails() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
-                )}
-              </div>
+                          )}
+                        </div>
             </div>
 
             {/* Header with Bulk Actions */}
@@ -342,8 +343,8 @@ export default function Emails() {
                   <span className="text-sm text-slate-400">
                     {selectedAccounts.size > 0 ? `${selectedAccounts.size}/${filteredAccounts.length} selected` : `${filteredAccounts.length} accounts`}
                   </span>
-                </div>
-              </div>
+                        </div>
+                      </div>
 
               {selectedAccounts.size > 0 && (
                 <div className="flex items-center gap-2">
@@ -413,10 +414,10 @@ export default function Emails() {
                           </svg>
                           Disconnect
                         </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                  </div>
+                </div>
+              );
+            })}
               </div>
             )}
           </div>
@@ -437,8 +438,8 @@ export default function Emails() {
                 </svg>
                 Connect Your First Gmail Account
               </button>
-            </div>
           </div>
+        </div>
         )}
 
         {/* Email Settings & Info */}
@@ -467,8 +468,8 @@ export default function Emails() {
                   <div className="w-4 h-4 bg-slate-300 rounded-full absolute right-1 top-1"></div>
                 </div>
               </div>
-            </div>
-          </div>
+        </div>
+      </div>
 
           <div className={`${card}`}>
             <div className="flex items-center gap-2 text-lg font-semibold mb-4">
@@ -493,19 +494,19 @@ export default function Emails() {
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-slate-700/50 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs text-slate-300 font-bold">3</span>
-                </div>
+                  </div>
                 <div>Orders are imported to your order book</div>
-              </div>
+                  </div>
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-slate-700/50 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs text-slate-300 font-bold">4</span>
                 </div>
                 <div>Shipping updates are tracked automatically</div>
-              </div>
+            </div>
             </div>
           </div>
         </div>
-      </div>
+    </div>
     </div>
   );
 }

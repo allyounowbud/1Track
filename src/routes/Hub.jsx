@@ -272,6 +272,20 @@ export default function Hub() {
           />
           {/* Most Recent 10 Changelog Entries with Timestamps */}
           <ChangelogEntry
+            title="Fixed Card Import Error in Emails Page"
+            description="Fixed a critical ReferenceError where the 'card' variable was not defined in the Emails.jsx file. Added the missing import statement for the card utility from '../utils/ui' to resolve the React Router error boundary issue that was preventing the emails page from rendering properly."
+            color="bg-red-500/70"
+            linkTo={getChangelogLink("Fixed Card Import Error in Emails Page", "Fixed a critical ReferenceError where the card variable was not defined in the Emails.jsx file. Added the missing import statement for the card utility from utils/ui to resolve the React Router error boundary issue.")}
+            timestamp="2024-12-19 16:35"
+          />
+          <ChangelogEntry
+            title="Fixed Emails Page Styling & Select System"
+            description="Updated the emails page styling to match the shipments page design language. Removed random colors and made all elements consistent with the app's slate color scheme. Fixed the select card system layout by properly separating the management card from the connected accounts card, improving the overall visual hierarchy and user experience."
+            color="bg-slate-500/70"
+            linkTo={getChangelogLink("Fixed Emails Page Styling & Select System", "Updated the emails page styling to match the shipments page design language. Removed random colors and made all elements consistent with the app's slate color scheme. Fixed the select card system layout by properly separating the management card from the connected accounts card.")}
+            timestamp="2024-12-19 16:30"
+          />
+          <ChangelogEntry
             title="Added Email Sync to Shipments Page"
             description="Added a sync button to the shipments page that fetches emails from connected Gmail accounts and uses the existing parsing logic to extract order confirmations, tracking updates, and cancellation emails. Automatically updates order statuses and refreshes the shipments list after sync completion."
             color="bg-blue-500/70"
