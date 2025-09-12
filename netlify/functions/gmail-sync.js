@@ -167,9 +167,9 @@ async function getGmailClient(account) {
 
 /* ---------------------------- Gmail listing ---------------------------- */
 async function listCandidateMessageIds(gmail) {
-  // tighter query to reduce timeouts; we run more often, so 60d is OK
+  // Broader query to catch more retailers and email types
   const q =
-    'newer_than:60d in:inbox (from:amazon.com OR subject:order OR subject:shipped OR subject:delivered)';
+    'newer_than:90d in:inbox (from:amazon.com OR from:target.com OR from:macys.com OR from:nike.com OR subject:order OR subject:shipped OR subject:delivered OR subject:cancel)';
   const ids = [];
   let pageToken;
   // cap at 200 msgs per invocation
@@ -1125,9 +1125,38 @@ exports.handler = async (event) => {
     return json({ results });
   }
 
+  // Test Gmail connection and basic functionality
+  if (event?.queryStringParameters?.test === "gmail") {
+    try {
+      const accounts = await getAccounts();
+      if (!accounts.length) {
+        return json({ error: "No connected Gmail accounts found" }, 400);
+      }
+      
+      const acct = accounts[0];
+      const gmail = await getGmailClient(acct);
+      const ids = await listCandidateMessageIds(gmail);
+      
+      return json({ 
+        account: acct.email_address,
+        messageCount: ids.length,
+        sampleIds: ids.slice(0, 3),
+        query: 'newer_than:90d in:inbox (from:amazon.com OR from:target.com OR from:macys.com OR from:nike.com OR subject:order OR subject:shipped OR subject:delivered OR subject:cancel)'
+      });
+    } catch (error) {
+      return json({ error: error.message }, 500);
+    }
+  }
+
   try {
     const mode = (event.queryStringParameters?.mode || "").toLowerCase();
+    const debug = event.queryStringParameters?.debug === "1";
     const accounts = await getAccounts(); // Get all connected accounts
+    
+    if (debug) {
+      console.log("=== DEBUG MODE ENABLED ===");
+      console.log("Connected accounts:", accounts.map(a => a.email_address));
+    }
     
     let totalImported = 0;
     let totalUpdated = 0;
@@ -1142,6 +1171,11 @@ exports.handler = async (event) => {
       
       const gmail = await getGmailClient(acct);
     const ids = await listCandidateMessageIds(gmail);
+    console.log(`Found ${ids.length} candidate message IDs for account ${acct.email_address}`);
+    
+    if (debug && ids.length > 0) {
+      console.log("Sample message IDs:", ids.slice(0, 5));
+    }
 
     const proposed = [];
     let imported = 0;
@@ -1175,9 +1209,9 @@ exports.handler = async (event) => {
           : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
       const { html, text } = extractBodyParts(msg.payload || {});
 
-        // Only process emails from the last 30 days to avoid old emails
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        if (messageDate < thirtyDaysAgo) {
+        // Only process emails from the last 90 days to avoid old emails
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        if (messageDate < ninetyDaysAgo) {
           console.log(`Skipping old email from ${messageDate.toISOString()}`);
           continue;
         }
@@ -1186,9 +1220,13 @@ exports.handler = async (event) => {
       const type = classifyType(retailer, subject);
         
         console.log(`Processing email from: ${from}, retailer: ${retailer.name}, type: ${type}`);
+        console.log(`Email subject: ${subject}`);
         
         // Only process order confirmations in this step
-        if (type !== "order") continue;
+        if (type !== "order") {
+          console.log(`Skipping non-order email: ${type} - ${subject}`);
+          continue;
+        }
         
         console.log(`Processing order confirmation: ${subject}`);
         
@@ -1285,9 +1323,9 @@ exports.handler = async (event) => {
             : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
         const { html, text } = extractBodyParts(msg.payload || {});
 
-        // Only process emails from the last 30 days
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        if (messageDate < thirtyDaysAgo) continue;
+        // Only process emails from the last 90 days
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        if (messageDate < ninetyDaysAgo) continue;
 
         const retailer = classifyRetailer(from);
         const type = classifyType(retailer, subject);
@@ -1363,9 +1401,9 @@ exports.handler = async (event) => {
             : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
         const { html, text } = extractBodyParts(msg.payload || {});
 
-        // Only process emails from the last 30 days
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        if (messageDate < thirtyDaysAgo) continue;
+        // Only process emails from the last 90 days
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        if (messageDate < ninetyDaysAgo) continue;
 
         const retailer = classifyRetailer(from);
         const type = classifyType(retailer, subject);

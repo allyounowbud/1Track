@@ -75,6 +75,7 @@ export default function Shipments() {
   const [expanded, setExpanded] = useState(() => new Set()); // uids of expanded rows
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
+  const [testing, setTesting] = useState(false);
 
   const rowsAll = useMemo(() => stitch(orders, ships), [orders, ships]);
 
@@ -128,7 +129,7 @@ export default function Shipments() {
     setSyncMessage("Syncing emails and updating shipments...");
     
     try {
-      const response = await fetch(`/.netlify/functions/gmail-sync?mode=sync`);
+      const response = await fetch(`/.netlify/functions/gmail-sync?mode=sync&debug=1`);
       const result = await response.json();
       
       if (result.error) {
@@ -147,6 +148,30 @@ export default function Shipments() {
       setTimeout(() => setSyncMessage(""), 5000);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const testGmailConnection = async () => {
+    if (testing) return;
+    
+    setTesting(true);
+    setSyncMessage("Testing Gmail connection...");
+    
+    try {
+      const response = await fetch(`/.netlify/functions/gmail-sync?test=gmail`);
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      setSyncMessage(`Test complete: Found ${result.messageCount} emails in account ${result.account}`);
+      setTimeout(() => setSyncMessage(""), 5000);
+    } catch (e) {
+      setSyncMessage(`Test failed: ${e.message}`);
+      setTimeout(() => setSyncMessage(""), 5000);
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -198,6 +223,16 @@ export default function Shipments() {
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              <button 
+                onClick={testGmailConnection} 
+                disabled={testing} 
+                className="h-10 px-4 rounded-xl bg-slate-600 hover:bg-slate-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {testing ? "Testing..." : "Test Connection"}
+              </button>
               <button 
                 onClick={syncEmails} 
                 disabled={syncing} 

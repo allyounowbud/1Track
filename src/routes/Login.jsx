@@ -37,6 +37,7 @@ export default function Login() {
     }
   }
 
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 grid place-items-center p-6">
       <div className="card max-w-md w-full p-6">
@@ -54,7 +55,7 @@ export default function Login() {
         </button>
 
         <p className="text-xs text-slate-400 mt-4">
-          You’ll be redirected to Discord to authorize, then back here.
+          You'll be redirected to Discord to authorize, then back here.
         </p>
       </div>
     </div>
