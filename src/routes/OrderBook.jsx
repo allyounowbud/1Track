@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
-import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
+import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
+import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
 const fmtNiceDate = (yyyyMmDd) => {
@@ -419,9 +420,8 @@ export default function OrderBook() {
   }, [filtered]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="orders" section="orderbook" showHubTab={true} />
+    <LayoutWithSidebar active="orders" section="orderbook">
+      <PageHeader title="Order Book" />
 
         {/* Day cards */}
         {isLoading && <div className="text-slate-400">Loading…</div>}
@@ -451,8 +451,7 @@ export default function OrderBook() {
           searchQuery={q}
           setSearchQuery={setQ}
         />
-      </div>
-    </div>
+    </LayoutWithSidebar>
   );
 }
 
@@ -1445,7 +1444,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       {msg && (
         <div
           className={`text-right text-sm mt-1 ${
-            msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"
+            msg && msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"
           }`}
         >
           {msg}

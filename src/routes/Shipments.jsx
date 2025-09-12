@@ -3,7 +3,8 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
-import HeaderWithTabs from "../components/HeaderWithTabs";
+import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
+import PageHeader from "../components/PageHeader.jsx";
 import { card } from "../utils/ui";
 
 // Icons
@@ -265,39 +266,8 @@ export default function Shipments() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="shipments" showTabs={false} section="automations" />
-
-        {/* Navigation Tabs */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <Link 
-              to="/" 
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Hub
-            </Link>
-            <Link 
-              to="/emails" 
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-600 bg-slate-800/60 text-slate-200 hover:bg-slate-700 hover:border-slate-500 transition"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Emails
-            </Link>
-            <div className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-500 bg-slate-700/60 text-slate-100">
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              Shipments
-            </div>
-          </div>
-        </div>
+    <LayoutWithSidebar active="shipments" section="emails">
+      <PageHeader title="Shipments" />
 
         {/* Shipments Management */}
         <div className={`${card} mb-6`}>
@@ -311,28 +281,30 @@ export default function Shipments() {
                 Track and manage your order shipments. View order confirmations, shipping updates, and delivery status from all connected email accounts.
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button 
-                onClick={testGmailConnection} 
-                disabled={testing} 
-                className="h-10 px-4 rounded-xl bg-slate-600 hover:bg-slate-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {testing ? "Testing..." : "Test Connection"}
-              </button>
-              <button 
-                onClick={syncEmails} 
-                disabled={syncing} 
-                className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                {syncing ? "Syncing..." : "Sync Emails"}
-              </button>
-            </div>
+            {rows.length > 0 && (
+              <div className="flex items-center gap-2 shrink-0">
+                <button 
+                  onClick={testGmailConnection} 
+                  disabled={testing} 
+                  className="h-10 px-4 rounded-xl bg-slate-600 hover:bg-slate-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {testing ? "Testing..." : "Test Connection"}
+                </button>
+                <button 
+                  onClick={syncEmails} 
+                  disabled={syncing} 
+                  className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {syncing ? "Syncing..." : "Sync Emails"}
+                </button>
+              </div>
+            )}
           </div>
           {syncMessage && (
             <div className="mt-4 p-3 rounded-xl bg-slate-800/50 border border-slate-700 text-sm text-slate-300">
@@ -380,8 +352,22 @@ export default function Shipments() {
           {lo1 || lo2 ? (
             <div className="text-slate-400">Loading shipments...</div>
           ) : rows.length === 0 ? (
-            <div className="text-slate-400 text-center py-8">
-              {q.trim() ? 'No shipments match your search.' : 'No shipments found. Connect Gmail accounts to start tracking shipments.'}
+            <div className="text-center py-8">
+              <div className="text-slate-400 mb-6">
+                {q.trim() ? 'No shipments match your search.' : 'No shipments found. Connect Gmail accounts to start tracking shipments.'}
+              </div>
+              {!q.trim() && (
+                <button 
+                  onClick={syncEmails} 
+                  disabled={syncing} 
+                  className="h-12 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {syncing ? "Syncing..." : "Sync Emails"}
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -412,7 +398,7 @@ export default function Shipments() {
                             )}
                           </div>
                           
-                          {cleanItemName(row.item_name) && (
+                          {row.item_name && cleanItemName(row.item_name) && (
                             <div className="text-sm text-slate-300 mb-1 truncate">
                               {cleanItemName(row.item_name)}
                             </div>
@@ -473,7 +459,7 @@ export default function Shipments() {
                             {row.image_url ? (
                               <img 
                                 src={row.image_url} 
-                                alt={cleanItemName(row.item_name) || 'Product image'}
+                                alt={row.item_name ? cleanItemName(row.item_name) || 'Product image' : 'Product image'}
                                 className="w-20 h-20 object-contain rounded-lg border border-slate-600"
                                 onError={(e) => {
                                   e.target.style.display = 'none';
@@ -538,7 +524,7 @@ export default function Shipments() {
                               )}
                             </div>
                             
-                            {cleanItemName(row.item_name) && (
+                            {row.item_name && cleanItemName(row.item_name) && (
                               <div className="mt-4">
                                 <span className="text-slate-400 text-sm">Item Name:</span>
                                 <div className="text-slate-200 font-medium mt-1">{cleanItemName(row.item_name)}</div>
@@ -645,7 +631,6 @@ export default function Shipments() {
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </LayoutWithSidebar>
   );
 }

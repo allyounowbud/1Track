@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
-import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
+import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
+import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm, headerIconBtn, headerGhostBtn, iconSave, iconSaveBusy, iconDelete } from "../utils/ui.js";
 
@@ -487,9 +488,8 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="database" showTabs section="orderbook" showHubTab={true} />
+    <LayoutWithSidebar active="database" section="orderbook">
+      <PageHeader title="Settings" />
 
         {/* Items Card */}
         {!(hasNewRetailerRows || hasNewMarketRows) && (
@@ -648,9 +648,8 @@ export default function Settings() {
           isExpanded={expandedCard === 'markets'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'markets' ? null : 'markets')}
         />
-                )}
-              </div>
-            </div>
+        )}
+    </LayoutWithSidebar>
   );
 }
 
@@ -958,7 +957,7 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
       {status && (
         <div
           className={`text-right text-sm mt-1 ${
-            status.startsWith("Saved")
+            status && status.startsWith("Saved")
               ? "text-emerald-400"
               : "text-rose-400"
           }`}
@@ -1089,7 +1088,7 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
       {status && (
         <div
           className={`text-right text-sm mt-1 ${
-            status.startsWith("Saved")
+            status && status.startsWith("Saved")
               ? "text-emerald-400"
               : "text-rose-400"
           }`}
@@ -1204,7 +1203,7 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled
       {status && (
         <div
           className={`text-right text-sm mt-1 ${
-            status.startsWith("Saved")
+            status && status.startsWith("Saved")
               ? "text-emerald-400"
               : "text-rose-400"
           }`}
@@ -1335,7 +1334,7 @@ function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = f
       {status && (
         <div
           className={`text-right text-sm mt-1 ${
-            status.startsWith("Saved")
+            status && status.startsWith("Saved")
               ? "text-emerald-400"
               : "text-rose-400"
           }`}

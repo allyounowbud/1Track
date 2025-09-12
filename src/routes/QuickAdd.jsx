@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
-import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
+import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
+import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, parsePct, formatNumber } from "../utils/money.js";
 import { card, inputBase, dateFix, disabledInput } from "../utils/ui.js";
 
@@ -396,9 +397,8 @@ export default function QuickAdd() {
 
   /* -------------------------------- render -------------------------------- */
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden">
-      <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="add" showTabs section="orderbook" showHubTab={true} />
+    <LayoutWithSidebar active="add" section="orderbook">
+      <PageHeader title="Quick Add" />
 
         <form onSubmit={onSave} className={`${card} space-y-6`}>
           {/* ORDER */}
@@ -566,7 +566,7 @@ export default function QuickAdd() {
             {msg && (
               <div
                 className={`mt-2 text-sm ${
-                  msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"
+                  msg && msg.startsWith("Saved") ? "text-emerald-400" : "text-rose-400"
                 }`}
               >
                 {msg}
@@ -574,8 +574,7 @@ export default function QuickAdd() {
             )}
           </div>
         </form>
-      </div>
-    </div>
+    </LayoutWithSidebar>
   );
 }
 

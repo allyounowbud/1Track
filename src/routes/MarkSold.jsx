@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Link } from 'react-router-dom';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
-import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
+import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
+import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { Select } from "../components/Select.jsx";
 import { SearchDropdown } from "../components/SearchDropdown.jsx";
@@ -123,11 +124,8 @@ export default function MarkSold() {
 
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
-
-        {/* ======= SHARED HEADER + TABS ======= */}
-        <HeaderWithTabs active="sold" section="orderbook" showHubTab={true} />
+    <LayoutWithSidebar active="sold" section="orderbook">
+      <PageHeader title="Mark as Sold" />
         {/* ==================================== */}
 
         {/* Card (mobile-friendly: overflow-hidden, min-w-0, responsive gaps) */}
@@ -242,7 +240,6 @@ export default function MarkSold() {
             )}
           </div>
         </form>
-      </div>
-    </div>
+    </LayoutWithSidebar>
   );
 }

@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
-import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
+import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
+import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, rowCard } from "../utils/ui.js";
 import { Select } from "../components/Select.jsx";
@@ -156,9 +157,8 @@ export default function Stats() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="stats" showTabs section="orderbook" showHubTab={true} />
+    <LayoutWithSidebar active="stats" section="orderbook">
+      <PageHeader title="Stats" />
 
         {/* -------------------- Performance Analytics with Filters -------------------- */}
         <div className={`${card} relative z-[60]`}>
@@ -367,8 +367,7 @@ export default function Stats() {
             <div className="text-slate-400 text-center py-8">No items in this view.</div>
           )}
         </div>
-      </div>
-    </div>
+    </LayoutWithSidebar>
   );
 }
 
@@ -397,7 +396,7 @@ function DynamicCharts({ itemGroups = [], filteredOrders = [] }) {
       <div className="bg-slate-900/40 rounded-xl p-6 border border-slate-800">
         <h4 className="text-sm font-medium text-slate-300 mb-6 flex items-center gap-2">
           <span className="text-indigo-400">📊</span>
-          {itemGroups[0].item}
+          change{itemGroups[0].item}
         </h4>
         <SingleItemChart item={itemGroups[0]} filteredOrders={filteredOrders} />
     </div>

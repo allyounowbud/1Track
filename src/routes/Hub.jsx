@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../hooks/useAuth.js";
 import { card } from "../utils/ui.js";
+import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
+import PageHeader from "../components/PageHeader.jsx";
 
 const tile =
   "group rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 transition p-5 flex items-start gap-4";
@@ -11,8 +13,13 @@ export default function Hub() {
   const userInfo = useAuth();
 
   async function signOut() {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
+    try {
+      await supabase.auth.signOut();
+      window.location.href = "/login";
+    } catch (error) {
+      console.log("Sign out error (expected in local testing):", error);
+      window.location.href = "/login";
+    }
   }
 
   // Helper function to determine which page a changelog entry should link to
@@ -89,11 +96,8 @@ export default function Hub() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
-        <div className="mb-6">
-  <h1 className="text-3xl font-bold">OneTrack</h1>
-</div>
+    <LayoutWithSidebar active="hub" section="orderbook">
+      <PageHeader title="Home" showUserAvatar={false} />
 
         {/* Welcome / account (Sign out button lives here) */}
         <div className={`${card} mb-6`}>
@@ -200,6 +204,97 @@ export default function Hub() {
         <div className="space-y-3">
           {/* 10 Most Recent Changelog Entries with Proper Color Coding */}
           <ChangelogEntry
+            title="Fixed Sidebar Positioning and User Account Section"
+            description="Fixed two critical sidebar issues: 1) Made the sidebar fixed in place so it doesn't scroll with the page content - only the main content area scrolls now, providing a proper dashboard experience. 2) Fixed the user account section at the bottom of the sidebar to stay properly contained within the sidebar bounds instead of extending across the entire page. The profile section now correctly stays at the bottom of the sidebar with proper background and positioning."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Fixed Sidebar Positioning and User Account Section", "Made sidebar fixed in place and fixed user account section positioning within sidebar bounds.")}
+            timestamp="2024-12-19 21:00"
+          />
+          <ChangelogEntry
+            title="Fixed Sidebar Navigation - All Pages Now Use Sidebar"
+            description="Updated all remaining pages (QuickAdd, MarkSold, Inventory, Stats, Settings) to use the new collapsible sidebar navigation instead of the old HeaderWithTabs component. Now all pages consistently use the modern sidebar layout, providing a unified navigation experience across the entire application. The sidebar shows the appropriate section-specific navigation for each page and maintains the collapsible functionality for optimal space usage."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Fixed Sidebar Navigation - All Pages Now Use Sidebar", "Updated all remaining pages to use the new collapsible sidebar navigation instead of the old HeaderWithTabs component for a unified navigation experience.")}
+            timestamp="2024-12-19 20:45"
+          />
+          <ChangelogEntry
+            title="Implemented Collapsible Sidebar Navigation"
+            description="Completely redesigned the navigation system with a modern collapsible left sidebar that replaces the header tabs. The sidebar includes section-specific navigation (Order Book, Emails, Profiles) with icons and labels, a collapsible toggle button, and user account information at the bottom. This provides significantly more space for content, eliminates tab wrapping issues, and creates a modern dashboard feel similar to popular applications like Notion and Linear. The sidebar can be collapsed to save even more space when needed."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Implemented Collapsible Sidebar Navigation", "Completely redesigned the navigation system with a modern collapsible left sidebar that replaces the header tabs. The sidebar includes section-specific navigation with icons and labels and provides significantly more space for content.")}
+            timestamp="2024-12-19 20:30"
+          />
+          <ChangelogEntry
+            title="Reverted to Original Two-Line Header Layout"
+            description="Reverted the compact single-line header layout back to the original two-line design with the title and user avatar on the first line, and navigation tabs on a separate line below. The original layout provides better visual hierarchy, clearer separation of elements, and more comfortable spacing for navigation. This maintains the familiar and proven user interface that users are accustomed to while preserving all functionality."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Reverted to Original Two-Line Header Layout", "Reverted the compact single-line header layout back to the original two-line design with the title and user avatar on the first line and navigation tabs on a separate line below.")}
+            timestamp="2024-12-19 20:15"
+          />
+          <ChangelogEntry
+            title="Implemented Compact Single-Line Header Layout"
+            description="Redesigned the header layout to save significant vertical space by combining the title, navigation tabs, and user avatar into a single horizontal line. Reduced title size from text-3xl to text-2xl, made tabs more compact with smaller icons and tighter spacing, and streamlined the user avatar to a smaller, more efficient design. This saves approximately 50px of vertical space while maintaining all functionality and improving the overall user experience with more content visible above the fold."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Implemented Compact Single-Line Header Layout", "Redesigned the header layout to save significant vertical space by combining the title navigation tabs and user avatar into a single horizontal line. This saves approximately 50px of vertical space while maintaining all functionality.")}
+            timestamp="2024-12-19 20:00"
+          />
+          <ChangelogEntry
+            title="Removed Logo and Fine-Tuned BETA Badge Alignment"
+            description="Removed the logo image from all header components to create a cleaner, more minimal brand presentation. Adjusted the BETA badge positioning by increasing the bottom margin from mb-0.5 to mb-1 to better align with the OneTrack title baseline. This creates a more refined and focused header design that emphasizes the typography while maintaining the subtle BETA status indication."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Removed Logo and Fine-Tuned BETA Badge Alignment", "Removed the logo image from all header components to create a cleaner more minimal brand presentation. Adjusted the BETA badge positioning to better align with the OneTrack title baseline.")}
+            timestamp="2024-12-19 19:45"
+          />
+          <ChangelogEntry
+            title="Reduced BETA Badge Text Size for Subtle Branding"
+            description="Made the BETA badge text smaller (changed from text-sm to text-xs) while maintaining its perfect positioning on the bottom baseline nearly touching the OneTrack title. This creates a more subtle and refined appearance that clearly indicates the beta status without overwhelming the main brand name. The smaller size makes the BETA badge feel more like a natural typographic element while preserving the precise alignment and spacing that was previously achieved."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Reduced BETA Badge Text Size for Subtle Branding", "Made the BETA badge text smaller while maintaining its perfect positioning on the bottom baseline nearly touching the OneTrack title. This creates a more subtle and refined appearance.")}
+            timestamp="2024-12-19 19:30"
+          />
+          <ChangelogEntry
+            title="Fine-Tuned BETA Badge Positioning for Perfect Alignment"
+            description="Further refined the BETA badge positioning to achieve perfect visual alignment. Moved the BETA text even closer to the OneTrack title using negative left margin (-ml-1) so it's nearly touching, and adjusted the vertical position (mb-0.5) to perfectly align with the bottom baseline of the title text. This creates the most precise and professional typography alignment possible, ensuring the BETA badge appears as a natural extension of the OneTrack brand name."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Fine-Tuned BETA Badge Positioning for Perfect Alignment", "Further refined the BETA badge positioning to achieve perfect visual alignment. Moved the BETA text even closer to the OneTrack title using negative left margin and adjusted the vertical position to perfectly align with the bottom baseline.")}
+            timestamp="2024-12-19 19:15"
+          />
+          <ChangelogEntry
+            title="Refined Header Logo and BETA Badge Positioning"
+            description="Improved the visual alignment of the header elements by pushing the logo closer to the OneTrack title (reduced gap from 3 to 2) and repositioning the BETA badge to align with the bottom baseline of the title text. The BETA text now sits lower and closer to the title, creating a more cohesive and professional appearance. This refinement enhances the overall visual hierarchy and brand presentation across all pages."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Refined Header Logo and BETA Badge Positioning", "Improved the visual alignment of the header elements by pushing the logo closer to the OneTrack title and repositioning the BETA badge to align with the bottom baseline of the title text.")}
+            timestamp="2024-12-19 19:00"
+          />
+          <ChangelogEntry
+            title="Added App Logo and BETA Badge to Headers"
+            description="Enhanced the application branding by adding the OneTrack logo to the left of the title in all header components. Added a subtle 'BETA' badge in ghost text styling to the right of the OneTrack title across all pages (Hub, Order Book, Emails, Shipments, and Profiles). This provides consistent branding and clearly indicates the application's beta status to users while maintaining the clean, professional appearance of the interface."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Added App Logo and BETA Badge to Headers", "Enhanced the application branding by adding the OneTrack logo to the left of the title in all header components. Added a subtle BETA badge in ghost text styling to the right of the OneTrack title across all pages.")}
+            timestamp="2024-12-19 18:45"
+          />
+          <ChangelogEntry
+            title="Improved Shipments Empty State Interface"
+            description="Updated the shipments page to provide a cleaner interface when no shipments are found. Removed the 'Test Connection' and 'Sync Emails' buttons from the top management card when no shipments exist, reducing visual clutter. Added a prominent 'Sync Emails' button in the empty state message area below the 'No shipments found' text, making it the primary call-to-action for users to start syncing their email data. This creates a more focused and intuitive user experience for new users."
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Improved Shipments Empty State Interface", "Updated the shipments page to provide a cleaner interface when no shipments are found. Removed the Test Connection and Sync Emails buttons from the top management card when no shipments exist.")}
+            timestamp="2024-12-19 18:30"
+          />
+          <ChangelogEntry
+            title="Improved Email Connection Button Logic"
+            description="Updated the emails page to show a cleaner interface when no Gmail accounts are connected. Removed the 'Connect Gmail' button from the top management card when no emails are connected, keeping only the main 'Connect Your First Gmail Account' button in the connected accounts section. Once an email is added, the top card now shows an 'Add Email' button for adding additional accounts. This creates a more intuitive user flow and reduces visual clutter."
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Improved Email Connection Button Logic", "Updated the emails page to show a cleaner interface when no Gmail accounts are connected. Removed the Connect Gmail button from the top management card when no emails are connected.")}
+            timestamp="2024-12-19 18:15"
+          />
+          <ChangelogEntry
+            title="Separated Header Components for Each Section"
+            description="Created separate HeaderWithTabs components for Order Book, Emails, and Profiles sections. Each section now has its own dedicated navigation without showing irrelevant tabs. Order Book shows Quick Add, Mark as Sold, Order Book, Inventory, Stats, Database tabs. Emails section shows Emails and Shipments tabs. Profiles section is ready for future profile-related tabs. This creates a cleaner, more focused user experience where each section feels like its own application."
+            color="bg-yellow-500/70"
+            linkTo={getChangelogLink("Separated Header Components for Each Section", "Created separate HeaderWithTabs components for Order Book Emails and Profiles sections. Each section now has its own dedicated navigation without showing irrelevant tabs.")}
+            timestamp="2024-12-19 18:00"
+          />
+          <ChangelogEntry
             title="Enhanced Email Sync with Debug Tools"
             description="Fixed Gmail sync issues by expanding query to include all retailers (Amazon, Target, Macy's, Nike) and extending time window to 90 days. Added comprehensive debug logging, test connection button, and better error handling to diagnose and resolve email processing problems. Now properly finds order confirmations, cancellations, and shipping updates."
             color="bg-green-500/70"
@@ -271,7 +366,6 @@ export default function Hub() {
           />
         </div>
         </div>
-      </div>
-    </div>
+    </LayoutWithSidebar>
   );
 }

@@ -2,7 +2,8 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
-import HeaderWithTabs from "../components/HeaderWithTabs.jsx";
+import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
+import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
 import { SearchDropdown } from "../components/SearchDropdown.jsx";
@@ -299,9 +300,8 @@ export default function Inventory() {
   }, [filteredRows, sortKey, sortDir]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="inventory" showTabs section="orderbook" showHubTab={true} />
+    <LayoutWithSidebar active="inventory" section="orderbook">
+      <PageHeader title="Inventory" />
 
         {/* KPI pills (8) */}
         <div className={`${pageCard} mb-6`}>
@@ -476,8 +476,7 @@ export default function Inventory() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </LayoutWithSidebar>
   );
 }
 

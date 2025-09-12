@@ -3,7 +3,8 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
-import HeaderWithTabs from "../components/HeaderWithTabs";
+import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
+import PageHeader from "../components/PageHeader.jsx";
 import { card } from "../utils/ui";
 
 // Icons
@@ -52,7 +53,7 @@ export default function Emails() {
   });
 
   const connected = !!accounts.length;
-  const gmailAccounts = accounts.filter(acc => acc.provider.startsWith('gmail'));
+  const gmailAccounts = accounts.filter(acc => acc.provider && acc.provider.startsWith('gmail'));
   
   // Calculate stats
   const totalProcessed = emailStats.length;
@@ -125,37 +126,8 @@ export default function Emails() {
 
   /* ------------------------------- render ------------------------------- */
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-[95vw] mx-auto p-4 sm:p-6">
-        <HeaderWithTabs active="emails" showTabs={false} section="automations" />
-
-        {/* Navigation Tabs */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <Link 
-              to="/" 
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-900 transition"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Hub
-            </Link>
-            <Link 
-              to="/shipments" 
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-600 bg-slate-800/60 text-slate-200 hover:bg-slate-700 hover:border-slate-500 transition"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              Shipments
-            </Link>
-            <div className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-500 bg-slate-700/60 text-slate-100">
-              <MailIcon className="h-4 w-4" />
-                Emails
-              </div>
-            </div>
-        </div>
+    <LayoutWithSidebar active="emails" section="emails">
+      <PageHeader title="Emails" />
 
         {/* Stats Cards */}
         {connected && (
@@ -203,28 +175,30 @@ export default function Emails() {
         {/* Email Management */}
         <div className={`${card} mb-6`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="min-w-0">
+            <div className="min-w-0">
               <div className="flex items-center gap-2 text-lg font-semibold">
                 <MailIcon className="h-5 w-5" />
                 Gmail Account Management
-                        </div>
+              </div>
               <p className="text-slate-400 text-sm mt-1">
                 Connect multiple Gmail accounts to automatically import order confirmations and shipping updates.
               </p>
-                      </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button 
-                onClick={connectGmail} 
-                className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors inline-flex items-center gap-2"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                {connected ? "Add Email" : "Connect Gmail"}
-              </button>
-                        </div>
-                        </div>
-                      </div>
+            </div>
+            {connected && (
+              <div className="flex items-center gap-2 shrink-0">
+                <button 
+                  onClick={connectGmail} 
+                  className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors inline-flex items-center gap-2"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add Email
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Connected Accounts */}
         {connected ? (
@@ -285,13 +259,12 @@ export default function Emails() {
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Connect Your First Gmail Account
+                Get Connected
               </button>
           </div>
         </div>
       )}
 
-    </div>
-    </div>
+    </LayoutWithSidebar>
   );
 }
