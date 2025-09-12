@@ -1384,8 +1384,75 @@ exports.handler = async (event) => {
       }
     }
 
-    // Step 3: Process delivery updates for existing in-transit orders
-    console.log("Step 3: Processing delivery updates...");
+    // Step 3: Process cancellation updates for existing orders
+    console.log("Step 3: Processing cancellation updates...");
+    for (const id of ids) {
+      if (Date.now() - startTime > maxDuration) break;
+      
+      try {
+        const msg = await getMessageFull(gmail, id);
+        const h = headersToObj(msg.payload?.headers || []);
+        const subject = h["subject"] || "";
+        const from = h["from"] || "";
+        const dateHeader = h["date"] || "";
+        const messageDate =
+          dateHeader
+            ? new Date(dateHeader)
+            : new Date(msg.internalDate ? Number(msg.internalDate) : Date.now());
+        const { html, text } = extractBodyParts(msg.payload || {});
+
+        // Only process emails from the last 90 days
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        if (messageDate < ninetyDaysAgo) continue;
+
+        const retailer = classifyRetailer(from);
+        const type = classifyType(retailer, subject);
+        
+        // Only process cancellation updates in this step
+        if (type !== "canceled") continue;
+        
+        console.log(`Processing cancellation update: ${subject}`);
+        
+        // Extract order ID
+        const order_id = 
+          ((subject.match(/Order\s*#\s*([0-9\-]+)/i) || [])[1]) ||
+          ((subject.match(/#\s*([0-9\-]+)/) || [])[1]) ||
+          null;
+
+        if (!order_id) continue;
+
+        // Only process if corresponding order exists
+        const { data: existingOrder } = await supabase
+          .from("email_orders")
+          .select("status")
+          .eq("user_id", account.user_id)
+          .eq("retailer", retailer.name)
+          .eq("order_id", order_id)
+          .maybeSingle();
+          
+        if (!existingOrder) {
+          console.log(`No existing order found for cancellation update: ${order_id}`);
+          continue;
+        }
+
+        // Update order to canceled
+        await upsertOrder({
+          user_id: account.user_id,
+          retailer: retailer.name,
+          order_id,
+          status: "canceled",
+        });
+        
+        updated++;
+        
+      } catch (err) {
+        console.error(`Error processing cancellation update ${id}:`, err);
+        errors++;
+      }
+    }
+
+    // Step 4: Process delivery updates for existing in-transit orders
+    console.log("Step 4: Processing delivery updates...");
     for (const id of ids) {
       if (Date.now() - startTime > maxDuration) break;
       

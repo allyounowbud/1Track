@@ -17,11 +17,35 @@ const TruckIcon = ({ className }) => (
 async function getOrders() {
   const { data, error } = await supabase
     .from("email_orders")
-    .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, created_at")
-    .order("created_at", { ascending: false })
+    .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, shipped_at, delivered_at, status, source_message_id, created_at")
+    .order("order_date", { ascending: false })
     .limit(3000);
   if (error) throw error;
   return data || [];
+}
+
+// Function to create Gmail link for an order
+function getGmailLink(messageId) {
+  if (!messageId) return null;
+  return `https://mail.google.com/mail/u/0/#inbox/${messageId}`;
+}
+
+// Function to clean up item names that have parsing issues
+function cleanItemName(itemName) {
+  if (!itemName) return null;
+  
+  // Remove common parsing artifacts
+  let cleaned = itemName
+    .replace(/p13n-asin-list-plain_email-order-confirmation_\d+/g, '') // Remove Amazon parsing artifacts
+    .replace(/^[a-z0-9_-]+$/i, '') // Remove strings that are just IDs/artifacts
+    .trim();
+  
+  // If the cleaned name is too short or still looks like an artifact, return null
+  if (cleaned.length < 5 || /^[a-z0-9_-]+$/i.test(cleaned)) {
+    return null;
+  }
+  
+  return cleaned;
 }
 
 async function getShipments() {
@@ -30,6 +54,15 @@ async function getShipments() {
     .select("id, user_id, retailer, order_id, tracking_number, carrier, status, shipped_at, delivered_at, created_at")
     .order("created_at", { ascending: false })
     .limit(3000);
+  if (error) throw error;
+  return data || [];
+}
+
+async function getEmailAccounts() {
+  const { data, error } = await supabase
+    .from("email_accounts")
+    .select("id, email_address, user_id")
+    .like("provider", "gmail%");
   if (error) throw error;
   return data || [];
 }
@@ -68,9 +101,10 @@ function stitch(orders, ships) {
 export default function Shipments() {
   const { data: orders = [], refetch: refetchOrders, isLoading: lo1 } = useQuery({ queryKey: ["email-orders"], queryFn: getOrders });
   const { data: ships = [], refetch: refetchShips, isLoading: lo2 } = useQuery({ queryKey: ["email-shipments"], queryFn: getShipments });
+  const { data: emailAccounts = [] } = useQuery({ queryKey: ["email-accounts"], queryFn: getEmailAccounts });
 
   /* ------------------ controls ------------------ */
-  const [scope, setScope] = useState("all"); // all | ordered | shipping | delivered
+  const [scope, setScope] = useState("all"); // all | ordered | shipping | delivered | canceled
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState(() => new Set()); // uids of expanded rows
   const [syncing, setSyncing] = useState(false);
@@ -84,9 +118,11 @@ export default function Shipments() {
     if (scope === "shipping") {
       r = r.filter(x => !x.delivered_at && (x.status === "in_transit" || x.status === "out_for_delivery" || x.status === "label_created"));
     } else if (scope === "ordered") {
-      r = r.filter(x => !x.shipped_at && !x.delivered_at);
+      r = r.filter(x => !x.shipped_at && !x.delivered_at && x.status !== "canceled");
     } else if (scope === "delivered") {
       r = r.filter(x => x.delivered_at);
+    } else if (scope === "canceled") {
+      r = r.filter(x => x.status === "canceled");
     }
     
     if (q.trim()) {
@@ -120,6 +156,11 @@ export default function Shipments() {
   const formatPrice = (cents) => {
     if (!cents) return "—";
     return `$${(cents / 100).toFixed(2)}`;
+  };
+
+  const getEmailForOrder = (order) => {
+    const account = emailAccounts.find(acc => acc.user_id === order.user_id);
+    return account?.email_address || 'Unknown';
   };
 
   const syncEmails = async () => {
@@ -266,6 +307,7 @@ export default function Shipments() {
                 <option value="ordered">Ordered</option>
                 <option value="shipping">Shipping</option>
                 <option value="delivered">Delivered</option>
+                <option value="canceled">Canceled</option>
               </select>
             </div>
             
@@ -325,6 +367,7 @@ export default function Shipments() {
                                 row.status === 'delivered' ? 'bg-green-700 text-green-200' :
                                 row.status === 'in_transit' ? 'bg-blue-700 text-blue-200' :
                                 row.status === 'out_for_delivery' ? 'bg-yellow-700 text-yellow-200' :
+                                row.status === 'canceled' ? 'bg-red-700 text-red-200' :
                                 'bg-slate-700 text-slate-300'
                               }`}>
                                 {row.status.replace('_', ' ')}
@@ -332,9 +375,9 @@ export default function Shipments() {
                             )}
                           </div>
                           
-                          {row.item_name && (
+                          {cleanItemName(row.item_name) && (
                             <div className="text-sm text-slate-300 mb-1 truncate">
-                              {row.item_name}
+                              {cleanItemName(row.item_name)}
                             </div>
                           )}
                           
@@ -377,18 +420,25 @@ export default function Shipments() {
                       <div className="border-t border-slate-700 p-4 bg-slate-800/30">
                         <div className="flex gap-4">
                           {/* Left Column - Compact Image */}
-                          {row.image_url && (
-                            <div className="flex-shrink-0">
+                          <div className="flex-shrink-0">
+                            {row.image_url ? (
                               <img 
                                 src={row.image_url} 
-                                alt={row.item_name || 'Product image'}
+                                alt={cleanItemName(row.item_name) || 'Product image'}
                                 className="w-20 h-20 object-contain rounded-lg border border-slate-600"
                                 onError={(e) => {
                                   e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
                                 }}
                               />
+                            ) : null}
+                            <div 
+                              className="w-20 h-20 bg-slate-700 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 text-xs"
+                              style={{ display: row.image_url ? 'none' : 'flex' }}
+                            >
+                              No Image
                             </div>
-                          )}
+                          </div>
                           
                           {/* Right Column - All Information */}
                           <div className="flex-1 min-w-0">
@@ -439,12 +489,33 @@ export default function Shipments() {
                               )}
                             </div>
                             
-                            {row.item_name && (
+                            {cleanItemName(row.item_name) && (
                               <div className="mt-4">
                                 <span className="text-slate-400 text-sm">Item Name:</span>
-                                <div className="text-slate-200 font-medium mt-1">{row.item_name}</div>
+                                <div className="text-slate-200 font-medium mt-1">{cleanItemName(row.item_name)}</div>
                               </div>
                             )}
+                            
+                            {/* Email Source and Gmail Link */}
+                            <div className="mt-4 flex items-center justify-between">
+                              <div>
+                                <span className="text-slate-400 text-sm">Email Source:</span>
+                                <div className="text-slate-200 font-medium mt-1">{getEmailForOrder(row)}</div>
+                              </div>
+                              {getGmailLink(row.source_message_id) && (
+                                <a
+                                  href={getGmailLink(row.source_message_id)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-2 h-8 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium transition-colors"
+                                >
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                  </svg>
+                                  View Email
+                                </a>
+                              )}
+                            </div>
                             
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 text-sm">
                               {row.order_date && (
