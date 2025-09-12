@@ -308,6 +308,12 @@ export default function Hub() {
             linkTo={getChangelogLink("Simplified Settings Interface - Fixed All Issues", "Completely rewrote the Settings page header logic to fix auto-save issues and button positioning. New rows now have save/cancel buttons on the row itself no auto-save select all checkbox is always visible next to action buttons and all buttons stay on the right side regardless of left content.")}
           />
           <ChangelogEntry
+            title="Fixed Header Buttons When Adding New Row"
+            description="Fixed the issue where Cancel, Save, and Delete buttons were still visible in the header when adding a new row. Now when a new row is active, the header only shows the select all checkbox and selection count - all action buttons are hidden until the new row is either saved or canceled, providing a cleaner focused interface."
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Fixed Header Buttons When Adding New Row", "Fixed the issue where Cancel Save and Delete buttons were still visible in the header when adding a new row. Now when a new row is active the header only shows the select all checkbox and selection count all action buttons are hidden until the new row is either saved or canceled.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"
