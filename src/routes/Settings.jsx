@@ -738,8 +738,8 @@ function SettingsCard({
             <div className="flex items-center gap-2">
               {/* Determine button visibility based on selection state */}
               {(() => {
-                // Only show header buttons for existing rows (not new rows)
-                if (hasSelection && hasExistingRows) {
+                // Any rows selected: show bulk action buttons (hide + add button)
+                if (hasSelection) {
                   return (
                     <>
                       <button
@@ -773,7 +773,7 @@ function SettingsCard({
                   );
                 }
                 
-                // No selection or only new rows: show add button (new rows handle their own save/cancel)
+                // No selection: show add button
                 return (
                   <button
                     onClick={addNewRow}
