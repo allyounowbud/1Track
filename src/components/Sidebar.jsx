@@ -113,7 +113,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   const navigationItems = getNavigationItems();
 
   return (
-    <div className={`bg-slate-900 border-r border-slate-800 transition-all duration-300 fixed left-0 top-0 h-full z-30 ${
+    <div className={`sidebar-fixed bg-slate-900 border-r border-slate-800 transition-all duration-300 flex flex-col ${
       isCollapsed ? 'w-20' : 'w-64'
     }`}>
       {/* Header */}
@@ -162,8 +162,8 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className={`${isCollapsed ? 'flex flex-col items-center py-4 space-y-1' : 'p-4 space-y-1'}`}>
+      {/* Navigation - flex-1 to take available space */}
+      <nav className={`flex-1 ${isCollapsed ? 'flex flex-col items-center py-4 space-y-1' : 'p-4 space-y-1'}`}>
         {navigationItems.map((item) => (
           <NavLink
             key={item.key}
@@ -182,7 +182,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
       </nav>
 
       {/* User Section */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800 bg-slate-900">
+      <div className="p-4 border-t border-slate-800 bg-slate-900 flex-shrink-0">
         <Link
           to="/"
           className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/50 transition-colors ${
