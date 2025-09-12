@@ -1,5 +1,75 @@
 @import "tailwindcss";
 
+/* Global background coverage for mobile */
+html, body {
+  background-color: rgb(15 23 42) !important; /* slate-900 */
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Ensure root element covers full viewport */
+#root {
+  background-color: rgb(15 23 42) !important; /* slate-900 */
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  width: 100%;
+}
+
+/* Mobile-specific background fixes */
+@media (max-width: 768px) {
+  html, body, #root {
+    background-color: rgb(15 23 42) !important; /* slate-900 */
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available; /* iOS Safari fix */
+  }
+  
+  /* Prevent white flash on mobile browsers */
+  body {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  html, body, #root {
+    min-height: -webkit-fill-available;
+    background-color: rgb(15 23 42) !important; /* slate-900 */
+  }
+}
+
+/* Additional mobile background coverage */
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure all containers inherit the dark background */
+body > *, #root > * {
+  background-color: inherit;
+}
+
+/* Mobile browser UI color theme */
+@media (max-width: 768px) {
+  html {
+    background-color: rgb(15 23 42) !important; /* slate-900 */
+  }
+  
+  /* Prevent overscroll bounce showing white */
+  body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* Custom scrollbar styles */
 .scrollbar-thin {
   scrollbar-width: thin;
