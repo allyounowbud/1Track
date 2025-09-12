@@ -56,6 +56,9 @@ export default function Settings() {
   const [newMarketRows, setNewMarketRows] = useState([]);
   
   const [nextNewRowId, setNextNewRowId] = useState(-1);
+  
+  // Single card expansion state
+  const [expandedCard, setExpandedCard] = useState(null); // 'items', 'retailers', 'markets', or null
 
   // Update bulk actions visibility for each card
   useEffect(() => {
@@ -95,14 +98,28 @@ export default function Settings() {
 
   async function bulkSaveItems() {
     if (selectedItems.size === 0) return;
+    
+    const selectedIds = Array.from(selectedItems);
+    const selectedItemsData = items.filter(item => selectedIds.includes(item.id));
+    const itemNames = selectedItemsData.map(item => item.name).join(', ');
+    
+    const confirmMessage = `Save changes to ${selectedItems.size} item(s)?\n\nItems: ${itemNames}`;
+    if (!confirm(confirmMessage)) return;
+    
     alert(`Saving ${selectedItems.size} selected items...`);
     setSelectedItems(new Set());
   }
 
   async function bulkDeleteItems() {
-    if (!confirm(`Are you sure you want to delete ${selectedItems.size} item(s)?`)) return;
+    if (selectedItems.size === 0) return;
     
     const selectedIds = Array.from(selectedItems).filter(id => id > 0);
+    const selectedItemsData = items.filter(item => selectedIds.includes(item.id));
+    const itemNames = selectedItemsData.map(item => item.name).join(', ');
+    
+    const confirmMessage = `Delete ${selectedItems.size} item(s)? This action cannot be undone.\n\nItems: ${itemNames}`;
+    if (!confirm(confirmMessage)) return;
+    
     if (selectedIds.length > 0) {
       const { error } = await supabase.from("items").delete().in("id", selectedIds);
       if (error) throw error;
@@ -152,14 +169,28 @@ export default function Settings() {
 
   async function bulkSaveRetailers() {
     if (selectedRetailers.size === 0) return;
+    
+    const selectedIds = Array.from(selectedRetailers);
+    const selectedRetailersData = retailers.filter(retailer => selectedIds.includes(retailer.id));
+    const retailerNames = selectedRetailersData.map(retailer => retailer.name).join(', ');
+    
+    const confirmMessage = `Save changes to ${selectedRetailers.size} retailer(s)?\n\nRetailers: ${retailerNames}`;
+    if (!confirm(confirmMessage)) return;
+    
     alert(`Saving ${selectedRetailers.size} selected retailers...`);
     setSelectedRetailers(new Set());
   }
 
   async function bulkDeleteRetailers() {
-    if (!confirm(`Are you sure you want to delete ${selectedRetailers.size} retailer(s)?`)) return;
+    if (selectedRetailers.size === 0) return;
     
     const selectedIds = Array.from(selectedRetailers).filter(id => id > 0);
+    const selectedRetailersData = retailers.filter(retailer => selectedIds.includes(retailer.id));
+    const retailerNames = selectedRetailersData.map(retailer => retailer.name).join(', ');
+    
+    const confirmMessage = `Delete ${selectedRetailers.size} retailer(s)? This action cannot be undone.\n\nRetailers: ${retailerNames}`;
+    if (!confirm(confirmMessage)) return;
+    
     if (selectedIds.length > 0) {
       const { error } = await supabase.from("retailers").delete().in("id", selectedIds);
       if (error) throw error;
@@ -209,14 +240,28 @@ export default function Settings() {
 
   async function bulkSaveMarkets() {
     if (selectedMarkets.size === 0) return;
+    
+    const selectedIds = Array.from(selectedMarkets);
+    const selectedMarketsData = markets.filter(market => selectedIds.includes(market.id));
+    const marketNames = selectedMarketsData.map(market => market.name).join(', ');
+    
+    const confirmMessage = `Save changes to ${selectedMarkets.size} marketplace(s)?\n\nMarketplaces: ${marketNames}`;
+    if (!confirm(confirmMessage)) return;
+    
     alert(`Saving ${selectedMarkets.size} selected marketplaces...`);
     setSelectedMarkets(new Set());
   }
 
   async function bulkDeleteMarkets() {
-    if (!confirm(`Are you sure you want to delete ${selectedMarkets.size} marketplace(s)?`)) return;
+    if (selectedMarkets.size === 0) return;
     
     const selectedIds = Array.from(selectedMarkets).filter(id => id > 0);
+    const selectedMarketsData = markets.filter(market => selectedIds.includes(market.id));
+    const marketNames = selectedMarketsData.map(market => market.name).join(', ');
+    
+    const confirmMessage = `Delete ${selectedMarkets.size} marketplace(s)? This action cannot be undone.\n\nMarketplaces: ${marketNames}`;
+    if (!confirm(confirmMessage)) return;
+    
     if (selectedIds.length > 0) {
       const { error } = await supabase.from("marketplaces").delete().in("id", selectedIds);
       if (error) throw error;
@@ -459,6 +504,9 @@ export default function Settings() {
               }}
             />
           )}
+          cardType="items"
+          isExpanded={expandedCard === 'items'}
+          onToggleExpansion={() => setExpandedCard(expandedCard === 'items' ? null : 'items')}
         />
 
         {/* Retailers Card */}
@@ -504,6 +552,9 @@ export default function Settings() {
               }}
             />
           )}
+          cardType="retailers"
+          isExpanded={expandedCard === 'retailers'}
+          onToggleExpansion={() => setExpandedCard(expandedCard === 'retailers' ? null : 'retailers')}
         />
 
         {/* Markets Card */}
@@ -549,6 +600,9 @@ export default function Settings() {
               }}
             />
           )}
+          cardType="markets"
+          isExpanded={expandedCard === 'markets'}
+          onToggleExpansion={() => setExpandedCard(expandedCard === 'markets' ? null : 'markets')}
         />
       </div>
     </div>
@@ -581,9 +635,11 @@ function SettingsCard({
   newRowsData, 
   onRowToggle, 
   renderRow, 
-  renderNewRow 
+  renderNewRow,
+  cardType,
+  isExpanded,
+  onToggleExpansion
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
   
   const hasSelection = selectedRows.size > 0;
   const selectedItems = Array.from(selectedRows);
@@ -595,7 +651,7 @@ function SettingsCard({
       {/* Card Header - Clickable anywhere to expand */}
       <div 
         className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap cursor-pointer hover:bg-slate-800/30 rounded-xl p-2 -m-2 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={onToggleExpansion}
       >
         <div className="min-w-0">
           <h2 className="text-lg font-semibold leading-[2.25rem]">{title}</h2>
@@ -606,12 +662,15 @@ function SettingsCard({
           className="flex items-center gap-2 ml-auto self-center -mt-2 sm:mt-0"
           onClick={(e) => e.stopPropagation()} // Prevent expansion when clicking buttons
         >
-          {/* Bulk Actions - only show when expanded and items are selected */}
-          {isExpanded && hasSelection && (
+          {/* Action buttons - only show when expanded */}
+          {isExpanded && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-400">
-                {selectedRows.size} selected
-              </span>
+              {/* Show selection count when rows are selected */}
+              {hasSelection && (
+                <span className="text-sm text-slate-400">
+                  {selectedRows.size} selected
+                </span>
+              )}
               
               {/* Determine button visibility based on selection state */}
               {(() => {
@@ -676,23 +735,21 @@ function SettingsCard({
                   );
                 }
                 
-                return null;
+                // No selection: show add button
+                return (
+                  <button
+                    onClick={addNewRow}
+                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    aria-label={`Add ${title.slice(0, -1).toLowerCase()}`}
+                    title={`Add ${title.slice(0, -1).toLowerCase()}`}
+                  >
+                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
+                    </svg>
+                  </button>
+                );
               })()}
             </div>
-          )}
-
-          {/* Add button - only show when expanded and no existing rows selected */}
-          {isExpanded && !hasExistingRows && (
-            <button
-              onClick={addNewRow}
-              className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-              aria-label={`Add ${title.slice(0, -1).toLowerCase()}`}
-              title={`Add ${title.slice(0, -1).toLowerCase()}`}
-            >
-              <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
-              </svg>
-            </button>
           )}
           
           {/* Expand/Collapse chevron - no button wrapper, just the icon */}

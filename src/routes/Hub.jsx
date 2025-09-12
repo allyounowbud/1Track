@@ -189,10 +189,28 @@ export default function Hub() {
         <div className={`${card}`}>
           <div className="mb-4">
             <h2 className="text-lg font-semibold">Changelog</h2>
-            <div className="text-xs text-slate-400/60">v0.0.8</div>
+            <div className="text-xs text-slate-400/60">v1.1.0</div>
           </div>
           
         <div className="space-y-3">
+          <ChangelogEntry
+            title="Redesigned Settings Page with OrderBook-Style Interface"
+            description="Complete redesign of the Settings (Database) page with separate expandable cards for Products, Retailers, and Marketplaces. Each card has OrderBook-style row selection, bulk actions, inline editing, and independent operation. Cards expand when clicking anywhere on the header, and all buttons match OrderBook styling exactly."
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Redesigned Settings Page with OrderBook-Style Interface", "Complete redesign of the Settings Database page with separate expandable cards for Products Retailers and Marketplaces. Each card has OrderBook-style row selection bulk actions inline editing and independent operation.")}
+          />
+          <ChangelogEntry
+            title="Enhanced Settings Page User Experience"
+            description="Added smart button visibility logic - + add button hidden when existing rows are selected, save/cancel buttons only in header, no scroll containers to show all data, and row disabling when new rows are being added to prevent conflicts."
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Enhanced Settings Page User Experience", "Added smart button visibility logic - add button hidden when existing rows are selected save/cancel buttons only in header no scroll containers and row disabling when new rows are being added.")}
+          />
+          <ChangelogEntry
+            title="Advanced Settings Page Functionality"
+            description="Implemented single card expansion (only one card open at a time), multiple row selection for bulk operations, confirmation dialogs with item previews before save/delete, and proper button placement that replaces the + add button when rows are selected."
+            color="bg-purple-500/70"
+            linkTo={getChangelogLink("Advanced Settings Page Functionality", "Implemented single card expansion only one card open at a time multiple row selection for bulk operations confirmation dialogs with item previews and proper button placement.")}
+          />
           <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
