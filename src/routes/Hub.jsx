@@ -266,6 +266,12 @@ export default function Hub() {
             linkTo={getChangelogLink("Fixed Bulk Action Buttons in Header", "When any row is selected the add button is now properly hidden and replaced with save and delete buttons for bulk actions providing both individual row actions and bulk actions for a complete workflow.")}
           />
           <ChangelogEntry
+            title="Fixed All Selection Bulk Actions & Moved Select All"
+            description="Fixed bulk save/delete buttons to appear when all rows are selected (like '54/54 selected' in the image). Also moved the select all checkbox from the left side to the right side of the header for better layout. The + add button is now properly hidden when any rows are selected."
+            color="bg-pink-500/70"
+            linkTo={getChangelogLink("Fixed All Selection Bulk Actions & Moved Select All", "Fixed bulk save/delete buttons to appear when all rows are selected also moved the select all checkbox from the left side to the right side of the header for better layout.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"

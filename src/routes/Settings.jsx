@@ -719,22 +719,14 @@ function SettingsCard({
         >
           {/* Header with Selection Count and Actions */}
           <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
-            {/* Left side - Selection Count (hide when new rows are being added) */}
-            {!hasNewRows && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={selectedRows.size === data.length && data.length > 0}
-                  onChange={toggleAllSelection}
-                  className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                />
-                <span className="text-sm text-slate-400">
-                  {selectedRows.size}/{data.length} selected
-                </span>
+            {/* Left side - Empty when rows are selected */}
+            {!hasSelection && (
+              <div className="text-sm text-slate-400">
+                Select rows to perform bulk actions
               </div>
             )}
 
-            {/* Right side - Action buttons */}
+            {/* Right side - Action buttons and select all */}
             <div className="flex items-center gap-2">
               {/* Determine button visibility based on selection state */}
               {(() => {
@@ -786,6 +778,21 @@ function SettingsCard({
                   </button>
                 );
               })()}
+              
+              {/* Select all checkbox - moved to right side */}
+              {!hasNewRows && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === data.length && data.length > 0}
+                    onChange={toggleAllSelection}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  />
+                  <span className="text-sm text-slate-400">
+                    {selectedRows.size}/{data.length} selected
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
