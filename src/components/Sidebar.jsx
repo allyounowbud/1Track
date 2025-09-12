@@ -185,24 +185,41 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
 
       {/* User Section */}
       <div className="p-4 border-t border-slate-800 bg-slate-900 flex-shrink-0">
-        <Link
-          to="/"
-          className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/50 transition-colors ${
-            isCollapsed ? 'justify-center' : ''
-          }`}
-        >
-          {userInfo.avatar_url ? (
-            <img
-              src={userInfo.avatar_url}
-              alt=""
-              className="h-8 w-8 rounded-lg border border-slate-700 object-cover flex-shrink-0"
-            />
-          ) : (
-            <div className="h-8 w-8 rounded-lg bg-slate-800 grid place-items-center text-slate-300 text-sm flex-shrink-0">
-              {(userInfo.username || "U").slice(0, 1).toUpperCase()}
-            </div>
-          )}
-          {!isCollapsed && (
+        {isCollapsed ? (
+          // Collapsed: Profile image fills entire button
+          <Link
+            to="/"
+            className="block rounded-lg hover:bg-slate-800/50 transition-colors overflow-hidden"
+          >
+            {userInfo.avatar_url ? (
+              <img
+                src={userInfo.avatar_url}
+                alt=""
+                className="w-full h-12 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="w-full h-12 rounded-lg bg-slate-800 grid place-items-center text-slate-300 text-lg font-semibold">
+                {(userInfo.username || "U").slice(0, 1).toUpperCase()}
+              </div>
+            )}
+          </Link>
+        ) : (
+          // Expanded: Profile image + text
+          <Link
+            to="/"
+            className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/50 transition-colors"
+          >
+            {userInfo.avatar_url ? (
+              <img
+                src={userInfo.avatar_url}
+                alt=""
+                className="h-8 w-8 rounded-lg object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-lg bg-slate-800 grid place-items-center text-slate-300 text-sm flex-shrink-0">
+                {(userInfo.username || "U").slice(0, 1).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0">
               <div className="text-sm font-medium text-slate-100 truncate">
                 {userInfo.username}
@@ -211,8 +228,8 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                 Account
               </div>
             </div>
-          )}
-        </Link>
+          </Link>
+        )}
       </div>
     </div>
   );
