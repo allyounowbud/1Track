@@ -769,10 +769,15 @@ function SettingsCard({
       {isExpanded && (
         <div className="pt-5 border-t border-slate-800 mt-4">
           {/* Header */}
-          <div className="grid grid-cols-[auto_2fr_1fr] gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium">
+          <div className={`grid gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium ${
+            cardType === 'retailers' 
+              ? 'grid-cols-[auto_1fr_auto]' 
+              : 'grid-cols-[auto_2fr_1fr]'
+          }`}>
             <div className="w-6"></div>
             <div className="text-left">Name</div>
-            <div className="text-left">Details</div>
+            {cardType !== 'retailers' && <div className="text-left">Details</div>}
+            {cardType === 'retailers' && <div className="w-16"></div>}
           </div>
 
           {/* Rows - No scroll, show all data */}
@@ -953,6 +958,16 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
     }
   }
 
+  async function deleteItem(id) {
+    try {
+      const { error } = await supabase.from("items").delete().eq("id", id);
+      if (error) throw error;
+      onSave();
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
   return (
     <div 
       className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
@@ -985,17 +1000,50 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
           placeholder="Item name…"
         />
         
-        <input
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
-          value={mv}
-          onChange={(e) => {
-            e.stopPropagation();
-            setMv(e.target.value);
-          }}
-          onBlur={updateItem}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Market value ($)"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            value={mv}
+            onChange={(e) => {
+              e.stopPropagation();
+              setMv(e.target.value);
+            }}
+            onBlur={updateItem}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Market value ($)"
+          />
+          
+          {/* Row action buttons */}
+          <div className="flex gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                updateItem();
+              }}
+              disabled={busy}
+              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Save Changes"
+            >
+              <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Delete "${name}"? This action cannot be undone.`)) {
+                  deleteItem(item.id);
+                }
+              }}
+              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+              title="Delete Item"
+            >
+              <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
       
       {status && (
@@ -1039,6 +1087,16 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled
     }
   }
 
+  async function deleteRetailer(id) {
+    try {
+      const { error } = await supabase.from("retailers").delete().eq("id", id);
+      if (error) throw error;
+      onSave();
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
   return (
     <div 
       className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
@@ -1048,7 +1106,7 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
+      <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-center min-w-0">
         <input
           type="checkbox"
           checked={isSelected}
@@ -1071,7 +1129,36 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled
           placeholder="Retailer name…"
         />
         
-        <div></div>
+        {/* Row action buttons */}
+        <div className="flex gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              updateRetailer();
+            }}
+            disabled={busy}
+            className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Save Changes"
+          >
+            <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(`Delete "${name}"? This action cannot be undone.`)) {
+                deleteRetailer(retailer.id);
+              }
+            }}
+            className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+            title="Delete Retailer"
+          >
+            <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
       </div>
       
       {status && (
@@ -1117,6 +1204,16 @@ function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = f
     }
   }
 
+  async function deleteMarket(id) {
+    try {
+      const { error } = await supabase.from("marketplaces").delete().eq("id", id);
+      if (error) throw error;
+      onSave();
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
   return (
     <div 
       className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
@@ -1149,17 +1246,50 @@ function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = f
           placeholder="Marketplace name…"
         />
         
-        <input
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
-          value={fee}
-          onChange={(e) => {
-            e.stopPropagation();
-            setFee(e.target.value);
-          }}
-          onBlur={updateMarket}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Fee %"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            value={fee}
+            onChange={(e) => {
+              e.stopPropagation();
+              setFee(e.target.value);
+            }}
+            onBlur={updateMarket}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Fee %"
+          />
+          
+          {/* Row action buttons */}
+          <div className="flex gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                updateMarket();
+              }}
+              disabled={busy}
+              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Save Changes"
+            >
+              <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Delete "${name}"? This action cannot be undone.`)) {
+                  deleteMarket(market.id);
+                }
+              }}
+              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+              title="Delete Marketplace"
+            >
+              <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
       
       {status && (

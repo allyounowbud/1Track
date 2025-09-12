@@ -218,6 +218,12 @@ export default function Hub() {
             linkTo={getChangelogLink("Final Settings Page Polish", "Removed duplicate save/cancel buttons from individual rows only header buttons remain hide existing rows when adding new ones and added select/deselect all checkbox in header.")}
           />
           <ChangelogEntry
+            title="Enhanced Settings Row Actions"
+            description="Added save/delete icon buttons to individual rows for easy access when scrolling, ensured header buttons properly replace + add button when rows are selected, and removed unnecessary details column from retailers rows for cleaner layout."
+            color="bg-cyan-500/70"
+            linkTo={getChangelogLink("Enhanced Settings Row Actions", "Added save/delete icon buttons to individual rows for easy access when scrolling ensured header buttons properly replace add button and removed unnecessary details column from retailers rows.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"
