@@ -272,6 +272,13 @@ export default function Hub() {
           />
           {/* Most Recent 10 Changelog Entries with Timestamps */}
           <ChangelogEntry
+            title="Redesigned Emails Page - Clean & Focused"
+            description="Completely redesigned the emails page with a cleaner, more professional layout. Removed the sync button, integrated add email functionality into the management card, removed shipments info, and added stats cards, settings panel, and how-it-works section. Now matches the app's design language perfectly."
+            color="bg-indigo-500/70"
+            linkTo={getChangelogLink("Redesigned Emails Page - Clean & Focused", "Completely redesigned the emails page with a cleaner more professional layout. Removed the sync button integrated add email functionality into the management card removed shipments info and added stats cards settings panel and how-it-works section.")}
+            timestamp="2024-12-19 16:00"
+          />
+          <ChangelogEntry
             title="Cleaned Up Changelog with Timestamps"
             description="Streamlined the changelog to show only the 10 most recent entries with timestamps for better tracking. Added timestamp display to each changelog entry showing the exact date and time when changes were made, making it easier to track development progress."
             color="bg-slate-500/70"
