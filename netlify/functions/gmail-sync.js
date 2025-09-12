@@ -1152,6 +1152,7 @@ exports.handler = async (event) => {
     const mode = (event.queryStringParameters?.mode || "").toLowerCase();
     const debug = event.queryStringParameters?.debug === "1";
     const accounts = await getAccounts(); // Get all connected accounts
+    const startTime = Date.now(); // Define startTime at the beginning
     
     if (debug) {
       console.log("=== DEBUG MODE ENABLED ===");
@@ -1183,7 +1184,6 @@ exports.handler = async (event) => {
     let skipped_existing = 0;
       let errors = 0;
       let processed = 0;
-      const startTime = Date.now();
 
       // Add timeout protection - Netlify functions have 10s limit
       const maxDuration = 8000; // 8 seconds to leave buffer for response
@@ -1452,8 +1452,6 @@ exports.handler = async (event) => {
       }
     }
 
-    const duration = Date.now() - startTime;
-    const wasTimeout = processed < ids.length;
       // Accumulate results from this account
       totalImported += imported;
       totalUpdated += updated;
