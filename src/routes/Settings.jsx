@@ -719,8 +719,16 @@ function SettingsCard({
         >
           {/* Header with Selection Count and Actions */}
           <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
-            {/* Left side - Select all checkbox and prompt */}
-            <div className="flex items-center gap-4">
+            {/* Left side - Select rows to perform bulk actions text */}
+            {!hasSelection && (
+              <div className="text-sm text-slate-400">
+                Select rows to perform bulk actions
+              </div>
+            )}
+
+            {/* Right side - Grouped action buttons and select all */}
+            <div className="flex items-center gap-2">
+              {/* Select all checkbox (hide when new rows are being added) */}
               {!hasNewRows && (
                 <div className="flex items-center gap-2">
                   <input
@@ -734,16 +742,8 @@ function SettingsCard({
                   </span>
                 </div>
               )}
-              {!hasSelection && (
-                <div className="text-sm text-slate-400">
-                  Select rows to perform bulk actions
-                </div>
-              )}
-            </div>
 
-            {/* Right side - Action buttons (always stay on right) */}
-            <div className="flex items-center gap-2">
-              {/* Determine button visibility based on selection state */}
+              {/* Action buttons */}
               {(() => {
                 // Any rows selected: show bulk action buttons (hide + add button)
                 if (hasSelection) {
