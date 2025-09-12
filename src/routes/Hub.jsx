@@ -189,7 +189,7 @@ export default function Hub() {
         <div className={`${card}`}>
           <div className="mb-4">
             <h2 className="text-lg font-semibold">Changelog</h2>
-            <div className="text-xs text-slate-400/60">v1.1.0</div>
+            <div className="text-xs text-slate-400/60">v0.1.1</div>
           </div>
           
         <div className="space-y-3">
@@ -222,6 +222,12 @@ export default function Hub() {
             description="Added save/delete icon buttons to individual rows for easy access when scrolling, ensured header buttons properly replace + add button when rows are selected, and removed unnecessary details column from retailers rows for cleaner layout."
             color="bg-cyan-500/70"
             linkTo={getChangelogLink("Enhanced Settings Row Actions", "Added save/delete icon buttons to individual rows for easy access when scrolling ensured header buttons properly replace add button and removed unnecessary details column from retailers rows.")}
+          />
+          <ChangelogEntry
+            title="Full Card Clickable Area"
+            description="Made entire Settings card clickable for expand/collapse functionality. Previously only a small section was clickable, now the entire card from border to border responds to clicks for better user experience."
+            color="bg-emerald-500/70"
+            linkTo={getChangelogLink("Full Card Clickable Area", "Made entire Settings card clickable for expand/collapse functionality. Previously only a small section was clickable now the entire card from border to border responds to clicks for better user experience.")}
           />
           <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"

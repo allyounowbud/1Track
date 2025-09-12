@@ -647,11 +647,13 @@ function SettingsCard({
   const hasExistingRows = selectedItems.some(id => id > 0);
 
   return (
-    <section className={`${pageCard} mb-6`}>
+    <section 
+      className={`${pageCard} mb-6 cursor-pointer hover:bg-slate-800/20 transition-colors`}
+      onClick={onToggleExpansion}
+    >
       {/* Card Header - Clickable anywhere to expand */}
       <div 
-        className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap cursor-pointer hover:bg-slate-800/30 rounded-xl p-2 -m-2 transition-colors"
-        onClick={onToggleExpansion}
+        className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap rounded-xl p-2 -m-2"
       >
         <div className="min-w-0">
           <h2 className="text-lg font-semibold leading-[2.25rem]">{title}</h2>
