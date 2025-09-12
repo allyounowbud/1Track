@@ -225,8 +225,8 @@ export default function Emails() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-600/20 flex items-center justify-center">
-                  <MailIcon className="h-5 w-5 text-emerald-400" />
+                <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
+                  <MailIcon className="h-5 w-5 text-slate-300" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-slate-100">{connected ? gmailAccounts.length : 0}</div>
@@ -237,8 +237,8 @@ export default function Emails() {
             
             <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center">
-                  <SyncIcon className="h-5 w-5 text-blue-400" />
+                <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
+                  <SyncIcon className="h-5 w-5 text-slate-300" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-slate-100">{totalProcessed}</div>
@@ -249,8 +249,8 @@ export default function Emails() {
             
             <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-600/20 flex items-center justify-center">
-                  <svg className="h-5 w-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
+                  <svg className="h-5 w-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -263,15 +263,15 @@ export default function Emails() {
           </div>
         )}
 
-        {/* Email Management Card */}
-        <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-6 mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        {/* Email Management */}
+        <div className={`${card} mb-6`}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-lg font-semibold mb-2">
+              <div className="flex items-center gap-2 text-lg font-semibold">
                 <MailIcon className="h-5 w-5" />
                 Gmail Account Management
               </div>
-              <p className="text-slate-400 text-sm">
+              <p className="text-slate-400 text-sm mt-1">
                 Connect multiple Gmail accounts to automatically import order confirmations and shipping updates.
               </p>
             </div>
@@ -298,6 +298,7 @@ export default function Emails() {
               )}
             </div>
           </div>
+        </div>
 
           {/* Connected Accounts Section */}
           {connected ? (
