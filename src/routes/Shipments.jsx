@@ -73,6 +73,8 @@ export default function Shipments() {
   const [scope, setScope] = useState("all"); // all | ordered | shipping | delivered
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState(() => new Set()); // uids of expanded rows
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
 
   const rowsAll = useMemo(() => stitch(orders, ships), [orders, ships]);
 
@@ -117,6 +119,35 @@ export default function Shipments() {
   const formatPrice = (cents) => {
     if (!cents) return "—";
     return `$${(cents / 100).toFixed(2)}`;
+  };
+
+  const syncEmails = async () => {
+    if (syncing) return;
+    
+    setSyncing(true);
+    setSyncMessage("Syncing emails and updating shipments...");
+    
+    try {
+      const response = await fetch(`/.netlify/functions/gmail-sync?mode=sync`);
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      setSyncMessage(`Sync complete: ${result.imported || 0} imported, ${result.updated || 0} updated`);
+      
+      // Refetch data to show updated shipments
+      await Promise.all([refetchOrders(), refetchShips()]);
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setSyncMessage(""), 3000);
+    } catch (e) {
+      setSyncMessage(`Sync failed: ${e.message}`);
+      setTimeout(() => setSyncMessage(""), 5000);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -166,7 +197,24 @@ export default function Shipments() {
                 Track and manage your order shipments. View order confirmations, shipping updates, and delivery status from all connected email accounts.
               </p>
             </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button 
+                onClick={syncEmails} 
+                disabled={syncing} 
+                className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {syncing ? "Syncing..." : "Sync Emails"}
+              </button>
+            </div>
           </div>
+          {syncMessage && (
+            <div className="mt-4 p-3 rounded-xl bg-slate-800/50 border border-slate-700 text-sm text-slate-300">
+              {syncMessage}
+            </div>
+          )}
         </div>
 
         {/* Filters */}

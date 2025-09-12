@@ -272,6 +272,13 @@ export default function Hub() {
           />
           {/* Most Recent 10 Changelog Entries with Timestamps */}
           <ChangelogEntry
+            title="Added Email Sync to Shipments Page"
+            description="Added a sync button to the shipments page that fetches emails from connected Gmail accounts and uses the existing parsing logic to extract order confirmations, tracking updates, and cancellation emails. Automatically updates order statuses and refreshes the shipments list after sync completion."
+            color="bg-blue-500/70"
+            linkTo={getChangelogLink("Added Email Sync to Shipments Page", "Added a sync button to the shipments page that fetches emails from connected Gmail accounts and uses the existing parsing logic to extract order confirmations tracking updates and cancellation emails. Automatically updates order statuses and refreshes the shipments list after sync completion.")}
+            timestamp="2024-12-19 16:15"
+          />
+          <ChangelogEntry
             title="Redesigned Emails Page - Clean & Focused"
             description="Completely redesigned the emails page with a cleaner, more professional layout. Removed the sync button, integrated add email functionality into the management card, removed shipments info, and added stats cards, settings panel, and how-it-works section. Now matches the app's design language perfectly."
             color="bg-indigo-500/70"
