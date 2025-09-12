@@ -25,10 +25,14 @@ html, body {
   left: 0 !important;
   height: 100vh !important;
   height: 100dvh !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
   z-index: 30 !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
 }
 
 /* Ensure sidebar content doesn't scroll */
@@ -42,6 +46,21 @@ html, body {
     height: 100vh !important;
     height: 100dvh !important;
     height: -webkit-fill-available !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    min-height: -webkit-fill-available !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    max-height: -webkit-fill-available !important;
+  }
+}
+
+/* iOS Safari specific sidebar fixes */
+@supports (-webkit-touch-callout: none) {
+  .sidebar-fixed {
+    height: -webkit-fill-available !important;
+    min-height: -webkit-fill-available !important;
+    max-height: -webkit-fill-available !important;
   }
 }
 

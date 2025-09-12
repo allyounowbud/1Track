@@ -17,6 +17,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   });
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
   const [isSmallScreen, setIsSmallScreen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     async function loadUser() {
@@ -55,7 +56,9 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   useEffect(() => {
     const checkScreenSize = () => {
       const small = window.innerWidth < 1024; // lg breakpoint
+      const mobile = window.innerWidth <= 768; // mobile breakpoint
       setIsSmallScreen(small);
+      setIsMobile(mobile);
       // Force collapse on small screens
       if (small && !isCollapsed) {
         setIsCollapsed(true);
@@ -113,9 +116,31 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   const navigationItems = getNavigationItems();
 
   return (
-    <div className={`sidebar-fixed bg-slate-900 border-r border-slate-800 transition-all duration-300 flex flex-col ${
-      isCollapsed ? 'w-20' : 'w-64'
-    }`}>
+    <div 
+      className={`sidebar-fixed bg-slate-900 border-r border-slate-800 transition-all duration-300 flex flex-col ${
+        isCollapsed ? 'w-20' : 'w-64'
+      }`}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        height: '100vh',
+        height: '100dvh',
+        minHeight: '100vh',
+        minHeight: '100dvh',
+        maxHeight: '100vh',
+        maxHeight: '100dvh',
+        zIndex: 30,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        ...(isMobile && {
+          height: '-webkit-fill-available',
+          minHeight: '-webkit-fill-available',
+          maxHeight: '-webkit-fill-available'
+        })
+      }}
+    >
       {/* Header */}
       <div className={`${isCollapsed ? 'flex justify-center py-3' : 'p-4'} border-b border-slate-800`}>
         <div className={`${isCollapsed ? 'flex items-center justify-center' : 'flex items-center justify-between'}`}>
