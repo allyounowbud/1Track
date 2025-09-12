@@ -284,6 +284,18 @@ export default function Hub() {
             linkTo={getChangelogLink("Grouped Select All with Action Buttons on Right", "Moved select all checkbox to be directly to the left of action buttons keeping both grouped together on the right side of the header creating a more cohesive interface.")}
           />
           <ChangelogEntry
+            title="New Row Header-Only Buttons"
+            description="When adding a new row, removed save/cancel buttons from the row itself and moved them to the header only. The header now shows only Cancel and Save buttons (no delete button) when a new row is active, creating a cleaner interface focused on the new row action."
+            color="bg-purple-500/70"
+            linkTo={getChangelogLink("New Row Header-Only Buttons", "When adding a new row removed save/cancel buttons from the row itself and moved them to the header only. The header now shows only Cancel and Save buttons when a new row is active creating a cleaner interface.")}
+          />
+          <ChangelogEntry
+            title="Fixed Action Buttons Always Stay on Right"
+            description="Fixed the issue where action buttons and select all checkbox would move to the left side when rows were selected. Now all action buttons and the select all checkbox always remain grouped together on the right side of the header, maintaining consistent positioning regardless of selection state."
+            color="bg-indigo-500/70"
+            linkTo={getChangelogLink("Fixed Action Buttons Always Stay on Right", "Fixed the issue where action buttons and select all checkbox would move to the left side when rows were selected. Now all action buttons and the select all checkbox always remain grouped together on the right side of the header maintaining consistent positioning.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"

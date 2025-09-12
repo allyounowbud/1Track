@@ -527,7 +527,7 @@ export default function Settings() {
               disabled={hasNewItemRows}
             />
           )}
-          renderNewRow={(newRow) => (
+          renderNewRow={(newRow, index, onSaveRequest) => (
             <NewRowComponent
               key={newRow.id}
               row={newRow}
@@ -542,6 +542,7 @@ export default function Settings() {
                 setNewItemRows(prev => prev.filter(row => row.id !== newRow.id));
                 setSelectedItems(new Set());
               }}
+              onSaveRequest={onSaveRequest}
             />
           )}
           cardType="items"
@@ -577,7 +578,7 @@ export default function Settings() {
               disabled={hasNewRetailerRows}
             />
           )}
-          renderNewRow={(newRow) => (
+          renderNewRow={(newRow, index, onSaveRequest) => (
             <NewRowComponent
               key={newRow.id}
               row={newRow}
@@ -592,6 +593,7 @@ export default function Settings() {
                 setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
                 setSelectedRetailers(new Set());
               }}
+              onSaveRequest={onSaveRequest}
             />
           )}
           cardType="retailers"
@@ -627,7 +629,7 @@ export default function Settings() {
               disabled={hasNewMarketRows}
             />
           )}
-          renderNewRow={(newRow) => (
+          renderNewRow={(newRow, index, onSaveRequest) => (
             <NewRowComponent
               key={newRow.id}
               row={newRow}
@@ -642,6 +644,7 @@ export default function Settings() {
                 setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
                 setSelectedMarkets(new Set());
               }}
+              onSaveRequest={onSaveRequest}
             />
           )}
           cardType="markets"
@@ -675,16 +678,17 @@ function SettingsCard({
   bulkDelete, 
   cancelNewRows, 
   addNewRow, 
-  clearSelection,
+  clearSelection, 
   data, 
   newRowsData, 
   onRowToggle, 
   renderRow, 
-  renderNewRow,
-  cardType,
-  isExpanded,
-  onToggleExpansion
+  renderNewRow, 
+  cardType, 
+  isExpanded, 
+  onToggleExpansion 
 }) {
+  const [newRowSaveFunction, setNewRowSaveFunction] = useState(null);
   
   const hasSelection = selectedRows.size > 0;
   const selectedItems = Array.from(selectedRows);
@@ -728,24 +732,41 @@ function SettingsCard({
 
             {/* Right side - Grouped action buttons and select all */}
             <div className="flex items-center gap-2">
-              {/* Select all checkbox (hide when new rows are being added) */}
-              {!hasNewRows && (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.size === data.length && data.length > 0}
-                    onChange={toggleAllSelection}
-                    className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-                  />
-                  <span className="text-sm text-slate-400">
-                    {selectedRows.size}/{data.length} selected
-                  </span>
-                </div>
-              )}
-
               {/* Action buttons */}
               {(() => {
-                // Any rows selected: show bulk action buttons (hide + add button)
+                // New rows being added: show only Cancel and Save buttons (no delete, no select all)
+                if (hasNewRows) {
+                  return (
+                    <>
+                      <button
+                        onClick={cancelNewRows}
+                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Cancel New Row"
+                      >
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (newRowSaveFunction) {
+                            newRowSaveFunction();
+                          } else {
+                            bulkSave();
+                          }
+                        }}
+                        className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Save New Row"
+                      >
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                      </button>
+                    </>
+                  );
+                }
+                
+                // Any existing rows selected: show bulk action buttons (hide + add button)
                 if (hasSelection) {
                   return (
                     <>
@@ -776,6 +797,19 @@ function SettingsCard({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
+                      
+                      {/* Select all checkbox - always on right side */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.size === data.length && data.length > 0}
+                          onChange={toggleAllSelection}
+                          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                        />
+                        <span className="text-sm text-slate-400">
+                          {selectedRows.size}/{data.length} selected
+                        </span>
+                      </div>
                     </>
                   );
                 }
@@ -811,7 +845,7 @@ function SettingsCard({
           {/* Rows - No scroll, show all data */}
           <div className="space-y-2">
             {/* New rows first */}
-            {newRowsData.map(renderNewRow)}
+            {newRowsData.map((row, index) => renderNewRow(row, index, (saveFunction) => setNewRowSaveFunction(saveFunction)))}
 
             {/* Existing rows - hide when new rows are present */}
             {!hasNewRows && data.map(renderRow)}
@@ -830,7 +864,7 @@ function SettingsCard({
 
 /* ---------- OrderBook-style Row Components ---------- */
 
-function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel }) {
+function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel, onSaveRequest }) {
   const [name, setName] = useState("");
   const [details, setDetails] = useState("");
   const [status, setStatus] = useState("");
@@ -873,6 +907,13 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
       setBusy(false);
     }
   };
+
+  // Expose handleSave function to parent component
+  useEffect(() => {
+    if (onSaveRequest) {
+      onSaveRequest(handleSave);
+    }
+  }, [name, details, busy]);
 
   const getPlaceholder = () => {
     switch (row.type) {
@@ -930,35 +971,6 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
               placeholder={getDetailsPlaceholder()}
             />
           )}
-          
-          {/* Row action buttons */}
-          <div className="flex gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSave();
-              }}
-              disabled={busy}
-              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Save New Row"
-            >
-              <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onCancel();
-              }}
-              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-              title="Cancel New Row"
-            >
-              <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
         </div>
       </div>
       
