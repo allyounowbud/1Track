@@ -123,6 +123,11 @@ export default function OrderBook() {
     queryFn: getMarkets,
   });
 
+  // Use real data only
+  const allItems = items;
+  const allRetailers = retailers;
+  const allMarkets = markets;
+
   // Normalize native date input rendering
   useEffect(() => {
     const tag = document.createElement("style");
@@ -363,9 +368,15 @@ export default function OrderBook() {
     });
   }
 
+
   const filtered = useMemo(() => {
     const query = (q || "").trim().toLowerCase();
     const allRows = [...newRows, ...orders]; // Include new rows at the top
+    
+    // If there are new rows, only show new rows (hide existing ones)
+    if (newRows.length > 0) {
+      return newRows;
+    }
     
     if (!query) return allRows;
 
@@ -432,9 +443,9 @@ export default function OrderBook() {
           setViewMode={setViewMode}
           grouped={grouped}
           filtered={filtered}
-          items={items}
-          retailers={retailers}
-          markets={markets}
+          items={allItems}
+          retailers={allRetailers}
+          markets={allMarkets}
           onSaved={refetch}
           onDeleted={refetch}
           selectedRows={selectedRows}
@@ -450,6 +461,7 @@ export default function OrderBook() {
           setFormStates={setFormStates}
           searchQuery={q}
           setSearchQuery={setQ}
+          newRows={newRows}
         />
     </LayoutWithSidebar>
   );
@@ -478,7 +490,8 @@ function UnifiedOrderView({
   formStates,
   setFormStates,
   searchQuery,
-  setSearchQuery
+  setSearchQuery,
+  newRows
 }) {
   return (
     <div className={`${pageCard}`}>
@@ -504,11 +517,11 @@ function UnifiedOrderView({
               <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search for orders"
-            disabled={filtered.some(order => order.isNew)}
-            className={`${inputSm} pl-10 ${filtered.some(order => order.isNew) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            placeholder={newRows.length > 0 ? "Complete new orders to search" : "Search for orders"}
+            disabled={newRows.length > 0}
+            className={`${inputSm} pl-10 ${newRows.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
-          {searchQuery && !filtered.some(order => order.isNew) && (
+          {searchQuery && newRows.length === 0 && (
             <button
               onClick={() => setSearchQuery("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
@@ -524,19 +537,21 @@ function UnifiedOrderView({
       {/* Page break line */}
       <div className="border-b border-slate-700 mb-4"></div>
 
-      {/* Header with Selection Count and Actions */}
-      <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
-        {/* Left side - Selection Count */}
-        <div className="flex items-center gap-2">
+      {/* Header with Selection Count and Actions - Card-like structure without background */}
+      <div className="flex items-center justify-between p-4 mb-4">
+        {/* Left side - Selection Count (matches card header structure) */}
+        <div className="flex items-center gap-4">
           <input
             type="checkbox"
             checked={selectedRows.size === filtered.length && filtered.length > 0}
             onChange={toggleAllSelection}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+            className="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-indigo-600 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-600"
           />
-          <span className="text-sm font-semibold text-slate-400">
-            {selectedRows.size}/{filtered.length} Selected
-          </span>
+          <div>
+            <div className="text-sm sm:text-lg text-slate-400 whitespace-nowrap">
+              {selectedRows.size}/{filtered.length} Selected
+            </div>
+          </div>
         </div>
 
         {/* Right side - Action Buttons and View Toggle */}
@@ -546,23 +561,23 @@ function UnifiedOrderView({
             const hasSelection = selectedRows.size > 0;
             const selectedOrders = filtered.filter(order => selectedRows.has(order.id));
             const hasNewRowsInSelection = selectedOrders.some(order => order.isNew);
-            const hasNewRowsInSystem = filtered.some(order => order.isNew); // Check entire system
+            const hasNewRowsInSystem = newRows.length > 0; // Check entire system
             const hasExistingRows = selectedOrders.some(order => !order.isNew);
             
-            // Default state: no selection - show only + add button (but hide if search has input)
+            // Default state: no selection - show only + add button (but hide if search has input or new rows exist)
             if (!hasSelection) {
-              // Hide + button if there's search input
-              if (searchQuery && searchQuery.trim()) {
+              // Hide + button if there's search input or if new rows already exist
+              if ((searchQuery && searchQuery.trim()) || newRows.length > 0) {
                 return null;
               }
               
               return (
                 <button
                   onClick={addNewRow}
-                  className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
                   title="Add New Order"
                 >
-                  <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                 </button>
@@ -575,19 +590,19 @@ function UnifiedOrderView({
                 <>
                   <button
                     onClick={cancelNewRows}
-                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Cancel Changes"
                   >
-                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                   <button
                     onClick={bulkSaveSelected}
-                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Save Changes"
                   >
-                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
                   </button>
@@ -601,19 +616,19 @@ function UnifiedOrderView({
                 <>
                   <button
                     onClick={cancelNewRows}
-                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Cancel Changes"
                   >
-                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                   <button
                     onClick={bulkSaveSelected}
-                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Save Selected Orders"
                   >
-                    <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
                   </button>
@@ -621,10 +636,10 @@ function UnifiedOrderView({
                   {!hasNewRowsInSystem && (
                     <button
                       onClick={bulkDeleteSelected}
-                      className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
                       title="Delete Selected Orders"
                     >
-                      <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                 </button>
@@ -637,33 +652,22 @@ function UnifiedOrderView({
             return null;
           })()}
           
-          {/* View Toggle Buttons - positioned at the far right */}
-          <div className="flex items-center gap-2 ml-2">
+          {/* View Toggle Button - single toggle to save space */}
+          <div className="ml-2">
             <button
-              onClick={() => setViewMode('grid')}
-              className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
-                viewMode === 'grid'
-                  ? 'border-indigo-500 bg-indigo-600 text-white'
-                  : 'border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200'
-              }`}
-              title="Grid View"
+              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+              title={`Switch to ${viewMode === 'grid' ? 'List' : 'Grid'} View`}
             >
-              <svg className={`w-4 h-4 transition-transform ${viewMode === 'grid' ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center group ${
-                viewMode === 'list'
-                  ? 'border-indigo-500 bg-indigo-600 text-white'
-                  : 'border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200'
-              }`}
-              title="List View"
-            >
-              <svg className={`w-4 h-4 transition-transform ${viewMode === 'list' ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-              </svg>
+              {viewMode === 'grid' ? (
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              )}
             </button>
             </div>
           </div>
@@ -749,7 +753,9 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
     <>
       {/* Table Header - Hidden on mobile */}
       <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
-        <div className="w-6"></div>
+        <div className="flex items-center justify-start">
+          <div className="w-4 h-4"></div>
+        </div>
         <div className="text-xs text-slate-300 font-medium">Order date</div>
         <div className="text-xs text-slate-300 font-medium">Item</div>
         <div className="text-xs text-slate-300 font-medium">Profile</div>
@@ -805,32 +811,30 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={allRowsSelected}
-              onChange={(e) => {
-                e.stopPropagation();
-                const newSelected = new Set(selectedRows);
-                if (allRowsSelected) {
-                  // Check if this section contains new orders - prevent deselection
-                  const hasNewOrdersInSection = rows.some(row => row.isNew);
-                  if (hasNewOrdersInSection) {
-                    // Don't allow deselection when new orders are present in this section
-                    return;
-                  }
-                  // Deselect all rows in this section
-                  rows.forEach(row => newSelected.delete(row.id));
-                } else {
-                  // Select all rows in this section
-                  rows.forEach(row => newSelected.add(row.id));
+          <input
+            type="checkbox"
+            checked={allRowsSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              const newSelected = new Set(selectedRows);
+              if (allRowsSelected) {
+                // Check if this section contains new orders - prevent deselection
+                const hasNewOrdersInSection = rows.some(row => row.isNew);
+                if (hasNewOrdersInSection) {
+                  // Don't allow deselection when new orders are present in this section
+                  return;
                 }
-                setSelectedRows(newSelected);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-            />
-          </div>
+                // Deselect all rows in this section
+                rows.forEach(row => newSelected.delete(row.id));
+              } else {
+                // Select all rows in this section
+                rows.forEach(row => newSelected.add(row.id));
+              }
+              setSelectedRows(newSelected);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-indigo-600 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-600"
+          />
           <div>
             <div className="text-lg font-semibold text-slate-100">{title}</div>
             <div className="text-sm text-slate-400">
@@ -846,7 +850,9 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
         <div className="p-4 border-t border-slate-700">
           {/* Header Row for Orders */}
           <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-3 pb-2 border-b border-slate-700">
-            <div className="w-6"></div>
+            <div className="flex items-center justify-start">
+              <div className="w-4 h-4"></div>
+            </div>
             <div className="text-xs text-slate-300 font-medium">Order date</div>
             <div className="text-xs text-slate-300 font-medium">Item</div>
             <div className="text-xs text-slate-300 font-medium">Profile</div>
@@ -1321,24 +1327,26 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
   return (
     <div 
-      className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
+      className={`rounded-xl border bg-slate-900/60 p-3 pb-4 sm:pb-3 overflow-hidden transition cursor-pointer relative ${
         isSelected || order.isNew
           ? 'border-indigo-500 bg-indigo-500/10' 
           : 'border-slate-800 hover:bg-slate-800/50'
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center min-w-0 overflow-hidden">
-        {/* Selection checkbox */}
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={(e) => {
-            e.stopPropagation();
-            onToggleSelection();
-          }}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] lg:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center min-w-0 overflow-hidden">
+        {/* Selection checkbox - hidden on mobile, visible on desktop */}
+        <div className="hidden sm:flex items-center justify-start">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              onToggleSelection();
+            }}
+            className="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-indigo-600 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-600"
+          />
+        </div>
         
         {/* Order Date - Responsive */}
         <input
@@ -1450,6 +1458,11 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           {msg}
         </div>
       )}
+      
+      {/* Mobile-only ghost text for row selection */}
+      <div className="sm:hidden text-xs text-slate-500 text-center mt-2">
+        {isSelected ? "Selected" : "Click to select row"}
+      </div>
     </div>
   );
 }

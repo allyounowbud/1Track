@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../hooks/useAuth.js";
 import { card } from "../utils/ui.js";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
+import PageHeader from "../components/PageHeader.jsx";
 
 const tile =
   "group rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 transition p-5 flex items-start gap-4";
@@ -26,27 +27,6 @@ export default function Hub() {
 
   // Changelog data with version numbers
   const changelogData = [
-    {
-      version: "0.1.4",
-      title: "Enhanced Mobile Experience and UI Improvements",
-      description: "Significantly improved the mobile experience with responsive design enhancements. Made header selection text smaller on mobile to match input field text size. Hidden checkboxes on mobile rows and made entire rows clickable for easier selection with ghost text indicators. Reduced button sizes on mobile (w-8 h-8) while maintaining desktop sizes (w-10 h-10). Converted grid/list view buttons into a single toggle button to save space and distinguish view controls from action buttons. Added visual cues and better spacing for mobile interactions.",
-      color: "bg-yellow-500/70",
-      timestamp: "2024-12-19 22:30"
-    },
-    {
-      version: "0.1.3",
-      title: "Updated Sign Out Button to Match App Design",
-      description: "Redesigned the sign out button to match the rest of the web app's design language. Changed from a text-based button to an icon-based square button with rounded edges (rounded-lg). Uses the same styling as other icon buttons throughout the app with slate color scheme, hover effects, and proper accessibility with tooltip. The button now features a logout icon with subtle scale animation on hover.",
-      color: "bg-yellow-500/70",
-      timestamp: "2024-12-19 22:20"
-    },
-    {
-      version: "0.1.2",
-      title: "Implemented Changelog Pagination and Version Numbering System",
-      description: "Added pagination to the changelog to show only 10 entries at a time with navigation controls. Implemented a proper version numbering system that increments by 0.0.1 for each update. Each changelog entry now displays its version number in a styled badge alongside the timestamp. Added Previous/Next buttons and page numbers for easy navigation through changelog history.",
-      color: "bg-yellow-500/70",
-      timestamp: "2024-12-19 22:15"
-    },
     {
       version: "0.1.1",
       title: "Reverted to Exact Version Before Input Outline Changes",
@@ -191,9 +171,9 @@ export default function Hub() {
                   v{version}
                 </div>
               )}
-            {timestamp && (
+              {timestamp && (
                 <div className="text-xs text-slate-500">{timestamp}</div>
-            )}
+              )}
             </div>
           </div>
           <div className="text-xs text-slate-400">{description}</div>
@@ -214,6 +194,8 @@ export default function Hub() {
 
   return (
     <LayoutWithSidebar active="hub" section="orderbook">
+      <PageHeader title="Home" showUserAvatar={false} />
+
         {/* Welcome / account (Sign out button lives here) */}
         <div className={`${card} mb-6`}>
           <div className="flex items-center gap-4">
@@ -238,12 +220,12 @@ export default function Hub() {
             <button
   type="button"
   onClick={signOut}
-              className="h-10 w-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-              title="Sign out"
-            >
-              <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+  className="h-10 px-4 inline-flex items-center justify-center leading-none rounded-xl
+             bg-rose-600 hover:bg-rose-500 text-white cursor-pointer
+             focus:outline-none focus:ring-2 focus:ring-rose-400/50
+             active:scale-[.99] transition"
+>
+  Sign out
 </button>
 
           </div>
@@ -319,7 +301,7 @@ export default function Hub() {
         <div className="space-y-3">
           {/* Paginated Changelog Entries */}
           {currentEntries.map((entry, index) => (
-          <ChangelogEntry
+            <ChangelogEntry
               key={`${entry.version}-${index}`}
               title={entry.title}
               description={entry.description}
@@ -367,7 +349,7 @@ export default function Hub() {
               >
                 Next
               </button>
-        </div>
+            </div>
           </div>
         )}
         </div>

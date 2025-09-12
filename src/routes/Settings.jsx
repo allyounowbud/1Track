@@ -745,7 +745,7 @@ function SettingsCard({
                 <>
                   <button
                     onClick={clearSelection}
-                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-10 h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Cancel Selection"
                   >
                     <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -754,7 +754,7 @@ function SettingsCard({
                   </button>
                   <button
                     onClick={bulkSave}
-                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-10 h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Save Selected"
                   >
                     <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -763,7 +763,7 @@ function SettingsCard({
                   </button>
                   <button
                     onClick={bulkDelete}
-                    className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-10 h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Delete Selected"
                   >
                     <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -787,10 +787,10 @@ function SettingsCard({
           </div>
 
           {/* Column Headers */}
-          <div className={`grid gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium ${
+          <div className={`hidden sm:grid gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium ${
             cardType === 'retailers' 
-              ? 'grid-cols-[auto_1fr_auto]' 
-              : 'grid-cols-[auto_2fr_1fr]'
+              ? 'grid-cols-1 sm:grid-cols-[auto_1fr_auto]' 
+              : 'grid-cols-1 sm:grid-cols-[auto_2fr_1fr]'
           }`}>
             <div className="w-6"></div>
             <div className="text-left">Name</div>
@@ -895,8 +895,8 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
     >
       <div className={`grid gap-4 items-center min-w-0 ${
         row.type === 'retailer' 
-          ? 'grid-cols-[1fr_auto]' 
-          : 'grid-cols-[2fr_1fr]'
+          ? 'grid-cols-1 sm:grid-cols-[1fr_auto]' 
+          : 'grid-cols-1 sm:grid-cols-[2fr_1fr]'
       }`}>
         <input
           className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
@@ -1016,7 +1016,7 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
         <input
           type="checkbox"
           checked={isSelected}
@@ -1145,7 +1145,7 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-center min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] gap-4 items-center min-w-0">
         <input
           type="checkbox"
           checked={isSelected}
@@ -1262,7 +1262,7 @@ function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = f
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
         <input
           type="checkbox"
           checked={isSelected}

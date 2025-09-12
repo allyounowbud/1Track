@@ -166,7 +166,7 @@ export default function MarkSold() {
                 value={salePrice}
                 onChange={(e) => setSalePrice(e.target.value)}
                 placeholder="e.g. 120.00"
-                className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
               />
             </div>
 
@@ -176,7 +176,7 @@ export default function MarkSold() {
                 type="date"
                 value={saleDate}
                 onChange={(e) => setSaleDate(e.target.value)}
-                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:border-indigo-500"
               />
             </div>
 
@@ -200,7 +200,7 @@ export default function MarkSold() {
                 onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
                 placeholder="e.g. 9 or 9.5"
                 disabled={feesLocked}
-                className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 ${
+                className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 ${
                   feesLocked ? "opacity-60 cursor-not-allowed" : ""
                 }`}
               />
@@ -214,7 +214,7 @@ export default function MarkSold() {
               <input
                 value={shipping}
                 onChange={(e) => setShipping(e.target.value)}
-                className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:border-indigo-500"
                 placeholder="0"
               />
             </div>

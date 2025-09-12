@@ -10,8 +10,13 @@ import { supabase } from "../lib/supabaseClient";
  * - onCollapseChange: function (isCollapsed: boolean) => void
  */
 export default function Sidebar({ active = "", section = "orderbook", onCollapseChange }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Initialize from localStorage, default to collapsed (true)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
 
   useEffect(() => {
     async function loadUser() {
@@ -45,6 +50,24 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  // Handle responsive behavior
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const small = window.innerWidth < 1024; // lg breakpoint
+      setIsSmallScreen(small);
+      // Force collapse on small screens
+      if (small && !isCollapsed) {
+        setIsCollapsed(true);
+        localStorage.setItem('sidebar-collapsed', JSON.stringify(true));
+        onCollapseChange?.(true);
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, [isCollapsed, onCollapseChange]);
 
   // Base + variants for sidebar items
   const itemBase = isCollapsed 
@@ -91,39 +114,56 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
 
   return (
     <div className={`bg-slate-900 border-r border-slate-800 transition-all duration-300 fixed left-0 top-0 h-full z-30 ${
-      isCollapsed ? 'w-16' : 'w-64'
+      isCollapsed ? 'w-20' : 'w-64'
     }`}>
       {/* Header */}
-      <div className="p-4 border-b border-slate-800">
-        <div className="flex items-center justify-between">
+      <div className={`${isCollapsed ? 'flex justify-center py-3' : 'p-4'} border-b border-slate-800`}>
+        <div className={`${isCollapsed ? 'flex items-center justify-center' : 'flex items-center justify-between'}`}>
           {!isCollapsed && (
             <div className="flex items-end gap-2">
               <h1 className="text-xl font-bold">OneTrack</h1>
               <span className="text-xs text-slate-500 font-medium mb-1 -ml-1">BETA</span>
             </div>
           )}
-          <button
-            onClick={() => {
-              const newCollapsed = !isCollapsed;
-              setIsCollapsed(newCollapsed);
-              onCollapseChange?.(newCollapsed);
-            }}
-            className="p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
-          >
-            <svg 
-              className={`h-4 w-4 text-slate-400 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
+          {isSmallScreen ? (
+            // Show logo on small screens
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg">
+              <img 
+                src="/otlogo.svg" 
+                alt="OneTrack" 
+                className="h-8 w-8 object-contain"
+              />
+            </div>
+          ) : (
+            // Show expand/collapse button on large screens
+            <button
+              onClick={() => {
+                const newCollapsed = !isCollapsed;
+                setIsCollapsed(newCollapsed);
+                // Save to localStorage to persist across page navigation
+                localStorage.setItem('sidebar-collapsed', JSON.stringify(newCollapsed));
+                onCollapseChange?.(newCollapsed);
+              }}
+              className={`${isCollapsed 
+                ? "flex items-center justify-center w-10 h-10 rounded-lg transition-colors" 
+                : "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
+              } text-slate-300 hover:text-slate-100 hover:bg-slate-800/50`}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+              <svg 
+                className={`h-5 w-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="p-4 space-y-1">
+      <nav className={`${isCollapsed ? 'flex flex-col items-center py-4 space-y-1' : 'p-4 space-y-1'}`}>
         {navigationItems.map((item) => (
           <NavLink
             key={item.key}

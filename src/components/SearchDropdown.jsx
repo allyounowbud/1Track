@@ -74,7 +74,7 @@ export const SearchDropdown = ({
             onChange={handleInputChange}
             onFocus={() => setDropdownOpen(true)}
             placeholder={placeholder}
-            className={`w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 ${icon ? 'pl-10' : 'px-4'}`}
+            className={`w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 ${icon ? 'pl-10' : 'px-4'}`}
           />
           {(search || selected) && (
             <button
