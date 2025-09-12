@@ -296,6 +296,18 @@ export default function Hub() {
             linkTo={getChangelogLink("Fixed Action Buttons Always Stay on Right", "Fixed the issue where action buttons and select all checkbox would move to the left side when rows were selected. Now all action buttons and the select all checkbox always remain grouped together on the right side of the header maintaining consistent positioning.")}
           />
           <ChangelogEntry
+            title="Fixed New Row Auto-Save and Header Buttons"
+            description="Fixed critical issues where new rows were auto-saving to database immediately upon creation (causing 409 conflicts) and header buttons were showing bulk actions instead of new row actions. New rows now only save when explicitly clicking Save button, and header correctly shows Cancel/Save buttons for new rows."
+            color="bg-red-500/70"
+            linkTo={getChangelogLink("Fixed New Row Auto-Save and Header Buttons", "Fixed critical issues where new rows were auto-saving to database immediately upon creation causing 409 conflicts and header buttons were showing bulk actions instead of new row actions.")}
+          />
+          <ChangelogEntry
+            title="Simplified Settings Interface - Fixed All Issues"
+            description="Completely rewrote the Settings page header logic to fix auto-save issues and button positioning. New rows now have save/cancel buttons on the row itself (no auto-save), select all checkbox is always visible next to action buttons, and all buttons stay on the right side regardless of left content. Removed complex function reference system that was causing conflicts."
+            color="bg-green-500/70"
+            linkTo={getChangelogLink("Simplified Settings Interface - Fixed All Issues", "Completely rewrote the Settings page header logic to fix auto-save issues and button positioning. New rows now have save/cancel buttons on the row itself no auto-save select all checkbox is always visible next to action buttons and all buttons stay on the right side regardless of left content.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"
