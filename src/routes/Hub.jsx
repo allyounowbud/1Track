@@ -314,6 +314,12 @@ export default function Hub() {
             linkTo={getChangelogLink("Fixed Header Buttons When Adding New Row", "Fixed the issue where Cancel Save and Delete buttons were still visible in the header when adding a new row. Now when a new row is active the header only shows the select all checkbox and selection count all action buttons are hidden until the new row is either saved or canceled.")}
           />
           <ChangelogEntry
+            title="Prevented Multiple New Rows - One at a Time"
+            description="Hidden the + Add button when a new row is active to prevent users from adding multiple rows simultaneously, which could cause conflicts and database issues. Now only one new row can be added at a time, ensuring a clean and controlled workflow."
+            color="bg-emerald-500/70"
+            linkTo={getChangelogLink("Prevented Multiple New Rows - One at a Time", "Hidden the + Add button when a new row is active to prevent users from adding multiple rows simultaneously which could cause conflicts and database issues. Now only one new row can be added at a time ensuring a clean and controlled workflow.")}
+          />
+          <ChangelogEntry
             title="Removed Financial Trend Chart from Stats"
             description="Removed the problematic Financial Trend Chart from the single item view on the Stats page. The chart was causing rendering issues and extending beyond boundaries. Stats page now focuses on KPI cards and other analytics without the problematic chart component."
             color="bg-red-500/70"

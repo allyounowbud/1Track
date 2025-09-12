@@ -772,8 +772,8 @@ function SettingsCard({
                     </svg>
                   </button>
                 </>
-              ) : (
-                // No selection: Add button
+              ) : !hasNewRows ? (
+                // No selection and no new rows: Add button
                 <button
                   onClick={addNewRow}
                   className="w-10 h-10 rounded-xl border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
@@ -783,7 +783,7 @@ function SettingsCard({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
 
