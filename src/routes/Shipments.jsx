@@ -15,13 +15,22 @@ const TruckIcon = ({ className }) => (
 
 // Helper functions
 async function getOrders() {
-  const { data, error } = await supabase
-    .from("email_orders")
-    .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, shipped_at, delivered_at, status, source_message_id, source_email, created_at")
-    .order("order_date", { ascending: false })
-    .limit(3000);
-  if (error) throw error;
-  return data || [];
+  // First try email_orders table, if it doesn't exist, return empty array
+  try {
+    const { data, error } = await supabase
+      .from("email_orders")
+      .select("id, user_id, retailer, order_id, order_date, item_name, quantity, unit_price_cents, total_cents, image_url, shipped_at, delivered_at, status, source_message_id, source_email, created_at")
+      .order("order_date", { ascending: false })
+      .limit(3000);
+    if (error) {
+      console.log("email_orders table error:", error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.log("email_orders table not found:", err);
+    return [];
+  }
 }
 
 // Function to create Gmail link for an order
@@ -32,7 +41,7 @@ function getGmailLink(messageId) {
 
 // Function to clean up item names that have parsing issues
 function cleanItemName(itemName) {
-  if (!itemName) return null;
+  if (!itemName || typeof itemName !== 'string') return null;
   
   // Remove common parsing artifacts
   let cleaned = itemName
@@ -49,22 +58,38 @@ function cleanItemName(itemName) {
 }
 
 async function getShipments() {
-  const { data, error } = await supabase
-    .from("email_shipments")
-    .select("id, user_id, retailer, order_id, tracking_number, carrier, status, shipped_at, delivered_at, created_at")
-    .order("created_at", { ascending: false })
-    .limit(3000);
-  if (error) throw error;
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from("email_shipments")
+      .select("id, user_id, retailer, order_id, tracking_number, carrier, status, shipped_at, delivered_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(3000);
+    if (error) {
+      console.log("email_shipments table error:", error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.log("email_shipments table not found:", err);
+    return [];
+  }
 }
 
 async function getEmailAccounts() {
-  const { data, error } = await supabase
-    .from("email_accounts")
-    .select("id, email_address, user_id")
-    .like("provider", "gmail%");
-  if (error) throw error;
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from("email_accounts")
+      .select("id, email_address, user_id")
+      .like("provider", "gmail%");
+    if (error) {
+      console.log("email_accounts table error:", error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.log("email_accounts table not found:", err);
+    return [];
+  }
 }
 
 // Stitch orders and shipments together
@@ -129,10 +154,10 @@ export default function Shipments() {
     if (q.trim()) {
       const query = q.toLowerCase();
       r = r.filter(x => 
-        (x.item_name && x.item_name.toLowerCase().includes(query)) ||
-        (x.order_id && x.order_id.toLowerCase().includes(query)) ||
-        (x.retailer && x.retailer.toLowerCase().includes(query)) ||
-        (x.tracking_number && x.tracking_number.toLowerCase().includes(query))
+        (x.item_name && typeof x.item_name === 'string' && x.item_name.toLowerCase().includes(query)) ||
+        (x.order_id && typeof x.order_id === 'string' && x.order_id.toLowerCase().includes(query)) ||
+        (x.retailer && typeof x.retailer === 'string' && x.retailer.toLowerCase().includes(query)) ||
+        (x.tracking_number && typeof x.tracking_number === 'string' && x.tracking_number.toLowerCase().includes(query))
       );
     }
     
@@ -160,11 +185,11 @@ export default function Shipments() {
   };
 
   const getEmailForOrder = (order) => {
-    return order.source_email || 'Unknown';
+    return order?.source_email || 'Unknown';
   };
 
   const previewEmail = async (order) => {
-    if (!order.source_message_id) return;
+    if (!order?.source_message_id) return;
     
     try {
       // Fetch email content from our Gmail sync function
