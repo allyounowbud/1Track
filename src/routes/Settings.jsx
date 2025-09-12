@@ -724,7 +724,7 @@ function SettingsCard({
           {/* Header with Selection Count and Actions */}
           <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
             {/* Left side - Select rows to perform bulk actions text */}
-            {!hasSelection && (
+            {!hasSelection && !hasNewRows && (
               <div className="text-sm text-slate-400">
                 Select rows to perform bulk actions
               </div>
@@ -766,8 +766,8 @@ function SettingsCard({
                   );
                 }
                 
-                // Any existing rows selected: show bulk action buttons (hide + add button)
-                if (hasSelection) {
+                // Any existing rows selected (but no new rows): show bulk action buttons (hide + add button)
+                if (hasSelection && !hasNewRows) {
                   return (
                     <>
                       <button
@@ -913,7 +913,7 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel,
     if (onSaveRequest) {
       onSaveRequest(handleSave);
     }
-  }, [name, details, busy]);
+  }, [onSaveRequest]);
 
   const getPlaceholder = () => {
     switch (row.type) {
