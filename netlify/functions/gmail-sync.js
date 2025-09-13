@@ -758,7 +758,6 @@ function parseTargetOrder(html, text) {
   
   // First, try to find the product name by looking for text that appears before "Qty:"
   const qtyPattern = /qty\s*:\s*[0-9]+/i;
-  const bodyText = $("body").text();
   const qtyMatch = bodyText.match(qtyPattern);
   
   if (qtyMatch) {
