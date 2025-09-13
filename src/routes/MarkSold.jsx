@@ -316,7 +316,7 @@ export default function MarkSold() {
         {/* Card (mobile-friendly: overflow-hidden, min-w-0, responsive gaps) */}
         <form
           onSubmit={markSold}
-          className="relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] overflow-hidden space-y-5"
+          className="relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] space-y-5"
         >
           {/* SALE DETAILS TITLE */}
           <div>
@@ -373,11 +373,7 @@ export default function MarkSold() {
                   name="sale-location"
                   value={marketName}
                   onChange={(e) => setMarketName(e.target.value)}
-                  onFocus={() => {
-                    console.log('Sale Location input focused, opening dropdown');
-                    console.log('Markets data:', markets);
-                    setMarketDropdownOpen(true);
-                  }}
+                  onFocus={() => setMarketDropdownOpen(true)}
                   placeholder="Add or select a marketplace…"
                   className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
                 />
@@ -393,8 +389,7 @@ export default function MarkSold() {
                   </button>
                 )}
                 {marketDropdownOpen && (
-                  console.log('Rendering dropdown, marketDropdownOpen:', marketDropdownOpen, 'markets length:', markets.length) || 
-                  <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border-2 border-red-500 bg-slate-900 shadow-xl" style={{ border: '3px solid red' }}>
+                  <div className="absolute left-0 right-0 top-full z-[999999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
                     {/* Add new marketplace option */}
                     {!markets.some(m => m.name.toLowerCase() === marketName.toLowerCase()) && marketName.trim() && (
                       <button

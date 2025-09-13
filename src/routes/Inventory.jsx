@@ -315,7 +315,7 @@ export default function Inventory() {
             {/* 2. Average Price */}
             <Kpi
               label="Avg Price"
-              value={`$${centsToStr(kpis.avgPricePerItem)}`}
+              value={`$${centsToI dontStr(kpis.avgPricePerItem)}`}
               sub="per item"
               className="order-2 min-[550px]:order-2"
             />
