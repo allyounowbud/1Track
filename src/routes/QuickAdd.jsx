@@ -42,11 +42,17 @@ function Combo({
   onCreate,     // async (name) => createdName | null
   disabled = false,
   label,
+  name,
+  id,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
   const containerRef = useRef(null);
+  
+  // Generate unique ID if not provided
+  const inputId = id || `combo-${Math.random().toString(36).substr(2, 9)}`;
+  const inputName = name || inputId;
 
   // close on outside click
   useEffect(() => {
@@ -73,11 +79,13 @@ function Combo({
 
   return (
     <div className="min-w-0">
-      {label && <label className="text-slate-300 mb-1 block text-sm">{label}</label>}
+      {label && <label htmlFor={inputId} className="text-slate-300 mb-1 block text-sm">{label}</label>}
       <div ref={containerRef} className="relative min-w-0">
         <div className="relative">
           <input
             ref={inputRef}
+            id={inputId}
+            name={inputName}
             value={text}
             disabled={disabled}
             onChange={(e) => {
@@ -402,8 +410,10 @@ export default function QuickAdd() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
             <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Order Date</label>
+              <label htmlFor="order-date" className="text-slate-300 mb-1 block text-sm">Order Date</label>
               <input
+                id="order-date"
+                name="order-date"
                 type="date"
                 value={orderDate}
                 onChange={(e) => setOrderDate(e.target.value)}
@@ -418,11 +428,15 @@ export default function QuickAdd() {
               setValue={setItemName}
               options={itemNames}
               onCreate={createItem}
+              name="item"
+              id="item-select"
             />
 
             <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Profile (optional)</label>
+              <label htmlFor="profile" className="text-slate-300 mb-1 block text-sm">Profile (optional)</label>
               <input
+                id="profile"
+                name="profile"
                 value={profileName}
                 onChange={(e) => setProfile(e.target.value)}
                 placeholder="e.g. Target 3244"
@@ -437,11 +451,15 @@ export default function QuickAdd() {
               setValue={setRetailerName}
               options={retailerNames}
               onCreate={createRetailer}
+              name="retailer"
+              id="retailer-select"
             />
 
             <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Quantity</label>
+              <label htmlFor="quantity" className="text-slate-300 mb-1 block text-sm">Quantity</label>
               <input
+                id="quantity"
+                name="quantity"
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -455,13 +473,15 @@ export default function QuickAdd() {
                 className={inputBase}
               />
               <p className="text-xs text-slate-500 mt-1">
-                We’ll insert that many rows and split totals equally.
+                We'll insert that many rows and split totals equally.
               </p>
             </div>
 
             <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Buy Price (total)</label>
+              <label htmlFor="buy-price" className="text-slate-300 mb-1 block text-sm">Buy Price (total)</label>
               <input
+                id="buy-price"
+                name="buy-price"
                 value={buyPrice}
                 onChange={(e) => setBuyPrice(e.target.value)}
                 placeholder="e.g. 67.70"
@@ -500,6 +520,8 @@ export default function QuickAdd() {
                 setValue={setMarketName}
                 options={marketNames}
                 onCreate={createMarket}
+                name="marketplace"
+                id="marketplace-select"
               />
 
               <div className="min-w-0">
