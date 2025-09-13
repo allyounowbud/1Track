@@ -1,5 +1,6 @@
 // src/routes/QuickAdd.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
@@ -33,7 +34,41 @@ async function getMarketplaces() {
   return data || [];
 }
 
-/* ------------------------- Native-style Combo (single) ------------------------- */
+/* ------------------------- Positioning Hook ------------------------- */
+function useAnchoredRect(open, inputRef) {
+  const [rect, setRect] = useState(null);
+
+  useEffect(() => {
+    if (!open || !inputRef.current) {
+      setRect(null);
+      return;
+    }
+
+    const updateRect = () => {
+      if (inputRef.current) {
+        const inputRect = inputRef.current.getBoundingClientRect();
+        setRect({
+          top: inputRect.bottom + window.scrollY,
+          left: inputRect.left + window.scrollX,
+          width: inputRect.width,
+        });
+      }
+    };
+
+    updateRect();
+    window.addEventListener('resize', updateRect);
+    window.addEventListener('scroll', updateRect, true);
+
+    return () => {
+      window.removeEventListener('resize', updateRect);
+      window.removeEventListener('scroll', updateRect, true);
+    };
+  }, [open, inputRef]);
+
+  return rect;
+}
+
+/* ------------------------- Working Combo (single) ------------------------- */
 function Combo({
   placeholder = "Type…",
   value,
@@ -48,7 +83,7 @@ function Combo({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
-  const containerRef = useRef(null);
+  const rect = useAnchoredRect(open, inputRef);
   
   // Generate unique ID if not provided
   const inputId = id || `combo-${Math.random().toString(36).substr(2, 9)}`;
@@ -59,7 +94,7 @@ function Combo({
     const onDocClick = (e) => {
       if (!open) return;
       const t = e.target;
-      if (containerRef.current?.contains(t)) return;
+      if (inputRef.current?.contains(t)) return;
       setOpen(false);
     };
     window.addEventListener("click", onDocClick);
@@ -79,45 +114,33 @@ function Combo({
   return (
     <div className="min-w-0">
       {label && <label htmlFor={inputId} className="text-slate-300 mb-1 block text-sm">{label}</label>}
-      <div ref={containerRef} className="relative min-w-0">
-        <div className="relative">
-          <input
-            ref={inputRef}
-            id={inputId}
-            name={inputName}
-            value={text}
-            disabled={disabled}
-            onChange={(e) => {
-              setValue("");     // typing switches to search mode
-              setQuery(e.target.value);
-              if (!disabled) setOpen(true);
+      <div className="relative min-w-0">
+        <input
+          ref={inputRef}
+          id={inputId}
+          name={inputName}
+          value={text}
+          disabled={disabled}
+          onChange={(e) => {
+            setValue("");     // typing switches to search mode
+            setQuery(e.target.value);
+            if (!disabled) setOpen(true);
+          }}
+          onFocus={() => !disabled && setOpen(true)}
+          placeholder={placeholder}
+          className={`${inputBase} ${disabled ? disabledInput : ""}`}
+        />
+        
+        {/* Portal dropdown */}
+        {open && rect && createPortal(
+          <div
+            className="fixed z-50 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl"
+            style={{
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
             }}
-            onFocus={() => !disabled && setOpen(true)}
-            placeholder={placeholder}
-            className={`${inputBase} ${disabled ? disabledInput : ""} ${open ? 'rounded-b-none' : ''}`}
-          />
-          {/* clear button inside input */}
-          {text && !disabled && (
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()} // keep focus
-              onClick={() => {
-                setValue("");
-                setQuery("");
-                setOpen(true);
-                inputRef.current?.focus();
-              }}
-              aria-label="Clear"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
-            >
-              ×
-            </button>
-          )}
-        </div>
-
-        {/* dropdown menu - native style inside container */}
-        {open && (
-          <div className="absolute left-0 right-0 top-full z-50 max-h-64 overflow-y-auto overscroll-contain rounded-b-xl border border-slate-800 border-t-0 bg-slate-900 shadow-xl">
+          >
             {/* Clear row */}
             {value && (
               <button
@@ -176,7 +199,8 @@ function Combo({
                 {opt}
               </button>
             ))}
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>
