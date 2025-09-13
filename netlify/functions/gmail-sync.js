@@ -166,29 +166,54 @@ async function getGmailClient(account) {
 }
 
 /* ---------------------------- Gmail listing ---------------------------- */
-async function listCandidateMessageIds(gmail) {
+async function listCandidateMessageIds(gmail, accountEmail, totalAccounts) {
   // Much broader query to catch more retailers and email types
   const q =
     'newer_than:90d in:inbox (from:amazon.com OR from:target.com OR from:macys.com OR from:nike.com OR from:orders.amazon.com OR from:auto-confirm@amazon.com OR from:shipment-tracking@amazon.com OR from:order-update@amazon.com OR from:oe.target.com OR from:oe1.target.com OR from:oes.macys.com OR from:noreply.macys.com OR from:ship.notifications.nike.com OR subject:order OR subject:shipped OR subject:delivered OR subject:cancel OR subject:confirmation OR subject:tracking OR subject:shipment)';
   
-  console.log("Gmail query:", q);
+  console.log(`Gmail query for ${accountEmail}:`, q);
   const ids = [];
   let pageToken;
-  // cap at 500 msgs per invocation to catch more emails
-  for (let i = 0; i < 10; i++) {
-    const res = await gmail.users.messages.list({
-      userId: "me",
-      q,
-      maxResults: 50,
-      pageToken,
-    });
-    console.log(`Page ${i + 1}: Found ${(res.data.messages || []).length} messages`);
-    (res.data.messages || []).forEach((m) => ids.push(m.id));
-    pageToken = res.data.nextPageToken;
-    if (!pageToken || ids.length >= 500) break;
+  
+  // Calculate emails per account to avoid rate limits
+  // With multiple accounts, reduce emails per account to ensure all get processed
+  const maxEmailsPerAccount = totalAccounts > 1 ? Math.min(100, Math.floor(300 / totalAccounts)) : 200;
+  const maxPages = Math.ceil(maxEmailsPerAccount / 50);
+  
+  console.log(`Processing up to ${maxEmailsPerAccount} emails for ${accountEmail} (${totalAccounts} total accounts)`);
+  
+  for (let i = 0; i < maxPages; i++) {
+    try {
+      const res = await gmail.users.messages.list({
+        userId: "me",
+        q,
+        maxResults: 50,
+        pageToken,
+      });
+      
+      console.log(`Page ${i + 1}: Found ${(res.data.messages || []).length} messages`);
+      (res.data.messages || []).forEach((m) => ids.push(m.id));
+      pageToken = res.data.nextPageToken;
+      
+      // Add small delay to avoid rate limits
+      if (i < maxPages - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      if (!pageToken || ids.length >= maxEmailsPerAccount) break;
+    } catch (error) {
+      console.error(`Error fetching messages for ${accountEmail} (page ${i}):`, error.message);
+      // If we hit rate limits, break and continue with other accounts
+      if (error.message.includes('rate') || error.message.includes('quota')) {
+        console.log(`Rate limit hit for ${accountEmail}, stopping at ${ids.length} emails`);
+        break;
+      }
+      throw error;
+    }
   }
-  console.log(`Total candidate messages found: ${ids.length}`);
-  return unique(ids).slice(0, 500);
+  
+  console.log(`Total candidate messages found for ${accountEmail}: ${ids.length}`);
+  return unique(ids).slice(0, maxEmailsPerAccount);
 }
 async function getMessageFull(gmail, id) {
   const res = await gmail.users.messages.get({
@@ -1241,7 +1266,7 @@ exports.handler = async (event) => {
       
       const account = accounts[0];
       const gmail = await getGmailClient(account);
-      const ids = await listCandidateMessageIds(gmail);
+      const ids = await listCandidateMessageIds(gmail, account.email_address, accounts.length);
       
       return json({ 
         account: account.email_address,
@@ -1329,8 +1354,15 @@ exports.handler = async (event) => {
     const allProposed = [];
     
     // Process each connected Gmail account
-    for (const account of accounts) {
-      console.log(`Processing Gmail account: ${account.email_address}`);
+    for (let accountIndex = 0; accountIndex < accounts.length; accountIndex++) {
+      const account = accounts[accountIndex];
+      console.log(`Processing Gmail account ${accountIndex + 1}/${accounts.length}: ${account.email_address}`);
+      
+      // Add delay between accounts to avoid rate limits
+      if (accountIndex > 0) {
+        console.log(`Waiting 2 seconds before processing next account...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
       
       let gmail;
       try {
@@ -1343,7 +1375,7 @@ exports.handler = async (event) => {
       
       let ids;
       try {
-        ids = await listCandidateMessageIds(gmail);
+        ids = await listCandidateMessageIds(gmail, account.email_address, accounts.length);
       } catch (listError) {
         console.error(`Error listing messages for ${account.email_address}:`, listError);
         totalErrors++;
