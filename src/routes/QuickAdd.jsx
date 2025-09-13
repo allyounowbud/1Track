@@ -127,22 +127,13 @@ export default function QuickAdd() {
 
   /* -------------------------- derived lists (names) ------------------------- */
   const itemNames = useMemo(() => {
-    const names = items.map((i) => i.name).filter(Boolean);
-    console.log('QuickAdd - Items from DB:', items);
-    console.log('QuickAdd - Item names:', names);
-    return names;
+    return items.map((i) => i.name).filter(Boolean);
   }, [items]);
   const retailerNames = useMemo(() => {
-    const names = retailers.map((r) => r.name).filter(Boolean);
-    console.log('QuickAdd - Retailers from DB:', retailers);
-    console.log('QuickAdd - Retailer names:', names);
-    return names;
+    return retailers.map((r) => r.name).filter(Boolean);
   }, [retailers]);
   const marketNames = useMemo(() => {
-    const names = markets.map((m) => m.name).filter(Boolean);
-    console.log('QuickAdd - Markets from DB:', markets);
-    console.log('QuickAdd - Market names:', names);
-    return names;
+    return markets.map((m) => m.name).filter(Boolean);
   }, [markets]);
 
   /* ------------------------------- creators -------------------------------- */
@@ -332,13 +323,9 @@ export default function QuickAdd() {
                     )}
 
                     {/* Existing items */}
-                    {(() => {
-                      const filtered = itemNames.filter(name => 
-                        name.toLowerCase().includes(itemName.toLowerCase())
-                      ).slice(0, 20);
-                      console.log('QuickAdd - Filtered items for dropdown:', filtered);
-                      return filtered;
-                    })().map((name) => (
+                    {itemNames.filter(name => 
+                      name.toLowerCase().includes(itemName.toLowerCase())
+                    ).slice(0, 20).map((name) => (
                       <button
                         type="button"
                         key={name}
