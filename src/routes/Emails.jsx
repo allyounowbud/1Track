@@ -32,11 +32,15 @@ async function getEmailAccounts() {
 }
 
 async function getEmailStats() {
+  // Use email_orders table instead of non-existent emails table
   const { data, error } = await supabase
-    .from("emails")
-    .select("id, processed_at, order_id")
-    .not("processed_at", "is", null);
-  if (error) throw error;
+    .from("email_orders")
+    .select("id, created_at, order_id")
+    .not("created_at", "is", null);
+  if (error) {
+    console.log("email_orders table error:", error);
+    return [];
+  }
   return data || [];
 }
 
