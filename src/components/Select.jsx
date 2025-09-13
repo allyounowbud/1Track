@@ -39,7 +39,7 @@ export const Select = ({ value, onChange, options, placeholder = "Select…", cl
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl">
+        <div className="absolute left-0 right-0 mt-2 z-[99999] rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
           <ul className="max-h-64 overflow-auto py-1">
             {options.map((opt) => (
               <li key={opt.value}>
