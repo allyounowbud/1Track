@@ -74,6 +74,9 @@ function Combo({
     return options.filter((n) => n.toLowerCase().includes(normalized)).slice(0, 200);
   }, [options, normalized]);
 
+  // Debug dropdown state
+  console.log('Combo debug - open:', open, 'filtered length:', filtered.length, 'text:', text);
+
   const existsExact =
     normalized && options.some((n) => n.toLowerCase() === normalized);
 
@@ -89,11 +92,15 @@ function Combo({
             value={text}
             disabled={disabled}
             onChange={(e) => {
+              console.log('Input onChange triggered');
               setValue("");     // typing switches to search mode
               setQuery(e.target.value);
               if (!disabled) setOpen(true);
             }}
-            onFocus={() => !disabled && setOpen(true)}
+            onFocus={() => {
+              console.log('Input onFocus triggered');
+              !disabled && setOpen(true);
+            }}
             placeholder={placeholder}
             className={`${inputBase} ${disabled ? disabledInput : ""} ${open ? 'rounded-b-none' : ''}`}
           />
