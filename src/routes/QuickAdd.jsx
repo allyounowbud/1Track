@@ -63,6 +63,7 @@ function Combo({
   const text = value || query;
   const normalized = text.trim().toLowerCase();
   const filtered = useMemo(() => {
+    console.log('Combo options:', options, 'normalized:', normalized);
     if (!normalized) return options.slice(0, 200);
     return options.filter((n) => n.toLowerCase().includes(normalized)).slice(0, 200);
   }, [options, normalized]);
@@ -249,9 +250,24 @@ export default function QuickAdd() {
   const [msg, setMsg] = useState("");
 
   /* -------------------------- derived lists (names) ------------------------- */
-  const itemNames = useMemo(() => items.map((i) => i.name).filter(Boolean), [items]);
-  const retailerNames = useMemo(() => retailers.map((r) => r.name).filter(Boolean), [retailers]);
-  const marketNames = useMemo(() => markets.map((m) => m.name).filter(Boolean), [markets]);
+  const itemNames = useMemo(() => {
+    console.log('Items from DB:', items);
+    const names = items.map((i) => i.name).filter(Boolean);
+    console.log('Item names:', names);
+    return names;
+  }, [items]);
+  const retailerNames = useMemo(() => {
+    console.log('Retailers from DB:', retailers);
+    const names = retailers.map((r) => r.name).filter(Boolean);
+    console.log('Retailer names:', names);
+    return names;
+  }, [retailers]);
+  const marketNames = useMemo(() => {
+    console.log('Markets from DB:', markets);
+    const names = markets.map((m) => m.name).filter(Boolean);
+    console.log('Market names:', names);
+    return names;
+  }, [markets]);
 
   /* ------------------------------- creators -------------------------------- */
   async function createItem(name) {
