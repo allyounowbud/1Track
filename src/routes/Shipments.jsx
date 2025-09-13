@@ -655,14 +655,14 @@ export default function Shipments() {
         {/* Email Preview Modal */}
         {emailPreview && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-4xl w-full max-h-[90vh] overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-slate-700">
-                <h3 className="text-lg font-semibold text-slate-200">
+            <div className="bg-slate-800 rounded-xl border-2 border-slate-600 shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b-2 border-slate-600 bg-slate-700/50">
+                <h3 className="text-xl font-bold text-slate-100">
                   Email Preview - {emailPreview.order.retailer} #{emailPreview.order.order_id}
                 </h3>
                 <button
                   onClick={() => setEmailPreview(null)}
-                  className="text-slate-400 hover:text-slate-200 transition-colors"
+                  className="text-slate-400 hover:text-slate-100 transition-colors p-2 rounded-lg hover:bg-slate-600"
                 >
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -670,38 +670,54 @@ export default function Shipments() {
                 </button>
               </div>
               
-              <div className="p-4 border-b border-slate-700 bg-slate-900/50">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-slate-400">From:</span>
-                    <div className="text-slate-200 font-medium">{emailPreview.content.from}</div>
-                  </div>
-                  <div>
-                    <span className="text-slate-400">To:</span>
-                    <div className="text-slate-200 font-medium">{emailPreview.content.to}</div>
-                  </div>
-                  <div>
-                    <span className="text-slate-400">Subject:</span>
-                    <div className="text-slate-200 font-medium">{emailPreview.content.subject}</div>
-                  </div>
-                  <div>
-                    <span className="text-slate-400">Date:</span>
-                    <div className="text-slate-200 font-medium">{emailPreview.content.date}</div>
+              <div className="p-6 border-b-2 border-slate-600 bg-slate-900/30">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div className="flex flex-col">
+                        <span className="text-slate-400 text-sm font-medium uppercase tracking-wide">From</span>
+                        <div className="text-slate-100 font-medium text-base mt-1">
+                          {emailPreview.content.from?.replace(/<|>/g, '') || 'N/A'}
+                        </div>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-slate-400 text-sm font-medium uppercase tracking-wide">To</span>
+                        <div className="text-slate-100 font-medium text-base mt-1">
+                          {emailPreview.content.to?.replace(/<|>/g, '') || 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex flex-col">
+                        <span className="text-slate-400 text-sm font-medium uppercase tracking-wide">Subject</span>
+                        <div className="text-slate-100 font-medium text-base mt-1 break-words">
+                          {emailPreview.content.subject || 'N/A'}
+                        </div>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-slate-400 text-sm font-medium uppercase tracking-wide">Date</span>
+                        <div className="text-slate-100 font-medium text-base mt-1">
+                          {emailPreview.content.date || 'N/A'}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
               
-              <div className="p-4 overflow-auto max-h-[60vh]">
-                {emailPreview.content.html ? (
-                  <div 
-                    className="prose prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: emailPreview.content.html }}
-                  />
-                ) : (
-                  <div className="whitespace-pre-wrap text-slate-300 font-mono text-sm">
-                    {emailPreview.content.text}
-                  </div>
-                )}
+              <div className="p-6 overflow-auto max-h-[60vh] bg-white/5">
+                <div className="border-2 border-slate-600 rounded-lg p-4 bg-white/10">
+                  {emailPreview.content.html ? (
+                    <div 
+                      className="prose prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: emailPreview.content.html }}
+                    />
+                  ) : (
+                    <div className="whitespace-pre-wrap text-slate-300 font-mono text-sm">
+                      {emailPreview.content.text}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
