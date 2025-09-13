@@ -303,6 +303,24 @@ export default function QuickAdd() {
                 )}
                 {itemDropdownOpen && (
                   <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                    {/* Add new item option */}
+                    {!itemNames.some(name => name.toLowerCase() === itemName.toLowerCase()) && itemName.trim() && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const createdName = await createItem(itemName.trim());
+                          if (createdName) {
+                            setItemName(createdName);
+                            setItemDropdownOpen(false);
+                          }
+                        }}
+                        className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
+                      >
+                        + Add "{itemName.trim()}"
+                      </button>
+                    )}
+
+                    {/* Existing items */}
                     {itemNames.filter(name => 
                       name.toLowerCase().includes(itemName.toLowerCase())
                     ).slice(0, 20).map((name) => (
@@ -358,6 +376,24 @@ export default function QuickAdd() {
                 )}
                 {retailerDropdownOpen && (
                   <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                    {/* Add new retailer option */}
+                    {!retailerNames.some(name => name.toLowerCase() === retailerName.toLowerCase()) && retailerName.trim() && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const createdName = await createRetailer(retailerName.trim());
+                          if (createdName) {
+                            setRetailerName(createdName);
+                            setRetailerDropdownOpen(false);
+                          }
+                        }}
+                        className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
+                      >
+                        + Add "{retailerName.trim()}"
+                      </button>
+                    )}
+
+                    {/* Existing retailers */}
                     {retailerNames.filter(name => 
                       name.toLowerCase().includes(retailerName.toLowerCase())
                     ).slice(0, 20).map((name) => (
@@ -459,6 +495,24 @@ export default function QuickAdd() {
                   )}
                   {marketDropdownOpen && (
                     <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                      {/* Add new marketplace option */}
+                      {!marketNames.some(name => name.toLowerCase() === marketName.toLowerCase()) && marketName.trim() && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const createdName = await createMarket(marketName.trim());
+                            if (createdName) {
+                              setMarketName(createdName);
+                              setMarketDropdownOpen(false);
+                            }
+                          }}
+                          className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
+                        >
+                          + Add "{marketName.trim()}"
+                        </button>
+                      )}
+
+                      {/* Existing marketplaces */}
                       {marketNames.filter(name => 
                         name.toLowerCase().includes(marketName.toLowerCase())
                       ).slice(0, 20).map((name) => (

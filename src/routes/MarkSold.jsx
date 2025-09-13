@@ -210,6 +210,18 @@ export default function MarkSold() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
+  // dropdown states
+  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setMarketDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // ---------- searchable dropdown (mobile-safe) ----------
 
   const label = (o) =>
@@ -347,16 +359,64 @@ export default function MarkSold() {
               />
             </div>
 
-            <Combo
-              label="Sale Location"
-              placeholder="Add or select a marketplace…"
-              value={marketName}
-              setValue={setMarketName}
-              options={markets.map((m) => m.name)}
-              onCreate={createMarketplace}
-              name="sale-location"
-              id="sale-location-select"
-            />
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Sale Location</label>
+              <div className="relative">
+                <input
+                  value={marketName}
+                  onChange={(e) => setMarketName(e.target.value)}
+                  onFocus={() => setMarketDropdownOpen(true)}
+                  placeholder="Add or select a marketplace…"
+                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
+                />
+                {marketName && (
+                  <button
+                    type="button"
+                    onClick={() => setMarketName("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                    </svg>
+                  </button>
+                )}
+                {marketDropdownOpen && (
+                  <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                    {/* Add new marketplace option */}
+                    {!markets.some(m => m.name.toLowerCase() === marketName.toLowerCase()) && marketName.trim() && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const createdName = await createMarketplace(marketName.trim());
+                          if (createdName) {
+                            setMarketName(createdName);
+                            setMarketDropdownOpen(false);
+                          }
+                        }}
+                        className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
+                      >
+                        + Add "{marketName.trim()}"
+                      </button>
+                    )}
+
+                    {/* Existing marketplaces */}
+                    {markets.map((market) => (
+                      <button
+                        type="button"
+                        key={market.id}
+                        onClick={() => {
+                          setMarketName(market.name);
+                          setMarketDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
+                      >
+                        {market.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="min-w-0">
               <label className="text-slate-300 mb-1 block text-sm">Fee (%)</label>
