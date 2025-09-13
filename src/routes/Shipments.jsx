@@ -671,10 +671,14 @@ export default function Shipments() {
               </div>
               
               <div className="p-4 border-b border-slate-700 bg-slate-900/50">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                   <div>
                     <span className="text-slate-400">From:</span>
                     <div className="text-slate-200 font-medium">{emailPreview.content.from}</div>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">To:</span>
+                    <div className="text-slate-200 font-medium">{emailPreview.content.to}</div>
                   </div>
                   <div>
                     <span className="text-slate-400">Subject:</span>

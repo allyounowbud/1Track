@@ -1458,6 +1458,7 @@ exports.handler = async (event) => {
             messageId,
             subject: headers.subject || '',
             from: headers.from || '',
+            to: headers.to || '',
             date: headers.date || '',
             html: html || '',
             text: text || '',
