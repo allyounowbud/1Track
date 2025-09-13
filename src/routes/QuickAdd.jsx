@@ -96,6 +96,11 @@ export default function QuickAdd() {
   const [qtyStr, setQtyStr] = useState(""); // <-- string input for easy backspace/edit
   const [buyPrice, setBuyPrice] = useState("");
 
+  // dropdown states
+  const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
+  const [retailerDropdownOpen, setRetailerDropdownOpen] = useState(false);
+  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
+
   // sale fields
   const [sold, setSold] = useState(false);
   const [saleDate, setSaleDate] = useState("");
@@ -108,6 +113,17 @@ export default function QuickAdd() {
   // ui
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setItemDropdownOpen(false);
+      setRetailerDropdownOpen(false);
+      setMarketDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   /* -------------------------- derived lists (names) ------------------------- */
   const itemNames = useMemo(() => {
@@ -264,21 +280,48 @@ export default function QuickAdd() {
               />
             </div>
 
-            <SearchDropdown
-              value={itemName}
-              onChange={setItemName}
-              options={itemNames}
-              placeholder="Add or select an item…"
-              label="Item"
-              getOptionLabel={(option) => option}
-              getOptionValue={(option) => option}
-              filterOptions={(options, search) => {
-                if (!search.trim()) return options.slice(0, 20);
-                return options.filter(option => 
-                  option.toLowerCase().includes(search.toLowerCase())
-                ).slice(0, 20);
-              }}
-            />
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Item</label>
+              <div className="relative">
+                <input
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  onFocus={() => setItemDropdownOpen(true)}
+                  placeholder="Add or select an item…"
+                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
+                />
+                {itemName && (
+                  <button
+                    type="button"
+                    onClick={() => setItemName("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                    </svg>
+                  </button>
+                )}
+                {itemDropdownOpen && (
+                  <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                    {itemNames.filter(name => 
+                      name.toLowerCase().includes(itemName.toLowerCase())
+                    ).slice(0, 20).map((name) => (
+                      <button
+                        type="button"
+                        key={name}
+                        onClick={() => {
+                          setItemName(name);
+                          setItemDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="min-w-0">
               <label htmlFor="profile" className="text-slate-300 mb-1 block text-sm">Profile (optional)</label>
@@ -292,21 +335,48 @@ export default function QuickAdd() {
               />
             </div>
 
-            <SearchDropdown
-              value={retailerName}
-              onChange={setRetailerName}
-              options={retailerNames}
-              placeholder="Add or select a retailer…"
-              label="Retailer"
-              getOptionLabel={(option) => option}
-              getOptionValue={(option) => option}
-              filterOptions={(options, search) => {
-                if (!search.trim()) return options.slice(0, 20);
-                return options.filter(option => 
-                  option.toLowerCase().includes(search.toLowerCase())
-                ).slice(0, 20);
-              }}
-            />
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-1 block text-sm">Retailer</label>
+              <div className="relative">
+                <input
+                  value={retailerName}
+                  onChange={(e) => setRetailerName(e.target.value)}
+                  onFocus={() => setRetailerDropdownOpen(true)}
+                  placeholder="Add or select a retailer…"
+                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
+                />
+                {retailerName && (
+                  <button
+                    type="button"
+                    onClick={() => setRetailerName("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                    </svg>
+                  </button>
+                )}
+                {retailerDropdownOpen && (
+                  <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                    {retailerNames.filter(name => 
+                      name.toLowerCase().includes(retailerName.toLowerCase())
+                    ).slice(0, 20).map((name) => (
+                      <button
+                        type="button"
+                        key={name}
+                        onClick={() => {
+                          setRetailerName(name);
+                          setRetailerDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="min-w-0">
               <label htmlFor="quantity" className="text-slate-300 mb-1 block text-sm">Quantity</label>
@@ -366,21 +436,48 @@ export default function QuickAdd() {
                 />
               </div>
 
-              <SearchDropdown
-                value={marketName}
-                onChange={setMarketName}
-                options={marketNames}
-                placeholder="Add or select a marketplace…"
-                label="Marketplace"
-                getOptionLabel={(option) => option}
-                getOptionValue={(option) => option}
-                filterOptions={(options, search) => {
-                  if (!search.trim()) return options.slice(0, 20);
-                  return options.filter(option => 
-                    option.toLowerCase().includes(search.toLowerCase())
-                  ).slice(0, 20);
-                }}
-              />
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-1 block text-sm">Marketplace</label>
+                <div className="relative">
+                  <input
+                    value={marketName}
+                    onChange={(e) => setMarketName(e.target.value)}
+                    onFocus={() => setMarketDropdownOpen(true)}
+                    placeholder="Add or select a marketplace…"
+                    className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
+                  />
+                  {marketName && (
+                    <button
+                      type="button"
+                      onClick={() => setMarketName("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                      </svg>
+                    </button>
+                  )}
+                  {marketDropdownOpen && (
+                    <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                      {marketNames.filter(name => 
+                        name.toLowerCase().includes(marketName.toLowerCase())
+                      ).slice(0, 20).map((name) => (
+                        <button
+                          type="button"
+                          key={name}
+                          onClick={() => {
+                            setMarketName(name);
+                            setMarketDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="min-w-0">
                 <label className="text-slate-300 mb-1 block text-sm">Sell Price (total)</label>
