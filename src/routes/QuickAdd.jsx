@@ -96,10 +96,6 @@ export default function QuickAdd() {
   const [qtyStr, setQtyStr] = useState(""); // <-- string input for easy backspace/edit
   const [buyPrice, setBuyPrice] = useState("");
 
-  // dropdown states
-  const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
-  const [retailerDropdownOpen, setRetailerDropdownOpen] = useState(false);
-  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
 
   // sale fields
   const [sold, setSold] = useState(false);
@@ -114,23 +110,6 @@ export default function QuickAdd() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      // Don't close if clicking on dropdown inputs or dropdown content
-      const target = event.target;
-      const isDropdownInput = target.closest('input[id*="input"]');
-      const isDropdownContent = target.closest('.dropdown-content');
-      
-      if (!isDropdownInput && !isDropdownContent) {
-        setItemDropdownOpen(false);
-        setRetailerDropdownOpen(false);
-        setMarketDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   /* -------------------------- derived lists (names) ------------------------- */
   const itemNames = useMemo(() => {
@@ -289,68 +268,20 @@ export default function QuickAdd() {
 
             <div className="min-w-0">
               <label htmlFor="item-input" className="text-slate-300 mb-1 block text-sm">Item</label>
-              <div className="relative">
-                <input
-                  id="item-input"
-                  name="item"
-                  value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
-                  onFocus={() => {
-                    console.log('Item input focused, opening dropdown');
-                    setItemDropdownOpen(true);
-                  }}
-                  placeholder="Add or select an item…"
-                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
-                />
-                {itemName && (
-                  <button
-                    type="button"
-                    onClick={() => setItemName("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                    </svg>
-                  </button>
-                )}
-                {itemDropdownOpen && (
-                  <div className="dropdown-content absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl" style={{ border: '2px solid red' }}>
-                    {/* Add new item option */}
-                    {!itemNames.some(name => name.toLowerCase() === itemName.toLowerCase()) && itemName.trim() && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const createdName = await createItem(itemName.trim());
-                          if (createdName) {
-                            setItemName(createdName);
-                            setItemDropdownOpen(false);
-                          }
-                        }}
-                        className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
-                      >
-                        + Add "{itemName.trim()}"
-                      </button>
-                    )}
-
-                    {/* Existing items */}
-                    {itemNames.filter(name => 
-                      name.toLowerCase().includes(itemName.toLowerCase())
-                    ).slice(0, 20).map((name) => (
-                      <button
-                        type="button"
-                        key={name}
-                        onClick={() => {
-                          setItemName(name);
-                          setItemDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
-                      >
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <select
+                id="item-input"
+                name="item"
+                value={itemName}
+                onChange={(e) => setItemName(e.target.value)}
+                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
+              >
+                <option value="">Add or select an item…</option>
+                {itemNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="min-w-0">
@@ -367,65 +298,20 @@ export default function QuickAdd() {
 
             <div className="min-w-0">
               <label htmlFor="retailer-input" className="text-slate-300 mb-1 block text-sm">Retailer</label>
-              <div className="relative">
-                <input
-                  id="retailer-input"
-                  name="retailer"
-                  value={retailerName}
-                  onChange={(e) => setRetailerName(e.target.value)}
-                  onFocus={() => setRetailerDropdownOpen(true)}
-                  placeholder="Add or select a retailer…"
-                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
-                />
-                {retailerName && (
-                  <button
-                    type="button"
-                    onClick={() => setRetailerName("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                    </svg>
-                  </button>
-                )}
-                {retailerDropdownOpen && (
-                  <div className="dropdown-content absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-                    {/* Add new retailer option */}
-                    {!retailerNames.some(name => name.toLowerCase() === retailerName.toLowerCase()) && retailerName.trim() && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const createdName = await createRetailer(retailerName.trim());
-                          if (createdName) {
-                            setRetailerName(createdName);
-                            setRetailerDropdownOpen(false);
-                          }
-                        }}
-                        className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
-                      >
-                        + Add "{retailerName.trim()}"
-                      </button>
-                    )}
-
-                    {/* Existing retailers */}
-                    {retailerNames.filter(name => 
-                      name.toLowerCase().includes(retailerName.toLowerCase())
-                    ).slice(0, 20).map((name) => (
-                      <button
-                        type="button"
-                        key={name}
-                        onClick={() => {
-                          setRetailerName(name);
-                          setRetailerDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
-                      >
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <select
+                id="retailer-input"
+                name="retailer"
+                value={retailerName}
+                onChange={(e) => setRetailerName(e.target.value)}
+                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
+              >
+                <option value="">Add or select a retailer…</option>
+                {retailerNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="min-w-0">
@@ -488,65 +374,20 @@ export default function QuickAdd() {
 
               <div className="min-w-0">
                 <label htmlFor="marketplace-input" className="text-slate-300 mb-1 block text-sm">Marketplace</label>
-                <div className="relative">
-                  <input
-                    id="marketplace-input"
-                    name="marketplace"
-                    value={marketName}
-                    onChange={(e) => setMarketName(e.target.value)}
-                    onFocus={() => setMarketDropdownOpen(true)}
-                    placeholder="Add or select a marketplace…"
-                    className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
-                  />
-                  {marketName && (
-                    <button
-                      type="button"
-                      onClick={() => setMarketName("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                      </svg>
-                    </button>
-                  )}
-                  {marketDropdownOpen && (
-                    <div className="dropdown-content absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-                      {/* Add new marketplace option */}
-                      {!marketNames.some(name => name.toLowerCase() === marketName.toLowerCase()) && marketName.trim() && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const createdName = await createMarket(marketName.trim());
-                            if (createdName) {
-                              setMarketName(createdName);
-                              setMarketDropdownOpen(false);
-                            }
-                          }}
-                          className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
-                        >
-                          + Add "{marketName.trim()}"
-                        </button>
-                      )}
-
-                      {/* Existing marketplaces */}
-                      {marketNames.filter(name => 
-                        name.toLowerCase().includes(marketName.toLowerCase())
-                      ).slice(0, 20).map((name) => (
-                        <button
-                          type="button"
-                          key={name}
-                          onClick={() => {
-                            setMarketName(name);
-                            setMarketDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
-                        >
-                          {name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <select
+                  id="marketplace-input"
+                  name="marketplace"
+                  value={marketName}
+                  onChange={(e) => setMarketName(e.target.value)}
+                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
+                >
+                  <option value="">Add or select a marketplace…</option>
+                  {marketNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="min-w-0">
