@@ -116,10 +116,17 @@ export default function QuickAdd() {
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => {
-      setItemDropdownOpen(false);
-      setRetailerDropdownOpen(false);
-      setMarketDropdownOpen(false);
+    const handleClickOutside = (event) => {
+      // Don't close if clicking on dropdown inputs or dropdown content
+      const target = event.target;
+      const isDropdownInput = target.closest('input[id*="input"]');
+      const isDropdownContent = target.closest('.dropdown-content');
+      
+      if (!isDropdownInput && !isDropdownContent) {
+        setItemDropdownOpen(false);
+        setRetailerDropdownOpen(false);
+        setMarketDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -288,7 +295,10 @@ export default function QuickAdd() {
                   name="item"
                   value={itemName}
                   onChange={(e) => setItemName(e.target.value)}
-                  onFocus={() => setItemDropdownOpen(true)}
+                  onFocus={() => {
+                    console.log('Item input focused, opening dropdown');
+                    setItemDropdownOpen(true);
+                  }}
                   placeholder="Add or select an item…"
                   className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
                 />
@@ -304,7 +314,7 @@ export default function QuickAdd() {
                   </button>
                 )}
                 {itemDropdownOpen && (
-                  <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                  <div className="dropdown-content absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl" style={{ border: '2px solid red' }}>
                     {/* Add new item option */}
                     {!itemNames.some(name => name.toLowerCase() === itemName.toLowerCase()) && itemName.trim() && (
                       <button
@@ -379,7 +389,7 @@ export default function QuickAdd() {
                   </button>
                 )}
                 {retailerDropdownOpen && (
-                  <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                  <div className="dropdown-content absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
                     {/* Add new retailer option */}
                     {!retailerNames.some(name => name.toLowerCase() === retailerName.toLowerCase()) && retailerName.trim() && (
                       <button
@@ -500,7 +510,7 @@ export default function QuickAdd() {
                     </button>
                   )}
                   {marketDropdownOpen && (
-                    <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+                    <div className="dropdown-content absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
                       {/* Add new marketplace option */}
                       {!marketNames.some(name => name.toLowerCase() === marketName.toLowerCase()) && marketName.trim() && (
                         <button
