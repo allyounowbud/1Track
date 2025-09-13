@@ -254,3 +254,90 @@ input[type="date"]::-webkit-datetime-edit-year-field {
     overflow: hidden !important;
   }
 }
+
+/* Custom select dropdown styling for dark theme */
+select {
+  background-color: rgb(15 23 42) !important; /* slate-900 */
+  color: rgb(241 245 249) !important; /* slate-100 */
+  border: 1px solid rgb(30 41 59) !important; /* slate-800 */
+  border-radius: 0.75rem !important; /* rounded-xl */
+  padding: 0.75rem 1rem !important; /* py-3 px-4 */
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+  outline: none !important;
+  transition: border-color 0.2s ease !important;
+}
+
+select:focus {
+  border-color: rgb(99 102 241) !important; /* indigo-500 */
+  box-shadow: 0 0 0 1px rgb(99 102 241) !important; /* indigo-500 */
+}
+
+select option {
+  background-color: rgb(15 23 42) !important; /* slate-900 */
+  color: rgb(241 245 249) !important; /* slate-100 */
+  padding: 0.5rem 1rem !important;
+  border: none !important;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+  background-color: rgb(30 41 59) !important; /* slate-800 */
+  color: rgb(241 245 249) !important; /* slate-100 */
+}
+
+/* Custom scrollbar for select dropdown options */
+select {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgb(71 85 105) rgb(30 41 59) !important; /* thumb track */
+}
+
+select::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+select::-webkit-scrollbar-track {
+  background: rgb(30 41 59) !important; /* slate-800 */
+  border-radius: 3px !important;
+}
+
+select::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105) !important; /* slate-600 */
+  border-radius: 3px !important;
+  border: none !important;
+}
+
+select::-webkit-scrollbar-thumb:hover {
+  background: rgb(94 106 125) !important; /* slate-500 */
+}
+
+select::-webkit-scrollbar-corner {
+  background: rgb(30 41 59) !important; /* slate-800 */
+}
+
+/* Webkit dropdown arrow styling */
+select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%237185105' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 0.75rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1.25rem 1.25rem !important;
+  padding-right: 2.5rem !important;
+}
+
+/* Remove default webkit styling */
+select::-webkit-appearance {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Firefox dropdown arrow styling */
+@-moz-document url-prefix() {
+  select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%237185105' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 0.75rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.25rem 1.25rem !important;
+  }
+}
