@@ -1,5 +1,6 @@
 // src/routes/MarkSold.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { NavLink, Link } from 'react-router-dom';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
@@ -8,6 +9,7 @@ import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { Select } from "../components/Select.jsx";
 import { SearchDropdown } from "../components/SearchDropdown.jsx";
+import { inputBase, disabledInput } from "../utils/ui.js";
 
 /* ---------- queries ---------- */
 async function getUnsoldOrders() {
@@ -31,6 +33,170 @@ async function getMarketplaces() {
   return data || [];
 }
 
+/* --------------------- anchored-menu positioning hook --------------------- */
+function useAnchoredRect(ref, open, offsetY = 8) {
+  const [rect, setRect] = useState({ top: 0, left: 0, width: 0 });
+  useEffect(() => {
+    if (!open) return;
+    const recalc = () => {
+      const r = ref.current?.getBoundingClientRect();
+      if (!r) return;
+      setRect({ top: r.bottom + offsetY, left: r.left, width: r.width });
+    };
+    recalc();
+    window.addEventListener("scroll", recalc, { passive: true });
+    window.addEventListener("resize", recalc);
+    return () => {
+      window.removeEventListener("scroll", recalc);
+      window.removeEventListener("resize", recalc);
+    };
+  }, [ref, open, offsetY]);
+  return rect;
+}
+
+/* ------------------------- Reusable Combo (single) ------------------------- */
+function Combo({
+  placeholder = "Type…",
+  value,
+  setValue,
+  options = [], // array of strings
+  onCreate,     // async (name) => createdName | null
+  disabled = false,
+  label,
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef(null);
+  const boxRef = useRef(null);
+  const menuRef = useRef(null);
+  const rect = useAnchoredRect(boxRef, open);
+
+  // close on outside click (but ignore clicks inside the PORTALED menu)
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (!open) return;
+      const t = e.target;
+      if (boxRef.current?.contains(t)) return;
+      if (menuRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    window.addEventListener("click", onDocClick); // use 'click' so option onClick fires first
+    return () => window.removeEventListener("click", onDocClick);
+  }, [open]);
+
+  const text = value || query;
+  const normalized = text.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (!normalized) return options.slice(0, 200);
+    return options.filter((n) => n.toLowerCase().includes(normalized)).slice(0, 200);
+  }, [options, normalized]);
+
+  const existsExact =
+    normalized && options.some((n) => n.toLowerCase() === normalized);
+
+  return (
+    <div className="min-w-0">
+      {label && <label className="text-slate-300 mb-1 block text-sm">{label}</label>}
+      <div ref={boxRef} className="relative min-w-0">
+        <input
+          ref={inputRef}
+          value={text}
+          disabled={disabled}
+          onChange={(e) => {
+            setValue("");     // typing switches to search mode
+            setQuery(e.target.value);
+            if (!disabled) setOpen(true);
+          }}
+          onFocus={() => !disabled && setOpen(true)}
+          placeholder={placeholder}
+          className={`${inputBase} ${disabled ? disabledInput : ""}`}
+        />
+        {/* clear button inside input */}
+        {text && !disabled && (
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()} // keep focus
+            onClick={() => {
+              setValue("");
+              setQuery("");
+              setOpen(true);
+              inputRef.current?.focus();
+            }}
+            aria-label="Clear"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+          >
+            ×
+          </button>
+        )}
+
+        {/* floating menu via portal */}
+        {open &&
+          createPortal(
+            <div
+              ref={menuRef}
+              className="fixed z-[200] max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900/95 backdrop-blur shadow-xl"
+              style={{ top: rect.top, left: rect.left, width: rect.width }}
+            >
+              {/* Clear row */}
+              {value && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValue("");
+                    setQuery("");
+                    inputRef.current?.focus();
+                  }}
+                  className="w-full text-left px-3 py-2 text-slate-300 hover:bg-slate-800/70"
+                >
+                  Clear selection
+                </button>
+              )}
+
+              {/* Add row */}
+              {!existsExact && normalized && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!onCreate) return;
+                    const createdName = await onCreate(text.trim());
+                    if (createdName) {
+                      setValue(createdName);
+                      setQuery("");
+                      setOpen(false);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
+                >
+                  + Add "{text.trim()}"
+                </button>
+              )}
+
+              {/* Options */}
+              {filtered.length === 0 && (
+                <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
+              )}
+              {filtered.map((opt) => (
+                <button
+                  type="button"
+                  key={opt}
+                  onClick={() => {
+                    setValue(opt);
+                    setQuery("");
+                    setOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-slate-800/70"
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>,
+            document.body
+          )}
+      </div>
+    </div>
+  );
+}
+
 
 export default function MarkSold() {
 
@@ -38,7 +204,7 @@ export default function MarkSold() {
     queryKey: ["openOrders"],
     queryFn: getUnsoldOrders,
   });
-  const { data: markets = [] } = useQuery({
+  const { data: markets = [], refetch: refetchMarkets } = useQuery({
     queryKey: ["markets-for-sell"],
     queryFn: getMarketplaces,
   });
@@ -47,10 +213,10 @@ export default function MarkSold() {
   const today = new Date().toISOString().slice(0, 10);
 
   const [selected, setSelected] = useState(null); // order object
+  const [search, setSearch] = useState(""); // search term for dropdown
 
   const [salePrice, setSalePrice] = useState("");
   const [saleDate, setSaleDate] = useState(today);
-  const [marketId, setMarketId] = useState("");
   const [marketName, setMarketName] = useState("");
   const [feesPct, setFeesPct] = useState("");       // shown as % text, e.g. "10" or "10.5"
   const [feesLocked, setFeesLocked] = useState(false);
@@ -66,21 +232,37 @@ export default function MarkSold() {
       o.buy_price_cents
     )}`;
 
+  // ---------- marketplace creation ----------
+  async function createMarketplace(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const { error } = await supabase
+      .from("marketplaces")
+      .insert([{ name: trimmed, default_fees_pct: 0 }]);
+    if (error) {
+      setMsg(error.message);
+      return null;
+    }
+    await refetchMarkets();
+    return trimmed;
+  }
 
   // ---------- marketplace -> autofill fee ----------
-  function onMarketChange(id) {
-    setMarketId(id);
-    const m = markets.find((x) => x.id === id);
-    setMarketName(m?.name || "");
+  useEffect(() => {
+    if (!marketName) {
+      setFeesLocked(false);
+      setFeesPct("");
+      return;
+    }
+    const m = markets.find((x) => x.name === marketName);
     if (m) {
       // show % to the user (like Quick Add)
       setFeesPct(((m.default_fees_pct ?? 0) * 100).toString());
       setFeesLocked(true);
     } else {
-      setFeesPct("");
       setFeesLocked(false);
     }
-  }
+  }, [marketName, markets]);
 
   // ---------- save ----------
   async function markSold(e) {
@@ -180,18 +362,14 @@ export default function MarkSold() {
               />
             </div>
 
-            <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Sale Location</label>
-              <Select
-                value={marketId}
-                onChange={onMarketChange}
-                options={[
-                  { value: "", label: "— Select marketplace —" },
-                  ...markets.map((m) => ({ value: m.id, label: m.name }))
-                ]}
-                placeholder="— Select marketplace —"
-              />
-            </div>
+            <Combo
+              label="Sale Location"
+              placeholder="Add or select a marketplace…"
+              value={marketName}
+              setValue={setMarketName}
+              options={markets.map((m) => m.name)}
+              onCreate={createMarketplace}
+            />
 
             <div className="min-w-0">
               <label className="text-slate-300 mb-1 block text-sm">Fee (%)</label>

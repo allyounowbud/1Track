@@ -327,7 +327,7 @@ export default function Hub() {
               </div>
             </Link>
 
-            <div className={tile}>
+            <Link to="/profiles" className={tile}>
               <div className="h-12 w-12 rounded-xl bg-purple-600/20 grid place-items-center text-purple-300">
                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -336,14 +336,14 @@ export default function Hub() {
               <div className="flex-1">
                 <div className="text-xl font-semibold">Profiles</div>
                 <div className="text-slate-400 text-sm">
-                  Manage your profiles and seller marketplaces. Track performance across different platforms, 
-                  manage inventory distribution, and optimize your selling strategy.
+                  Manage customer profiles and contact information. Track customer order history, 
+                  manage contact details, and build better relationships with your customers.
                 </div>
-                <div className="mt-3 inline-flex items-center text-purple-300">
-                  Coming soon
+                <div className="mt-3 inline-flex items-center text-purple-300 group-hover:text-purple-200">
+                  Open →
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
 

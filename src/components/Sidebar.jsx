@@ -54,7 +54,8 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   // Handle responsive behavior
   useEffect(() => {
     const checkScreenSize = () => {
-      const small = window.innerWidth < 1024; // lg breakpoint
+      const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+      const small = width < 650; // Custom breakpoint for mobile bottom bar
       setIsSmallScreen(small);
       // Force collapse on small screens
       if (small && !isCollapsed) {
@@ -66,7 +67,11 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
 
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
+    window.addEventListener('orientationchange', checkScreenSize);
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+      window.removeEventListener('orientationchange', checkScreenSize);
+    };
   }, [isCollapsed, onCollapseChange]);
 
   // Base + variants for sidebar items
@@ -83,10 +88,25 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
 
   // Section-specific navigation items
   const getNavigationItems = () => {
+    // Home is always first
+    const homeItem = { key: "hub", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", to: "/" };
+    
+    // Check if we're on the homepage (active is "hub")
+    if (active === "hub") {
+      // On homepage, show workspace tabs
+      return [
+        homeItem,
+        { key: "orderbook", label: "Order Book", icon: "M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", to: "/orders" },
+        { key: "emails", label: "Emails", icon: "M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", to: "/emails" },
+        { key: "profiles", label: "Profiles", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", to: "/profiles" }
+      ];
+    }
+    
+    // When in a specific section, show section-specific items
     switch (section) {
       case "orderbook":
         return [
-          { key: "hub", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", to: "/" },
+          homeItem,
           { key: "add", label: "Quick Add", icon: "M12 6v6m0 0v6m0-6h6m-6 0H6", to: "/add" },
           { key: "sold", label: "Mark as Sold", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", to: "/sold" },
           { key: "orders", label: "Order Book", icon: "M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", to: "/orders" },
@@ -96,22 +116,56 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
         ];
       case "emails":
         return [
-          { key: "hub", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", to: "/" },
+          homeItem,
           { key: "emails", label: "Emails", icon: "M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", to: "/emails" },
           { key: "shipments", label: "Shipments", icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4", to: "/shipments" }
         ];
       case "profiles":
         return [
-          { key: "hub", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", to: "/" },
+          homeItem,
           { key: "profiles", label: "Profiles", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", to: "/profiles" }
         ];
       default:
-        return [];
+        return [homeItem];
     }
   };
 
   const navigationItems = getNavigationItems();
 
+  // Mobile bottom bar layout
+  if (isSmallScreen) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-50 h-20 pb-safe">
+        {/* Navigation - horizontal layout for mobile */}
+        <nav className="flex items-center justify-around px-2 py-2 h-full">
+          {navigationItems.map((item) => {
+            const isActive = active === item.key;
+            return (
+              <NavLink
+                key={item.key}
+                to={item.to}
+                end
+                className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-0 flex-1 h-full ${
+                  isActive 
+                    ? 'text-white bg-slate-800 shadow-sm' 
+                    : 'text-slate-300 hover:text-slate-100 hover:bg-slate-800/50'
+                }`}
+              >
+                <svg className="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                </svg>
+                <span className="text-xs font-medium truncate text-center leading-tight hidden xs:block">
+                  {item.label}
+                </span>
+              </NavLink>
+            );
+          })}
+        </nav>
+      </div>
+    );
+  }
+
+  // Desktop sidebar layout
   return (
     <div 
       className={`sidebar-fixed bg-slate-900 border-r border-slate-800 transition-all duration-300 ${
@@ -127,40 +181,29 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
               <span className="text-xs text-slate-500 font-medium mb-1 -ml-1">BETA</span>
             </div>
           )}
-          {isSmallScreen ? (
-            // Show logo on small screens
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg">
-              <img 
-                src="/otlogo.svg" 
-                alt="OneTrack" 
-                className="h-8 w-8 object-contain"
-              />
-            </div>
-          ) : (
-            // Show expand/collapse button on large screens
-            <button
-              onClick={() => {
-                const newCollapsed = !isCollapsed;
-                setIsCollapsed(newCollapsed);
-                // Save to localStorage to persist across page navigation
-                localStorage.setItem('sidebar-collapsed', JSON.stringify(newCollapsed));
-                onCollapseChange?.(newCollapsed);
-              }}
-              className={`${isCollapsed 
-                ? "flex items-center justify-center w-10 h-10 rounded-lg transition-colors" 
-                : "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
-              } text-slate-300 hover:text-slate-100 hover:bg-slate-800/50`}
+          {/* Show expand/collapse button on large screens */}
+          <button
+            onClick={() => {
+              const newCollapsed = !isCollapsed;
+              setIsCollapsed(newCollapsed);
+              // Save to localStorage to persist across page navigation
+              localStorage.setItem('sidebar-collapsed', JSON.stringify(newCollapsed));
+              onCollapseChange?.(newCollapsed);
+            }}
+            className={`${isCollapsed 
+              ? "flex items-center justify-center w-10 h-10 rounded-lg transition-colors" 
+              : "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
+            } text-slate-300 hover:text-slate-100 hover:bg-slate-800/50`}
+          >
+            <svg 
+              className={`h-5 w-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
             >
-              <svg 
-                className={`h-5 w-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -184,7 +227,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
       </nav>
 
       {/* User Section */}
-      <div className="p-4 border-t border-slate-800 bg-slate-900 flex-shrink-0 flex justify-center">
+      <div className={`border-t border-slate-800 bg-slate-900 flex-shrink-0 ${isCollapsed ? 'flex justify-center py-4' : 'p-4'}`}>
         {isCollapsed ? (
           // Collapsed: Profile image fills entire button
           <Link
@@ -195,10 +238,10 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
               <img
                 src={userInfo.avatar_url}
                 alt=""
-                className="w-10 h-10 rounded-lg object-cover"
+                className="w-full h-full rounded-lg object-cover"
               />
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300 text-base font-semibold">
+              <div className="w-full h-full rounded-lg bg-slate-800 flex items-center justify-center text-slate-300 text-base font-semibold">
                 {(userInfo.username || "U").slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -207,7 +250,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
           // Expanded: Profile image + text
           <Link
             to="/"
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/50 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors"
           >
             {userInfo.avatar_url ? (
               <img

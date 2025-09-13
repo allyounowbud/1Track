@@ -16,6 +16,7 @@ import Stats from "./routes/Stats.jsx";
 import OrderBook from "./routes/OrderBook.jsx";
 import Emails from "./routes/Emails.jsx";           // <-- NEW
 import Shipments from "./routes/Shipments.jsx";     // <-- NEW
+import Profiles from "./routes/Profiles.jsx";       // <-- NEW
 import AuthGuard from "./routes/AuthGuard.jsx";     // <-- RENAMED
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import ErrorElement from "./components/ErrorElement.jsx";
@@ -69,6 +70,11 @@ const router = createBrowserRouter([
   { 
     path: "/shipments", 
     element: <Shipments />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/profiles", 
+    element: <Profiles />,
     errorElement: <ErrorElement />
   },
 
