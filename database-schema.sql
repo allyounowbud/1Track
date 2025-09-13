@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS email_orders (
   status TEXT DEFAULT 'ordered',
   source_message_id TEXT,
   source_email TEXT,
+  recipient_email TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, retailer, order_id)

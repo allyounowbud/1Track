@@ -204,7 +204,8 @@ export default function Shipments() {
   };
 
   const getEmailForOrder = (order) => {
-    return order?.source_email || 'Unknown';
+    // Use recipient_email if available, otherwise fallback to source_email
+    return order?.recipient_email?.replace(/<|>/g, '') || order?.source_email || 'Unknown';
   };
 
   const previewEmail = async (order) => {
@@ -602,10 +603,10 @@ export default function Shipments() {
                               </div>
                             )}
                             
-                            {/* Email Source and Gmail Link */}
+                            {/* Email and Gmail Link */}
                             <div className="mt-4 flex items-center justify-between">
                               <div>
-                                <span className="text-slate-400 text-sm">Email Source:</span>
+                                <span className="text-slate-400 text-sm">Email:</span>
                                 <div className="text-slate-200 font-medium mt-1">{getEmailForOrder(row)}</div>
                               </div>
                               {row.source_message_id && (

@@ -1698,6 +1698,7 @@ exports.handler = async (event) => {
           status: "ordered",
           source_message_id: msg.id,
           source_email: account.email_address,
+          recipient_email: headers.to || account.email_address,
         };
         await upsertOrder(row);
         
