@@ -1,12 +1,12 @@
 // src/routes/QuickAdd.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, parsePct, formatNumber } from "../utils/money.js";
 import { card, inputBase, dateFix, disabledInput } from "../utils/ui.js";
+import { SearchDropdown } from "../components/SearchDropdown.jsx";
 
 /* ------------------------------ queries ----------------------------- */
 async function getItems() {
@@ -34,173 +34,144 @@ async function getMarketplaces() {
   return data || [];
 }
 
-/* ------------------------- Positioning Hook ------------------------- */
-function useAnchoredRect(open, inputRef) {
-  const [rect, setRect] = useState(null);
-
-  useEffect(() => {
-    if (!open || !inputRef.current) {
-      setRect(null);
-      return;
-    }
-
-    const updateRect = () => {
-      if (inputRef.current) {
-        const inputRect = inputRef.current.getBoundingClientRect();
-        setRect({
-          top: inputRect.bottom + window.scrollY,
-          left: inputRect.left + window.scrollX,
-          width: inputRect.width,
-        });
-      }
-    };
-
-    updateRect();
-    window.addEventListener('resize', updateRect);
-    window.addEventListener('scroll', updateRect, true);
-
-    return () => {
-      window.removeEventListener('resize', updateRect);
-      window.removeEventListener('scroll', updateRect, true);
-    };
-  }, [open, inputRef]);
-
-  return rect;
-}
-
-/* ------------------------- Working Combo (single) ------------------------- */
-function Combo({
-  placeholder = "Type…",
-  value,
-  setValue,
-  options = [], // array of strings
-  onCreate,     // async (name) => createdName | null
-  disabled = false,
+/* ------------------------- Custom SearchDropdown for table inputs ------------------------- */
+function TableSearchDropdown({ 
+  value, 
+  onChange, 
+  options, 
+  placeholder = "Type to search…", 
   label,
+  onCreate,
   name,
-  id,
+  id
 }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const inputRef = useRef(null);
-  const rect = useAnchoredRect(open, inputRef);
-  
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const boxRef = useRef(null);
+
   // Generate unique ID if not provided
-  const inputId = id || `combo-${Math.random().toString(36).substr(2, 9)}`;
+  const inputId = id || `search-${Math.random().toString(36).substr(2, 9)}`;
   const inputName = name || inputId;
 
-  // close on outside click
+  // Click outside to close dropdown
   useEffect(() => {
-    const onDocClick = (e) => {
-      if (!open) return;
-      const t = e.target;
-      if (inputRef.current?.contains(t)) return;
-      setOpen(false);
+    const handleClickOutside = (event) => {
+      if (boxRef.current && !boxRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
     };
-    window.addEventListener("click", onDocClick);
-    return () => window.removeEventListener("click", onDocClick);
-  }, [open]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  const text = value || query;
-  const normalized = text.trim().toLowerCase();
+  // Filter options based on search
   const filtered = useMemo(() => {
-    if (!normalized) return options.slice(0, 200);
-    return options.filter((n) => n.toLowerCase().includes(normalized)).slice(0, 200);
-  }, [options, normalized]);
+    if (!search.trim()) return options.slice(0, 20);
+    return options.filter(option => 
+      option.toLowerCase().includes(search.toLowerCase())
+    ).slice(0, 20);
+  }, [options, search]);
 
-  const existsExact =
-    normalized && options.some((n) => n.toLowerCase() === normalized);
+  // Handle selection
+  const handleSelect = (option) => {
+    setSelected(option);
+    setSearch("");
+    setDropdownOpen(false);
+    onChange(option);
+  };
+
+  // Handle input change
+  const handleInputChange = (e) => {
+    setSelected(null);
+    setSearch(e.target.value);
+    onChange(""); // Clear selection when typing
+    setDropdownOpen(true);
+  };
+
+  // Handle clear button
+  const handleClear = () => {
+    setSelected(null);
+    setSearch("");
+    onChange("");
+    setDropdownOpen(false);
+  };
+
+  // Check if current search text matches an existing option
+  const existsExact = search.trim() && options.some(option => 
+    option.toLowerCase() === search.trim().toLowerCase()
+  );
+
+  // Handle create new option
+  const handleCreate = async () => {
+    if (!onCreate || !search.trim() || existsExact) return;
+    
+    const createdName = await onCreate(search.trim());
+    if (createdName) {
+      setSelected(createdName);
+      setSearch("");
+      setDropdownOpen(false);
+      onChange(createdName);
+    }
+  };
 
   return (
     <div className="min-w-0">
-      {label && <label htmlFor={inputId} className="text-slate-300 mb-1 block text-sm">{label}</label>}
-      <div className="relative min-w-0">
-        <input
-          ref={inputRef}
-          id={inputId}
-          name={inputName}
-          value={text}
-          disabled={disabled}
-          onChange={(e) => {
-            setValue("");     // typing switches to search mode
-            setQuery(e.target.value);
-            if (!disabled) setOpen(true);
-          }}
-          onFocus={() => !disabled && setOpen(true)}
-          placeholder={placeholder}
-          className={`${inputBase} ${disabled ? disabledInput : ""}`}
-        />
-        
-        {/* Portal dropdown */}
-        {open && rect && createPortal(
-          <div
-            className="fixed z-50 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl"
-            style={{
-              top: rect.top,
-              left: rect.left,
-              width: rect.width,
-            }}
-          >
-            {/* Clear row */}
-            {value && (
+      <label htmlFor={inputId} className="text-slate-300 mb-1 block text-sm">{label}</label>
+      <div ref={boxRef} className="relative">
+        <div className="relative">
+          <input
+            id={inputId}
+            name={inputName}
+            value={selected || search}
+            onChange={handleInputChange}
+            onFocus={() => setDropdownOpen(true)}
+            placeholder={placeholder}
+            className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
+          />
+          {(search || selected) && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {dropdownOpen && (
+          <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+            {/* Add new option */}
+            {!existsExact && search.trim() && onCreate && (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setValue("");
-                  setQuery("");
-                  inputRef.current?.focus();
-                }}
-                className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800/70"
-              >
-                Clear selection
-              </button>
-            )}
-
-            {/* Add row */}
-            {!existsExact && normalized && (
-              <button
-                type="button"
-                onClick={async (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (!onCreate) return;
-                  const createdName = await onCreate(text.trim());
-                  if (createdName) {
-                    setValue(createdName);
-                    setQuery("");
-                    setOpen(false);
-                  }
-                }}
+                onClick={handleCreate}
                 className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
               >
-                + Add "{text.trim()}"
+                + Add "{search.trim()}"
               </button>
             )}
 
             {/* Options */}
-            {filtered.length === 0 && (
+            {filtered.length === 0 && !search.trim() && (
+              <div className="px-3 py-2 text-slate-400 text-sm">No options available.</div>
+            )}
+            {filtered.length === 0 && search.trim() && !onCreate && (
               <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
             )}
-            {filtered.map((opt) => (
+            {filtered.map((option) => (
               <button
                 type="button"
-                key={opt}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setValue(opt);
-                  setQuery("");
-                  setOpen(false);
-                }}
+                key={option}
+                onClick={() => handleSelect(option)}
                 className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
               >
-                {opt}
+                {option}
               </button>
             ))}
-          </div>,
-          document.body
+          </div>
         )}
       </div>
     </div>
@@ -435,11 +406,11 @@ export default function QuickAdd() {
               />
             </div>
 
-            <Combo
+            <TableSearchDropdown
               label="Item"
               placeholder="Add or select an item…"
               value={itemName}
-              setValue={setItemName}
+              onChange={setItemName}
               options={itemNames}
               onCreate={createItem}
               name="item"
@@ -458,11 +429,11 @@ export default function QuickAdd() {
               />
             </div>
 
-            <Combo
+            <TableSearchDropdown
               label="Retailer"
               placeholder="Add or select a retailer…"
               value={retailerName}
-              setValue={setRetailerName}
+              onChange={setRetailerName}
               options={retailerNames}
               onCreate={createRetailer}
               name="retailer"
@@ -527,11 +498,11 @@ export default function QuickAdd() {
                 />
               </div>
 
-              <Combo
+              <TableSearchDropdown
                 label="Marketplace"
                 placeholder="Add or select a marketplace…"
                 value={marketName}
-                setValue={setMarketName}
+                onChange={setMarketName}
                 options={marketNames}
                 onCreate={createMarket}
                 name="marketplace"
