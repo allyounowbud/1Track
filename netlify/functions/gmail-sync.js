@@ -19,10 +19,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 /* ---------------------------- Gmail OAuth init --------------------------- */
-const OAUTH_CLIENT_ID = process.env.GMAIL_OAUTH_CLIENT_ID || "";
-const OAUTH_CLIENT_SECRET = process.env.GMAIL_OAUTH_CLIENT_SECRET || "";
+const OAUTH_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const OAUTH_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const OAUTH_REDIRECT_URI =
-  process.env.GMAIL_OAUTH_REDIRECT_URI || "http://localhost";
+  process.env.GOOGLE_REDIRECT_URI || "http://localhost";
 const oauth2 = new google.auth.OAuth2(
   OAUTH_CLIENT_ID,
   OAUTH_CLIENT_SECRET,
@@ -1141,8 +1141,8 @@ exports.handler = async (event) => {
     const envOk = {
       SUPABASE_URL: !!process.env.SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      GMAIL_OAUTH_CLIENT_ID: !!process.env.GMAIL_OAUTH_CLIENT_ID,
-      GMAIL_OAUTH_CLIENT_SECRET: !!process.env.GMAIL_OAUTH_CLIENT_SECRET,
+      GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
     };
     return json({ ok: true, envOk });
   }
