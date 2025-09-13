@@ -753,49 +753,89 @@ function parseTargetOrder(html, text) {
   // Extract item name - look for product names like "Pokémon Trading Card Game:Mega Latias ex Box"
   let itemName = null;
   
-  // Target-specific parsing: Look for product name between image and quantity
-  // The product name is typically in a specific location in Target emails
+  // Target-specific parsing: Look for product name in multiple ways
+  // The product name can be in different locations depending on email format
   
-  // First, try to find the product name by looking for text that appears before "Qty:"
-  const qtyPattern = /qty\s*:\s*[0-9]+/i;
-  const qtyMatch = bodyText.match(qtyPattern);
+  // Method 1: Look for product name by finding text before "Qty:" or "Quantity:"
+  const itemQtyPatterns = [
+    /qty\s*:\s*[0-9]+/i,
+    /quantity\s*:\s*[0-9]+/i,
+    /qty\s+[0-9]+/i
+  ];
   
-  if (qtyMatch) {
-    const qtyIndex = bodyText.indexOf(qtyMatch[0]);
-    const beforeQty = bodyText.substring(0, qtyIndex);
-    
-    // Look for the last substantial text before "Qty:" that looks like a product name
-    const lines = beforeQty.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    
-    // Work backwards from the Qty line to find the product name
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const line = lines[i];
+  for (const pattern of itemQtyPatterns) {
+    const qtyMatch = bodyText.match(pattern);
+    if (qtyMatch) {
+      const qtyIndex = bodyText.indexOf(qtyMatch[0]);
+      const beforeQty = bodyText.substring(0, qtyIndex);
       
-      // Skip common UI text that we know is wrong
-      if (line.includes('We\'re getting') || 
-          line.includes('Need to make changes') ||
-          line.includes('Act fast') ||
-          line.includes('Target') ||
-          line.includes('Order') ||
-          line.includes('Total') ||
-          line.includes('Delivers to') ||
-          line.includes('Placed') ||
-          line.includes('Thanks for') ||
-          line.includes('Shipping') ||
-          line.includes('Arriving') ||
-          line.includes('$') ||
-          /^[0-9]+$/.test(line) ||
-          /^[A-Z_]+$/.test(line) ||
-          line.length < 10) {
-        continue;
-      }
+      // Look for the last substantial text before "Qty:" that looks like a product name
+      const lines = beforeQty.split('\n').map(line => line.trim()).filter(line => line.length > 0);
       
-      // This looks like a product name
-      if (line.length > 10 && line.length < 200) {
-        itemName = line;
-        console.log("Found Target item name before Qty:", itemName);
-        break;
+      // Work backwards from the Qty line to find the product name
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i];
+        
+        // Skip common UI text that we know is wrong
+        if (line.includes('We\'re getting') || 
+            line.includes('Need to make changes') ||
+            line.includes('Act fast') ||
+            line.includes('Target') ||
+            line.includes('Order') ||
+            line.includes('Total') ||
+            line.includes('Delivers to') ||
+            line.includes('Placed') ||
+            line.includes('Thanks for') ||
+            line.includes('Shipping') ||
+            line.includes('Arriving') ||
+            line.includes('$') ||
+            line.includes('Estimated') ||
+            line.includes('Arriving') ||
+            /^[0-9]+$/.test(line) ||
+            /^[A-Z_]+$/.test(line) ||
+            line.length < 10) {
+          continue;
+        }
+        
+        // This looks like a product name
+        if (line.length > 10 && line.length < 200) {
+          itemName = line;
+          console.log("Found Target item name before Qty:", itemName);
+          break;
+        }
       }
+      if (itemName) break;
+    }
+  }
+  
+  // Method 2: Look for product names in HTML elements with specific patterns
+  if (!itemName) {
+    // Look for text that appears to be product names (contains colons, long descriptive text)
+    const productNamePatterns = [
+      /([A-Za-z][^:]{15,100}):\s*[A-Za-z]/g, // "Pokémon Trading Card Game: Scarlet & Violet"
+      /([A-Za-z][^,]{15,100}),\s*[A-Za-z]/g, // Product names with commas
+      /"([^"]{15,100})"/g // Quoted product names
+    ];
+    
+    for (const pattern of productNamePatterns) {
+      const matches = bodyText.matchAll(pattern);
+      for (const match of matches) {
+        const candidate = match[1] || match[0];
+        if (candidate && 
+            candidate.length > 15 && 
+            candidate.length < 200 &&
+            !candidate.includes('We\'re getting') &&
+            !candidate.includes('Need to make changes') &&
+            !candidate.includes('Target') &&
+            !candidate.includes('Order') &&
+            !candidate.includes('Total') &&
+            !candidate.includes('Delivers to')) {
+          itemName = candidate;
+          console.log("Found Target item name from pattern:", itemName);
+          break;
+        }
+      }
+      if (itemName) break;
     }
   }
   
@@ -1196,6 +1236,19 @@ async function getOrderIdExists(user_id, retailer, order_id) {
   return !!data;
 }
 
+async function getOrderForReparsing(user_id, retailer, order_id) {
+  if (!order_id) return null;
+  const { data, error } = await supabase
+    .from("email_orders")
+    .select("id, item_name")
+    .eq("user_id", user_id)
+    .eq("retailer", retailer)
+    .eq("order_id", order_id)
+    .maybeSingle();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
 /* -------------------------------- Handler -------------------------------- */
 exports.handler = async (event) => {
   // Health probe
@@ -1567,6 +1620,19 @@ exports.handler = async (event) => {
 
         // Create or update order
         const exists = await getOrderIdExists(account.user_id, retailer.name, order_id);
+        
+        // For Target orders, check if we should re-parse existing orders with bad item names
+        let shouldUpdate = false;
+        if (exists && retailer.name === "Target") {
+          const existingOrder = await getOrderForReparsing(account.user_id, retailer.name, order_id);
+          if (existingOrder && existingOrder.item_name && 
+              (existingOrder.item_name.includes("We're getting") || 
+               existingOrder.item_name.includes("Need to make changes"))) {
+            console.log(`Found Target order with bad item name, will re-parse: ${order_id}`);
+            shouldUpdate = true;
+          }
+        }
+        
         const row = {
           user_id: account.user_id,
           retailer: retailer.name,
@@ -1584,8 +1650,14 @@ exports.handler = async (event) => {
           source_email: account.email_address,
         };
         await upsertOrder(row);
-        if (exists) skipped_existing++;
-        else imported++;
+        
+        if (exists && !shouldUpdate) {
+          skipped_existing++;
+        } else if (shouldUpdate) {
+          totalUpdated++;
+        } else {
+          imported++;
+        }
         
       } catch (err) {
         console.error(`Error processing order confirmation ${id}:`, err);
