@@ -1625,11 +1625,18 @@ exports.handler = async (event) => {
         let shouldUpdate = false;
         if (exists && retailer.name === "Target") {
           const existingOrder = await getOrderForReparsing(account.user_id, retailer.name, order_id);
-          if (existingOrder && existingOrder.item_name && 
-              (existingOrder.item_name.includes("We're getting") || 
-               existingOrder.item_name.includes("Need to make changes"))) {
-            console.log(`Found Target order with bad item name, will re-parse: ${order_id}`);
-            shouldUpdate = true;
+          console.log(`Checking Target order ${order_id}: exists=${exists}, existingOrder=${!!existingOrder}, item_name="${existingOrder?.item_name}"`);
+          if (existingOrder && existingOrder.item_name) {
+            const badItemName = existingOrder.item_name.toLowerCase();
+            if (badItemName.includes("we're getting") || 
+                badItemName.includes("need to make changes") ||
+                badItemName.includes("something special ready") ||
+                badItemName.includes("act fast")) {
+              console.log(`Found Target order with bad item name, will re-parse: ${order_id} (current: "${existingOrder.item_name}")`);
+              shouldUpdate = true;
+            } else {
+              console.log(`Target order ${order_id} has good item name: "${existingOrder.item_name}"`);
+            }
           }
         }
         
@@ -1653,10 +1660,13 @@ exports.handler = async (event) => {
         
         if (exists && !shouldUpdate) {
           skipped_existing++;
+          console.log(`Skipped existing order ${order_id} (no update needed)`);
         } else if (shouldUpdate) {
           totalUpdated++;
+          console.log(`Updated existing order ${order_id} with new item name: "${parsed.item_name}"`);
         } else {
           imported++;
+          console.log(`Imported new order ${order_id}`);
         }
         
       } catch (err) {
