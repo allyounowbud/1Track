@@ -41,11 +41,17 @@ function Combo({
   onCreate,     // async (name) => createdName | null
   disabled = false,
   label,
+  name,
+  id,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
   const containerRef = useRef(null);
+  
+  // Generate unique ID if not provided
+  const inputId = id || `combo-${Math.random().toString(36).substr(2, 9)}`;
+  const inputName = name || inputId;
 
   // close on outside click
   useEffect(() => {
@@ -71,11 +77,13 @@ function Combo({
 
   return (
     <div className="min-w-0">
-      {label && <label className="text-slate-300 mb-1 block text-sm">{label}</label>}
+      {label && <label htmlFor={inputId} className="text-slate-300 mb-1 block text-sm">{label}</label>}
       <div ref={containerRef} className="relative min-w-0">
         <div className="relative">
           <input
             ref={inputRef}
+            id={inputId}
+            name={inputName}
             value={text}
             disabled={disabled}
             onChange={(e) => {
@@ -346,6 +354,8 @@ export default function MarkSold() {
               setValue={setMarketName}
               options={markets.map((m) => m.name)}
               onCreate={createMarketplace}
+              name="sale-location"
+              id="sale-location-select"
             />
 
             <div className="min-w-0">
