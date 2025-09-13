@@ -1292,7 +1292,27 @@ exports.handler = async (event) => {
   try {
     const mode = (event.queryStringParameters?.mode || "").toLowerCase();
     const debug = event.queryStringParameters?.debug === "1";
-    const accounts = await getAccounts(); // Get all connected accounts
+    
+    // Get all connected accounts with better error handling
+    let accounts;
+    try {
+      accounts = await getAccounts();
+    } catch (accountError) {
+      console.error("Error getting Gmail accounts:", accountError);
+      return json({ 
+        error: "Failed to get Gmail accounts", 
+        details: accountError.message,
+        suggestion: "Make sure Gmail accounts are connected and tokens are valid"
+      }, 400);
+    }
+    
+    if (!accounts || accounts.length === 0) {
+      return json({ 
+        error: "No Gmail accounts found", 
+        suggestion: "Connect a Gmail account first using the Emails page"
+      }, 400);
+    }
+    
     const startTime = Date.now(); // Define startTime at the beginning
     
     if (debug) {
@@ -1312,8 +1332,23 @@ exports.handler = async (event) => {
     for (const account of accounts) {
       console.log(`Processing Gmail account: ${account.email_address}`);
       
-      const gmail = await getGmailClient(account);
-    const ids = await listCandidateMessageIds(gmail);
+      let gmail;
+      try {
+        gmail = await getGmailClient(account);
+      } catch (gmailError) {
+        console.error(`Error creating Gmail client for ${account.email_address}:`, gmailError);
+        totalErrors++;
+        continue; // Skip this account and try the next one
+      }
+      
+      let ids;
+      try {
+        ids = await listCandidateMessageIds(gmail);
+      } catch (listError) {
+        console.error(`Error listing messages for ${account.email_address}:`, listError);
+        totalErrors++;
+        continue; // Skip this account and try the next one
+      }
     console.log(`Found ${ids.length} candidate message IDs for account ${account.email_address}`);
     
     if (debug && ids.length > 0) {
