@@ -753,59 +753,97 @@ function parseTargetOrder(html, text) {
   // Extract item name - look for product names like "Pokémon Trading Card Game:Mega Latias ex Box"
   let itemName = null;
   
-  // First, try to find product names in HTML elements
-  const itemNameSelectors = [
-    '.product-name',
-    '.item-name', 
-    '.product-title',
-    '.item-title',
-    '[class*="product"]',
-    '[class*="item"]',
-    'h1', 'h2', 'h3',
-    'strong', 'b',
-    'img[alt]' // Look for product names in image alt text
-  ];
+  // Target-specific parsing: Look for product name between image and quantity
+  // The product name is typically in a specific location in Target emails
   
-  for (const selector of itemNameSelectors) {
-    const elements = $(selector);
-    for (let i = 0; i < elements.length; i++) {
-      const element = $(elements[i]);
-      const text = element.text().trim();
-      const altText = element.attr('alt') || '';
+  // First, try to find the product name by looking for text that appears before "Qty:"
+  const qtyPattern = /qty\s*:\s*[0-9]+/i;
+  const bodyText = $("body").text();
+  const qtyMatch = bodyText.match(qtyPattern);
+  
+  if (qtyMatch) {
+    const qtyIndex = bodyText.indexOf(qtyMatch[0]);
+    const beforeQty = bodyText.substring(0, qtyIndex);
+    
+    // Look for the last substantial text before "Qty:" that looks like a product name
+    const lines = beforeQty.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    // Work backwards from the Qty line to find the product name
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i];
       
-      // Check text content
-      if (text && 
-          text.length > 5 && 
-          text.length < 200 &&
-          !text.includes('Target') && 
-          !text.includes('Order') && 
-          !text.includes('Total') && 
-          !text.includes('$') &&
-          !text.includes('Delivers to') &&
-          !text.includes('Placed') &&
-          !text.includes('Thanks for') &&
-          !text.includes('Shipping') &&
-          !text.includes('Arriving') &&
-          !/^[0-9]+$/.test(text) && // Not just numbers
-          !/^[A-Z_]+$/.test(text)) { // Not just uppercase with underscores
-        itemName = text;
-        console.log("Found Target item name from selector", selector, ":", itemName);
-        break;
+      // Skip common UI text that we know is wrong
+      if (line.includes('We\'re getting') || 
+          line.includes('Need to make changes') ||
+          line.includes('Act fast') ||
+          line.includes('Target') ||
+          line.includes('Order') ||
+          line.includes('Total') ||
+          line.includes('Delivers to') ||
+          line.includes('Placed') ||
+          line.includes('Thanks for') ||
+          line.includes('Shipping') ||
+          line.includes('Arriving') ||
+          line.includes('$') ||
+          /^[0-9]+$/.test(line) ||
+          /^[A-Z_]+$/.test(line) ||
+          line.length < 10) {
+        continue;
       }
       
-      // Check alt text
-      if (altText && 
-          altText.length > 5 && 
-          altText.length < 200 &&
-          !altText.includes('Target') && 
-          !altText.includes('logo') &&
-          !altText.includes('bullseye')) {
-        itemName = altText;
-        console.log("Found Target item name from alt text:", itemName);
+      // This looks like a product name
+      if (line.length > 10 && line.length < 200) {
+        itemName = line;
+        console.log("Found Target item name before Qty:", itemName);
         break;
       }
     }
-    if (itemName) break;
+  }
+  
+  // Fallback: Try HTML selectors if text parsing didn't work
+  if (!itemName) {
+    const itemNameSelectors = [
+      '.product-name',
+      '.item-name', 
+      '.product-title',
+      '.item-title',
+      '[class*="product"]',
+      '[class*="item"]',
+      'h1', 'h2', 'h3',
+      'strong', 'b'
+    ];
+    
+    for (const selector of itemNameSelectors) {
+      const elements = $(selector);
+      for (let i = 0; i < elements.length; i++) {
+        const element = $(elements[i]);
+        const text = element.text().trim();
+        
+        // Check text content with stricter filtering
+        if (text && 
+            text.length > 10 && 
+            text.length < 200 &&
+            !text.includes('We\'re getting') &&
+            !text.includes('Need to make changes') &&
+            !text.includes('Act fast') &&
+            !text.includes('Target') && 
+            !text.includes('Order') && 
+            !text.includes('Total') && 
+            !text.includes('$') &&
+            !text.includes('Delivers to') &&
+            !text.includes('Placed') &&
+            !text.includes('Thanks for') &&
+            !text.includes('Shipping') &&
+            !text.includes('Arriving') &&
+            !/^[0-9]+$/.test(text) && // Not just numbers
+            !/^[A-Z_]+$/.test(text)) { // Not just uppercase with underscores
+          itemName = text;
+          console.log("Found Target item name from selector", selector, ":", itemName);
+          break;
+        }
+      }
+      if (itemName) break;
+    }
   }
   
   // Fallback: look for product names in the body text patterns
