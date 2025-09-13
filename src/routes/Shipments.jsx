@@ -236,26 +236,37 @@ export default function Shipments() {
     setSyncing(true);
     setSyncMessage("Syncing emails and updating shipments...");
     
+    console.log("🚀 Starting Gmail sync...");
+    
     try {
+      console.log("📡 Calling Gmail sync function...");
       const response = await fetch(`/.netlify/functions/gmail-sync?mode=sync&debug=1`);
       const result = await response.json();
       
+      console.log("📊 Sync result:", result);
+      
       if (result.error) {
+        console.error("❌ Sync error:", result.error);
         throw new Error(result.error);
       }
       
-      setSyncMessage(`Sync complete: ${result.imported || 0} imported, ${result.updated || 0} updated`);
+      const message = `Sync complete: ${result.imported || 0} imported, ${result.updated || 0} updated`;
+      console.log("✅", message);
+      setSyncMessage(message);
       
       // Refetch data to show updated shipments
+      console.log("🔄 Refreshing orders and shipments...");
       await Promise.all([refetchOrders(), refetchShips()]);
       
       // Clear message after 3 seconds
       setTimeout(() => setSyncMessage(""), 3000);
     } catch (e) {
+      console.error("💥 Sync failed:", e);
       setSyncMessage(`Sync failed: ${e.message}`);
       setTimeout(() => setSyncMessage(""), 5000);
     } finally {
       setSyncing(false);
+      console.log("🏁 Sync process completed");
     }
   };
 
