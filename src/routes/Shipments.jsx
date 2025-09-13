@@ -25,11 +25,17 @@ async function getOrders() {
       .limit(3000);
     if (error) {
       console.log("email_orders table error:", error);
-      return [];
+      // If table doesn't exist, return empty array instead of throwing
+      if (error.code === 'PGRST116' || error.message?.includes('relation "email_orders" does not exist')) {
+        console.log("email_orders table does not exist yet - returning empty array");
+        return [];
+      }
+      throw error;
     }
     return data || [];
   } catch (err) {
-    console.log("email_orders table not found:", err);
+    console.log("email_orders table error:", err);
+    // Return empty array for any error to prevent page crashes
     return [];
   }
 }
@@ -67,11 +73,17 @@ async function getShipments() {
       .limit(3000);
     if (error) {
       console.log("email_shipments table error:", error);
-      return [];
+      // If table doesn't exist, return empty array instead of throwing
+      if (error.code === 'PGRST116' || error.message?.includes('relation "email_shipments" does not exist')) {
+        console.log("email_shipments table does not exist yet - returning empty array");
+        return [];
+      }
+      throw error;
     }
     return data || [];
   } catch (err) {
-    console.log("email_shipments table not found:", err);
+    console.log("email_shipments table error:", err);
+    // Return empty array for any error to prevent page crashes
     return [];
   }
 }
@@ -84,11 +96,17 @@ async function getEmailAccounts() {
       .like("provider", "gmail%");
     if (error) {
       console.log("email_accounts table error:", error);
-      return [];
+      // If table doesn't exist, return empty array instead of throwing
+      if (error.code === 'PGRST116' || error.message?.includes('relation "email_accounts" does not exist')) {
+        console.log("email_accounts table does not exist yet - returning empty array");
+        return [];
+      }
+      throw error;
     }
     return data || [];
   } catch (err) {
-    console.log("email_accounts table not found:", err);
+    console.log("email_accounts table error:", err);
+    // Return empty array for any error to prevent page crashes
     return [];
   }
 }
