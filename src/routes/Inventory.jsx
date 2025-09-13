@@ -206,7 +206,7 @@ export default function Inventory() {
       }
     });
     const avgHold = allHoldDays.length > 0 ? 
-      Math.round(allHoldDays.reduce((a, b) => a + b, 0) / allHoldDays.length) : 0;
+      Math.round(allHoldDays.reduce((a, b) => a + b, 0) / allHoldDays.length) : null;
 
     // Calculate longest hold time (unsold items only)
     let longestHoldDays = 0;
@@ -226,7 +226,7 @@ export default function Inventory() {
 
     // Calculate last purchase (most recent on-hand order)
     const today = new Date();
-    let lastPurchaseDays = 0;
+    let lastPurchaseDays = null;
     if (rows.length > 0) {
       const onHandOrders = orders.filter(o => 
         rows.some(r => r.name === o.item) && 
@@ -257,6 +257,9 @@ export default function Inventory() {
       }
     }
 
+    // Calculate average price per item
+    const avgPricePerItem = totalUnits > 0 ? Math.round(totalCost / totalUnits) : 0;
+
     return {
       totalUnits,
       totalCost,
@@ -270,6 +273,7 @@ export default function Inventory() {
       longestHoldDays,
       lastPurchaseDays,
       lastSaleDays,
+      avgPricePerItem,
     };
   }, [filteredRows, orders, itemFilter]);
 
@@ -303,46 +307,70 @@ export default function Inventory() {
     <LayoutWithSidebar active="inventory" section="orderbook">
       <PageHeader title="Inventory" />
 
-        {/* KPI pills (8) */}
+        {/* KPI pills (9 total: 3x3 on 550px+, 2x4 on small) */}
         <div className={`${pageCard} mb-6`}>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Kpi label="Inventory" value={formatNumber(kpis.totalUnits)} sub="on hand" />
+          <div className="grid grid-cols-2 min-[550px]:grid-cols-3 gap-3">
+            {/* 1. Inventory */}
+            <Kpi label="Inventory" value={formatNumber(kpis.totalUnits)} sub="on hand" className="order-1 min-[550px]:order-1" />
+            {/* 2. Average Price */}
+            <Kpi
+              label="Avg Price"
+              value={`$${centsToStr(kpis.avgPricePerItem)}`}
+              sub="per item"
+              className="order-2 min-[550px]:order-2"
+            />
+            {/* 3. Total Cost */}
             <Kpi
               label="Total Cost"
               value={`$${centsToStr(kpis.totalCost)}`}
               sub="on-hand cost"
+              className="order-3 min-[550px]:order-3"
             />
+            {/* 4. Est Value */}
             <Kpi
               label="Est. Value"
               value={`$${centsToStr(kpis.totalEst)}`}
               sub="market value"
+              className="order-4 min-[550px]:order-6"
             />
-            <Kpi
-              label="Unrealized P/L"
-              value={`$${centsToStr(kpis.unrealized)}`}
-              sub={kpis.unrealized >= 0 ? "unreazlized profit" : "unrealized loss"}
-              tone={kpis.unrealized >= 0 ? "blue" : "bad"}
-            />
-            <Kpi
-              label="Avg Hold"
-              value={formatNumber(kpis.avgHold)}
-              sub="in days"
-            />
-            <Kpi
-              label="Longest Hold"
-              value={formatNumber(kpis.longestHoldDays)}
-              sub="in days"
-            />
+            {/* 5. Last Purchase */}
             <Kpi
               label="Last Purchase"
-              value={formatNumber(kpis.lastPurchaseDays)}
+              value={kpis.lastPurchaseDays !== null ? formatNumber(kpis.lastPurchaseDays) : "-"}
               sub="days ago"
+              tone={kpis.lastPurchaseDays === null ? "muted" : undefined}
+              className="order-5 min-[550px]:order-4"
             />
+            {/* 6. Last Sale */}
             <Kpi
               label="Last Sale"
               value={kpis.lastSaleDays !== null ? formatNumber(kpis.lastSaleDays) : "-"}
               sub="days ago"
               tone={kpis.lastSaleDays === null ? "muted" : undefined}
+              className="order-6 min-[550px]:order-5"
+            />
+            {/* 7. Avg Hold */}
+            <Kpi
+              label="Avg Hold"
+              value={kpis.avgHold !== null ? formatNumber(kpis.avgHold) : "-"}
+              sub="in days"
+              tone={kpis.avgHold === null ? "muted" : undefined}
+              className="order-7 min-[550px]:order-7"
+            />
+            {/* 8. Unrealized P/L */}
+            <Kpi
+              label="Unrealized P/L"
+              value={`$${centsToStr(kpis.unrealized)}`}
+              sub={kpis.unrealized >= 0 ? "unrealized profit" : "unrealized loss"}
+              tone={kpis.unrealized >= 0 ? "blue" : "bad"}
+              className="order-8 min-[550px]:order-9"
+            />
+            {/* 9. Longest Hold - only visible on 550px+ screens */}
+            <Kpi
+              label="Longest Hold"
+              value={formatNumber(kpis.longestHoldDays)}
+              sub="in days"
+              className="hidden min-[550px]:block min-[550px]:order-8"
             />
           </div>
         </div>
@@ -481,7 +509,7 @@ export default function Inventory() {
 }
 
 /* ---------- little UI bits ---------- */
-function Kpi({ label, value, sub, tone = "neutral" }) {
+function Kpi({ label, value, sub, tone = "neutral", className = "" }) {
   const toneCls =
     tone === "good"
       ? "text-emerald-300"
@@ -491,7 +519,7 @@ function Kpi({ label, value, sub, tone = "neutral" }) {
       ? "text-blue-300"
       : "text-slate-100";
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+    <div className={`rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center ${className}`}>
       <div className="text-xs text-slate-400">{label}</div>
       <div className={`text-xl font-semibold ${toneCls}`}>{value}</div>
       <div className="text-[11px] text-slate-400/60 truncate">{sub || " "}</div>

@@ -115,7 +115,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   return (
     <div 
       className={`sidebar-fixed bg-slate-900 border-r border-slate-800 transition-all duration-300 ${
-        isCollapsed ? 'w-20' : 'w-64'
+        isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Header */}
@@ -184,21 +184,21 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
       </nav>
 
       {/* User Section */}
-      <div className="p-4 border-t border-slate-800 bg-slate-900 flex-shrink-0">
+      <div className="p-4 border-t border-slate-800 bg-slate-900 flex-shrink-0 flex justify-center">
         {isCollapsed ? (
           // Collapsed: Profile image fills entire button
           <Link
             to="/"
-            className="block rounded-lg hover:bg-slate-800/50 transition-colors overflow-hidden"
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
           >
             {userInfo.avatar_url ? (
               <img
                 src={userInfo.avatar_url}
                 alt=""
-                className="w-full h-12 rounded-lg object-cover"
+                className="w-10 h-10 rounded-lg object-cover"
               />
             ) : (
-              <div className="w-full h-12 rounded-lg bg-slate-800 grid place-items-center text-slate-300 text-lg font-semibold">
+              <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300 text-base font-semibold">
                 {(userInfo.username || "U").slice(0, 1).toUpperCase()}
               </div>
             )}

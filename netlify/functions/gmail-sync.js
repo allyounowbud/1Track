@@ -49,7 +49,7 @@ const RETAILERS = [
   {
     name: "Target",
     senderMatch: (from) => /@target\.com$/i.test(from) || /@oe\.target\.com$/i.test(from) || /@oe1\.target\.com$/i.test(from),
-    orderSubject: /thanks for your order|order confirmation|order placed/i,
+    orderSubject: /thanks for shopping with us|thanks for your order|order confirmation|order placed|here's your order/i,
     shipSubject: /shipped|on the way|shipment/i,
     deliverSubject: /delivered|arrived/i,
     cancelSubject: /cancel/i,
@@ -687,65 +687,128 @@ function parseTargetOrder(html, text) {
   console.log("=== TARGET PARSING DEBUG ===");
   console.log("HTML length:", (html || "").length);
   console.log("Body text length:", bodyText.length);
+  console.log("First 1000 chars:", bodyText.substring(0, 1000));
   
   const out = {};
   
-  // Extract order ID from Target format: "Order #102002814872430"
-  const orderIdMatch = bodyText.match(/order\s*#\s*([0-9]+)/i);
-  if (orderIdMatch && orderIdMatch[1]) {
-    out.order_id = orderIdMatch[1];
-    console.log("Found Target order ID:", out.order_id);
-  }
-  
-  // Extract total price - look for "Total $48.28" pattern
-  const totalMatch = bodyText.match(/total\s*\$([0-9,]+\.?[0-9]*)/i);
-  if (totalMatch && totalMatch[1]) {
-    out.total_cents = Math.round(parseFloat(totalMatch[1].replace(/,/g, '')) * 100);
-    console.log("Found Target total:", totalMatch[1], "cents:", out.total_cents);
-  }
-  
-  // Extract item name from HTML - look for product names in the email
-  const itemNameSelectors = [
-    'img[alt*="Pokémon"]', // Look for images with product names in alt text
-    'img[alt*="Trading Card"]',
-    'img[alt*="Box"]',
-    '.product-name',
-    '.item-name',
-    '[class*="product"]',
-    '[class*="item"]'
+  // Extract order ID from Target format: "Order #102002814872430" or "#:102002814872430"
+  const orderIdPatterns = [
+    /order\s*#\s*([0-9]+)/i,
+    /#:\s*([0-9]+)/i, // Specific pattern for "#:102002814872430"
+    /order\s*number\s*([0-9]+)/i,
+    /#\s*([0-9]{10,})/i, // Long numbers that look like order IDs
+    /([0-9]{12,})/ // Very long numbers that might be Target order IDs (like 102002814872430)
   ];
   
-  let itemName = null;
-  for (const selector of itemNameSelectors) {
-    const element = $(selector).first();
-    if (element.length) {
-      const altText = element.attr('alt') || '';
-      const textContent = element.text() || '';
-      if (altText && altText.length > 10 && !altText.includes('Target') && !altText.includes('logo')) {
-        itemName = altText.trim();
-        console.log("Found Target item name from alt text:", itemName);
-        break;
-      }
-      if (textContent && textContent.length > 10 && !textContent.includes('Target')) {
-        itemName = textContent.trim();
-        console.log("Found Target item name from text:", itemName);
-        break;
-      }
+  for (const pattern of orderIdPatterns) {
+    const match = bodyText.match(pattern);
+    if (match && match[1]) {
+      out.order_id = match[1];
+      console.log("Found Target order ID:", out.order_id, "using pattern:", pattern);
+      break;
     }
   }
   
-  // Fallback: look for product names in the body text
+  // Extract total price - look for "Order total $48.28" pattern (from the image)
+  const totalPatterns = [
+    /order\s*total\s*\$([0-9,]+\.?[0-9]*)/i,
+    /total\s*\$([0-9,]+\.?[0-9]*)/i,
+    /\$([0-9,]+\.?[0-9]*)\s*total/i
+  ];
+  
+  for (const pattern of totalPatterns) {
+    const match = bodyText.match(pattern);
+    if (match && match[1]) {
+      out.total_cents = Math.round(parseFloat(match[1].replace(/,/g, '')) * 100);
+      console.log("Found Target total:", match[1], "cents:", out.total_cents);
+      break;
+    }
+  }
+  
+  // Extract item name - look for product names like "Pokémon Trading Card Game:Mega Latias ex Box"
+  let itemName = null;
+  
+  // First, try to find product names in HTML elements
+  const itemNameSelectors = [
+    '.product-name',
+    '.item-name', 
+    '.product-title',
+    '.item-title',
+    '[class*="product"]',
+    '[class*="item"]',
+    'h1', 'h2', 'h3',
+    'strong', 'b',
+    'img[alt]' // Look for product names in image alt text
+  ];
+  
+  for (const selector of itemNameSelectors) {
+    const elements = $(selector);
+    for (let i = 0; i < elements.length; i++) {
+      const element = $(elements[i]);
+      const text = element.text().trim();
+      const altText = element.attr('alt') || '';
+      
+      // Check text content
+      if (text && 
+          text.length > 5 && 
+          text.length < 200 &&
+          !text.includes('Target') && 
+          !text.includes('Order') && 
+          !text.includes('Total') && 
+          !text.includes('$') &&
+          !text.includes('Delivers to') &&
+          !text.includes('Placed') &&
+          !text.includes('Thanks for') &&
+          !text.includes('Shipping') &&
+          !text.includes('Arriving') &&
+          !/^[0-9]+$/.test(text) && // Not just numbers
+          !/^[A-Z_]+$/.test(text)) { // Not just uppercase with underscores
+        itemName = text;
+        console.log("Found Target item name from selector", selector, ":", itemName);
+        break;
+      }
+      
+      // Check alt text
+      if (altText && 
+          altText.length > 5 && 
+          altText.length < 200 &&
+          !altText.includes('Target') && 
+          !altText.includes('logo') &&
+          !altText.includes('bullseye')) {
+        itemName = altText;
+        console.log("Found Target item name from alt text:", itemName);
+        break;
+      }
+    }
+    if (itemName) break;
+  }
+  
+  // Fallback: look for product names in the body text patterns
   if (!itemName) {
     const productPatterns = [
-      /([A-Za-z][^:]{10,50}):\s*([A-Za-z][^:]{10,50})/g, // "Pokémon Trading Card Game:Mega Latias ex Box"
-      /([A-Za-z][^,]{10,50}),\s*([A-Za-z][^,]{10,50})/g,
+      /"([^"]{10,100})"/g, // Quoted product names
+      /([A-Za-z][^:]{10,100}):\s*[A-Za-z]/g, // "Pokémon Trading Card Game:Mega Latias ex Box"
+      /([A-Za-z][^,]{10,100}),\s*[A-Za-z]/g,
+      /([A-Za-z][^.]{10,100})\.\s*[A-Za-z]/g // Product names ending with period
     ];
     
     for (const pattern of productPatterns) {
       const matches = [...bodyText.matchAll(pattern)];
       for (const match of matches) {
-        const candidate = match[0].trim();
-        if (candidate.length > 10 && !candidate.includes('Target') && !candidate.includes('Order')) {
+        const candidate = match[1].trim();
+        if (candidate && 
+            candidate.length > 10 && 
+            candidate.length < 200 &&
+            !candidate.includes('Target') && 
+            !candidate.includes('Order') && 
+            !candidate.includes('Total') && 
+            !candidate.includes('$') &&
+            !candidate.includes('Delivers to') &&
+            !candidate.includes('Placed') &&
+            !candidate.includes('Thanks for') &&
+            !candidate.includes('Shipping') &&
+            !candidate.includes('Arriving') &&
+            !/^[0-9]+$/.test(candidate)) {
           itemName = candidate;
           console.log("Found Target item name from pattern:", itemName);
           break;
@@ -759,20 +822,43 @@ function parseTargetOrder(html, text) {
     out.item_name = itemName;
   }
   
-  // Extract quantity
-  const qtyMatch = bodyText.match(/qty[:\s]*([0-9]+)/i);
-  if (qtyMatch && qtyMatch[1]) {
-    out.quantity = parseInt(qtyMatch[1]);
-    console.log("Found Target quantity:", out.quantity);
+  // Extract quantity - look for "Qty: [Number]" format (like "Qty: 2" from the image)
+  const qtyPatterns = [
+    /qty[:\s]*([0-9]+)/i,
+    /quantity[:\s]*([0-9]+)/i,
+    /([0-9]+)\s*x\s*[A-Za-z]/i
+  ];
+  
+  for (const pattern of qtyPatterns) {
+    const match = bodyText.match(pattern);
+    if (match && match[1]) {
+      out.quantity = parseInt(match[1]);
+      console.log("Found Target quantity:", out.quantity);
+      break;
+    }
+  }
+  
+  // Extract unit price - look for "$21.99 / ea" pattern
+  const unitPricePatterns = [
+    /\$([0-9,]+\.?[0-9]*)\s*\/\s*ea/i,
+    /\$([0-9,]+\.?[0-9]*)\s*each/i
+  ];
+  
+  for (const pattern of unitPricePatterns) {
+    const match = bodyText.match(pattern);
+    if (match && match[1]) {
+      out.unit_price_cents = Math.round(parseFloat(match[1].replace(/,/g, '')) * 100);
+      console.log("Found Target unit price:", match[1], "cents:", out.unit_price_cents);
+      break;
+    }
   }
   
   // Extract product image from Target email
   const imageSelectors = [
     'img[src*="target.com"]',
     'img[src*="target"]',
-    'img[alt*="Pokémon"]',
-    'img[alt*="Trading Card"]',
-    'img[alt*="Box"]',
+    'img[alt*="product"]',
+    'img[alt*="item"]',
     'img[src*="product"]',
     'img[src*="item"]'
   ];
@@ -782,7 +868,12 @@ function parseTargetOrder(html, text) {
     if (img.length) {
       const src = img.attr('src');
       const alt = img.attr('alt') || '';
-      if (src && !src.includes('logo') && !src.includes('bullseye') && !src.includes('target.com/static')) {
+      if (src && 
+          !src.includes('logo') && 
+          !src.includes('bullseye') && 
+          !src.includes('target.com/static') &&
+          !src.includes('tracking') &&
+          !src.includes('pixel')) {
         out.image_url = src;
         console.log("Found Target product image:", src, "alt:", alt);
         break;

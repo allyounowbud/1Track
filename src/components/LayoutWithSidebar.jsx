@@ -22,9 +22,9 @@ export default function LayoutWithSidebar({ children, active, section }) {
       
       {/* Main Content */}
       <div className={`flex-1 flex flex-col transition-all duration-300 ${
-        sidebarCollapsed ? 'ml-20' : 'ml-64'
+        sidebarCollapsed ? 'ml-16' : 'ml-64'
       }`}>
-        <div className="flex-1 max-w-[95vw] mx-auto p-4 sm:p-6 w-full">
+        <div className="flex-1 w-full p-4 sm:p-6">
           {children}
         </div>
       </div>

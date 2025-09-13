@@ -535,24 +535,26 @@ function UnifiedOrderView({
             </div>
 
       {/* Page break line */}
-      <div className="border-b border-slate-700 mb-4"></div>
+      <div className="border-b border-slate-700 mb-2"></div>
 
       {/* Header with Selection Count and Actions - Card-like structure without background */}
-      <div className="flex items-center justify-between p-4 mb-4">
+      <div className="flex items-center justify-end py-1 px-4 mb-2">
         {/* Left side - Selection Count (matches card header structure) */}
-        <div className="flex items-center gap-4">
-          <input
-            type="checkbox"
-            checked={selectedRows.size === filtered.length && filtered.length > 0}
-            onChange={toggleAllSelection}
-            className="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-indigo-600 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-600"
-          />
-          <div>
-            <div className="text-sm sm:text-lg text-slate-400 whitespace-nowrap">
-              {selectedRows.size}/{filtered.length} Selected
+        {filtered.length > 0 && (
+          <div className="flex items-center gap-4 mr-auto">
+            <input
+              type="checkbox"
+              checked={selectedRows.size === filtered.length && filtered.length > 0}
+              onChange={toggleAllSelection}
+              className="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-indigo-600 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-600"
+            />
+            <div>
+              <div className="text-sm text-slate-400 whitespace-nowrap">
+                {selectedRows.size}/{filtered.length} Selected
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Right side - Action Buttons and View Toggle */}
         <div className="flex items-center gap-2">
@@ -673,6 +675,8 @@ function UnifiedOrderView({
           </div>
         </div>
 
+      {/* Page break line */}
+      <div className="border-b border-slate-700 mb-5"></div>
 
       {/* Content Area */}
       {viewMode === 'grid' ? (
