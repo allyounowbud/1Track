@@ -1264,15 +1264,45 @@ exports.handler = async (event) => {
         return json({ error: "No connected Gmail accounts found" }, 400);
       }
       
-      const account = accounts[0];
-      const gmail = await getGmailClient(account);
-      const ids = await listCandidateMessageIds(gmail, account.email_address, accounts.length);
+      const results = [];
+      let workingAccounts = 0;
+      let totalMessages = 0;
+      
+      // Test each account individually
+      for (const account of accounts) {
+        try {
+          const gmail = await getGmailClient(account);
+          const ids = await listCandidateMessageIds(gmail, account.email_address, accounts.length);
+          
+          results.push({
+            email: account.email_address,
+            status: "connected",
+            messageCount: ids.length,
+            sampleIds: ids.slice(0, 3)
+          });
+          
+          workingAccounts++;
+          totalMessages += ids.length;
+          
+          console.log(`✅ Account ${account.email_address}: ${ids.length} emails found`);
+        } catch (error) {
+          results.push({
+            email: account.email_address,
+            status: "error",
+            error: error.message,
+            needsReconnection: error.message.includes("insufficient") || error.message.includes("invalid_grant")
+          });
+          
+          console.error(`❌ Account ${account.email_address}: ${error.message}`);
+        }
+      }
       
       return json({ 
-        account: account.email_address,
-        messageCount: ids.length,
-        sampleIds: ids.slice(0, 3),
-        query: 'newer_than:90d in:inbox (from:amazon.com OR from:target.com OR from:macys.com OR from:nike.com OR subject:order OR subject:shipped OR subject:delivered OR subject:cancel)'
+        totalAccounts: accounts.length,
+        workingAccounts: workingAccounts,
+        totalMessages: totalMessages,
+        accounts: results,
+        summary: `${workingAccounts}/${accounts.length} accounts working, ${totalMessages} total emails found`
       });
     } catch (error) {
       return json({ error: error.message }, 500);

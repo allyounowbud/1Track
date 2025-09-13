@@ -274,23 +274,49 @@ export default function Shipments() {
     if (testing) return;
     
     setTesting(true);
-    setSyncMessage("Testing Gmail connection...");
+    setSyncMessage("Testing all Gmail connections...");
+    
+    console.log("🔍 Testing Gmail connections...");
     
     try {
-      const response = await fetch(`/.netlify/functions/gmail-sync?test=gmail`);
-      const result = await response.json();
+      // Test the health endpoint first to check environment
+      const healthResponse = await fetch(`/.netlify/functions/gmail-sync?health=1`);
+      const healthResult = await healthResponse.json();
+      console.log("🏥 Health check:", healthResult);
       
-      if (result.error) {
-        throw new Error(result.error);
+      if (!healthResult.ok) {
+        throw new Error("Gmail sync function is not properly configured");
       }
       
-      setSyncMessage(`Test complete: Found ${result.messageCount} emails in account ${result.account}`);
-      setTimeout(() => setSyncMessage(""), 5000);
+      // Test Gmail connection
+      const response = await fetch(`/.netlify/functions/gmail-sync?test=gmail&debug=1`);
+      const result = await response.json();
+      
+      console.log("📧 Gmail test result:", result);
+      
+      if (result.error) {
+        // If it's a scope error, provide helpful guidance
+        if (result.error.includes("insufficient authentication scopes")) {
+          const message = `Authentication issue: Some Gmail accounts need to be reconnected. Go to the Emails page to reconnect accounts with expired tokens.`;
+          setSyncMessage(message);
+          console.warn("⚠️ Authentication scopes issue detected");
+        } else {
+          throw new Error(result.error);
+        }
+      } else {
+        const message = `✅ Test complete: Found ${result.messageCount} emails in account ${result.account}. Check console for detailed account status.`;
+        setSyncMessage(message);
+        console.log("✅ Gmail test successful");
+      }
+      
+      setTimeout(() => setSyncMessage(""), 8000);
     } catch (e) {
-      setSyncMessage(`Test failed: ${e.message}`);
-      setTimeout(() => setSyncMessage(""), 5000);
+      console.error("❌ Gmail test failed:", e);
+      setSyncMessage(`❌ Test failed: ${e.message}`);
+      setTimeout(() => setSyncMessage(""), 8000);
     } finally {
       setTesting(false);
+      console.log("🏁 Gmail test completed");
     }
   };
 
