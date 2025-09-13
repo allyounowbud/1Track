@@ -299,30 +299,28 @@ export default function Shipments() {
                 Track and manage your order shipments. View order confirmations, shipping updates, and delivery status from all connected email accounts.
               </p>
             </div>
-            {rows.length > 0 && (
-              <div className="flex items-center gap-2 shrink-0">
-                <button 
-                  onClick={testGmailConnection} 
-                  disabled={testing} 
-                  className="h-10 px-4 rounded-xl bg-slate-600 hover:bg-slate-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {testing ? "Testing..." : "Test Connection"}
-                </button>
-                <button 
-                  onClick={syncEmails} 
-                  disabled={syncing} 
-                  className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  {syncing ? "Syncing..." : "Sync Emails"}
-                </button>
-              </div>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              <button 
+                onClick={testGmailConnection} 
+                disabled={testing} 
+                className="h-10 px-4 rounded-xl bg-slate-600 hover:bg-slate-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {testing ? "Testing..." : "Test Connection"}
+              </button>
+              <button 
+                onClick={syncEmails} 
+                disabled={syncing} 
+                className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium transition-colors inline-flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {syncing ? "Syncing..." : "Sync Emails"}
+              </button>
+            </div>
           </div>
           {syncMessage && (
             <div className="mt-4 p-3 rounded-xl bg-slate-800/50 border border-slate-700 text-sm text-slate-300">
