@@ -1,6 +1,5 @@
 // src/routes/QuickAdd.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
@@ -34,26 +33,6 @@ async function getMarketplaces() {
   return data || [];
 }
 
-/* --------------------- anchored-menu positioning hook --------------------- */
-function useAnchoredRect(ref, open, offsetY = 8) {
-  const [rect, setRect] = useState({ top: 0, left: 0, width: 0 });
-  useEffect(() => {
-    if (!open) return;
-    const recalc = () => {
-      const r = ref.current?.getBoundingClientRect();
-      if (!r) return;
-      setRect({ top: r.bottom + offsetY, left: r.left, width: r.width });
-    };
-    recalc();
-    window.addEventListener("scroll", recalc, { passive: true });
-    window.addEventListener("resize", recalc);
-    return () => {
-      window.removeEventListener("scroll", recalc);
-      window.removeEventListener("resize", recalc);
-    };
-  }, [ref, open, offsetY]);
-  return rect;
-}
 
 /* ------------------------- Reusable Combo (single) ------------------------- */
 function Combo({
@@ -70,9 +49,8 @@ function Combo({
   const inputRef = useRef(null);
   const boxRef = useRef(null);
   const menuRef = useRef(null);
-  const rect = useAnchoredRect(boxRef, open);
 
-  // close on outside click (but ignore clicks inside the PORTALED menu)
+  // close on outside click
   useEffect(() => {
     const onDocClick = (e) => {
       if (!open) return;
@@ -130,14 +108,12 @@ function Combo({
           </button>
         )}
 
-        {/* floating menu via portal */}
-        {open &&
-          createPortal(
-            <div
-              ref={menuRef}
-              className="fixed z-[99999] max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl"
-              style={{ top: rect.top, left: rect.left, width: rect.width }}
-            >
+        {/* dropdown menu */}
+        {open && (
+          <div
+            ref={menuRef}
+            className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl"
+          >
               {/* Clear row */}
               {value && (
                 <button
@@ -190,9 +166,8 @@ function Combo({
                   {opt}
                 </button>
               ))}
-            </div>,
-            document.body
-          )}
+          </div>
+        )}
       </div>
     </div>
   );
