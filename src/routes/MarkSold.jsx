@@ -134,7 +134,7 @@ function Combo({
           createPortal(
             <div
               ref={menuRef}
-              className="fixed z-[99999] max-h-64 overflow-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl"
+              className="fixed z-[99999] max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl"
               style={{ top: rect.top, left: rect.left, width: rect.width }}
             >
               {/* Clear row */}
