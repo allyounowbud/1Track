@@ -839,6 +839,41 @@ function parseTargetOrder(html, text) {
     }
   }
   
+  // Method 3: More aggressive approach - look for any substantial text that could be a product name
+  if (!itemName) {
+    console.log("=== AGGRESSIVE TARGET PARSING ===");
+    const lines = bodyText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    for (const line of lines) {
+      // Skip obvious UI text
+      if (line.includes('We\'re getting') || 
+          line.includes('Need to make changes') ||
+          line.includes('Act fast') ||
+          line.includes('Target') ||
+          line.includes('Order') ||
+          line.includes('Total') ||
+          line.includes('Delivers to') ||
+          line.includes('Placed') ||
+          line.includes('Thanks for') ||
+          line.includes('Shipping') ||
+          line.includes('Arriving') ||
+          line.includes('$') ||
+          line.includes('Estimated') ||
+          /^[0-9]+$/.test(line) ||
+          /^[A-Z_]+$/.test(line) ||
+          line.length < 15) {
+        continue;
+      }
+      
+      // This could be a product name
+      if (line.length > 15 && line.length < 200) {
+        console.log(`Found potential Target item name: "${line}"`);
+        itemName = line;
+        break;
+      }
+    }
+  }
+  
   // Fallback: Try HTML selectors if text parsing didn't work
   if (!itemName) {
     const itemNameSelectors = [
@@ -1412,6 +1447,12 @@ exports.handler = async (event) => {
           const headers = headersToObj(message.payload?.headers || []);
           const { html, text } = extractBodyParts(message.payload || {});
           
+          // Test Target parsing if it's a Target email
+          let parsedData = null;
+          if (headers.from && headers.from.toLowerCase().includes('target')) {
+            parsedData = parseTargetOrder(html, text);
+          }
+          
           return json({
             success: true,
             messageId,
@@ -1420,7 +1461,8 @@ exports.handler = async (event) => {
             date: headers.date || '',
             html: html || '',
             text: text || '',
-            account: account.email_address
+            account: account.email_address,
+            parsedData: parsedData
           });
         } catch (err) {
           // Try next account if this one fails
