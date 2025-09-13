@@ -360,9 +360,11 @@ export default function MarkSold() {
             </div>
 
             <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Sale Location</label>
+              <label htmlFor="sale-location-input" className="text-slate-300 mb-1 block text-sm">Sale Location</label>
               <div className="relative">
                 <input
+                  id="sale-location-input"
+                  name="sale-location"
                   value={marketName}
                   onChange={(e) => setMarketName(e.target.value)}
                   onFocus={() => setMarketDropdownOpen(true)}

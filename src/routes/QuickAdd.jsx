@@ -127,13 +127,22 @@ export default function QuickAdd() {
 
   /* -------------------------- derived lists (names) ------------------------- */
   const itemNames = useMemo(() => {
-    return items.map((i) => i.name).filter(Boolean);
+    const names = items.map((i) => i.name).filter(Boolean);
+    console.log('QuickAdd - Items from DB:', items);
+    console.log('QuickAdd - Item names:', names);
+    return names;
   }, [items]);
   const retailerNames = useMemo(() => {
-    return retailers.map((r) => r.name).filter(Boolean);
+    const names = retailers.map((r) => r.name).filter(Boolean);
+    console.log('QuickAdd - Retailers from DB:', retailers);
+    console.log('QuickAdd - Retailer names:', names);
+    return names;
   }, [retailers]);
   const marketNames = useMemo(() => {
-    return markets.map((m) => m.name).filter(Boolean);
+    const names = markets.map((m) => m.name).filter(Boolean);
+    console.log('QuickAdd - Markets from DB:', markets);
+    console.log('QuickAdd - Market names:', names);
+    return names;
   }, [markets]);
 
   /* ------------------------------- creators -------------------------------- */
@@ -281,9 +290,11 @@ export default function QuickAdd() {
             </div>
 
             <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Item</label>
+              <label htmlFor="item-input" className="text-slate-300 mb-1 block text-sm">Item</label>
               <div className="relative">
                 <input
+                  id="item-input"
+                  name="item"
                   value={itemName}
                   onChange={(e) => setItemName(e.target.value)}
                   onFocus={() => setItemDropdownOpen(true)}
@@ -321,9 +332,13 @@ export default function QuickAdd() {
                     )}
 
                     {/* Existing items */}
-                    {itemNames.filter(name => 
-                      name.toLowerCase().includes(itemName.toLowerCase())
-                    ).slice(0, 20).map((name) => (
+                    {(() => {
+                      const filtered = itemNames.filter(name => 
+                        name.toLowerCase().includes(itemName.toLowerCase())
+                      ).slice(0, 20);
+                      console.log('QuickAdd - Filtered items for dropdown:', filtered);
+                      return filtered;
+                    })().map((name) => (
                       <button
                         type="button"
                         key={name}
@@ -354,9 +369,11 @@ export default function QuickAdd() {
             </div>
 
             <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Retailer</label>
+              <label htmlFor="retailer-input" className="text-slate-300 mb-1 block text-sm">Retailer</label>
               <div className="relative">
                 <input
+                  id="retailer-input"
+                  name="retailer"
                   value={retailerName}
                   onChange={(e) => setRetailerName(e.target.value)}
                   onFocus={() => setRetailerDropdownOpen(true)}
@@ -473,9 +490,11 @@ export default function QuickAdd() {
               </div>
 
               <div className="min-w-0">
-                <label className="text-slate-300 mb-1 block text-sm">Marketplace</label>
+                <label htmlFor="marketplace-input" className="text-slate-300 mb-1 block text-sm">Marketplace</label>
                 <div className="relative">
                   <input
+                    id="marketplace-input"
+                    name="marketplace"
                     value={marketName}
                     onChange={(e) => setMarketName(e.target.value)}
                     onFocus={() => setMarketDropdownOpen(true)}
