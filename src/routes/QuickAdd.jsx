@@ -69,13 +69,9 @@ function Combo({
   const text = value || query;
   const normalized = text.trim().toLowerCase();
   const filtered = useMemo(() => {
-    console.log('Combo options:', options, 'normalized:', normalized);
     if (!normalized) return options.slice(0, 200);
     return options.filter((n) => n.toLowerCase().includes(normalized)).slice(0, 200);
   }, [options, normalized]);
-
-  // Debug dropdown state
-  console.log('Combo debug - open:', open, 'filtered length:', filtered.length, 'text:', text);
 
   const existsExact =
     normalized && options.some((n) => n.toLowerCase() === normalized);
@@ -92,15 +88,11 @@ function Combo({
             value={text}
             disabled={disabled}
             onChange={(e) => {
-              console.log('Input onChange triggered');
               setValue("");     // typing switches to search mode
               setQuery(e.target.value);
               if (!disabled) setOpen(true);
             }}
-            onFocus={() => {
-              console.log('Input onFocus triggered');
-              !disabled && setOpen(true);
-            }}
+            onFocus={() => !disabled && setOpen(true)}
             placeholder={placeholder}
             className={`${inputBase} ${disabled ? disabledInput : ""} ${open ? 'rounded-b-none' : ''}`}
           />
@@ -266,22 +258,13 @@ export default function QuickAdd() {
 
   /* -------------------------- derived lists (names) ------------------------- */
   const itemNames = useMemo(() => {
-    console.log('Items from DB:', items);
-    const names = items.map((i) => i.name).filter(Boolean);
-    console.log('Item names:', names);
-    return names;
+    return items.map((i) => i.name).filter(Boolean);
   }, [items]);
   const retailerNames = useMemo(() => {
-    console.log('Retailers from DB:', retailers);
-    const names = retailers.map((r) => r.name).filter(Boolean);
-    console.log('Retailer names:', names);
-    return names;
+    return retailers.map((r) => r.name).filter(Boolean);
   }, [retailers]);
   const marketNames = useMemo(() => {
-    console.log('Markets from DB:', markets);
-    const names = markets.map((m) => m.name).filter(Boolean);
-    console.log('Market names:', names);
-    return names;
+    return markets.map((m) => m.name).filter(Boolean);
   }, [markets]);
 
   /* ------------------------------- creators -------------------------------- */
