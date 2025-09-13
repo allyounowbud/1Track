@@ -98,7 +98,7 @@ export const SearchDropdown = ({
                 type="button"
                 key={getOptionValue(option)}
                 onClick={() => handleSelect(option)}
-                className="w-full text-left px-3 py-2 hover:bg-slate-800/70"
+                className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
               >
                 {getOptionLabel(option)}
               </button>

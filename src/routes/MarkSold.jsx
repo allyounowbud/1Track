@@ -146,7 +146,7 @@ function Combo({
                     setQuery("");
                     inputRef.current?.focus();
                   }}
-                  className="w-full text-left px-3 py-2 text-slate-300 hover:bg-slate-800/70"
+                  className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800/70"
                 >
                   Clear selection
                 </button>
@@ -184,7 +184,7 @@ function Combo({
                     setQuery("");
                     setOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 hover:bg-slate-800/70"
+                  className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
                 >
                   {opt}
                 </button>
