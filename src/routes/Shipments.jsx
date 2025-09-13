@@ -525,31 +525,11 @@ export default function Shipments() {
                     {/* Expanded Content */}
                     {isExpanded && (
                       <div className="border-t border-slate-700 p-4 bg-slate-800/30">
-                        <div className="flex gap-4">
-                          {/* Left Column - Compact Image */}
-                          <div className="flex-shrink-0">
-                            {row.image_url ? (
-                              <img 
-                                src={row.image_url} 
-                                alt={row.item_name ? cleanItemName(row.item_name) || 'Product image' : 'Product image'}
-                                className="w-20 h-20 object-contain rounded-lg border border-slate-600"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.nextSibling.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div 
-                              className="w-20 h-20 bg-slate-700 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 text-xs"
-                              style={{ display: row.image_url ? 'none' : 'flex' }}
-                            >
-                              No Image
-                            </div>
-                          </div>
-                          
-                          {/* Right Column - All Information */}
-                          <div className="flex-1 min-w-0">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                        {/* Top Section - Image Thumbnail and Key Info */}
+                        <div className="flex justify-between items-start mb-4">
+                          {/* Left Side - Key Information */}
+                          <div className="flex-1 pr-4">
+                            <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
                                 <span className="text-slate-400">Retailer:</span>
                                 <div className="text-slate-200 font-medium">{row.retailer || '—'}</div>
@@ -558,18 +538,6 @@ export default function Shipments() {
                                 <span className="text-slate-400">Order ID:</span>
                                 <div className="text-slate-200 font-medium">{row.order_id || '—'}</div>
                               </div>
-                              {row.tracking_number && (
-                                <div>
-                                  <span className="text-slate-400">Tracking:</span>
-                                  <div className="text-slate-200 font-medium">{row.tracking_number}</div>
-                                </div>
-                              )}
-                              {row.carrier && (
-                                <div>
-                                  <span className="text-slate-400">Carrier:</span>
-                                  <div className="text-slate-200 font-medium">{row.carrier}</div>
-                                </div>
-                              )}
                               {row.quantity && (
                                 <div>
                                   <span className="text-slate-400">Quantity:</span>
@@ -595,54 +563,99 @@ export default function Shipments() {
                                 </div>
                               )}
                             </div>
-                            
-                            {row.item_name && cleanItemName(row.item_name) && (
-                              <div className="mt-4">
-                                <span className="text-slate-400 text-sm">Item Name:</span>
-                                <div className="text-slate-200 font-medium mt-1">{cleanItemName(row.item_name)}</div>
-                              </div>
-                            )}
-                            
-                            {/* Email and Gmail Link */}
-                            <div className="mt-4 flex items-center justify-between">
-                              <div>
-                                <span className="text-slate-400 text-sm">Email:</span>
-                                <div className="text-slate-200 font-medium mt-1">{getEmailForOrder(row)}</div>
-                              </div>
-                              {row.source_message_id && (
-                                <button
-                                  onClick={() => previewEmail(row)}
-                                  className="inline-flex items-center gap-2 h-8 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium transition-colors"
-                                >
-                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                  </svg>
-                                  View Email
-                                </button>
-                              )}
-                            </div>
-                            
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 text-sm">
-                              {row.order_date && (
-                                <div>
-                                  <span className="text-slate-400">Order Date:</span>
-                                  <div className="text-slate-200">{formatDate(row.order_date)}</div>
-                                </div>
-                              )}
-                              {row.shipped_at && (
-                                <div>
-                                  <span className="text-slate-400">Shipped Date:</span>
-                                  <div className="text-slate-200">{formatDate(row.shipped_at)}</div>
-                                </div>
-                              )}
-                              {row.delivered_at && (
-                                <div>
-                                  <span className="text-slate-400">Delivered Date:</span>
-                                  <div className="text-slate-200">{formatDate(row.delivered_at)}</div>
-                                </div>
-                              )}
+                          </div>
+                          
+                          {/* Right Side - Image Thumbnail */}
+                          <div className="flex-shrink-0">
+                            {row.image_url ? (
+                              <img 
+                                src={row.image_url} 
+                                alt={row.item_name ? cleanItemName(row.item_name) || 'Product image' : 'Product image'}
+                                className="w-24 h-24 object-contain rounded-lg border border-slate-600 bg-white/5"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="w-24 h-24 bg-slate-700 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 text-xs"
+                              style={{ display: row.image_url ? 'none' : 'flex' }}
+                            >
+                              No Image
                             </div>
                           </div>
+                        </div>
+                        
+                        {/* Item Name Section */}
+                        {row.item_name && cleanItemName(row.item_name) && (
+                          <div className="mb-4">
+                            <span className="text-slate-400 text-sm">Item Name:</span>
+                            <div className="text-slate-200 font-medium mt-1">{cleanItemName(row.item_name)}</div>
+                          </div>
+                        )}
+                        
+                        {/* Email Section */}
+                        <div className="mb-4">
+                          <span className="text-slate-400 text-sm">Email:</span>
+                          <div className="text-slate-200 font-medium mt-1">{getEmailForOrder(row)}</div>
+                        </div>
+                        
+                        {/* Additional Details */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 text-sm">
+                          {row.tracking_number && (
+                            <div>
+                              <span className="text-slate-400">Tracking:</span>
+                              <div className="text-slate-200">{row.tracking_number}</div>
+                            </div>
+                          )}
+                          {row.carrier && (
+                            <div>
+                              <span className="text-slate-400">Carrier:</span>
+                              <div className="text-slate-200">{row.carrier}</div>
+                            </div>
+                          )}
+                          {row.order_date && (
+                            <div>
+                              <span className="text-slate-400">Order Date:</span>
+                              <div className="text-slate-200">{formatDate(row.order_date)}</div>
+                            </div>
+                          )}
+                          {row.shipped_at && (
+                            <div>
+                              <span className="text-slate-400">Shipped Date:</span>
+                              <div className="text-slate-200">{formatDate(row.shipped_at)}</div>
+                            </div>
+                          )}
+                          {row.delivered_at && (
+                            <div>
+                              <span className="text-slate-400">Delivered Date:</span>
+                              <div className="text-slate-200">{formatDate(row.delivered_at)}</div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 pt-3 border-t border-slate-700">
+                          <button
+                            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add to Order Book
+                          </button>
+                          {row.source_message_id && (
+                            <button
+                              onClick={() => previewEmail(row)}
+                              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium transition-colors"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                              View Email
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
