@@ -304,7 +304,25 @@ export default function Shipments() {
           throw new Error(result.error);
         }
       } else {
-        const message = `✅ Test complete: Found ${result.messageCount} emails in account ${result.account}. Check console for detailed account status.`;
+        // Display detailed account status
+        console.log("📊 Account Status Details:");
+        console.log(`Total accounts: ${result.totalAccounts}`);
+        console.log(`Working accounts: ${result.workingAccounts}`);
+        console.log(`Total emails found: ${result.totalMessages}`);
+        console.log("Individual account status:");
+        
+        result.accounts?.forEach((account, index) => {
+          if (account.status === "connected") {
+            console.log(`✅ Account ${index + 1}: ${account.email} - ${account.messageCount} emails`);
+          } else {
+            console.log(`❌ Account ${index + 1}: ${account.email} - ERROR: ${account.error}`);
+            if (account.needsReconnection) {
+              console.log(`   🔄 This account needs to be reconnected`);
+            }
+          }
+        });
+        
+        const message = result.summary || `✅ Test complete: ${result.workingAccounts}/${result.totalAccounts} accounts working`;
         setSyncMessage(message);
         console.log("✅ Gmail test successful");
       }
