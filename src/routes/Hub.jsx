@@ -139,6 +139,14 @@ export default function Hub() {
       author: "Development Team"
     },
     {
+      title: "Enhanced API Debugging and Error Handling",
+      description: "Added comprehensive debugging to Price Charting API calls including API key validation, URL logging, and specific error handling for 404 responses. This will help identify if the /api/products endpoint exists and provide clearer error messages for troubleshooting API connectivity issues.",
+      color: "bg-yellow-600",
+      date: "2024-12-20",
+      time: "06:40",
+      author: "Development Team"
+    },
+    {
       title: "Optimized Retailer and Marketplace Column Widths for Better Space Utilization",
       description: "Reduced Retailer column width by 20% (from 1fr to 0.8fr) and Marketplace column width by 15% (from 1fr to 0.85fr) on Order Book desktop large screens. These adjustments optimize space distribution across the table, providing more room for other important columns while maintaining adequate space for retailer and marketplace names. The changes improve overall layout balance and space utilization in the Order Book spreadsheet view.",
       color: "bg-slate-600",

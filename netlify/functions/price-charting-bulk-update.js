@@ -16,7 +16,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 
 /* ----------------------------- Price Charting API Config ----------------------------- */
 const PRICE_CHARTING_API_KEY = process.env.PRICE_CHARTING_API_KEY;
-const PRICE_CHARTING_BASE_URL = "https://www.pricecharting.com/api";
+const PRICE_CHARTING_BASE_URL = "https://www.pricecharting.com";
 const MAX_API_CALLS_PER_DAY = 1000; // Adjust based on your API plan
 
 /* ----------------------------- Helper Functions ----------------------------- */
@@ -72,10 +72,13 @@ async function searchProducts(productName) {
     .replace(/\s+/g, ' ') // Normalize spaces
     .substring(0, 100); // Limit length
     
+  // Try the products endpoint first, fallback to product endpoint if needed
   const searchUrl = `${PRICE_CHARTING_BASE_URL}/api/products?q=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`;
   
   console.log(`Searching Price Charting API for: "${normalizedName}"`);
   console.log(`Search URL: ${searchUrl}`);
+  console.log(`API Key length: ${PRICE_CHARTING_API_KEY ? PRICE_CHARTING_API_KEY.length : 'undefined'}`);
+  console.log(`API Key starts with: ${PRICE_CHARTING_API_KEY ? PRICE_CHARTING_API_KEY.substring(0, 8) + '...' : 'undefined'}`);
   
   try {
     const response = await fetch(searchUrl, {
@@ -91,6 +94,12 @@ async function searchProducts(productName) {
       console.error(`API Error ${response.status}:`, errorText);
       console.error(`Request URL was: ${searchUrl}`);
       console.error(`API Key length: ${PRICE_CHARTING_API_KEY.length}`);
+      
+      // If 404, the /api/products endpoint might not exist
+      if (response.status === 404) {
+        throw new Error(`Products search endpoint not found. The /api/products endpoint may not be available. Please check the API documentation.`);
+      }
+      
       throw new Error(`Price Charting API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
     

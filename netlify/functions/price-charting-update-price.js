@@ -16,7 +16,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 
 /* ----------------------------- Price Charting API Config ----------------------------- */
 const PRICE_CHARTING_API_KEY = process.env.PRICE_CHARTING_API_KEY;
-const PRICE_CHARTING_BASE_URL = "https://www.pricecharting.com/api";
+const PRICE_CHARTING_BASE_URL = "https://www.pricecharting.com";
 const MAX_API_CALLS_PER_DAY = 1000; // Adjust based on your API plan
 
 /* ----------------------------- Helper Functions ----------------------------- */
