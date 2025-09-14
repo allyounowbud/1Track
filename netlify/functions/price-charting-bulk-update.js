@@ -54,6 +54,38 @@ async function checkRateLimit() {
   return data.length < MAX_API_CALLS_PER_DAY;
 }
 
+// Search for products using Price Charting API
+async function searchProducts(productName) {
+  if (!PRICE_CHARTING_API_KEY) {
+    throw new Error('Price Charting API key not configured');
+  }
+  
+  const normalizedName = productName
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
+    .replace(/\s+/g, ' ') // Normalize spaces
+    .substring(0, 100); // Limit length
+    
+  const searchUrl = `${PRICE_CHARTING_BASE_URL}/products?q=${encodeURIComponent(normalizedName)}&api_key=${PRICE_CHARTING_API_KEY}`;
+  
+  console.log(`Searching Price Charting API for: ${normalizedName}`);
+  
+  const response = await fetch(searchUrl, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Price Charting API error: ${response.status} ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  return data;
+}
+
 // Get detailed price information for a specific product
 async function getProductPrice(productId) {
   if (!PRICE_CHARTING_API_KEY) {
@@ -165,23 +197,40 @@ exports.handler = async (event) => {
       throw new Error(`Failed to fetch items: ${itemsError.message}`);
     }
     
-    // Process each item
+    // Process each item with auto-search
     for (const item of items) {
       try {
+        // First, try to search for the product if no API product ID exists
         if (!item.api_product_id) {
-          errors.push({
-            itemId: item.id,
-            itemName: item.name,
-            error: 'No API product ID found. Search for the product first.',
-          });
-          continue;
+          // Search for the product
+          const searchResponse = await searchProducts(item.name);
+          const products = searchResponse.products || [];
+          
+          if (products.length === 0) {
+            errors.push({
+              itemId: item.id,
+              itemName: item.name,
+              error: 'Product not found in Price Charting database',
+            });
+            continue;
+          }
+          
+          // Use the first search result (most relevant)
+          const product = products[0];
+          const productId = product.id;
+          
+          // Update the item with the found product
+          const apiResponse = await getProductPrice(productId);
+          const updateResult = await updateItemWithApiPrice(item.id, apiResponse);
+          
+          results.push(updateResult);
+        } else {
+          // Product already linked, just update price
+          const apiResponse = await getProductPrice(item.api_product_id);
+          const updateResult = await updateItemWithApiPrice(item.id, apiResponse);
+          
+          results.push(updateResult);
         }
-        
-        // Get current price
-        const apiResponse = await getProductPrice(item.api_product_id);
-        const updateResult = await updateItemWithApiPrice(item.id, apiResponse);
-        
-        results.push(updateResult);
         
         // Small delay to respect API rate limits
         await new Promise(resolve => setTimeout(resolve, 100));

@@ -123,6 +123,14 @@ export default function Hub() {
       author: "Development Team"
     },
     {
+      title: "Enhanced Sync All Products with Auto-Search Functionality",
+      description: "Updated the bulk update function to automatically search Price Charting API for products that aren't already linked. The sync function now searches for each product name, finds matching items in the Price Charting database, and automatically links and updates prices. This eliminates the need for manual product linking and provides a truly automated price sync experience.",
+      color: "bg-indigo-600",
+      date: "2024-12-20",
+      time: "06:30",
+      author: "Development Team"
+    },
+    {
       title: "Optimized Retailer and Marketplace Column Widths for Better Space Utilization",
       description: "Reduced Retailer column width by 20% (from 1fr to 0.8fr) and Marketplace column width by 15% (from 1fr to 0.85fr) on Order Book desktop large screens. These adjustments optimize space distribution across the table, providing more room for other important columns while maintaining adequate space for retailer and marketplace names. The changes improve overall layout balance and space utilization in the Order Book spreadsheet view.",
       color: "bg-slate-600",
