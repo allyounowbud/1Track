@@ -142,7 +142,7 @@ GRANT SELECT ON item_price_summary TO authenticated;
 -- Create table for storing Price Charting CSV data
 CREATE TABLE IF NOT EXISTS price_charting_products (
   id BIGSERIAL PRIMARY KEY,
-  category TEXT NOT NULL, -- 'pokemon_cards', 'video_games', 'trading_cards', 'all'
+  category TEXT NOT NULL, -- 'video_games', 'pokemon_cards', 'magic_cards', 'yugioh_cards'
   product_id TEXT NOT NULL, -- Price Charting product ID
   product_name TEXT NOT NULL,
   console_name TEXT,
