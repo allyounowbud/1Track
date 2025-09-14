@@ -27,6 +27,14 @@ export default function Hub() {
   // Changelog data with version numbers
   const changelogData = [
     {
+      title: "Completely Redesigned Dropdown Components for Reliable Search and Add Functionality",
+      description: "Fixed critical dropdown issues that were preventing users from selecting options or adding new items. Completely redesigned both SearchDropdown and SimpleSearchDropdown components with robust state management, proper input handling, and reliable 'Add +' functionality. Users can now search through existing options, select them reliably, and add new items/products/retailers/marketplaces directly from any dropdown. Enhanced Inventory page to support adding new items through the search dropdown. All dropdowns now work consistently across QuickAdd, MarkSold, Inventory, and Stats pages with proper keyboard navigation and click-outside-to-close behavior.",
+      color: "bg-blue-500/70",
+      date: "2024-12-19",
+      time: "23:30",
+      author: "Development Team"
+    },
+    {
       title: "Enhanced Target Order Parsing with Complete Email Format Support",
       description: "Completely redesigned Target order parsing to handle the exact email format shown in Target order confirmations. Enhanced parsing now extracts order numbers (including '#:102002814872430' format), customer names from 'Thanks for your order, [Name]!' greetings, order dates from 'Placed [Date]' text, order totals from 'Order total $48.28' format, product names like 'Pokémon Trading Card Game:Mega Latias ex Box', quantities from 'Qty: 2' format, unit prices from '$21.99 / ea' format, and product images. This ensures Target orders are comprehensively imported alongside Amazon orders, providing complete order tracking across all major retailers.",
       color: "bg-green-500/70",
@@ -351,7 +359,7 @@ export default function Hub() {
         <div className={`${card}`}>
           <div className="mb-4">
             <h2 className="text-lg font-semibold">Changelog</h2>
-            <div className="text-xs text-slate-400/60">v0.1.5</div>
+            <div className="text-xs text-slate-400/60">v0.1.6</div>
           </div>
           
         <div className="space-y-3">

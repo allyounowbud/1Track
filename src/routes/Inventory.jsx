@@ -35,7 +35,7 @@ export default function Inventory() {
     queryKey: ["inv_orders"],
     queryFn: () => getOrders(2000),
   });
-  const { data: items = [] } = useQuery({
+  const { data: items = [], refetch: refetchItems } = useQuery({
     queryKey: ["inv_items"],
     queryFn: getItems,
   });
@@ -145,6 +145,19 @@ export default function Inventory() {
   );
 
   const [itemFilter, setItemFilter] = useState(""); // text OR exact match
+
+  // Function to create new items
+  async function createItem(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const { error } = await supabase.from("items").insert([{ name: trimmed }]);
+    if (error) {
+      console.error('Error creating item:', error);
+      return null;
+    }
+    await refetchItems();
+    return trimmed;
+  }
 
   // rows to show (by text contains OR exact match)
   const filteredRows = useMemo(() => {
@@ -398,6 +411,8 @@ export default function Inventory() {
                   (option.label || option).toLowerCase().includes(search.toLowerCase())
                 ).slice(0, 20);
               }}
+              onAddNew={createItem}
+              addNewText="Add Item"
             />
           </div>
 

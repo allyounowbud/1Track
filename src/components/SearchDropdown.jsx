@@ -1,4 +1,4 @@
-// Universal SearchDropdown component - simple and reliable
+// Universal SearchDropdown component - completely redesigned for reliability
 import { useState, useRef, useEffect } from "react";
 
 export const SearchDropdown = ({ 
@@ -16,67 +16,134 @@ export const SearchDropdown = ({
       getOptionLabel(option).toLowerCase().includes(search.toLowerCase())
     ).slice(0, 20);
   },
-  // New props for "Add +" functionality
   onAddNew,
   addNewText = "Add"
 }) => {
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const boxRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+  const [selectedOption, setSelectedOption] = useState(null);
+  const containerRef = useRef(null);
+  const inputRef = useRef(null);
 
-  // Click outside to close dropdown
+  // Initialize input value from props
+  useEffect(() => {
+    if (value && !inputValue) {
+      // Find the option that matches the current value
+      const option = options.find(opt => getOptionValue(opt) === value);
+      if (option) {
+        setSelectedOption(option);
+        setInputValue(getOptionLabel(option));
+      } else {
+        // If no matching option found, treat as free text
+        setInputValue(value);
+        setSelectedOption(null);
+      }
+    } else if (!value && inputValue) {
+      // Clear everything when value is cleared
+      setInputValue("");
+      setSelectedOption(null);
+    }
+  }, [value, options, getOptionLabel, getOptionValue]);
+
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (boxRef.current && !boxRef.current.contains(event.target)) {
-        setDropdownOpen(false);
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+        // If we have a selected option, restore its label
+        if (selectedOption) {
+          setInputValue(getOptionLabel(selectedOption));
+        }
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [selectedOption, getOptionLabel]);
 
-  // Filter options based on search
-  const filtered = filterOptions(options, search);
+  // Filter options based on current input
+  const filteredOptions = filterOptions(options, inputValue);
   
-  // Check if search text matches any existing option (for "Add +" functionality)
+  // Check if current input exactly matches an existing option
   const hasExactMatch = options.some(option => 
-    getOptionLabel(option).toLowerCase() === search.toLowerCase()
+    getOptionLabel(option).toLowerCase() === inputValue.toLowerCase()
   );
   
-  // Show "Add +" option if:
-  // 1. onAddNew function is provided
-  // 2. user is typing something (search has content)
-  // 3. there's no exact match with existing options
-  const showAddOption = onAddNew && search.trim() && !hasExactMatch;
+  // Show "Add +" option if we have onAddNew, user is typing, and no exact match
+  const showAddOption = onAddNew && inputValue.trim() && !hasExactMatch;
 
-  // Handle selection
-  const handleSelect = (option) => {
-    setSelected(option);
-    setSearch("");
-    setDropdownOpen(false);
-    onChange(getOptionValue(option));
-  };
-
-  // Handle input change
+  // Handle input changes
   const handleInputChange = (e) => {
-    setSelected(null);
-    setSearch(e.target.value);
-    onChange(e.target.value); // Pass the search value for live filtering
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    setSelectedOption(null); // Clear selection when typing
+    setIsOpen(true);
+    
+    // Pass the raw input value to parent
+    onChange(newValue);
   };
 
-  // Handle clear button
+  // Handle option selection
+  const handleSelectOption = (option) => {
+    const optionValue = getOptionValue(option);
+    const optionLabel = getOptionLabel(option);
+    
+    setSelectedOption(option);
+    setInputValue(optionLabel);
+    setIsOpen(false);
+    
+    // Pass the option value to parent
+    onChange(optionValue);
+  };
+
+  // Handle adding new option
+  const handleAddNew = async () => {
+    if (!onAddNew || !inputValue.trim()) return;
+    
+    try {
+      const result = await onAddNew(inputValue.trim());
+      if (result) {
+        // If onAddNew returns a value, use it; otherwise use the input
+        const newValue = typeof result === 'string' ? result : inputValue.trim();
+        setInputValue(newValue);
+        setSelectedOption(null);
+        setIsOpen(false);
+        onChange(newValue);
+      }
+    } catch (error) {
+      console.error('Error adding new option:', error);
+    }
+  };
+
+  // Handle clear
   const handleClear = () => {
-    setSelected(null);
-    setSearch("");
+    setInputValue("");
+    setSelectedOption(null);
+    setIsOpen(false);
     onChange("");
-    setDropdownOpen(false);
+  };
+
+  // Handle input focus
+  const handleFocus = () => {
+    setIsOpen(true);
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setIsOpen(false);
+      if (selectedOption) {
+        setInputValue(getOptionLabel(selectedOption));
+      }
+    } else if (e.key === 'Enter' && showAddOption) {
+      e.preventDefault();
+      handleAddNew();
+    }
   };
 
   return (
     <div className="min-w-0">
-      <label className="text-slate-300 mb-1 block text-sm">{label}</label>
-      <div ref={boxRef} className="relative">
+      {label && <label className="text-slate-300 mb-1 block text-sm">{label}</label>}
+      <div ref={containerRef} className="relative">
         <div className="relative">
           {icon && (
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -84,13 +151,15 @@ export const SearchDropdown = ({
             </div>
           )}
           <input
-            value={selected ? getOptionLabel(selected) : search}
+            ref={inputRef}
+            value={inputValue}
             onChange={handleInputChange}
-            onFocus={() => setDropdownOpen(true)}
+            onFocus={handleFocus}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className={`w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 ${icon ? 'pl-10' : 'px-4'}`}
           />
-          {(search || selected) && (
+          {inputValue && (
             <button
               type="button"
               onClick={handleClear}
@@ -102,39 +171,29 @@ export const SearchDropdown = ({
             </button>
           )}
         </div>
-        {dropdownOpen && (
+        
+        {isOpen && (
           <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
             {/* Add new option */}
             {showAddOption && (
               <button
                 type="button"
-                onClick={async () => {
-                  try {
-                    const result = await onAddNew(search.trim());
-                    if (result) {
-                      setSearch("");
-                      setDropdownOpen(false);
-                      onChange(getOptionValue(result));
-                    }
-                  } catch (error) {
-                    console.error('Error adding new option:', error);
-                  }
-                }}
+                onClick={handleAddNew}
                 className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70 border-b border-slate-800"
               >
-                + {addNewText} "{search.trim()}"
+                + {addNewText} "{inputValue.trim()}"
               </button>
             )}
             
             {/* Existing options */}
-            {filtered.length === 0 && !showAddOption && (
+            {filteredOptions.length === 0 && !showAddOption && (
               <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
             )}
-            {filtered.map((option) => (
+            {filteredOptions.map((option) => (
               <button
                 type="button"
                 key={getOptionValue(option)}
-                onClick={() => handleSelect(option)}
+                onClick={() => handleSelectOption(option)}
                 className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
               >
                 {getOptionLabel(option)}
