@@ -195,6 +195,14 @@ export default function Hub() {
       author: "Development Team"
     },
     {
+      title: "Price Charting CSV-Based Product Matching System",
+      description: "Implemented comprehensive CSV-based approach for Price Charting integration. Created daily CSV download system, local product database with full-text search, and fuzzy matching algorithms. This eliminates API search limitations and provides reliable, fast product matching using locally stored Price Charting data. Includes scheduled downloads, download logging, and batch processing capabilities.",
+      color: "bg-green-600",
+      date: "2024-12-20",
+      time: "07:30",
+      author: "Development Team"
+    },
+    {
       title: "Optimized Retailer and Marketplace Column Widths for Better Space Utilization",
       description: "Reduced Retailer column width by 20% (from 1fr to 0.8fr) and Marketplace column width by 15% (from 1fr to 0.85fr) on Order Book desktop large screens. These adjustments optimize space distribution across the table, providing more room for other important columns while maintaining adequate space for retailer and marketplace names. The changes improve overall layout balance and space utilization in the Order Book spreadsheet view.",
       color: "bg-slate-600",

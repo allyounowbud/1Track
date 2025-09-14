@@ -138,3 +138,66 @@ LEFT JOIN LATERAL (
 
 -- Grant access to the view
 GRANT SELECT ON item_price_summary TO authenticated;
+
+-- Create table for storing Price Charting CSV data
+CREATE TABLE IF NOT EXISTS price_charting_products (
+  id BIGSERIAL PRIMARY KEY,
+  category TEXT NOT NULL, -- 'pokemon_cards', 'video_games', 'trading_cards', 'all'
+  product_id TEXT NOT NULL, -- Price Charting product ID
+  product_name TEXT NOT NULL,
+  console_name TEXT,
+  loose_price DECIMAL(10,2),
+  cib_price DECIMAL(10,2),
+  new_price DECIMAL(10,2),
+  graded_price DECIMAL(10,2),
+  box_price DECIMAL(10,2),
+  manual_price DECIMAL(10,2),
+  raw_data JSONB, -- Store the complete CSV row data
+  downloaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for better search performance
+CREATE INDEX IF NOT EXISTS idx_price_charting_products_category ON price_charting_products(category);
+CREATE INDEX IF NOT EXISTS idx_price_charting_products_product_id ON price_charting_products(product_id);
+CREATE INDEX IF NOT EXISTS idx_price_charting_products_product_name ON price_charting_products USING gin(to_tsvector('english', product_name));
+CREATE INDEX IF NOT EXISTS idx_price_charting_products_console_name ON price_charting_products(console_name);
+CREATE INDEX IF NOT EXISTS idx_price_charting_products_downloaded_at ON price_charting_products(downloaded_at);
+
+-- Enable RLS for the new table
+ALTER TABLE price_charting_products ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies - users can view all price charting data
+CREATE POLICY "Users can view price charting products" ON price_charting_products
+  FOR SELECT USING (true);
+
+-- Grant necessary permissions
+GRANT SELECT ON price_charting_products TO authenticated;
+GRANT USAGE ON SEQUENCE price_charting_products_id_seq TO authenticated;
+
+-- Create table for CSV download logs
+CREATE TABLE IF NOT EXISTS csv_download_logs (
+  id BIGSERIAL PRIMARY KEY,
+  category TEXT NOT NULL,
+  product_count INTEGER DEFAULT 0,
+  success BOOLEAN DEFAULT true,
+  error_message TEXT,
+  downloaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for download logs
+CREATE INDEX IF NOT EXISTS idx_csv_download_logs_category ON csv_download_logs(category);
+CREATE INDEX IF NOT EXISTS idx_csv_download_logs_downloaded_at ON csv_download_logs(downloaded_at);
+CREATE INDEX IF NOT EXISTS idx_csv_download_logs_success ON csv_download_logs(success);
+
+-- Enable RLS for download logs
+ALTER TABLE csv_download_logs ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for download logs
+CREATE POLICY "Users can view download logs" ON csv_download_logs
+  FOR SELECT USING (true);
+
+-- Grant permissions for download logs
+GRANT SELECT ON csv_download_logs TO authenticated;
+GRANT USAGE ON SEQUENCE csv_download_logs_id_seq TO authenticated;

@@ -57,7 +57,7 @@ async function updateItemPrice(itemId, productId) {
 }
 
 async function bulkUpdatePrices(itemIds) {
-  const response = await fetch('/.netlify/functions/price-charting-bulk-update', {
+  const response = await fetch('/.netlify/functions/price-charting-local-bulk-update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ itemIds })
