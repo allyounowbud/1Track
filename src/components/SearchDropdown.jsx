@@ -23,6 +23,21 @@ export const SearchDropdown = ({
   const [inputValue, setInputValue] = useState("");
   const containerRef = useRef(null);
 
+  // Update input value when value prop changes
+  useEffect(() => {
+    if (value) {
+      // Find the option that matches the current value
+      const option = options.find(opt => getOptionValue(opt) === value);
+      if (option) {
+        setInputValue(getOptionLabel(option));
+      } else {
+        setInputValue(value);
+      }
+    } else {
+      setInputValue("");
+    }
+  }, [value, options, getOptionLabel, getOptionValue]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {

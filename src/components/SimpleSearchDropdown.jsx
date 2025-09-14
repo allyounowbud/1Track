@@ -11,8 +11,13 @@ export const SimpleSearchDropdown = ({
   addNewText = "Add"
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(value || "");
   const containerRef = useRef(null);
+
+  // Update input value when value prop changes
+  useEffect(() => {
+    setInputValue(value || "");
+  }, [value]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -29,6 +34,13 @@ export const SimpleSearchDropdown = ({
   const filteredOptions = options.filter(option => 
     option.name.toLowerCase().includes(inputValue.toLowerCase())
   ).slice(0, 20);
+
+  // Debug: Log when options change
+  useEffect(() => {
+    if (options.length > 0) {
+      console.log(`${label} dropdown loaded ${options.length} options:`, options.slice(0, 3));
+    }
+  }, [options, label]);
 
   // Handle input changes
   const handleInputChange = (e) => {
