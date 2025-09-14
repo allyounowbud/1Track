@@ -169,6 +169,37 @@ export default function OrderBook() {
         outline: 2px solid #6366f1;
         outline-offset: 2px;
       }
+      
+      /* Remove all styling from select elements in desktop view */
+      .lg\\:grid select {
+        background: transparent !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        appearance: none !important;
+      }
+      
+      /* Remove focus styling from select elements in desktop view */
+      .lg\\:grid select:focus {
+        background: transparent !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
+      
+      /* Make date picker icons more visible */
+      input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        opacity: 0.7;
+      }
+      
+      input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+      }
     `;
     document.head.appendChild(tag);
     return () => document.head.removeChild(tag);
@@ -790,7 +821,7 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
   return (
     <>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] gap-1 items-center mb-4 pb-3 border-b border-slate-700 w-full">
+      <div className="hidden lg:grid grid-cols-[auto_140px_2fr_0.8fr_0.8fr_56px_56px_140px_0.85fr_56px] gap-1 items-center mb-4 pb-3 border-b border-slate-700 w-full">
         <div className="flex items-center justify-start">
           <div className="w-4 h-4"></div>
         </div>
@@ -887,7 +918,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
       {open && (
         <div className="p-4 border-t border-slate-700">
           {/* Header Row for Orders */}
-          <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] gap-1 items-center mb-3 pb-2 border-b border-slate-700 w-full">
+          <div className="hidden lg:grid grid-cols-[auto_140px_2fr_0.8fr_0.8fr_56px_56px_140px_0.85fr_56px] gap-1 items-center mb-3 pb-2 border-b border-slate-700 w-full">
             <div className="flex items-center justify-start">
               <div className="w-4 h-4"></div>
             </div>
@@ -936,7 +967,7 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
   return (
     <div className={`${pageCard}`}>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] gap-1 items-center mb-4 pb-3 border-b border-slate-700 w-full">
+      <div className="hidden lg:grid grid-cols-[auto_140px_2fr_0.8fr_0.8fr_56px_56px_140px_0.85fr_56px] gap-1 items-center mb-4 pb-3 border-b border-slate-700 w-full">
         <div className="w-6 flex items-center justify-center">
           <input
             type="checkbox"
@@ -1110,7 +1141,7 @@ function DayCard({
         <div className="pt-5">
           {/* Header row - text only */}
           <div className="hidden lg:block">
-            <div className="grid grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
+            <div className="grid grid-cols-[auto_140px_2fr_0.8fr_0.8fr_56px_56px_140px_0.85fr_56px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
               <div className="flex items-center justify-center">
                 <input
                   type="checkbox"
@@ -1365,16 +1396,17 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
   return (
     <div 
-      className={`rounded-lg border-b border-slate-700/50 bg-slate-900/30 py-2 px-1 overflow-hidden transition cursor-pointer relative hover:bg-slate-800/30 ${
+      className={`lg:rounded-lg lg:bg-slate-900/30 lg:py-3 lg:px-3 lg:overflow-hidden lg:transition lg:cursor-pointer lg:relative lg:hover:bg-slate-800/30 rounded-xl border bg-slate-900/60 p-4 space-y-3 ${
         isSelected || order.isNew
-          ? 'bg-indigo-500/10 border-indigo-500/30' 
-          : ''
+          ? 'bg-indigo-500/10 border-indigo-500 lg:border-indigo-500' 
+          : 'border-slate-800 lg:border-b lg:border-slate-700/50'
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] lg:grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] gap-1 items-center w-full min-w-0 grid-rows-1">
-        {/* Selection checkbox - hidden on mobile, visible on desktop */}
-        <div className="hidden sm:flex items-center justify-start">
+      {/* Desktop: Grid layout */}
+      <div className="hidden lg:grid grid-cols-[auto_140px_2fr_0.8fr_0.8fr_56px_56px_140px_0.85fr_56px] gap-1 items-center w-full min-w-0 grid-rows-1">
+        {/* Selection checkbox - desktop only */}
+        <div className="flex items-center justify-start">
           <input
             type="checkbox"
             checked={isSelected}
@@ -1392,7 +1424,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
+          className="bg-transparent border border-transparent px-2 py-2 text-sm text-slate-100 focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0"
         />
 
         {/* Item Name - Most Important */}
@@ -1400,7 +1432,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.item || ""}
           onChange={(e) => setItem(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer"
+          className="bg-transparent border-none px-2 py-2 text-sm text-slate-100 focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer pr-6 rounded-none shadow-none"
         >
           <option value="">Select item...</option>
           {items.map((it) => (
@@ -1415,8 +1447,8 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.profile_name}
           onChange={(e) => setProfile(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          placeholder="Profile"
-          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
+          placeholder={formState.profile_name ? "" : "Profile"}
+          className={`bg-transparent border border-transparent px-2 py-2 text-sm focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0 ${formState.profile_name ? 'text-slate-100' : 'text-slate-500'}`}
         />
 
         {/* Retailer */}
@@ -1424,7 +1456,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer"
+          className={`bg-transparent border-none px-2 py-2 text-sm focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer pr-6 rounded-none shadow-none ${formState.retailer && formState.retailer !== "" ? 'text-slate-100' : 'text-slate-500'}`}
         >
           <option value="">Retailer</option>
           {retailers.map((r) => (
@@ -1440,7 +1472,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setBuyPrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Buy"
-          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
+          className="bg-transparent border border-transparent px-2 py-2 text-sm text-slate-100 focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0"
         />
 
         {/* Sale Price */}
@@ -1448,8 +1480,8 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.salePrice}
           onChange={(e) => setSalePrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          placeholder="Sale"
-          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
+          placeholder={formState.salePrice && formState.salePrice !== "0" ? "" : "0.00"}
+          className={`bg-transparent border border-transparent px-2 py-2 text-sm focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
         />
 
         {/* Sale Date - Responsive */}
@@ -1458,7 +1490,8 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.sale_date || ""}
           onChange={(e) => setSaleDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
+          placeholder="mm/dd/yy"
+          className={`bg-transparent border border-transparent px-2 py-2 text-sm focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0 ${formState.sale_date ? 'text-slate-100' : 'text-slate-500'}`}
         />
 
         {/* Marketplace */}
@@ -1466,9 +1499,9 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.marketplace || ""}
           onChange={handleMarketplaceChange}
           onClick={(e) => e.stopPropagation()}
-          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer"
+          className={`bg-transparent border-none px-2 py-2 text-sm focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer pr-6 rounded-none shadow-none ${formState.marketplace && formState.marketplace !== "" ? 'text-slate-100' : 'text-slate-500'}`}
         >
-          <option value="">Market</option>
+          <option value="">Marketplace</option>
           {markets.map((m) => (
             <option key={m.name} value={m.name}>
               {m.name}
@@ -1481,10 +1514,144 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.shipping}
           onChange={(e) => setShipping(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          placeholder="Ship"
-          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
+          placeholder={formState.shipping && formState.shipping !== "0" ? "" : "0.00"}
+          className={`bg-transparent border border-transparent px-2 py-2 text-sm focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0 ${formState.shipping && formState.shipping !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
         />
 
+      </div>
+
+      {/* Mobile: Stacked layout with labels */}
+      <div className="lg:hidden space-y-3">
+
+        {/* Mobile form fields */}
+        <div className="grid grid-cols-1 gap-3">
+          {/* Order Date */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Order Date</label>
+            <input
+              type="date"
+              value={formState.order_date || ""}
+              onChange={(e) => setOrderDate(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          {/* Item */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Item</label>
+            <select
+              value={formState.item || ""}
+              onChange={(e) => setItem(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none [&>option]:bg-slate-800 [&>option]:text-slate-100"
+            >
+              <option value="">Select item...</option>
+              {items.map((it) => (
+                <option key={it.name} value={it.name}>
+                  {it.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Profile */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Profile</label>
+            <input
+              value={formState.profile_name}
+              onChange={(e) => setProfile(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={formState.profile_name ? "" : "Profile"}
+              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.profile_name ? 'text-slate-100' : 'text-slate-500'}`}
+            />
+          </div>
+
+          {/* Retailer */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Retailer</label>
+            <select
+              value={formState.retailer || ""}
+              onChange={(e) => setRetailer(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:border-indigo-500 outline-none [&>option]:bg-slate-800 [&>option]:text-slate-100 ${formState.retailer && formState.retailer !== "" ? 'text-slate-100' : 'text-slate-500'}`}
+            >
+              <option value="">Retailer</option>
+              {retailers.map((r) => (
+                <option key={r.name} value={r.name}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Buy Price */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Buy Price</label>
+            <input
+              value={formState.buyPrice}
+              onChange={(e) => setBuyPrice(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Buy"
+              className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          {/* Sale Price */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Sale Price</label>
+            <input
+              value={formState.salePrice}
+              onChange={(e) => setSalePrice(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={formState.salePrice && formState.salePrice !== "0" ? "" : "0.00"}
+              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
+            />
+          </div>
+
+          {/* Sale Date */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Sale Date</label>
+            <input
+              type="date"
+              value={formState.sale_date || ""}
+              onChange={(e) => setSaleDate(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="mm/dd/yy"
+              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.sale_date ? 'text-slate-100' : 'text-slate-500'}`}
+            />
+          </div>
+
+          {/* Marketplace */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Marketplace</label>
+            <select
+              value={formState.marketplace || ""}
+              onChange={handleMarketplaceChange}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:border-indigo-500 outline-none [&>option]:bg-slate-800 [&>option]:text-slate-100 ${formState.marketplace && formState.marketplace !== "" ? 'text-slate-100' : 'text-slate-500'}`}
+            >
+              <option value="">Marketplace</option>
+              {markets.map((m) => (
+                <option key={m.name} value={m.name}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Shipping */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Shipping</label>
+            <input
+              value={formState.shipping}
+              onChange={(e) => setShipping(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={formState.shipping && formState.shipping !== "0" ? "" : "0.00"}
+              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.shipping && formState.shipping !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
+            />
+          </div>
+        </div>
       </div>
 
       {msg && (
@@ -1498,7 +1665,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       )}
       
       {/* Mobile-only ghost text for row selection */}
-      <div className="sm:hidden text-xs text-slate-500 text-center mt-2">
+      <div className="lg:hidden text-xs text-slate-500 text-center mt-2 cursor-pointer select-none">
         {isSelected ? "Selected" : "Click to select row"}
       </div>
     </div>

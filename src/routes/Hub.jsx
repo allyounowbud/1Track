@@ -27,6 +27,166 @@ export default function Hub() {
   // Changelog data with version numbers
   const changelogData = [
     {
+      title: "Fixed Retailer and Marketplace Ghost Text Display Logic",
+      description: "Corrected the display logic for Retailer and Marketplace dropdown fields to properly show ghost text (text-slate-500) when no value is selected, instead of showing solid white text. The condition now checks for both null/undefined values and empty strings (formState.retailer && formState.retailer !== '') to ensure proper ghost text styling. This change applies to both desktop and mobile views, providing consistent visual feedback that these fields are empty and need user input.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "05:05",
+      author: "Development Team"
+    },
+    {
+      title: "Enhanced Order Book Row Padding for Cleaner Visual Appearance",
+      description: "Increased padding throughout Order Book table rows to create a cleaner, less squished appearance. Desktop rows now use lg:py-3 lg:px-3 (increased from lg:py-2 lg:px-1) and all input fields now use px-2 py-2 (increased from px-1 py-1). These changes provide better visual breathing room, making the table more comfortable to read and interact with while maintaining the responsive design and functionality.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "05:00",
+      author: "Development Team"
+    },
+    {
+      title: "Optimized Retailer and Marketplace Column Widths for Better Space Utilization",
+      description: "Reduced Retailer column width by 20% (from 1fr to 0.8fr) and Marketplace column width by 15% (from 1fr to 0.85fr) on Order Book desktop large screens. These adjustments optimize space distribution across the table, providing more room for other important columns while maintaining adequate space for retailer and marketplace names. The changes improve overall layout balance and space utilization in the Order Book spreadsheet view.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:55",
+      author: "Development Team"
+    },
+    {
+      title: "Reduced Profile Column Width for Better Space Distribution",
+      description: "Reduced the Profile column width by 20% on Order Book desktop large screens (from 1fr to 0.8fr) to optimize space distribution across the table. This change provides more room for other columns while still maintaining adequate space for profile names. The Profile column is now more compact, allowing for better utilization of the available table width and improved overall layout balance in the Order Book spreadsheet view.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:50",
+      author: "Development Team"
+    },
+    {
+      title: "Doubled Date Column Widths for Better Date Input Visibility",
+      description: "Increased the width of Order Date and Sale Date columns from 70px to 140px (doubled) on large screens to provide more space for date inputs and improve readability. The wider date columns make it easier to read and interact with date fields while maintaining the overall table layout efficiency. This change provides better visual balance and improved user experience when working with date values in the Order Book table.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:45",
+      author: "Development Team"
+    },
+    {
+      title: "Reduced Date Column Widths for Better Space Utilization",
+      description: "Reduced the width of Order Date and Sale Date columns by 30% on large screens (from 1fr to 70px) to optimize space utilization in the Order Book table. This change allows more space for other columns while still providing adequate room for date inputs. The date columns are now more compact, making better use of the available table width and improving the overall layout efficiency. Mobile layouts remain unchanged, maintaining optimal usability across all screen sizes.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:40",
+      author: "Development Team"
+    },
+    {
+      title: "Refined Default Text Display with Descriptive Ghost Text",
+      description: "Updated default text for empty fields to be more descriptive and user-friendly. Profile field now shows 'Profile' as ghost text, Retailer dropdown shows 'Retailer' as default option, Sale Price shows '0.00' when empty or zero, Marketplace dropdown shows 'Marketplace' as default option, and Shipping shows '0.00' when empty or zero. All empty fields maintain ghost text styling (text-slate-500) for subtle visual indication while providing clear context about what each field is for. Changes applied consistently across both desktop and mobile views.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:35",
+      author: "Development Team"
+    },
+    {
+      title: "Updated Empty Field Display Logic with Ghost Text and Enhanced Date Picker Icons",
+      description: "Implemented comprehensive empty field display logic across both desktop and mobile views. Empty fields now show '-' as ghost text (text-slate-500) instead of placeholder text, including Profile, Sale Price (when 0 or empty), Sale Date (shows 'mm/dd/yy'), Retailer, Marketplace, and Shipping fields. Updated dropdown default options to show '-' instead of descriptive text. Enhanced date picker icons visibility with CSS filter: invert(1) and opacity adjustments to make them more visible against the dark theme. All changes maintain consistent styling across responsive layouts.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:30",
+      author: "Development Team"
+    },
+    {
+      title: "Removed Focus Border and Background from Dropdown Selection Boxes",
+      description: "Eliminated the purple focus border and background change from Item, Retailer, and Marketplace dropdown selection boxes in the desktop spreadsheet view. Added specific CSS targeting the :focus state to remove all focus styling (border, outline, box-shadow, background) and removed the focus:bg-slate-800/50 class from Tailwind. The dropdowns now appear as completely plain text with no visual indication when clicked or focused, creating a true spreadsheet-like appearance where all columns look identical.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:25",
+      author: "Development Team"
+    },
+    {
+      title: "Completely Removed Button-Like Styling from Dropdown Selection Boxes",
+      description: "Eliminated all button-like appearance from Item, Retailer, and Marketplace dropdown selection boxes in the desktop spreadsheet view by adding custom CSS that removes borders, shadows, rounded corners, and all default browser styling. The dropdowns now appear as plain text with no visual indication of being interactive elements, creating a true spreadsheet-like appearance where all columns look identical. Added rounded-none and shadow-none classes plus custom CSS with !important declarations to override all default browser styling.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:20",
+      author: "Development Team"
+    },
+    {
+      title: "Hidden Borders on Dropdown Selection Boxes in Desktop Spreadsheet",
+      description: "Removed borders from the Item, Retailer, and Marketplace dropdown selection boxes in the desktop spreadsheet view to create a cleaner, more spreadsheet-like appearance. The dropdowns now use border-none instead of border-transparent and have removed the focus border effects (focus:border-indigo-500, focus:border-2, focus:ring-2), making them look like regular text cells rather than input fields. This creates a more seamless spreadsheet experience while maintaining functionality.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:15",
+      author: "Development Team"
+    },
+    {
+      title: "Extended Solid Indigo Border to Desktop Spreadsheet Rows",
+      description: "Fixed the desktop spreadsheet view in the Order Book to show solid indigo borders around selected rows, matching the mobile view behavior. Previously, desktop rows only showed a subtle bottom border (lg:border-b lg:border-slate-700/50) even when selected. Now selected desktop rows display the same prominent indigo border (lg:border-indigo-500) as mobile rows, ensuring consistent visual feedback across all screen sizes and maintaining the same professional appearance as the database/settings pages.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:10",
+      author: "Development Team"
+    },
+    {
+      title: "Added Solid Indigo Border to Selected Rows for Better Visual Distinction",
+      description: "Enhanced the selected row styling in the Order Book by changing from a subtle transparent border (border-indigo-500/30) to a solid indigo border (border-indigo-500). This provides a clear, prominent border around selected rows that matches the styling used in the database/settings pages. The solid border makes it much easier to distinguish selected rows from unselected ones, improving the overall user experience and visual consistency across the application.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:05",
+      author: "Development Team"
+    },
+    {
+      title: "Added Focus Ring Effect to Individual Row Inputs for Better Visibility",
+      description: "Enhanced the focus effect on individual input fields within Order Book grid card rows by adding a focus ring (focus:ring-2 focus:ring-indigo-500/20) in addition to the existing purple border. This creates a more prominent visual indicator when users click on any input field, ensuring the focus state is clearly visible even when the row is selected and has a purple background. The combination of border and ring effects provides excellent visual feedback for form interactions.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "04:00",
+      author: "Development Team"
+    },
+    {
+      title: "Enhanced Purple Focus Border Visibility on Individual Row Inputs",
+      description: "Improved the purple focus border effect on individual row inputs within the Order Book table by increasing the border width to 2px (focus:border-2) for better visibility. This ensures that when users click on any input field within a selected row, they get clear visual feedback with a prominent purple border, making it easy to see which field is currently active. The enhanced border visibility works consistently across all input types (text, date, number) and dropdowns.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:55",
+      author: "Development Team"
+    },
+    {
+      title: "Added Purple Focus Border Effect to Order Book Desktop Inputs",
+      description: "Restored the purple focus border effect (focus:border-indigo-500) to all desktop inputs and dropdowns in the Order Book table. This provides consistent visual feedback when users interact with form elements, matching the styling used throughout the rest of the application. The desktop inputs now show a subtle purple border on focus while maintaining the clean spreadsheet aesthetic, and mobile inputs already had this effect.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:50",
+      author: "Development Team"
+    },
+    {
+      title: "Reduced Dollar Column Widths for Better Space Utilization",
+      description: "Reduced the width of Buy $, Sale $, and Ship $ columns by 30% on desktop and large screen views (from 80px to 56px) to optimize space utilization in the Order Book table. This change allows more space for other columns while still providing adequate room for dollar value inputs. The responsive design ensures mobile layouts remain unchanged, maintaining optimal usability across all screen sizes.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:45",
+      author: "Development Team"
+    },
+    {
+      title: "Restored Desktop Checkboxes While Keeping Mobile Click-to-Select",
+      description: "Added back individual row selection checkboxes for desktop and large screen views (lg+) while maintaining the click-to-select interface for mobile devices. This provides the best of both worlds: precise checkbox selection for desktop users with mouse/keyboard, and intuitive touch-friendly row selection for mobile users. The desktop interface now includes both individual row checkboxes and 'Select All' functionality, while mobile users can still click anywhere on the row to select it.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:40",
+      author: "Development Team"
+    },
+    {
+      title: "Removed Individual Row Checkboxes for Cleaner Click-to-Select Interface",
+      description: "Eliminated individual row selection checkboxes from the Order Book table to create a cleaner, more intuitive interface. The entire row is now clickable for selection, making the interaction more natural and reducing visual clutter. Updated the mobile 'click to select row' text to use cursor-pointer and select-none classes to prevent text cursor appearance and make it clear the text is clickable. This change simplifies the selection process while maintaining all functionality.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:35",
+      author: "Development Team"
+    },
+    {
+      title: "Implemented Responsive Order Book Design with Mobile-First Approach",
+      description: "Completely redesigned the Order Book table with responsive layouts for different screen sizes. On large screens (lg+), the table displays as a clean spreadsheet with transparent dropdowns that look like text with arrows, no borders or backgrounds. On mobile/small screens, the layout switches to stacked form fields with bubble row outlines, uniform heights, and clear labels for each field. This provides an optimal user experience across all devices while maintaining full functionality.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:30",
+      author: "Development Team"
+    },
+    {
       title: "Updated Quick Add Navigation Icon to Clean Plus for Better Distinction",
       description: "Changed the Quick Add navigation icon from a plus in circle to a clean plus icon to avoid visual similarity with the Mark as Sold checkmark in circle icon. The clean plus maintains the intuitive 'add' meaning while being visually distinct from other navigation icons. This change improves icon differentiation and prevents user confusion between the Quick Add and Mark as Sold functions.",
       color: "bg-slate-600",
