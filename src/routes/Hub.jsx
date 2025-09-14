@@ -27,9 +27,201 @@ export default function Hub() {
   // Changelog data with version numbers
   const changelogData = [
     {
+      title: "Updated Quick Add Navigation Icon to Clean Plus for Better Distinction",
+      description: "Changed the Quick Add navigation icon from a plus in circle to a clean plus icon to avoid visual similarity with the Mark as Sold checkmark in circle icon. The clean plus maintains the intuitive 'add' meaning while being visually distinct from other navigation icons. This change improves icon differentiation and prevents user confusion between the Quick Add and Mark as Sold functions.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:25",
+      author: "Development Team"
+    },
+    {
+      title: "Updated Quick Add Navigation Icon to Plus in Circle for Better Visual Weight",
+      description: "Replaced the simple plus icon for Quick Add navigation with a plus icon inside a circle that provides better visual weight to match other navigation icons. The plus symbol remains intuitive for adding/creating new items while the circular background gives it more visual presence and consistency with the overall navigation design. This variation maintains the clear 'add' meaning while improving the visual balance with other navigation elements.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:20",
+      author: "Development Team"
+    },
+    {
+      title: "Updated Quick Add Navigation Icon to Shopping Cart for Better Visual Weight",
+      description: "Replaced the simple plus icon for Quick Add navigation with a shopping cart icon that better matches the visual weight and style of other navigation icons. The shopping cart icon is more appropriate for adding orders and provides better visual balance with the other navigation elements. This change improves the overall visual consistency of the navigation while making the Quick Add function more intuitive and recognizable to users.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:15",
+      author: "Development Team"
+    },
+    {
+      title: "Updated Order Book Navigation Icon to Document List for Better Representation",
+      description: "Replaced the clipboard icon for Order Book navigation with a more appropriate document list icon that better represents a ledger of orders. The new icon shows a document with list lines, which is more intuitive for users to understand that this section contains a comprehensive list/ledger of all orders. This change improves the visual clarity and makes the navigation more intuitive by using an icon that clearly represents the content and purpose of the Order Book section.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:10",
+      author: "Development Team"
+    },
+    {
+      title: "Updated Product Filter Icon to Tag Symbol for Better Clarity",
+      description: "Replaced the confusing package/box icon in the product filter dropdown with a clearer tag icon that better represents products and items. The new tag icon is more universally recognized as a symbol for products, items, or categories, making the filter's purpose immediately clear to users. This improvement enhances the user experience by providing more intuitive visual cues for the product selection functionality.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:05",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed Product Filter Icon and Text Overlap Issue",
+      description: "Resolved the overlapping icon and text issue in the product filter dropdown by completely restructuring the TableSearchDropdown component to use the same flex layout approach as the Select component. Replaced absolute positioning with a flex container that uses gap-2 spacing between icon and text, ensuring proper separation and alignment. The component now displays icons and text with consistent spacing, matching the visual appearance of the date filter dropdown for a cohesive user interface.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "03:00",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed Product Filter Icon Positioning and Text Spacing",
+      description: "Resolved the issue where the product filter dropdown icon was being cut off on the left side and text was starting too close to the icon. Updated the TableSearchDropdown component to use responsive positioning (left-3 sm:left-4) for the icon and responsive padding (pl-8 sm:pl-10) for the input text. This ensures the icon is fully visible within the container and the text starts with proper spacing to the right of the icon, creating a more polished and readable interface.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "02:55",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed Stats Page Filter Dropdown Height Consistency",
+      description: "Ensured consistent height between the date filter and product filter dropdowns on the Stats page by updating the TableSearchDropdown component to use the standardized inputBase styling. Both filter dropdowns now have matching heights (h-10 on small screens, h-11 on larger screens) for a more polished and consistent user interface. This improvement maintains visual harmony across all form elements in the application.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "02:50",
+      author: "Development Team"
+    },
+    {
+      title: "Updated Homepage Order Book Link to Direct to Quick Add",
+      description: "Modified the homepage Order Book link in the sidebar navigation to direct to the Quick Add page (/add) instead of the Order Book table (/orders). This provides users with direct access to the most commonly used order entry functionality when navigating from the homepage. The Order Book link within the orderbook section navigation still directs to /orders for users who want to view the order table. This creates a more intuitive navigation flow where the homepage provides quick access to order entry, while the orderbook section maintains access to the full order management interface.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "02:45",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed Checkbox Styling with Custom CSS for Dark Theme",
+      description: "Resolved the issue where checkboxes were still appearing white by implementing custom CSS that completely overrides browser default styling. Added custom CSS rules that set checkboxes to have dark gray backgrounds (#1e293b) when unchecked and blue backgrounds (#6366f1) with white checkmarks when checked. The custom styling uses appearance: none to remove all browser defaults and creates a consistent dark theme experience across all checkboxes in the Order Book and Settings pages.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "02:35",
+      author: "Development Team"
+    },
+    {
+      title: "Improved Checkbox Styling with Dark Backgrounds and Blue Checkmarks",
+      description: "Enhanced checkbox styling throughout the application to provide better visual feedback and theme consistency. Checkboxes now have dark backgrounds (bg-slate-800) when unchecked, creating a more subtle appearance that fits the dark theme. When checked, they display blue/purple checkmarks (accent-indigo-500) for clear visual indication of the selected state. This improves the overall user experience by making checkbox states more visually distinct while maintaining consistency with the dark theme aesthetic.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "02:25",
+      author: "Development Team"
+    },
+    {
+      title: "Darkened Changelog Color Indicators for Better Theme Consistency",
+      description: "Updated all changelog color indicator boxes to use darker colors that better fit the dark theme. Changed from bright semi-transparent colors (bg-blue-500/70, bg-yellow-500/70) to solid dark gray (bg-slate-600) for a more subtle and consistent appearance. The color indicators now blend better with the overall dark interface while maintaining their visual purpose as entry type indicators. This creates a more cohesive and professional appearance throughout the changelog section.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "02:15",
+      author: "Development Team"
+    },
+    {
+      title: "Enhanced Checkbox Styling for Better Dark Theme Integration",
+      description: "Updated all checkbox backgrounds throughout the application to use darker colors that better fit the dark theme. Changed checkbox backgrounds from 'bg-slate-900/60' and 'bg-slate-800/60' to solid 'bg-slate-800' for a more consistent and darker appearance. This affects all checkboxes in the Order Book, Settings, and other components, providing better visual integration with the overall dark theme while maintaining the indigo accent colors for checked states and focus rings.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "02:05",
+      author: "Development Team"
+    },
+    {
+      title: "Optimized Order Book Column Widths for Dollar Values and Full Row Extension",
+      description: "Optimized the Order Book grid layout to make dollar value columns (Buy $, Sale $, Ship $) more compact while ensuring the Ship $ column extends all the way to the right edge. Changed grid column definitions from uniform '1fr' sizing to specific widths: 'auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px'. This makes the dollar value columns exactly 80px wide (perfect for currency inputs) while allowing other columns to use flexible space. The Ship $ column now properly extends to the furthest right edge of the row, eliminating any unused space. Updated all headers to match the new column structure for perfect alignment.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "01:55",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed Order Book Full-Width Utilization for Complete Content Display",
+      description: "Resolved the remaining width utilization issue in the Order Book to ensure rows fill the entire available width with no empty space on the right side. Reduced grid gaps from 'gap-2' to 'gap-1' to minimize spacing between columns. Added 'min-w-0' to all input fields and grid containers to prevent width constraints. Added 'grid-rows-1' to ensure proper row height distribution. Updated all headers to match the reduced gap spacing. The result is complete width utilization with maximum content visibility per cell, eliminating any wasted horizontal space.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "01:45",
+      author: "Development Team"
+    },
+    {
+      title: "Optimized Order Book for Maximum Content Visibility and Seamless Cell Design",
+      description: "Final optimization of the Order Book spreadsheet design to maximize content visibility and create truly seamless cell appearance. Reduced row padding from 'p-3' to 'py-2 px-1' to eliminate wasted space and allow more content per cell. Removed all visual styling from dropdowns including rounded corners and extra padding, making them look identical to plain text fields. All input fields now use minimal 'px-1 py-1' padding for maximum content space. Dropdowns maintain 'cursor-pointer' for usability while appearing as seamless text. The result is a professional spreadsheet with maximum content density and no visual distinction between input types.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "01:35",
+      author: "Development Team"
+    },
+    {
+      title: "Enhanced Order Book Spreadsheet Design with Perfect Alignment",
+      description: "Further refined the Order Book spreadsheet design by removing all dropdown outlines to create seamless cell appearance, ensuring rows fill the full width of the container, and perfecting header-to-column alignment. All select dropdowns now use 'appearance-none' to remove browser default styling and match the transparent cell design. Grid containers now use 'w-full' to ensure complete width utilization. Fixed column count mismatch between headers and rows to ensure perfect alignment across all screen sizes. The result is a truly professional spreadsheet experience with no visual inconsistencies.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "01:25",
+      author: "Development Team"
+    },
+    {
+      title: "Redesigned Order Book with Clean Spreadsheet-Style Rows",
+      description: "Completely redesigned the Order Book table to use a clean spreadsheet-style layout instead of individual outlined cells. Removed all individual cell borders and backgrounds, creating seamless rows with subtle bottom borders. Input fields now have transparent backgrounds with focus states that highlight the active cell. This eliminates the confusing 'bubble outline' effect and creates a much cleaner, more professional spreadsheet-like appearance while maintaining all editing functionality. The new design is easier to scan and less visually cluttered.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "01:15",
+      author: "Development Team"
+    },
+    {
+      title: "Updated Marketplace Field Label and Layout",
+      description: "Changed 'Sale Location' to 'Marketplace' in the Mark as Sold form for clearer terminology and consistency with the Quick Add form. Made the Marketplace field extend the full width like the 'Select Open Purchase' field above it, providing better visual consistency and more space for marketplace selection. This creates a more intuitive and consistent user experience across both forms.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "01:05",
+      author: "Development Team"
+    },
+    {
+      title: "Implemented Responsive Grid Layout with Section Dividers",
+      description: "Enhanced both Quick Add and Mark as Sold forms with a responsive grid layout that optimizes space usage on larger screens while maintaining single-column layout on mobile. Order details now display as: Row 1 (Order Date & Item), Row 2 (Profile & Retailer), Row 3 (Quantity & Buy Price). Sale details display as: Row 1 (Sale Date & Sell Price), Row 2 (Marketplace), Row 3 (Fees & Shipping). Added subtle divider lines under section headers to create better visual separation. This provides a more efficient use of screen real estate on desktop while preserving the clean, spacious layout on mobile devices.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "00:55",
+      author: "Development Team"
+    },
+    {
+      title: "Implemented Consistent Individual Input Field Spacing",
+      description: "Restructured both Quick Add and Mark as Sold forms to provide perfectly consistent spacing between every individual input field. Each input field now has its own row with uniform space-y-6 spacing between all fields, eliminating the issue where some fields appeared close together while others had larger gaps. This creates a clean, uniform vertical rhythm throughout the forms where every field (Order Date, Item, Profile, Retailer, Quantity, Buy Price, Sell Price, Sale Date, etc.) has exactly the same spacing to the next field. The forms now have a much more professional and organized appearance with perfect visual consistency.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "00:45",
+      author: "Development Team"
+    },
+    {
+      title: "Enhanced Individual Input Field Spacing",
+      description: "Added significant vertical spacing between individual input field groups in both Quick Add and Mark as Sold forms. Reorganized the layout to group related fields together with space-y-6 spacing between each group, creating clear visual separation between different input sections. This provides much better breathing room between fields like 'Select Open Purchase', 'Sell Price', 'Sale Date', etc., making the forms feel less cramped and easier to navigate. Each logical group of fields now has proper spacing while maintaining the responsive grid layout.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "00:35",
+      author: "Development Team"
+    },
+    {
+      title: "Improved Form Spacing and Visual Hierarchy",
+      description: "Enhanced the visual spacing and layout of Quick Add and Mark as Sold forms to reduce cramped appearance. Increased vertical spacing between form sections from space-y-6 to space-y-8 in QuickAdd and space-y-5 to space-y-7 in MarkSold. Expanded grid gaps from gap-4 to gap-6 for better separation between input fields. Increased label-to-input spacing from mb-1 to mb-2 for improved readability. These changes create a more breathable and professional form layout that's easier to scan and use.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "00:25",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed Input Field Sizing Consistency on Small Screens",
+      description: "Standardized all input field heights and widths across Quick Add and Mark as Sold forms to ensure consistent sizing on small screens. Updated SearchDropdown component to use the same inputBase styling as regular inputs, and ensured all input fields use consistent height classes (h-10 sm:h-11). This fixes the issue where input fields appeared different sizes when stacked together on mobile devices, providing a more polished and professional appearance.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "00:15",
+      author: "Development Team"
+    },
+    {
       title: "Completely Redesigned Dropdown Components for Reliable Search and Add Functionality",
       description: "Fixed critical dropdown issues that were preventing users from selecting options or adding new items. Completely redesigned both SearchDropdown and SimpleSearchDropdown components with robust state management, proper input handling, and reliable 'Add +' functionality. Users can now search through existing options, select them reliably, and add new items/products/retailers/marketplaces directly from any dropdown. Enhanced Inventory page to support adding new items through the search dropdown. All dropdowns now work consistently across QuickAdd, MarkSold, Inventory, and Stats pages with proper keyboard navigation and click-outside-to-close behavior.",
-      color: "bg-blue-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "23:30",
       author: "Development Team"
@@ -45,7 +237,7 @@ export default function Hub() {
     {
       title: "Redesigned Changelog Layout for Better Information Display",
       description: "Completely redesigned the changelog layout to better display information with improved visual hierarchy. Removed individual version numbers from each entry and kept only the main version number below the changelog title. Added prominent date, time, and author information for each entry with intuitive icons. Enhanced the layout with better spacing, clearer typography, and more professional presentation of changelog data.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "22:45",
       author: "Development Team"
@@ -53,7 +245,7 @@ export default function Hub() {
     {
       title: "Enhanced Mobile Experience and UI Improvements",
       description: "Significantly improved the mobile experience with responsive design enhancements. Made header selection text smaller on mobile to match input field text size. Hidden checkboxes on mobile rows and made entire rows clickable for easier selection with ghost text indicators. Reduced button sizes on mobile (w-8 h-8) while maintaining desktop sizes (w-10 h-10). Converted grid/list view buttons into a single toggle button to save space and distinguish view controls from action buttons. Added visual cues and better spacing for mobile interactions.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "22:30",
       author: "Development Team"
@@ -61,7 +253,7 @@ export default function Hub() {
     {
       title: "Updated Sign Out Button to Match App Design",
       description: "Redesigned the sign out button to match the rest of the web app's design language. Changed from a text-based button to an icon-based square button with rounded edges (rounded-lg). Uses the same styling as other icon buttons throughout the app with slate color scheme, hover effects, and proper accessibility with tooltip. The button now features a logout icon with subtle scale animation on hover.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "22:20",
       author: "Development Team"
@@ -69,7 +261,7 @@ export default function Hub() {
     {
       title: "Implemented Changelog Pagination and Version Numbering System",
       description: "Added pagination to the changelog to show only 10 entries at a time with navigation controls. Implemented a proper version numbering system that increments by 0.0.1 for each update. Each changelog entry now displays its version number in a styled badge alongside the timestamp. Added Previous/Next buttons and page numbers for easy navigation through changelog history.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "22:15",
       author: "Development Team"
@@ -77,7 +269,7 @@ export default function Hub() {
     {
       title: "Reverted to Exact Version Before Input Outline Changes",
       description: "Completely reverted to the exact version from before input outline changes were made. Removed profile sections from both HeaderWithTabs and PageHeader components since they're now available in the sidebar. Reverted input focus styles from ring-based focus indicators back to simple border color changes (focus:border-indigo-500). Updated bulk action buttons from rounded-xl to rounded-lg for proper rounded square styling consistent with the site's design.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "22:00",
       author: "Development Team"
@@ -85,7 +277,7 @@ export default function Hub() {
     {
       title: "Fixed Sidebar Positioning and User Account Section",
       description: "Fixed two critical sidebar issues: 1) Made the sidebar fixed in place so it doesn't scroll with the page content - only the main content area scrolls now, providing a proper dashboard experience. 2) Fixed the user account section at the bottom of the sidebar to stay properly contained within the sidebar bounds instead of extending across the entire page. The profile section now correctly stays at the bottom of the sidebar with proper background and positioning.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "21:00",
       author: "Development Team"
@@ -93,7 +285,7 @@ export default function Hub() {
     {
       title: "Fixed Sidebar Navigation - All Pages Now Use Sidebar",
       description: "Updated all remaining pages (QuickAdd, MarkSold, Inventory, Stats, Settings) to use the new collapsible sidebar navigation instead of the old HeaderWithTabs component. Now all pages consistently use the modern sidebar layout, providing a unified navigation experience across the entire application. The sidebar shows the appropriate section-specific navigation for each page and maintains the collapsible functionality for optimal space usage.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "20:45",
       author: "Development Team"
@@ -101,7 +293,7 @@ export default function Hub() {
     {
       title: "Implemented Collapsible Sidebar Navigation",
       description: "Completely redesigned the navigation system with a modern collapsible left sidebar that replaces the header tabs. The sidebar includes section-specific navigation (Order Book, Emails, Profiles) with icons and labels, a collapsible toggle button, and user account information at the bottom. This provides significantly more space for content, eliminates tab wrapping issues, and creates a modern dashboard feel similar to popular applications like Notion and Linear. The sidebar can be collapsed to save even more space when needed.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "20:30",
       author: "Development Team"
@@ -109,7 +301,7 @@ export default function Hub() {
     {
       title: "Reverted to Original Two-Line Header Layout",
       description: "Reverted the compact single-line header layout back to the original two-line design with the title and user avatar on the first line, and navigation tabs on a separate line below. The original layout provides better visual hierarchy, clearer separation of elements, and more comfortable spacing for navigation. This maintains the familiar and proven user interface that users are accustomed to while preserving all functionality.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "20:15",
       author: "Development Team"
@@ -117,7 +309,7 @@ export default function Hub() {
     {
       title: "Implemented Compact Single-Line Header Layout",
       description: "Redesigned the header layout to save significant vertical space by combining the title, navigation tabs, and user avatar into a single horizontal line. Reduced title size from text-3xl to text-2xl, made tabs more compact with smaller icons and tighter spacing, and streamlined the user avatar to a smaller, more efficient design. This saves approximately 50px of vertical space while maintaining all functionality and improving the overall user experience with more content visible above the fold.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "20:00",
       author: "Development Team"
@@ -125,7 +317,7 @@ export default function Hub() {
     {
       title: "Removed Logo and Fine-Tuned BETA Badge Alignment",
       description: "Removed the logo image from all header components to create a cleaner, more minimal brand presentation. Adjusted the BETA badge positioning by increasing the bottom margin from mb-0.5 to mb-1 to better align with the OneTrack title baseline. This creates a more refined and focused header design that emphasizes the typography while maintaining the subtle BETA status indication.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "19:45",
       author: "Development Team"
@@ -133,7 +325,7 @@ export default function Hub() {
     {
       title: "Reduced BETA Badge Text Size for Subtle Branding",
       description: "Made the BETA badge text smaller (changed from text-sm to text-xs) while maintaining its perfect positioning on the bottom baseline nearly touching the OneTrack title. This creates a more subtle and refined appearance that clearly indicates the beta status without overwhelming the main brand name. The smaller size makes the BETA badge feel more like a natural typographic element while preserving the precise alignment and spacing that was previously achieved.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "19:30",
       author: "Development Team"
@@ -141,7 +333,7 @@ export default function Hub() {
     {
       title: "Fine-Tuned BETA Badge Positioning for Perfect Alignment",
       description: "Further refined the BETA badge positioning to achieve perfect visual alignment. Moved the BETA text even closer to the OneTrack title using negative left margin (-ml-1) so it's nearly touching, and adjusted the vertical position (mb-0.5) to perfectly align with the bottom baseline of the title text. This creates the most precise and professional typography alignment possible, ensuring the BETA badge appears as a natural extension of the OneTrack brand name.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "19:15",
       author: "Development Team"
@@ -149,7 +341,7 @@ export default function Hub() {
     {
       title: "Refined Header Logo and BETA Badge Positioning",
       description: "Improved the visual alignment of the header elements by pushing the logo closer to the OneTrack title (reduced gap from 3 to 2) and repositioning the BETA badge to align with the bottom baseline of the title text. The BETA text now sits lower and closer to the title, creating a more cohesive and professional appearance. This refinement enhances the overall visual hierarchy and brand presentation across all pages.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "19:00",
       author: "Development Team"
@@ -157,7 +349,7 @@ export default function Hub() {
     {
       title: "Added App Logo and BETA Badge to Headers",
       description: "Enhanced the application branding by adding the OneTrack logo to the left of the title in all header components. Added a subtle 'BETA' badge in ghost text styling to the right of the OneTrack title across all pages (Hub, Order Book, Emails, Shipments, and Profiles). This provides consistent branding and clearly indicates the application's beta status to users while maintaining the clean, professional appearance of the interface.",
-      color: "bg-yellow-500/70",
+      color: "bg-slate-600",
       date: "2024-12-19",
       time: "18:45",
       author: "Development Team"

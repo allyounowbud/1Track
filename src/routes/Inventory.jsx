@@ -6,7 +6,6 @@ import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
-import { TableSearchDropdown } from "../components/TableSearchDropdown.jsx";
 
 /* ---------- data ---------- */
 async function getOrders(limit = 2000) {
@@ -145,6 +144,31 @@ export default function Inventory() {
   );
 
   const [itemFilter, setItemFilter] = useState(""); // text OR exact match
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Filter dropdown items based on current search
+  const filteredDropdownItems = useMemo(() => {
+    const t = itemFilter.trim().toLowerCase();
+    if (!t) return onHandNames; // Show all items when no search
+    
+    const filtered = onHandNames.filter(name => name.toLowerCase().includes(t));
+    // Only limit if we have many results to avoid overwhelming the dropdown
+    return filtered.length > 50 ? filtered.slice(0, 50) : filtered;
+  }, [onHandNames, itemFilter]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('[data-dropdown-container]')) {
+        setIsDropdownOpen(false);
+      }
+    };
+    
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isDropdownOpen]);
 
   // Function to create new items
   async function createItem(name) {
@@ -397,27 +421,85 @@ export default function Inventory() {
 
         <div className={`${pageCard} overflow-hidden`}>
           {/* Search Bar */}
-          <div className="px-4 py-3 pb-5 border-b border-slate-800">
-            <TableSearchDropdown
-              value={itemFilter}
-              onChange={setItemFilter}
-              options={onHandNames.map(name => ({ name, id: name }))}
-              placeholder="Search inventory…"
-              label=""
-              getOptionLabel={(option) => option.name}
-              getOptionValue={(option) => option.name}
-            />
+          <div className="px-4 py-4 border-b border-slate-800">
+            <div className="relative min-w-0" data-dropdown-container>
+              <input
+                type="text"
+                value={itemFilter}
+                onChange={(e) => setItemFilter(e.target.value)}
+                onFocus={() => setIsDropdownOpen(true)}
+                onClick={() => setIsDropdownOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setIsDropdownOpen(false);
+                  }
+                }}
+                placeholder="Search inventory by item name…"
+                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl pl-3 pr-10 py-2 sm:pl-4 sm:pr-12 sm:py-3 text-sm sm:text-base text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-text"
+              />
+              
+              {/* Clear button */}
+              {itemFilter && (
+                <button
+                  type="button"
+                  onClick={() => setItemFilter("")}
+                  className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                  title="Clear search"
+                >
+                  ×
+                </button>
+              )}
+              
+              {/* Dropdown list */}
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto">
+                  {filteredDropdownItems.length > 0 ? (
+                    <>
+                      <div className="px-3 py-2 text-xs text-slate-400 border-b border-slate-800">
+                        {itemFilter.trim() 
+                          ? `${filteredDropdownItems.length} of ${onHandNames.length} items`
+                          : `${onHandNames.length} total items`
+                        }
+                      </div>
+                      {filteredDropdownItems.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            setItemFilter(item);
+                            setIsDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm text-slate-100 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors duration-150"
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="px-3 py-2 text-sm text-slate-400">No items found</div>
+                  )}
+                </div>
+              )}
+            </div>
+            {itemFilter && (
+              <div className="mt-2 text-xs text-slate-400">
+                {filteredRows.length === 0 
+                  ? "No items found" 
+                  : `${filteredRows.length} item${filteredRows.length === 1 ? '' : 's'} found`
+                }
+              </div>
+            )}
           </div>
 
           {/* Header */}
-          <div className="grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[3fr_0.7fr_0.7fr_0.7fr_0.7fr] gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium">
+          <div className="grid grid-cols-[4fr_1fr_1fr] lg:grid-cols-[4fr_0.8fr_0.8fr_0.8fr_0.8fr] gap-2 px-3 py-2 border-b border-slate-800 text-xs text-slate-400 font-medium">
             <button
               onClick={() => toggleSort("name")}
-              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors text-xs"
             >
               Item
               {sortKey === "name" && (
-                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor">
                   {sortDir === "asc" ? (
                     <path d="M10 6l-5 6h10L10 6z" />
                   ) : (
@@ -428,11 +510,11 @@ export default function Inventory() {
             </button>
             <button
               onClick={() => toggleSort("onHandQty")}
-              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors text-xs"
             >
               On hand
               {sortKey === "onHandQty" && (
-                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor">
                   {sortDir === "asc" ? (
                     <path d="M10 6l-5 6h10L10 6z" />
                   ) : (
@@ -443,11 +525,11 @@ export default function Inventory() {
             </button>
             <button
               onClick={() => toggleSort("onHandAvgCostCents")}
-              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors text-xs"
             >
               Avg cost
               {sortKey === "onHandAvgCostCents" && (
-                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor">
                   {sortDir === "asc" ? (
                     <path d="M10 6l-5 6h10L10 6z" />
                   ) : (
@@ -458,11 +540,11 @@ export default function Inventory() {
             </button>
             <button
               onClick={() => toggleSort("onHandCostCents")}
-              className="hidden lg:flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+              className="hidden lg:flex items-center gap-1 text-left hover:text-slate-200 transition-colors text-xs"
             >
               Total cost
               {sortKey === "onHandCostCents" && (
-                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor">
                   {sortDir === "asc" ? (
                     <path d="M10 6l-5 6h10L10 6z" />
                   ) : (
@@ -473,11 +555,11 @@ export default function Inventory() {
             </button>
             <button
               onClick={() => toggleSort("estValueCents")}
-              className="hidden lg:flex items-center gap-1 text-left hover:text-slate-200 transition-colors"
+              className="hidden lg:flex items-center gap-1 text-left hover:text-slate-200 transition-colors text-xs"
             >
               Est. value
               {sortKey === "estValueCents" && (
-                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor">
                   {sortDir === "asc" ? (
                     <path d="M10 6l-5 6h10L10 6z" />
                   ) : (
@@ -493,15 +575,15 @@ export default function Inventory() {
             {sortedRows.map((r, index) => (
               <div
                 key={r.name}
-                className={`grid grid-cols-[3fr_1fr_1fr] lg:grid-cols-[3fr_0.7fr_0.7fr_0.7fr_0.7fr] gap-4 px-4 py-3 border-b border-slate-800/50 hover:bg-slate-900/20 transition-colors ${
+                className={`grid grid-cols-[4fr_1fr_1fr] lg:grid-cols-[4fr_0.8fr_0.8fr_0.8fr_0.8fr] gap-2 px-3 py-2 border-b border-slate-800/30 hover:bg-slate-900/20 transition-colors ${
                   index % 2 === 0 ? "bg-slate-900/10" : "bg-slate-900/5"
                 }`}
               >
-                <div className="text-slate-100 font-medium truncate pr-2">{r.name}</div>
-                <div className="text-slate-200">{formatNumber(r.onHandQty)}</div>
-                <div className="text-slate-200">${centsToStr(r.onHandAvgCostCents)}</div>
-                <div className="hidden lg:block text-slate-200">${centsToStr(r.onHandCostCents)}</div>
-                <div className="hidden lg:block text-slate-100 font-semibold">${centsToStr(r.estValueCents)}</div>
+                <div className="text-slate-100 font-medium truncate pr-1 text-sm">{r.name}</div>
+                <div className="text-slate-200 text-xs">{formatNumber(r.onHandQty)}</div>
+                <div className="text-slate-200 text-xs">${centsToStr(r.onHandAvgCostCents)}</div>
+                <div className="hidden lg:block text-slate-200 text-xs">${centsToStr(r.onHandCostCents)}</div>
+                <div className="hidden lg:block text-slate-100 font-semibold text-xs">${centsToStr(r.estValueCents)}</div>
               </div>
             ))}
 

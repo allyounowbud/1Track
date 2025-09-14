@@ -16,9 +16,9 @@ const CalendarIcon = () => (
   </svg>
 );
 
-const PackageIcon = () => (
+const ProductIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-    <path d="M10.5 1.75a.75.75 0 00-1 0L8.25 3H6.5a3 3 0 00-3 3v8a3 3 0 003 3h7a3 3 0 003-3V6a3 3 0 00-3-3h-1.75l-1.25-1.25zM8.25 4.5L9.5 3.25 10.75 4.5H8.25zM6.5 4.5h7a1.5 1.5 0 011.5 1.5v8a1.5 1.5 0 01-1.5 1.5h-7a1.5 1.5 0 01-1.5-1.5v-8a1.5 1.5 0 011.5-1.5z" />
+    <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
   </svg>
 );
 
@@ -211,7 +211,7 @@ export default function Stats() {
               options={itemOptions.map(name => ({ name, id: name }))}
               placeholder="All products"
               label=""
-              icon={<PackageIcon />}
+              icon={<ProductIcon />}
               getOptionLabel={(option) => option.name}
               getOptionValue={(option) => option.name}
             />
@@ -813,7 +813,7 @@ function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
   if (tone === "neutral") color = isZero ? "text-slate-400" : "text-slate-100";
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3">
+    <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3 text-center">
       <div className="text-slate-400 text-xs">{title}</div>
       <div className={`text-base font-semibold mt-0.5 ${color}`}>{value}</div>
       {sub && <div className="text-[10px] leading-4 text-slate-400 mt-0.5">{sub}</div>}

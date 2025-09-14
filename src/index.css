@@ -52,6 +52,138 @@ html, body {
   }
 }
 
+/* Mobile scaling - reduce text sizes and spacing for better fit */
+@media (max-width: 649px) {
+  /* Scale down text sizes */
+  .text-2xl {
+    font-size: 1.5rem !important; /* 24px -> 20px */
+    line-height: 2rem !important;
+  }
+  
+  .text-lg {
+    font-size: 1rem !important; /* 18px -> 16px */
+    line-height: 1.5rem !important;
+  }
+  
+  .text-base {
+    font-size: 0.875rem !important; /* 16px -> 14px */
+    line-height: 1.25rem !important;
+  }
+  
+  .text-sm {
+    font-size: 0.75rem !important; /* 14px -> 12px */
+    line-height: 1rem !important;
+  }
+  
+  /* Scale down padding and margins */
+  .p-4 {
+    padding: 0.75rem !important; /* 16px -> 12px */
+  }
+  
+  .p-6 {
+    padding: 1rem !important; /* 24px -> 16px */
+  }
+  
+  .px-4 {
+    padding-left: 0.75rem !important; /* 16px -> 12px */
+    padding-right: 0.75rem !important;
+  }
+  
+  .py-3 {
+    padding-top: 0.5rem !important; /* 12px -> 8px */
+    padding-bottom: 0.5rem !important;
+  }
+  
+  .px-3 {
+    padding-left: 0.5rem !important; /* 12px -> 8px */
+    padding-right: 0.5rem !important;
+  }
+  
+  .py-2 {
+    padding-top: 0.375rem !important; /* 8px -> 6px */
+    padding-bottom: 0.375rem !important;
+  }
+  
+  /* Scale down margins */
+  .mb-6 {
+    margin-bottom: 1rem !important; /* 24px -> 16px */
+  }
+  
+  .mb-4 {
+    margin-bottom: 0.75rem !important; /* 16px -> 12px */
+  }
+  
+  .gap-4 {
+    gap: 0.75rem !important; /* 16px -> 12px */
+  }
+  
+  .gap-5 {
+    gap: 1rem !important; /* 20px -> 16px */
+  }
+  
+  /* Scale down input heights */
+  .h-10 {
+    height: 2.25rem !important; /* 40px -> 36px */
+  }
+  
+  .h-9 {
+    height: 2rem !important; /* 36px -> 32px */
+  }
+  
+  /* Scale down rounded corners for tighter feel */
+  .rounded-2xl {
+    border-radius: 0.875rem !important; /* 16px -> 14px */
+  }
+  
+  .rounded-xl {
+    border-radius: 0.625rem !important; /* 12px -> 10px */
+  }
+  
+  .rounded-lg {
+    border-radius: 0.5rem !important; /* 8px -> 6px */
+  }
+  
+  /* Scale down button and icon sizes */
+  .w-9 {
+    width: 2rem !important; /* 36px -> 32px */
+  }
+  
+  .h-9 {
+    height: 2rem !important; /* 36px -> 32px */
+  }
+  
+  /* Scale down page header */
+  h1 {
+    font-size: 1.5rem !important; /* 24px -> 20px */
+    line-height: 2rem !important;
+  }
+  
+  h2 {
+    font-size: 1rem !important; /* 18px -> 16px */
+    line-height: 1.5rem !important;
+  }
+  
+  h3 {
+    font-size: 0.875rem !important; /* 16px -> 14px */
+    line-height: 1.25rem !important;
+  }
+  
+  /* Make inventory table even more compact on mobile */
+  .grid {
+    gap: 0.25rem !important; /* 4px -> 1px */
+  }
+  
+  .px-3 {
+    padding-left: 0.5rem !important; /* 12px -> 8px */
+    padding-right: 0.5rem !important;
+  }
+  
+  .py-2 {
+    padding-top: 0.25rem !important; /* 8px -> 4px */
+    padding-bottom: 0.25rem !important;
+  }
+}
+
 /* Mobile-specific background fixes */
 @media (max-width: 768px) {
   html, body, #root {

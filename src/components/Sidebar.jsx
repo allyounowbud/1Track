@@ -16,7 +16,14 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     return saved !== null ? JSON.parse(saved) : true;
   });
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
-  const [isSmallScreen, setIsSmallScreen] = useState(false);
+  const [isSmallScreen, setIsSmallScreen] = useState(() => {
+    // Initialize with immediate check to prevent flash
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+      return width < 650;
+    }
+    return false;
+  });
 
   useEffect(() => {
     async function loadUser() {
@@ -96,7 +103,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
       // On homepage, show workspace tabs
       return [
         homeItem,
-        { key: "orderbook", label: "Order Book", icon: "M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", to: "/orders" },
+        { key: "orderbook", label: "Order Book", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", to: "/add" },
         { key: "emails", label: "Emails", icon: "M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", to: "/emails" },
         { key: "profiles", label: "Profiles", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", to: "/profiles" }
       ];
@@ -107,9 +114,9 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
       case "orderbook":
         return [
           homeItem,
-          { key: "add", label: "Quick Add", icon: "M12 6v6m0 0v6m0-6h6m-6 0H6", to: "/add" },
+          { key: "add", label: "Quick Add", icon: "M12 4.5v15m7.5-7.5h-15", to: "/add" },
           { key: "sold", label: "Mark as Sold", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", to: "/sold" },
-          { key: "orders", label: "Order Book", icon: "M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", to: "/orders" },
+          { key: "orders", label: "Order Book", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", to: "/orders" },
           { key: "inventory", label: "Inventory", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4", to: "/inventory" },
           { key: "stats", label: "Stats", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", to: "/stats" },
           { key: "database", label: "Database", icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4", to: "/database" }
@@ -135,7 +142,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   // Mobile bottom bar layout
   if (isSmallScreen) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-50 h-20 pb-safe">
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-50 h-16 pb-safe">
         {/* Navigation - horizontal layout for mobile */}
         <nav className="flex items-center justify-around px-2 py-2 h-full">
           {navigationItems.map((item) => {
@@ -148,7 +155,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                 className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-0 flex-1 h-full ${
                   isActive 
                     ? 'text-white bg-slate-800 shadow-sm' 
-                    : 'text-slate-300 hover:text-slate-100 hover:bg-slate-800/50'
+                    : 'text-slate-300'
                 }`}
               >
                 <svg className="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

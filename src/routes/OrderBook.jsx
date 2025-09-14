@@ -128,13 +128,47 @@ export default function OrderBook() {
   const allRetailers = retailers;
   const allMarkets = markets;
 
-  // Normalize native date input rendering
+  // Normalize native date input rendering and checkbox styling
   useEffect(() => {
     const tag = document.createElement("style");
     tag.innerHTML = `
       .tw-date { -webkit-appearance:none; appearance:none; height:2.5rem; padding:0 .75rem; background:transparent; }
       .tw-date::-webkit-datetime-edit, .tw-date::-webkit-datetime-edit-fields-wrapper { padding:0; line-height:1.25rem; }
       .tw-date::-webkit-calendar-picker-indicator { opacity:.9; }
+      
+      /* Custom checkbox styling for dark theme */
+      input[type="checkbox"] {
+        -webkit-appearance: none;
+        appearance: none;
+        background-color: #1e293b; /* slate-800 */
+        border: 1px solid #475569; /* slate-600 */
+        border-radius: 0.25rem;
+        width: 1rem;
+        height: 1rem;
+        position: relative;
+        cursor: pointer;
+      }
+      
+      input[type="checkbox"]:checked {
+        background-color: #6366f1; /* indigo-500 */
+        border-color: #6366f1;
+      }
+      
+      input[type="checkbox"]:checked::after {
+        content: "✓";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: bold;
+      }
+      
+      input[type="checkbox"]:focus {
+        outline: 2px solid #6366f1;
+        outline-offset: 2px;
+      }
     `;
     document.head.appendChild(tag);
     return () => document.head.removeChild(tag);
@@ -546,7 +580,7 @@ function UnifiedOrderView({
               type="checkbox"
               checked={selectedRows.size === filtered.length && filtered.length > 0}
               onChange={toggleAllSelection}
-              className="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-indigo-600 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-600"
+              className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
             />
             <div>
               <div className="text-sm text-slate-400 whitespace-nowrap">
@@ -756,7 +790,7 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
   return (
     <>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
+      <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] gap-1 items-center mb-4 pb-3 border-b border-slate-700 w-full">
         <div className="flex items-center justify-start">
           <div className="w-4 h-4"></div>
         </div>
@@ -837,7 +871,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
               setSelectedRows(newSelected);
             }}
             onClick={(e) => e.stopPropagation()}
-            className="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-indigo-600 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-600"
+            className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
           />
           <div>
             <div className="text-lg font-semibold text-slate-100">{title}</div>
@@ -853,7 +887,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
       {open && (
         <div className="p-4 border-t border-slate-700">
           {/* Header Row for Orders */}
-          <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-3 pb-2 border-b border-slate-700">
+          <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] gap-1 items-center mb-3 pb-2 border-b border-slate-700 w-full">
             <div className="flex items-center justify-start">
               <div className="w-4 h-4"></div>
             </div>
@@ -902,7 +936,7 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
   return (
     <div className={`${pageCard}`}>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center mb-4 pb-3 border-b border-slate-700">
+      <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] gap-1 items-center mb-4 pb-3 border-b border-slate-700 w-full">
         <div className="w-6 flex items-center justify-center">
           <input
             type="checkbox"
@@ -914,7 +948,7 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
                 setSelectedRows(new Set(orders.map(o => o.id)));
               }
             }}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
           />
         </div>
         <div className="text-xs text-slate-300 font-medium">Order date</div>
@@ -1062,7 +1096,7 @@ function DayCard({
                       setSelectedRows(newSelected);
                     }
                   }}
-                  className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
                 />
                 <span className="text-xs text-slate-400">Select all</span>
               </div>
@@ -1076,7 +1110,7 @@ function DayCard({
         <div className="pt-5">
           {/* Header row - text only */}
           <div className="hidden lg:block">
-            <div className="grid grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center min-w-0 px-3 py-2 mb-1">
+            <div className="grid grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
               <div className="flex items-center justify-center">
                 <input
                   type="checkbox"
@@ -1095,7 +1129,7 @@ function DayCard({
                       setSelectedRows(newSelected);
                     }
                   }}
-                  className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+                  className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
                 />
               </div>
               <div className="text-xs text-slate-300 font-medium">Order date</div>
@@ -1331,14 +1365,14 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
   return (
     <div 
-      className={`rounded-xl border bg-slate-900/60 p-3 pb-4 sm:pb-3 overflow-hidden transition cursor-pointer relative ${
+      className={`rounded-lg border-b border-slate-700/50 bg-slate-900/30 py-2 px-1 overflow-hidden transition cursor-pointer relative hover:bg-slate-800/30 ${
         isSelected || order.isNew
-          ? 'border-indigo-500 bg-indigo-500/10' 
-          : 'border-slate-800 hover:bg-slate-800/50'
+          ? 'bg-indigo-500/10 border-indigo-500/30' 
+          : ''
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] lg:grid-cols-[auto_1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 items-center min-w-0 overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] lg:grid-cols-[auto_1fr_2fr_1fr_1fr_80px_80px_1fr_1fr_80px] gap-1 items-center w-full min-w-0 grid-rows-1">
         {/* Selection checkbox - hidden on mobile, visible on desktop */}
         <div className="hidden sm:flex items-center justify-start">
           <input
@@ -1348,7 +1382,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
               e.stopPropagation();
               onToggleSelection();
             }}
-            className="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-indigo-600 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-600"
+            className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
           />
         </div>
         
@@ -1358,7 +1392,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full min-w-0 max-w-full"
+          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
         />
 
         {/* Item Name - Most Important */}
@@ -1366,7 +1400,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.item || ""}
           onChange={(e) => setItem(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full [&>option]:bg-slate-800 [&>option]:text-slate-100"
+          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer"
         >
           <option value="">Select item...</option>
           {items.map((it) => (
@@ -1382,7 +1416,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setProfile(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Profile"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
         />
 
         {/* Retailer */}
@@ -1390,7 +1424,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full [&>option]:bg-slate-800 [&>option]:text-slate-100"
+          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer"
         >
           <option value="">Retailer</option>
           {retailers.map((r) => (
@@ -1406,7 +1440,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setBuyPrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Buy"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
         />
 
         {/* Sale Price */}
@@ -1415,7 +1449,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setSalePrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Sale"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
         />
 
         {/* Sale Date - Responsive */}
@@ -1424,7 +1458,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.sale_date || ""}
           onChange={(e) => setSaleDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full min-w-0 max-w-full"
+          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
         />
 
         {/* Marketplace */}
@@ -1432,7 +1466,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.marketplace || ""}
           onChange={handleMarketplaceChange}
           onClick={(e) => e.stopPropagation()}
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full [&>option]:bg-slate-800 [&>option]:text-slate-100"
+          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer"
         >
           <option value="">Market</option>
           {markets.map((m) => (
@@ -1448,7 +1482,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setShipping(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Ship"
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-transparent border-none px-1 py-1 text-sm text-slate-100 focus:bg-slate-800/50 focus:outline-none w-full min-w-0"
         />
 
       </div>

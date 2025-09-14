@@ -1,5 +1,6 @@
 // src/components/LayoutWithSidebar.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 
 /**
@@ -14,7 +15,16 @@ export default function LayoutWithSidebar({ children, active, section }) {
     const saved = localStorage.getItem('sidebar-collapsed');
     return saved !== null ? JSON.parse(saved) : true;
   });
-  const [isSmallScreen, setIsSmallScreen] = useState(false);
+  const [isSmallScreen, setIsSmallScreen] = useState(() => {
+    // Initialize with immediate check to prevent flash
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+      return width < 650;
+    }
+    return false;
+  });
+  const contentRef = useRef(null);
+  const location = useLocation();
 
   // Handle responsive behavior
   useEffect(() => {
@@ -33,20 +43,25 @@ export default function LayoutWithSidebar({ children, active, section }) {
     };
   }, []);
 
+  // Scroll to top when route changes
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
+  }, [location.pathname]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Sidebar */}
       <Sidebar active={active} section={section} onCollapseChange={setSidebarCollapsed} />
       
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${
+      <div className={`flex-1 flex flex-col ${
         isSmallScreen 
-          ? 'h-[calc(100vh-5rem)]' // Constrain height to viewport minus bottom bar height
-          : sidebarCollapsed 
-            ? 'ml-16' 
-            : 'ml-64'
+          ? 'h-[calc(100vh-4rem)]' // Constrain height to viewport minus bottom bar height
+          : `transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`
       }`}>
-        <div className="flex-1 w-full p-4 sm:p-6 overflow-y-auto">
+        <div ref={contentRef} className="flex-1 w-full p-4 sm:p-6 overflow-y-auto">
           {children}
         </div>
       </div>

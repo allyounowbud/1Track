@@ -34,6 +34,48 @@ async function getMarkets() {
 }
 
 export default function Settings() {
+  // Custom checkbox styling for dark theme
+  useEffect(() => {
+    const tag = document.createElement("style");
+    tag.innerHTML = `
+      /* Custom checkbox styling for dark theme */
+      input[type="checkbox"] {
+        -webkit-appearance: none;
+        appearance: none;
+        background-color: #1e293b; /* slate-800 */
+        border: 1px solid #475569; /* slate-600 */
+        border-radius: 0.25rem;
+        width: 1rem;
+        height: 1rem;
+        position: relative;
+        cursor: pointer;
+      }
+      
+      input[type="checkbox"]:checked {
+        background-color: #6366f1; /* indigo-500 */
+        border-color: #6366f1;
+      }
+      
+      input[type="checkbox"]:checked::after {
+        content: "✓";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: bold;
+      }
+      
+      input[type="checkbox"]:focus {
+        outline: 2px solid #6366f1;
+        outline-offset: 2px;
+      }
+    `;
+    document.head.appendChild(tag);
+    return () => document.head.removeChild(tag);
+  }, []);
+
   const { data: items = [], refetch: refetchItems } = useQuery({
     queryKey: ["items"],
     queryFn: getItems,
@@ -723,7 +765,7 @@ function SettingsCard({
                 type="checkbox"
                 checked={selectedRows.size === data.length && data.length > 0}
                 onChange={toggleAllSelection}
-                className="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-indigo-600 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-600"
+                className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
               />
               <div>
                 <div className="text-sm sm:text-lg text-slate-400 whitespace-nowrap">
@@ -1060,7 +1102,7 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
             e.stopPropagation();
             onToggleSelection();
           }}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
         />
         
         <input
@@ -1189,7 +1231,7 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled
             e.stopPropagation();
             onToggleSelection();
           }}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
         />
         
         <input
@@ -1306,7 +1348,7 @@ function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = f
             e.stopPropagation();
             onToggleSelection();
           }}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800/60 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all"
+          className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
         />
         
         <input

@@ -210,7 +210,14 @@ export default function MarkSold() {
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  
+  // State for temporary marketplace that hasn't been saved to database yet
+  const [temporaryMarkets, setTemporaryMarkets] = useState([]);
 
+  // Combine database markets with temporary markets for dropdowns
+  const allMarkets = useMemo(() => {
+    return [...markets, ...temporaryMarkets];
+  }, [markets, temporaryMarkets]);
 
   // ---------- searchable dropdown (mobile-safe) ----------
 
@@ -219,19 +226,63 @@ export default function MarkSold() {
       o.buy_price_cents
     )}`;
 
-  // ---------- marketplace creation ----------
-  async function createMarketplace(name) {
+  // ---------- temporary marketplace creation ----------
+  function createTemporaryMarketplace(name) {
     const trimmed = name.trim();
     if (!trimmed) return null;
-    const { error } = await supabase
-      .from("marketplaces")
-      .insert([{ name: trimmed, default_fees_pct: 0 }]);
-    if (error) {
-      setMsg(error.message);
+    
+    // Check if marketplace already exists (database or temporary)
+    const exists = allMarkets.some(market => market.name.toLowerCase() === trimmed.toLowerCase());
+    if (exists) {
+      setMsg("Marketplace already exists");
       return null;
     }
+    
+    const tempMarket = { 
+      id: `temp-${Date.now()}`, // Temporary ID
+      name: trimmed,
+      isTemporary: true,
+      default_fees_pct: 0
+    };
+    
+    setTemporaryMarkets(prev => [...prev, tempMarket]);
+    return tempMarket;
+  }
+
+  // ---------- database saver ----------
+  async function saveTemporaryMarketsToDatabase() {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("You must be logged in to save marketplaces");
+    }
+
+    const errors = [];
+
+    // Save temporary markets
+    for (const tempMarket of temporaryMarkets) {
+      const { error } = await supabase
+        .from("marketplaces")
+        .insert([{ 
+          name: tempMarket.name, 
+          default_fees_pct: 0,
+          user_id: user.id 
+        }]);
+      
+      if (error) {
+        errors.push(`Error saving marketplace "${tempMarket.name}": ${error.message}`);
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new Error(errors.join('; '));
+    }
+
+    // Clear temporary markets after successful save
+    setTemporaryMarkets([]);
+
+    // Refetch data to get the new markets with proper IDs
     await refetchMarkets();
-    return trimmed;
   }
 
   // ---------- marketplace -> autofill fee ----------
@@ -261,6 +312,11 @@ export default function MarkSold() {
     setSaving(true);
     setMsg("");
     try {
+      // First, save any temporary marketplaces to the database
+      if (temporaryMarkets.length > 0) {
+        await saveTemporaryMarketsToDatabase();
+      }
+
       const { error } = await supabase
         .from("orders")
         .update({
@@ -300,12 +356,13 @@ export default function MarkSold() {
         {/* Card (mobile-friendly: overflow-hidden, min-w-0, responsive gaps) */}
         <form
           onSubmit={markSold}
-          className="relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] space-y-5"
+          className="relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] space-y-7"
         >
           {/* SALE DETAILS TITLE */}
           <div>
             <h2 className="text-lg font-semibold">Sale details</h2>
             <p className="text-slate-400 text-sm -mt-1">Mark an existing order as sold</p>
+            <div className="border-b border-slate-800 mt-4"></div>
           </div>
           {/* Open purchase (searchable) */}
           <SearchDropdown
@@ -328,61 +385,70 @@ export default function MarkSold() {
           />
 
           {/* Grid of inputs (stacks on mobile) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
+          <div className="space-y-6">
+            {/* Row 1: Sell Price & Sale Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-2 block text-sm">Sell Price</label>
+                <input
+                  value={salePrice}
+                  onChange={(e) => setSalePrice(e.target.value)}
+                  placeholder="e.g. 120.00"
+                  className={inputBase}
+                />
+              </div>
+
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-2 block text-sm">Sale Date</label>
+                <input
+                  type="date"
+                  value={saleDate}
+                  onChange={(e) => setSaleDate(e.target.value)}
+                  className={inputBase}
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Marketplace (full width) */}
             <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Sell Price</label>
-              <input
-                value={salePrice}
-                onChange={(e) => setSalePrice(e.target.value)}
-                placeholder="e.g. 120.00"
-                className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+              <SearchDropdown
+                value={marketName}
+                onChange={setMarketName}
+                options={allMarkets}
+                placeholder="Type to search marketplaces…"
+                label="Marketplace"
+                getOptionLabel={(market) => market.name}
+                getOptionValue={(market) => market.name}
+                onTemporaryCreate={createTemporaryMarketplace}
+                createNewLabel="Create new marketplace"
               />
             </div>
 
-            <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Sale Date</label>
-              <input
-                type="date"
-                value={saleDate}
-                onChange={(e) => setSaleDate(e.target.value)}
-                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:border-indigo-500"
-              />
-            </div>
+            {/* Row 3: Fee & Shipping */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-2 block text-sm">Fee (%)</label>
+                <input
+                  value={feesPct}
+                  onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
+                  placeholder="e.g. 9 or 9.5"
+                  disabled={feesLocked}
+                  className={`${inputBase} ${feesLocked ? disabledInput : ""}`}
+                />
+                {feesLocked && (
+                  <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
+                )}
+              </div>
 
-            <TableSearchDropdown
-              value={marketName}
-              onChange={setMarketName}
-              options={markets}
-              placeholder="Type to search marketplaces…"
-              label="Sale Location"
-              getOptionLabel={(market) => market.name}
-              getOptionValue={(market) => market.name}
-            />
-
-            <div className="min-w-0">
-              <label className="text-slate-300 mb-1 block text-sm">Fee (%)</label>
-              <input
-                value={feesPct}
-                onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
-                placeholder="e.g. 9 or 9.5"
-                disabled={feesLocked}
-                className={`w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 ${
-                  feesLocked ? "opacity-60 cursor-not-allowed" : ""
-                }`}
-              />
-              {feesLocked && (
-                <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
-              )}
-            </div>
-
-            <div className="min-w-0 md:col-span-2">
-              <label className="text-slate-300 mb-1 block text-sm">Shipping</label>
-              <input
-                value={shipping}
-                onChange={(e) => setShipping(e.target.value)}
-                className="w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 outline-none focus:border-indigo-500"
-                placeholder="0"
-              />
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-2 block text-sm">Shipping</label>
+                <input
+                  value={shipping}
+                  onChange={(e) => setShipping(e.target.value)}
+                  className={inputBase}
+                  placeholder="0"
+                />
+              </div>
             </div>
           </div>
 
