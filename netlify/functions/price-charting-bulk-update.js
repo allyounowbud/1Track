@@ -82,98 +82,134 @@ async function testApiKey() {
   }
 }
 
-// Search for products using Price Charting API
+// Search for products using Price Charting API with fuzzy matching
 async function searchProducts(productName) {
+  console.log(`Starting enhanced search for: "${productName}"`);
+  
   if (!PRICE_CHARTING_API_KEY) {
     throw new Error('Price Charting API key not configured');
   }
   
-  // Validate API key format (should be a string and not empty)
+  // Validate API key format
   if (typeof PRICE_CHARTING_API_KEY !== 'string' || PRICE_CHARTING_API_KEY.trim().length === 0) {
     throw new Error('Invalid API key format');
   }
   
-  // Validate API key length (should be 40 characters according to docs)
   if (PRICE_CHARTING_API_KEY.length !== 40) {
     console.warn(`API key length is ${PRICE_CHARTING_API_KEY.length}, expected 40 characters`);
   }
   
-  // Clean the product name for API search
-  const normalizedName = productName
-    .trim()
-    .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
-    .replace(/\s+/g, ' ') // Normalize spaces
-    .substring(0, 100); // Limit length
-    
-  // Try different parameter combinations for products search
-  // First try with 'q' parameter
-  let searchUrl = `${PRICE_CHARTING_BASE_URL}/api/products?q=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`;
-  
-  // Alternative: try with 'name' parameter if 'q' doesn't work
-  // const searchUrl = `${PRICE_CHARTING_BASE_URL}/api/products?name=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`;
-  
-  console.log(`Searching Price Charting API for: "${normalizedName}"`);
-  console.log(`Search URL: ${searchUrl}`);
-  console.log(`API Key length: ${PRICE_CHARTING_API_KEY ? PRICE_CHARTING_API_KEY.length : 'undefined'}`);
-  console.log(`API Key starts with: ${PRICE_CHARTING_API_KEY ? PRICE_CHARTING_API_KEY.substring(0, 8) + '...' : 'undefined'}`);
-  
   // Test API key first
   const apiKeyWorks = await testApiKey();
   if (!apiKeyWorks) {
-    throw new Error('API key test failed. Please verify your Price Charting API key is correct and has proper permissions.');
+    throw new Error('API key test failed. Please verify your Price Charting API key is correct.');
   }
   
-  try {
-    const response = await fetch(searchUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': '1Track/1.0',
-      },
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Error ${response.status}:`, errorText);
-      console.error(`Request URL was: ${searchUrl}`);
-      console.error(`API Key length: ${PRICE_CHARTING_API_KEY.length}`);
+  // Try multiple search strategies
+  const searchStrategies = [
+    // Strategy 1: Direct name search
+    () => searchWithName(productName),
+    // Strategy 2: Cleaned name search
+    () => searchWithName(cleanProductName(productName)),
+    // Strategy 3: Shortened name search
+    () => searchWithName(getShortenedName(productName)),
+    // Strategy 4: Gaming term enhanced search
+    () => searchWithName(enhanceWithGamingTerms(productName))
+  ];
+  
+  for (let i = 0; i < searchStrategies.length; i++) {
+    try {
+      console.log(`Trying search strategy ${i + 1} for: "${productName}"`);
+      const results = await searchStrategies[i]();
       
-      // If 404, try alternative parameter names
-      if (response.status === 404) {
-        console.log('404 error with "q" parameter, trying "name" parameter...');
-        
-        // Try with 'name' parameter instead of 'q'
-        const alternativeUrl = `${PRICE_CHARTING_BASE_URL}/api/products?name=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`;
-        console.log(`Alternative URL: ${alternativeUrl}`);
-        
-        const altResponse = await fetch(alternativeUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': '1Track/1.0',
-          },
-        });
-        
-        if (altResponse.ok) {
-          const altData = await altResponse.json();
-          console.log(`Alternative search results for "${normalizedName}":`, altData);
-          return altData;
-        } else {
-          const altErrorText = await altResponse.text();
-          console.error(`Alternative API Error ${altResponse.status}:`, altErrorText);
-          throw new Error(`Products search failed with both "q" and "name" parameters. 404 errors suggest the /api/products endpoint may not be available or requires different parameters.`);
-        }
+      if (results && results.length > 0) {
+        console.log(`Strategy ${i + 1} successful: found ${results.length} results`);
+        return results;
       }
-      
-      throw new Error(`Price Charting API error: ${response.status} ${response.statusText} - ${errorText}`);
+    } catch (error) {
+      console.log(`Strategy ${i + 1} failed:`, error.message);
+      // Continue to next strategy
     }
-    
-    const data = await response.json();
-    console.log(`Search results for "${normalizedName}":`, data);
+  }
+  
+  throw new Error(`All search strategies failed for product: "${productName}"`);
+}
+
+// Clean product name for better API matching
+function cleanProductName(name) {
+  return name
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
+    .replace(/\s+/g, ' ') // Normalize spaces
+    .replace(/\b(complete|sealed|new|used|loose|boxed|graded|psa|bgs|cgc)\b/gi, '') // Remove condition words
+    .replace(/\b\d{4}\b/g, '') // Remove years
+    .replace(/\b(v\d+|version|ver|edition|ed)\b/gi, '') // Remove version indicators
+    .trim();
+}
+
+// Get shortened version of name (first 2-3 words)
+function getShortenedName(name) {
+  const words = name.split(/\s+/);
+  return words.slice(0, Math.min(3, words.length)).join(' ');
+}
+
+// Enhance name with gaming terms for better matching
+function enhanceWithGamingTerms(name) {
+  const gamingTerms = ['game', 'video game', 'trading card', 'card', 'pokemon', 'nintendo', 'playstation', 'xbox'];
+  const lowerName = name.toLowerCase();
+  
+  for (const term of gamingTerms) {
+    if (lowerName.includes(term)) {
+      return name; // Already has gaming term
+    }
+  }
+  
+  // Add appropriate gaming term based on context
+  if (lowerName.includes('card') || lowerName.includes('pokemon') || lowerName.includes('magic')) {
+    return `trading card ${name}`;
+  } else if (lowerName.includes('nintendo') || lowerName.includes('mario') || lowerName.includes('zelda')) {
+    return `nintendo ${name}`;
+  } else if (lowerName.includes('playstation') || lowerName.includes('ps')) {
+    return `playstation ${name}`;
+  } else if (lowerName.includes('xbox')) {
+    return `xbox ${name}`;
+  }
+  
+  return name;
+}
+
+// Search with a specific name
+async function searchWithName(searchName) {
+  const searchUrl = `${PRICE_CHARTING_BASE_URL}/api/products?q=${encodeURIComponent(searchName)}&t=${PRICE_CHARTING_API_KEY}`;
+  
+  console.log(`Searching with URL: ${searchUrl}`);
+  
+  const response = await fetch(searchUrl, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'User-Agent': '1Track/1.0',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Search failed for "${searchName}": ${response.status} ${errorText}`);
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  console.log(`Search results for "${searchName}":`, data);
+  
+  // Handle different response formats
+  if (Array.isArray(data)) {
     return data;
-  } catch (error) {
-    console.error(`Search failed for "${normalizedName}":`, error);
-    throw error;
+  } else if (data.products) {
+    return data.products;
+  } else if (data.product_name || data.id) {
+    return [data]; // Single product result
+  } else {
+    return [];
   }
 }
 

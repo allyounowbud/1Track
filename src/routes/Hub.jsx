@@ -155,6 +155,22 @@ export default function Hub() {
       author: "Development Team"
     },
     {
+      title: "Fuzzy Search Implementation for Price Charting API",
+      description: "Implemented comprehensive fuzzy search system with multiple search strategies including name cleaning, gaming term enhancement, and shortened name variations. Added UPC/EAN code support, product category tracking, and console/platform identification to improve API matching accuracy. Created dedicated fuzzy search function with Levenshtein distance calculation for better product identification.",
+      color: "bg-blue-600",
+      date: "2024-12-20",
+      time: "07:00",
+      author: "Development Team"
+    },
+    {
+      title: "Enhanced Database Schema for Product Identification",
+      description: "Extended items table with UPC/EAN code, product category, console name, and search terms columns. Added comprehensive indexing and RLS policies with proper error handling for existing policies. Updated Settings page UI to include new identifier fields for better product matching with Price Charting API.",
+      color: "bg-blue-600",
+      date: "2024-12-20",
+      time: "07:05",
+      author: "Development Team"
+    },
+    {
       title: "Optimized Retailer and Marketplace Column Widths for Better Space Utilization",
       description: "Reduced Retailer column width by 20% (from 1fr to 0.8fr) and Marketplace column width by 15% (from 1fr to 0.85fr) on Order Book desktop large screens. These adjustments optimize space distribution across the table, providing more room for other important columns while maintaining adequate space for retailer and marketplace names. The changes improve overall layout balance and space utilization in the Order Book spreadsheet view.",
       color: "bg-slate-600",

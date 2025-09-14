@@ -1425,6 +1425,9 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
 function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false }) {
   const [name, setName] = useState(item?.name ?? "");
   const [mv, setMv] = useState(centsToStr(item?.market_value_cents ?? 0));
+  const [upcCode, setUpcCode] = useState(item?.upc_code ?? "");
+  const [productCategory, setProductCategory] = useState(item?.product_category ?? "");
+  const [consoleName, setConsoleName] = useState(item?.console_name ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -1440,7 +1443,13 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
       const market_value_cents = moneyToCents(mv);
       const { error } = await supabase
         .from("items")
-        .update({ name: name.trim(), market_value_cents })
+        .update({ 
+          name: name.trim(), 
+          market_value_cents,
+          upc_code: upcCode.trim() || null,
+          product_category: productCategory.trim() || null,
+          console_name: consoleName.trim() || null
+        })
         .eq("id", item.id);
       if (error) throw error;
       setStatus("Saved ✓");
@@ -1522,7 +1531,7 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
       onClick={onToggleSelection}
     >
       {/* Desktop: Grid layout with checkbox */}
-      <div className="hidden sm:grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
+      <div className="hidden sm:grid grid-cols-[auto_2fr_1fr_1fr_1fr_auto] gap-4 items-center min-w-0">
         <input
           type="checkbox"
           checked={isSelected}
@@ -1545,18 +1554,43 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
           placeholder="Item name…"
         />
         
-        <div className="flex items-center gap-2">
         <input
-            className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
           value={mv}
-            onChange={(e) => {
-              e.stopPropagation();
-              setMv(e.target.value);
-            }}
-            onBlur={updateItem}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="Market value ($)"
-          />
+          onChange={(e) => {
+            e.stopPropagation();
+            setMv(e.target.value);
+          }}
+          onBlur={updateItem}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="Market value ($)"
+        />
+        
+        <input
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          value={upcCode}
+          onChange={(e) => {
+            e.stopPropagation();
+            setUpcCode(e.target.value);
+          }}
+          onBlur={updateItem}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="UPC/EAN Code"
+        />
+        
+        <input
+          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          value={productCategory}
+          onChange={(e) => {
+            e.stopPropagation();
+            setProductCategory(e.target.value);
+          }}
+          onBlur={updateItem}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="Category (e.g., Video Games)"
+        />
+        
+        <div className="flex items-center gap-2">
           
           {/* Row action buttons */}
           <div className="flex gap-1">

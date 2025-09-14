@@ -7,6 +7,10 @@ ALTER TABLE items ADD COLUMN IF NOT EXISTS api_product_id TEXT; -- Price Chartin
 ALTER TABLE items ADD COLUMN IF NOT EXISTS api_last_updated TIMESTAMP WITH TIME ZONE;
 ALTER TABLE items ADD COLUMN IF NOT EXISTS api_price_cents INTEGER; -- API-fetched price
 ALTER TABLE items ADD COLUMN IF NOT EXISTS manual_override BOOLEAN DEFAULT FALSE; -- User override flag
+ALTER TABLE items ADD COLUMN IF NOT EXISTS upc_code TEXT; -- UPC/EAN barcode for product identification
+ALTER TABLE items ADD COLUMN IF NOT EXISTS product_category TEXT; -- Video Games, Trading Cards, etc.
+ALTER TABLE items ADD COLUMN IF NOT EXISTS console_name TEXT; -- Nintendo Switch, PlayStation 5, etc.
+ALTER TABLE items ADD COLUMN IF NOT EXISTS search_terms TEXT; -- Additional search terms for fuzzy matching
 
 -- Create price_history table for tracking price changes over time
 CREATE TABLE IF NOT EXISTS price_history (
@@ -38,10 +42,19 @@ CREATE INDEX IF NOT EXISTS idx_price_cache_product_name ON price_cache(product_n
 CREATE INDEX IF NOT EXISTS idx_price_cache_expires_at ON price_cache(expires_at);
 CREATE INDEX IF NOT EXISTS idx_items_price_source ON items(price_source);
 CREATE INDEX IF NOT EXISTS idx_items_api_product_id ON items(api_product_id);
+CREATE INDEX IF NOT EXISTS idx_items_upc_code ON items(upc_code);
+CREATE INDEX IF NOT EXISTS idx_items_product_category ON items(product_category);
+CREATE INDEX IF NOT EXISTS idx_items_console_name ON items(console_name);
 
 -- Enable Row Level Security (RLS) for new tables
 ALTER TABLE price_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE price_cache ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their own price history" ON price_history;
+DROP POLICY IF EXISTS "Users can insert their own price history" ON price_history;
+DROP POLICY IF EXISTS "Users can update their own price history" ON price_history;
+DROP POLICY IF EXISTS "Users can view price cache" ON price_cache;
 
 -- Create RLS policies - users can only see their own price history
 CREATE POLICY "Users can view their own price history" ON price_history
@@ -99,6 +112,7 @@ GRANT USAGE ON SEQUENCE price_history_id_seq TO authenticated;
 GRANT USAGE ON SEQUENCE price_cache_id_seq TO authenticated;
 
 -- Optional: Create a view for easy price tracking
+DROP VIEW IF EXISTS item_price_summary;
 CREATE OR REPLACE VIEW item_price_summary AS
 SELECT 
   i.id,
