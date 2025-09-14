@@ -349,14 +349,20 @@ export default function MarkSold() {
               />
             </div>
 
-            <SimpleSearchDropdown
+            <SearchDropdown
               value={marketName}
               onChange={setMarketName}
               options={markets}
-              placeholder="Add or select a marketplace…"
+              placeholder="Type to search marketplaces…"
               label="Sale Location"
-              onAddNew={createMarketplace}
-              addNewText="Add"
+              getOptionLabel={(market) => market.name}
+              getOptionValue={(market) => market.name}
+              filterOptions={(markets, search) => {
+                if (!search.trim()) return markets.slice(0, 20);
+                return markets.filter(market => 
+                  market.name.toLowerCase().includes(search.toLowerCase())
+                ).slice(0, 20);
+              }}
             />
 
             <div className="min-w-0">

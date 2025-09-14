@@ -208,13 +208,18 @@ export default function Stats() {
             <SearchDropdown
               value={itemSearchQuery}
               onChange={setItemSearchQuery}
-              options={itemOptions}
+              options={itemOptions.map(name => ({ name, id: name }))}
               placeholder="All products"
               label=""
               icon={<PackageIcon />}
-              onSelect={setItemSearchQuery}
-              getOptionLabel={(option) => option}
-              getOptionValue={(option) => option}
+              getOptionLabel={(option) => option.name}
+              getOptionValue={(option) => option.name}
+              filterOptions={(options, search) => {
+                if (!search.trim()) return options.slice(0, 20);
+                return options.filter(option => 
+                  option.name.toLowerCase().includes(search.toLowerCase())
+                ).slice(0, 20);
+              }}
             />
             </div>
 

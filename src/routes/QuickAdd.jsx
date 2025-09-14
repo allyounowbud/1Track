@@ -267,14 +267,20 @@ export default function QuickAdd() {
               />
             </div>
 
-            <SimpleSearchDropdown
+            <SearchDropdown
               value={itemName}
               onChange={setItemName}
               options={items}
-              placeholder="Add or select an item…"
+              placeholder="Type to search items…"
               label="Item"
-              onAddNew={createItem}
-              addNewText="Add"
+              getOptionLabel={(item) => item.name}
+              getOptionValue={(item) => item.name}
+              filterOptions={(items, search) => {
+                if (!search.trim()) return items.slice(0, 20);
+                return items.filter(item => 
+                  item.name.toLowerCase().includes(search.toLowerCase())
+                ).slice(0, 20);
+              }}
             />
 
             <div className="min-w-0">
@@ -289,14 +295,20 @@ export default function QuickAdd() {
               />
             </div>
 
-            <SimpleSearchDropdown
+            <SearchDropdown
               value={retailerName}
               onChange={setRetailerName}
               options={retailers}
-              placeholder="Add or select a retailer…"
+              placeholder="Type to search retailers…"
               label="Retailer"
-              onAddNew={createRetailer}
-              addNewText="Add"
+              getOptionLabel={(retailer) => retailer.name}
+              getOptionValue={(retailer) => retailer.name}
+              filterOptions={(retailers, search) => {
+                if (!search.trim()) return retailers.slice(0, 20);
+                return retailers.filter(retailer => 
+                  retailer.name.toLowerCase().includes(search.toLowerCase())
+                ).slice(0, 20);
+              }}
             />
 
             <div className="min-w-0">
@@ -357,14 +369,20 @@ export default function QuickAdd() {
                 />
               </div>
 
-              <SimpleSearchDropdown
+              <SearchDropdown
                 value={marketName}
                 onChange={setMarketName}
                 options={markets}
-                placeholder="Add or select a marketplace…"
+                placeholder="Type to search marketplaces…"
                 label="Marketplace"
-                onAddNew={createMarket}
-                addNewText="Add"
+                getOptionLabel={(market) => market.name}
+                getOptionValue={(market) => market.name}
+                filterOptions={(markets, search) => {
+                  if (!search.trim()) return markets.slice(0, 20);
+                  return markets.filter(market => 
+                    market.name.toLowerCase().includes(search.toLowerCase())
+                  ).slice(0, 20);
+                }}
               />
 
               <div className="min-w-0">
