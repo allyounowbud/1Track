@@ -411,8 +411,6 @@ export default function Inventory() {
                   (option.label || option).toLowerCase().includes(search.toLowerCase())
                 ).slice(0, 20);
               }}
-              onAddNew={createItem}
-              addNewText="Add Item"
             />
           </div>
 
