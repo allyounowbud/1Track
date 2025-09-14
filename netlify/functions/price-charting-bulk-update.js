@@ -72,7 +72,7 @@ async function searchProducts(productName) {
     .replace(/\s+/g, ' ') // Normalize spaces
     .substring(0, 100); // Limit length
     
-  const searchUrl = `${PRICE_CHARTING_BASE_URL}/products?q=${encodeURIComponent(normalizedName)}&api_key=${PRICE_CHARTING_API_KEY}`;
+  const searchUrl = `${PRICE_CHARTING_BASE_URL}/api/products?q=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`;
   
   console.log(`Searching Price Charting API for: "${normalizedName}"`);
   console.log(`Search URL: ${searchUrl}`);
@@ -109,7 +109,7 @@ async function getProductPrice(productId) {
     throw new Error('Price Charting API key not configured');
   }
   
-  const priceUrl = `${PRICE_CHARTING_BASE_URL}/product/${productId}?api_key=${PRICE_CHARTING_API_KEY}`;
+  const priceUrl = `${PRICE_CHARTING_BASE_URL}/api/product?id=${productId}&t=${PRICE_CHARTING_API_KEY}`;
   
   console.log(`Fetching price for product ID: ${productId}`);
   

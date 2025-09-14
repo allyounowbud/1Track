@@ -110,7 +110,7 @@ async function searchProducts(productName) {
   }
   
   const normalizedName = normalizeProductName(productName);
-  const searchUrl = `${PRICE_CHARTING_BASE_URL}/products?q=${encodeURIComponent(normalizedName)}&api_key=${PRICE_CHARTING_API_KEY}`;
+  const searchUrl = `${PRICE_CHARTING_BASE_URL}/api/products?q=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`;
   
   console.log(`Searching Price Charting API for: ${normalizedName}`);
   

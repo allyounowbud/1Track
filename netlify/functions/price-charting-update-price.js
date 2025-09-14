@@ -60,7 +60,7 @@ async function getProductPrice(productId) {
     throw new Error('Price Charting API key not configured');
   }
   
-  const priceUrl = `${PRICE_CHARTING_BASE_URL}/product/${productId}?api_key=${PRICE_CHARTING_API_KEY}`;
+  const priceUrl = `${PRICE_CHARTING_BASE_URL}/api/product?id=${productId}&t=${PRICE_CHARTING_API_KEY}`;
   
   console.log(`Fetching price for product ID: ${productId}`);
   
