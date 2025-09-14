@@ -54,6 +54,34 @@ async function checkRateLimit() {
   return data.length < MAX_API_CALLS_PER_DAY;
 }
 
+// Test API key with a known product (EarthBound from docs)
+async function testApiKey() {
+  const testUrl = `${PRICE_CHARTING_BASE_URL}/api/product?id=6910&t=${PRICE_CHARTING_API_KEY}`;
+  console.log('Testing API key with known product (EarthBound):', testUrl);
+  
+  try {
+    const response = await fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('API key test successful:', data);
+      return true;
+    } else {
+      const errorText = await response.text();
+      console.error('API key test failed:', response.status, errorText);
+      return false;
+    }
+  } catch (error) {
+    console.error('API key test error:', error);
+    return false;
+  }
+}
+
 // Search for products using Price Charting API
 async function searchProducts(productName) {
   if (!PRICE_CHARTING_API_KEY) {
@@ -65,6 +93,11 @@ async function searchProducts(productName) {
     throw new Error('Invalid API key format');
   }
   
+  // Validate API key length (should be 40 characters according to docs)
+  if (PRICE_CHARTING_API_KEY.length !== 40) {
+    console.warn(`API key length is ${PRICE_CHARTING_API_KEY.length}, expected 40 characters`);
+  }
+  
   // Clean the product name for API search
   const normalizedName = productName
     .trim()
@@ -72,13 +105,23 @@ async function searchProducts(productName) {
     .replace(/\s+/g, ' ') // Normalize spaces
     .substring(0, 100); // Limit length
     
-  // Try the products endpoint first, fallback to product endpoint if needed
-  const searchUrl = `${PRICE_CHARTING_BASE_URL}/api/products?q=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`;
+  // Try different parameter combinations for products search
+  // First try with 'q' parameter
+  let searchUrl = `${PRICE_CHARTING_BASE_URL}/api/products?q=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`;
+  
+  // Alternative: try with 'name' parameter if 'q' doesn't work
+  // const searchUrl = `${PRICE_CHARTING_BASE_URL}/api/products?name=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`;
   
   console.log(`Searching Price Charting API for: "${normalizedName}"`);
   console.log(`Search URL: ${searchUrl}`);
   console.log(`API Key length: ${PRICE_CHARTING_API_KEY ? PRICE_CHARTING_API_KEY.length : 'undefined'}`);
   console.log(`API Key starts with: ${PRICE_CHARTING_API_KEY ? PRICE_CHARTING_API_KEY.substring(0, 8) + '...' : 'undefined'}`);
+  
+  // Test API key first
+  const apiKeyWorks = await testApiKey();
+  if (!apiKeyWorks) {
+    throw new Error('API key test failed. Please verify your Price Charting API key is correct and has proper permissions.');
+  }
   
   try {
     const response = await fetch(searchUrl, {
@@ -95,9 +138,31 @@ async function searchProducts(productName) {
       console.error(`Request URL was: ${searchUrl}`);
       console.error(`API Key length: ${PRICE_CHARTING_API_KEY.length}`);
       
-      // If 404, the /api/products endpoint might not exist
+      // If 404, try alternative parameter names
       if (response.status === 404) {
-        throw new Error(`Products search endpoint not found. The /api/products endpoint may not be available. Please check the API documentation.`);
+        console.log('404 error with "q" parameter, trying "name" parameter...');
+        
+        // Try with 'name' parameter instead of 'q'
+        const alternativeUrl = `${PRICE_CHARTING_BASE_URL}/api/products?name=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`;
+        console.log(`Alternative URL: ${alternativeUrl}`);
+        
+        const altResponse = await fetch(alternativeUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': '1Track/1.0',
+          },
+        });
+        
+        if (altResponse.ok) {
+          const altData = await altResponse.json();
+          console.log(`Alternative search results for "${normalizedName}":`, altData);
+          return altData;
+        } else {
+          const altErrorText = await altResponse.text();
+          console.error(`Alternative API Error ${altResponse.status}:`, altErrorText);
+          throw new Error(`Products search failed with both "q" and "name" parameters. 404 errors suggest the /api/products endpoint may not be available or requires different parameters.`);
+        }
       }
       
       throw new Error(`Price Charting API error: ${response.status} ${response.statusText} - ${errorText}`);

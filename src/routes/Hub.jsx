@@ -147,6 +147,14 @@ export default function Hub() {
       author: "Development Team"
     },
     {
+      title: "Advanced Price Charting API Troubleshooting",
+      description: "Implemented comprehensive API debugging including API key validation (40-character check), automatic fallback between 'q' and 'name' parameters for product search, and API key testing with known product (EarthBound ID 6910) before attempting searches. Added detailed logging to identify exact failure points in the API integration process.",
+      color: "bg-yellow-600",
+      date: "2024-12-20",
+      time: "06:45",
+      author: "Development Team"
+    },
+    {
       title: "Optimized Retailer and Marketplace Column Widths for Better Space Utilization",
       description: "Reduced Retailer column width by 20% (from 1fr to 0.8fr) and Marketplace column width by 15% (from 1fr to 0.85fr) on Order Book desktop large screens. These adjustments optimize space distribution across the table, providing more room for other important columns while maintaining adequate space for retailer and marketplace names. The changes improve overall layout balance and space utilization in the Order Book spreadsheet view.",
       color: "bg-slate-600",
