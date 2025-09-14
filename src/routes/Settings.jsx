@@ -872,7 +872,8 @@ function SettingsCard({
           }`}>
             <div className="w-6"></div>
             <div className="text-left">Name</div>
-            {cardType !== 'retailers' && <div className="text-left">Details</div>}
+            {cardType === 'items' && <div className="text-left">Market Value</div>}
+            {cardType === 'markets' && <div className="text-left">Fee (%)</div>}
             {cardType === 'retailers' && <div className="w-16"></div>}
               </div>
 
@@ -971,7 +972,8 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
       }`}
       onClick={onToggleSelection}
     >
-      <div className={`grid gap-4 items-center min-w-0 ${
+      {/* Desktop: Grid layout */}
+      <div className={`hidden sm:grid gap-4 items-center min-w-0 ${
         row.type === 'retailer' 
           ? 'grid-cols-1 sm:grid-cols-[1fr_auto]' 
           : 'grid-cols-1 sm:grid-cols-[2fr_1fr]'
@@ -1030,6 +1032,116 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Mobile: Stacked layout with labels - NO checkbox */}
+      <div className="sm:hidden space-y-3">
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">
+            {row.type === 'item' ? 'Item Name' : 
+             row.type === 'retailer' ? 'Retailer Name' : 
+             'Marketplace Name'}
+          </label>
+          <input
+            className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+            value={name}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder={getPlaceholder()}
+          />
+        </div>
+        
+        {row.type !== 'retailer' && (
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">
+              {row.type === 'item' ? 'Market Value' : 'Fee (%)'}
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                className="flex-1 h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+                value={details}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setDetails(e.target.value);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                placeholder={getDetailsPlaceholder()}
+              />
+              
+              {/* Row action buttons */}
+              <div className="flex gap-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSave();
+                  }}
+                  disabled={busy}
+                  className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Save New Row"
+                >
+                  <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancel();
+                  }}
+                  className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                  title="Cancel New Row"
+                >
+                  <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {row.type === 'retailer' && (
+          <div>
+            <div className="flex items-center gap-2">
+              {/* Row action buttons */}
+              <div className="flex gap-1 ml-auto">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSave();
+                  }}
+                  disabled={busy}
+                  className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Save New Row"
+                >
+                  <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancel();
+                  }}
+                  className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                  title="Cancel New Row"
+                >
+                  <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Mobile-only ghost text for row selection */}
+      <div className="sm:hidden text-xs text-slate-500 text-center mt-2 cursor-pointer select-none">
+        {isSelected ? "Selected" : "Click to select row"}
       </div>
       
       {status && (
@@ -1094,7 +1206,8 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
+      {/* Desktop: Grid layout with checkbox */}
+      <div className="hidden sm:grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
         <input
           type="checkbox"
           checked={isSelected}
@@ -1162,6 +1275,77 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
         </div>
       </div>
       </div>
+
+      {/* Mobile: Stacked layout with labels - NO checkbox */}
+      <div className="sm:hidden space-y-3">
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">Item Name</label>
+          <input
+            className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+            value={name}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
+            onBlur={updateItem}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Item name…"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">Market Value</label>
+          <div className="flex items-center gap-2">
+            <input
+              className="flex-1 h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+              value={mv}
+              onChange={(e) => {
+                e.stopPropagation();
+                setMv(e.target.value);
+              }}
+              onBlur={updateItem}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Market value ($)"
+            />
+            
+            {/* Row action buttons */}
+            <div className="flex gap-1">
+            <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateItem();
+                }}
+              disabled={busy}
+                className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Save Changes"
+              >
+                <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            </button>
+            <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Delete "${name}"? This action cannot be undone.`)) {
+                    deleteItem(item.id);
+                  }
+                }}
+                className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                title="Delete Item"
+              >
+                <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+          </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mobile-only ghost text for row selection */}
+      <div className="sm:hidden text-xs text-slate-500 text-center mt-2 cursor-pointer select-none">
+        {isSelected ? "Selected" : "Click to select row"}
+      </div>
       
       {status && (
         <div
@@ -1223,7 +1407,8 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] gap-4 items-center min-w-0">
+      {/* Desktop: Grid layout with checkbox */}
+      <div className="hidden sm:grid grid-cols-[auto_1fr_auto] gap-4 items-center min-w-0">
         <input
           type="checkbox"
           checked={isSelected}
@@ -1276,6 +1461,62 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled
               </svg>
           </button>
         </div>
+      </div>
+
+      {/* Mobile: Stacked layout with labels - NO checkbox */}
+      <div className="sm:hidden space-y-3">
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">Retailer Name</label>
+          <div className="flex items-center gap-2">
+            <input
+              className="flex-1 h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+              value={name}
+              onChange={(e) => {
+                e.stopPropagation();
+                setName(e.target.value);
+              }}
+              onBlur={updateRetailer}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Retailer name…"
+            />
+            
+            {/* Row action buttons */}
+            <div className="flex gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateRetailer();
+                }}
+                disabled={busy}
+                className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Save Changes"
+              >
+                <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Delete "${name}"? This action cannot be undone.`)) {
+                    deleteRetailer(retailer.id);
+                  }
+                }}
+                className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                title="Delete Retailer"
+              >
+                <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mobile-only ghost text for row selection */}
+      <div className="sm:hidden text-xs text-slate-500 text-center mt-2 cursor-pointer select-none">
+        {isSelected ? "Selected" : "Click to select row"}
       </div>
       
       {status && (
@@ -1340,7 +1581,8 @@ function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = f
       }`}
       onClick={onToggleSelection}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
+      {/* Desktop: Grid layout with checkbox */}
+      <div className="hidden sm:grid grid-cols-[auto_2fr_1fr] gap-4 items-center min-w-0">
         <input
           type="checkbox"
           checked={isSelected}
@@ -1407,6 +1649,77 @@ function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = f
           </button>
         </div>
       </div>
+      </div>
+
+      {/* Mobile: Stacked layout with labels - NO checkbox */}
+      <div className="sm:hidden space-y-3">
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">Marketplace Name</label>
+          <input
+            className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+            value={name}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
+            onBlur={updateMarket}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Marketplace name…"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">Fee (%)</label>
+          <div className="flex items-center gap-2">
+            <input
+              className="flex-1 h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+              value={fee}
+              onChange={(e) => {
+                e.stopPropagation();
+                setFee(e.target.value);
+              }}
+              onBlur={updateMarket}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Fee %"
+            />
+            
+            {/* Row action buttons */}
+            <div className="flex gap-1">
+            <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateMarket();
+                }}
+              disabled={busy}
+                className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Save Changes"
+              >
+                <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            </button>
+            <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Delete "${name}"? This action cannot be undone.`)) {
+                    deleteMarket(market.id);
+                  }
+                }}
+                className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                title="Delete Marketplace"
+              >
+                <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+          </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mobile-only ghost text for row selection */}
+      <div className="sm:hidden text-xs text-slate-500 text-center mt-2 cursor-pointer select-none">
+        {isSelected ? "Selected" : "Click to select row"}
       </div>
       
       {status && (

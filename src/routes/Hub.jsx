@@ -43,6 +43,46 @@ export default function Hub() {
       author: "Development Team"
     },
     {
+      title: "Enhanced Stats Page Products Filter with Live Searchable Dropdown",
+      description: "Replaced the static products filter with a live searchable dropdown that provides real-time filtering as you type. Users can now search through all available products by typing in the filter field, see live results that update with each keystroke, and select specific products from the dropdown to view stats for individual items. The dropdown shows product counts, supports keyboard navigation (Escape to close), includes a clear button, and automatically closes when clicking outside. This matches the search functionality from the Inventory page for consistent user experience across the application.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "05:05",
+      author: "Development Team"
+    },
+    {
+      title: "Improved Settings Page Mobile Row Selection - Removed Individual Checkboxes",
+      description: "Updated the Settings page (Products, Retailers, Marketplaces) to match the Order Book mobile selection pattern. On mobile devices, individual row checkboxes have been removed and the entire row area is now clickable for selection, providing more intuitive touch interaction. Desktop users still see checkboxes in the grid layout. Mobile users now have a cleaner interface with labeled stacked layouts that don't require precise checkbox tapping. This change improves mobile usability while maintaining the existing desktop experience and follows the established mobile interaction patterns used throughout the application.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "05:10",
+      author: "Development Team"
+    },
+    {
+      title: "Added Mobile Row Selection Indicators to Settings Page",
+      description: "Added 'Click to select row' indicators to the Settings page mobile view, matching the Order Book functionality. These small, centered text indicators appear below each row on mobile devices to clearly communicate that rows are selectable by tapping anywhere on the row. The indicators change to 'Selected' when a row is active, providing clear visual feedback. This enhancement improves mobile usability by making row selection behavior more discoverable and intuitive, especially for users who might not realize that rows without visible checkboxes are still selectable.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "05:15",
+      author: "Development Team"
+    },
+    {
+      title: "Standardized Settings Page Input Labels for Better Clarity",
+      description: "Updated all input field labels in the Settings page (Products, Retailers, Marketplaces) to use consistent and clear terminology across both mobile and desktop views. Products now show 'Item Name' and 'Market Value', Retailers show 'Retailer Name', and Marketplaces show 'Marketplace Name' and 'Fee (%)'. The desktop column headers have also been updated to be more specific, replacing the generic 'Details' header with 'Market Value' for Products and 'Fee (%)' for Marketplaces. These changes improve user understanding and provide better context for what information should be entered in each field.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "05:20",
+      author: "Development Team"
+    },
+    {
+      title: "Improved Stats Page Filter Alignment and Ghost Text Styling",
+      description: "Fixed alignment issues between the 'All time' and 'All products' filters on the Stats page to create a more professional appearance. Adjusted the products filter padding to perfectly align with the time filter dropdown. Also updated the time filter to show 'All time' as ghost text (placeholder styling) when no selection is made, providing better visual hierarchy and a cleaner default state. The filters now have consistent spacing and alignment across both mobile and desktop views, creating a more polished user interface.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "05:25",
+      author: "Development Team"
+    },
+    {
       title: "Optimized Retailer and Marketplace Column Widths for Better Space Utilization",
       description: "Reduced Retailer column width by 20% (from 1fr to 0.8fr) and Marketplace column width by 15% (from 1fr to 0.85fr) on Order Book desktop large screens. These adjustments optimize space distribution across the table, providing more room for other important columns while maintaining adequate space for retailer and marketplace names. The changes improve overall layout balance and space utilization in the Order Book spreadsheet view.",
       color: "bg-slate-600",

@@ -7,7 +7,6 @@ import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, rowCard } from "../utils/ui.js";
 import { Select } from "../components/Select.jsx";
-import { TableSearchDropdown } from "../components/TableSearchDropdown.jsx";
 
 // Icons
 const CalendarIcon = () => (
@@ -64,16 +63,41 @@ export default function Stats() {
 
 
   /* --------------------------- filter controls -------------------------- */
-  const [timeFilter, setTimeFilter] = useState("all"); // all | 30 | 7 | today | custom
+  const [timeFilter, setTimeFilter] = useState(""); // all | 30 | 7 | today | custom
   const [fromStr, setFromStr] = useState("");
   const [toStr, setToStr] = useState("");
   const [itemSearchQuery, setItemSearchQuery] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const itemOptions = useMemo(() => {
     const names = items.map((i) => i.name).filter(Boolean);
     const uniq = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
     return uniq;
   }, [items]);
+
+  // Filter dropdown items based on current search
+  const filteredDropdownItems = useMemo(() => {
+    const t = itemSearchQuery.trim().toLowerCase();
+    if (!t) return itemOptions; // Show all items when no search
+    
+    const filtered = itemOptions.filter(name => name.toLowerCase().includes(t));
+    // Only limit if we have many results to avoid overwhelming the dropdown
+    return filtered.length > 50 ? filtered.slice(0, 50) : filtered;
+  }, [itemOptions, itemSearchQuery]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('[data-dropdown-container]')) {
+        setIsDropdownOpen(false);
+      }
+    };
+    
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isDropdownOpen]);
 
   // Live filtering - update applied state automatically
   const applied = useMemo(() => ({
@@ -105,6 +129,7 @@ export default function Stats() {
       const f = t - 29 * 24 * 3600 * 1000;
       return { fromMs: f, toMs: t };
     }
+    // Empty string or "all" - no time filtering
     return { fromMs: null, toMs: null };
   }, [applied]);
 
@@ -205,16 +230,68 @@ export default function Stats() {
             )}
 
             {/* Item search */}
-            <TableSearchDropdown
-              value={itemSearchQuery}
-              onChange={setItemSearchQuery}
-              options={itemOptions.map(name => ({ name, id: name }))}
-              placeholder="All products"
-              label=""
-              icon={<ProductIcon />}
-              getOptionLabel={(option) => option.name}
-              getOptionValue={(option) => option.name}
-            />
+            <div className="relative" data-dropdown-container>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <ProductIcon />
+              </div>
+              <input
+                type="text"
+                value={itemSearchQuery}
+                onChange={(e) => setItemSearchQuery(e.target.value)}
+                onFocus={() => setIsDropdownOpen(true)}
+                onClick={() => setIsDropdownOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setIsDropdownOpen(false);
+                  }
+                }}
+                placeholder="All products"
+                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl pl-10 pr-3 py-2 sm:pl-12 sm:pr-4 sm:py-3 text-sm sm:text-base text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-text"
+              />
+              
+              {/* Clear button */}
+              {itemSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setItemSearchQuery("")}
+                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                  title="Clear search"
+                >
+                  ×
+                </button>
+              )}
+              
+              {/* Dropdown list */}
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto">
+                  {filteredDropdownItems.length > 0 ? (
+                    <>
+                      <div className="px-3 py-2 text-xs text-slate-400 border-b border-slate-800">
+                        {itemSearchQuery.trim() 
+                          ? `${filteredDropdownItems.length} of ${itemOptions.length} products`
+                          : `${itemOptions.length} total products`
+                        }
+                      </div>
+                      {filteredDropdownItems.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            setItemSearchQuery(item);
+                            setIsDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm text-slate-100 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors duration-150"
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="px-3 py-2 text-sm text-slate-400">No products found</div>
+                  )}
+                </div>
+              )}
+            </div>
             </div>
 
           {/* KPI Cards - Hide for single item */}

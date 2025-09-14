@@ -565,7 +565,7 @@ function UnifiedOrderView({
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg
-              className="h-5 w-5 text-slate-400"
+              className="h-4 w-4 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -584,7 +584,7 @@ function UnifiedOrderView({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={newRows.length > 0 ? "Complete new orders to search" : "Search for orders"}
             disabled={newRows.length > 0}
-            className={`${inputSm} pl-10 ${newRows.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`h-8 sm:h-9 md:h-10 text-xs sm:text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl pl-10 pr-3 py-1 sm:py-2 text-slate-100 placeholder-slate-400 focus:border-indigo-500 ${newRows.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
           {searchQuery && newRows.length === 0 && (
             <button
