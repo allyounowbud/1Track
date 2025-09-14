@@ -8,6 +8,7 @@ import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { Select } from "../components/Select.jsx";
 import { SearchDropdown } from "../components/SearchDropdown.jsx";
+import { SimpleSearchDropdown } from "../components/SimpleSearchDropdown.jsx";
 import { inputBase, disabledInput } from "../utils/ui.js";
 
 /* ---------- queries ---------- */
@@ -348,24 +349,13 @@ export default function MarkSold() {
               />
             </div>
 
-            <SearchDropdown
+            <SimpleSearchDropdown
               value={marketName}
-              onChange={(value) => setMarketName(value)}
+              onChange={setMarketName}
               options={markets}
               placeholder="Add or select a marketplace…"
               label="Sale Location"
-              getOptionLabel={(market) => market.name}
-              getOptionValue={(market) => market.name}
-              filterOptions={(markets, search) => {
-                if (!search.trim()) return markets.slice(0, 20);
-                return markets.filter(market => 
-                  market.name.toLowerCase().includes(search.toLowerCase())
-                ).slice(0, 20);
-              }}
-              onAddNew={async (name) => {
-                const createdName = await createMarketplace(name);
-                return createdName ? { name: createdName, id: Date.now() } : null;
-              }}
+              onAddNew={createMarketplace}
               addNewText="Add"
             />
 

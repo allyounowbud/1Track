@@ -7,6 +7,7 @@ import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, parsePct, formatNumber } from "../utils/money.js";
 import { card, inputBase, dateFix, disabledInput } from "../utils/ui.js";
 import { SearchDropdown } from "../components/SearchDropdown.jsx";
+import { SimpleSearchDropdown } from "../components/SimpleSearchDropdown.jsx";
 
 /* ------------------------------ queries ----------------------------- */
 async function getItems() {
@@ -266,24 +267,13 @@ export default function QuickAdd() {
               />
             </div>
 
-            <SearchDropdown
+            <SimpleSearchDropdown
               value={itemName}
-              onChange={(value) => setItemName(value)}
+              onChange={setItemName}
               options={items}
               placeholder="Add or select an item…"
               label="Item"
-              getOptionLabel={(item) => item.name}
-              getOptionValue={(item) => item.name}
-              filterOptions={(items, search) => {
-                if (!search.trim()) return items.slice(0, 20);
-                return items.filter(item => 
-                  item.name.toLowerCase().includes(search.toLowerCase())
-                ).slice(0, 20);
-              }}
-              onAddNew={async (name) => {
-                const createdName = await createItem(name);
-                return createdName ? { name: createdName, id: Date.now() } : null;
-              }}
+              onAddNew={createItem}
               addNewText="Add"
             />
 
@@ -299,24 +289,13 @@ export default function QuickAdd() {
               />
             </div>
 
-            <SearchDropdown
+            <SimpleSearchDropdown
               value={retailerName}
-              onChange={(value) => setRetailerName(value)}
+              onChange={setRetailerName}
               options={retailers}
               placeholder="Add or select a retailer…"
               label="Retailer"
-              getOptionLabel={(retailer) => retailer.name}
-              getOptionValue={(retailer) => retailer.name}
-              filterOptions={(retailers, search) => {
-                if (!search.trim()) return retailers.slice(0, 20);
-                return retailers.filter(retailer => 
-                  retailer.name.toLowerCase().includes(search.toLowerCase())
-                ).slice(0, 20);
-              }}
-              onAddNew={async (name) => {
-                const createdName = await createRetailer(name);
-                return createdName ? { name: createdName, id: Date.now() } : null;
-              }}
+              onAddNew={createRetailer}
               addNewText="Add"
             />
 
@@ -378,24 +357,13 @@ export default function QuickAdd() {
                 />
               </div>
 
-              <SearchDropdown
+              <SimpleSearchDropdown
                 value={marketName}
-                onChange={(value) => setMarketName(value)}
+                onChange={setMarketName}
                 options={markets}
                 placeholder="Add or select a marketplace…"
                 label="Marketplace"
-                getOptionLabel={(market) => market.name}
-                getOptionValue={(market) => market.name}
-                filterOptions={(markets, search) => {
-                  if (!search.trim()) return markets.slice(0, 20);
-                  return markets.filter(market => 
-                    market.name.toLowerCase().includes(search.toLowerCase())
-                  ).slice(0, 20);
-                }}
-                onAddNew={async (name) => {
-                  const createdName = await createMarket(name);
-                  return createdName ? { name: createdName, id: Date.now() } : null;
-                }}
+                onAddNew={createMarket}
                 addNewText="Add"
               />
 
