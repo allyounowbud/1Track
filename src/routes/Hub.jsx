@@ -83,6 +83,30 @@ export default function Hub() {
       author: "Development Team"
     },
     {
+      title: "Enhanced Settings Page Collapsed Cards with Clean, Purposeful Information",
+      description: "Redesigned the collapsed Settings page cards with a clean, minimal approach that clearly communicates purpose without clutter. Each card now features a concise purpose statement with a subtle indigo bullet point (e.g., 'Product catalog with names and market values', 'Retailers where you purchase items', 'Marketplaces with their fee percentages'). When items exist, it shows a simple count with the first item name as context (e.g., '5 items • iPhone 15 and others'). Empty states are cleanly indicated with a muted bullet point. The design uses consistent visual hierarchy with bullet points and proper spacing to create a professional, uncluttered appearance that immediately communicates what each section is for.",
+      color: "bg-slate-600",
+      date: "2024-12-20",
+      time: "05:30",
+      author: "Development Team"
+    },
+    {
+      title: "Price Charting API Integration - Automatic Market Value Fetching",
+      description: "Implemented comprehensive Price Charting API integration for automatic market value fetching of trading cards and collectibles. Added new database schema with price history tracking, API response caching, and rate limiting. Created Netlify function with endpoints for product search, price updates, and bulk operations. Features include 24-hour response caching to minimize API calls, automatic price history tracking, manual override capabilities, and comprehensive error handling. This major enhancement eliminates the need for manual market value entry and provides real-time pricing data for portfolio tracking and investment analysis.",
+      color: "bg-blue-600",
+      date: "2024-12-20",
+      time: "06:00",
+      author: "Development Team"
+    },
+    {
+      title: "Frontend Integration for Price Charting API - Settings Page Enhancement",
+      description: "Enhanced the Settings page with comprehensive Price Charting API integration. Added bulk price update functionality with a dedicated API refresh button for selected items. Updated the items query to include price source tracking, API product IDs, and last update timestamps. Implemented product search and linking functionality within individual item rows. Added visual indicators to show whether prices are from API or manual entry, along with last update dates. The Settings page now provides a complete interface for managing automatic price fetching, with bulk operations to update multiple items at once and individual item linking to Price Charting products.",
+      color: "bg-blue-600",
+      date: "2024-12-20",
+      time: "06:15",
+      author: "Development Team"
+    },
+    {
       title: "Optimized Retailer and Marketplace Column Widths for Better Space Utilization",
       description: "Reduced Retailer column width by 20% (from 1fr to 0.8fr) and Marketplace column width by 15% (from 1fr to 0.85fr) on Order Book desktop large screens. These adjustments optimize space distribution across the table, providing more room for other important columns while maintaining adequate space for retailer and marketplace names. The changes improve overall layout balance and space utilization in the Order Book spreadsheet view.",
       color: "bg-slate-600",

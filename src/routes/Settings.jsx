@@ -11,7 +11,7 @@ import { pageCard, rowCard, inputSm, headerIconBtn, headerGhostBtn, iconSave, ic
 async function getItems() {
   const { data, error } = await supabase
     .from("items")
-    .select("id, name, market_value_cents")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override")
     .order("name", { ascending: true });
   if (error) throw error;
   return data;
@@ -31,6 +31,42 @@ async function getMarkets() {
     .order("name", { ascending: true });
   if (error) throw error;
   return data;
+}
+
+/* ---------- Price Charting API functions ---------- */
+async function searchPriceChartingProducts(productName) {
+  const response = await fetch(`/.netlify/functions/price-charting/search?q=${encodeURIComponent(productName)}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Search failed');
+  }
+  return await response.json();
+}
+
+async function updateItemPrice(itemId, productId) {
+  const response = await fetch('/.netlify/functions/price-charting/update-price', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemId, productId })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Update failed');
+  }
+  return await response.json();
+}
+
+async function bulkUpdatePrices(itemIds) {
+  const response = await fetch('/.netlify/functions/price-charting/bulk-update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemIds })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Bulk update failed');
+  }
+  return await response.json();
 }
 
 export default function Settings() {
@@ -102,6 +138,14 @@ export default function Settings() {
   
   // Single card expansion state
   const [expandedCard, setExpandedCard] = useState(null); // 'items', 'retailers', 'markets', or null
+  
+  // Price Charting API state
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedSearchResult, setSelectedSearchResult] = useState(null);
+  const [isUpdatingPrice, setIsUpdatingPrice] = useState(false);
+  const [bulkUpdateProgress, setBulkUpdateProgress] = useState(null);
 
   // Update bulk actions visibility for each card
   useEffect(() => {
@@ -326,6 +370,86 @@ export default function Settings() {
     setSelectedMarkets(new Set([newId]));
   }
 
+  /* ----- Price Charting API Functions ----- */
+  async function handleProductSearch(query) {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    try {
+      const response = await searchPriceChartingProducts(query);
+      setSearchResults(response.data?.products || []);
+    } catch (error) {
+      console.error('Search error:', error);
+      alert(`Search failed: ${error.message}`);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  async function handleUpdateItemPrice(itemId, productId) {
+    setIsUpdatingPrice(true);
+    try {
+      const response = await updateItemPrice(itemId, productId);
+      await refetchItems(); // Refresh the items list
+      alert(`Price updated successfully! New price: $${(response.result.priceCents / 100).toFixed(2)}`);
+      setSelectedSearchResult(null);
+      setSearchQuery('');
+      setSearchResults([]);
+    } catch (error) {
+      console.error('Update error:', error);
+      alert(`Update failed: ${error.message}`);
+    } finally {
+      setIsUpdatingPrice(false);
+    }
+  }
+
+  async function handleBulkUpdatePrices() {
+    if (selectedItems.size === 0) {
+      alert('Please select items to update');
+      return;
+    }
+    
+    const selectedIds = Array.from(selectedItems);
+    const confirmMessage = `Update prices for ${selectedIds.length} selected items? This will fetch current prices from Price Charting API.`;
+    if (!confirm(confirmMessage)) return;
+    
+    setBulkUpdateProgress({ total: selectedIds.length, completed: 0, errors: [] });
+    
+    try {
+      const response = await bulkUpdatePrices(selectedIds);
+      await refetchItems(); // Refresh the items list
+      
+      let message = `Updated ${response.results.length} items successfully`;
+      if (response.errors.length > 0) {
+        message += `\n\n${response.errors.length} items failed:\n`;
+        message += response.errors.map(e => `• ${e.itemName}: ${e.error}`).join('\n');
+      }
+      
+      alert(message);
+      setSelectedItems(new Set());
+    } catch (error) {
+      console.error('Bulk update error:', error);
+      alert(`Bulk update failed: ${error.message}`);
+    } finally {
+      setBulkUpdateProgress(null);
+    }
+  }
+
+  // Debounced search function
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery) {
+        handleProductSearch(searchQuery);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
   /* ----- Clear Selection Functions ----- */
   function clearItemsSelection() {
     setSelectedItems(new Set());
@@ -544,6 +668,7 @@ export default function Settings() {
           toggleAllSelection={toggleAllItemsSelection}
           bulkSave={bulkSaveItems}
           bulkDelete={bulkDeleteItems}
+          bulkUpdatePrices={handleBulkUpdatePrices}
           cancelNewRows={cancelNewItemRows}
           addNewRow={addNewItemRow}
           clearSelection={clearItemsSelection}
@@ -714,6 +839,7 @@ function SettingsCard({
   toggleAllSelection, 
   bulkSave, 
   bulkDelete, 
+  bulkUpdatePrices,
   cancelNewRows, 
   addNewRow, 
   clearSelection, 
@@ -740,13 +866,56 @@ function SettingsCard({
       <div 
         className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap rounded-xl p-2 -m-2"
       >
-            <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold leading-[2.25rem]">{title}</h2>
           <p className="text-xs text-slate-400 -mt-1">Total: {totalCount}</p>
+          
+          {/* Collapsed preview content */}
+          {!isExpanded && (
+            <div className="mt-3">
+              {/* Clean purpose description */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400/60"></div>
+                <p className="text-sm text-slate-300">
+                  {cardType === 'items' && "Product catalog with names and market values"}
+                  {cardType === 'retailers' && "Retailers where you purchase items"}
+                  {cardType === 'markets' && "Marketplaces with their fee percentages"}
+                </p>
+              </div>
+              
+              {/* Clean sample preview */}
+              {data.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full bg-slate-500"></div>
+                  <p className="text-xs text-slate-500">
+                    {data.length === 1 ? "1 item" : `${data.length} items`}
+                    {data.length > 0 && (
+                      <span className="ml-1 text-slate-600">
+                        • {data[0]?.name}
+                        {data.length > 1 && " and others"}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+              
+              {/* Clean empty state */}
+              {data.length === 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full bg-slate-600"></div>
+                  <p className="text-xs text-slate-500">
+                    {cardType === 'items' && "No products yet"}
+                    {cardType === 'retailers' && "No retailers yet"}
+                    {cardType === 'markets' && "No marketplaces yet"}
+                  </p>
+                </div>
+              )}
             </div>
+          )}
+        </div>
 
         {/* Expand/Collapse chevron */}
-        <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform duration-200 ${
+        <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform duration-200 flex-shrink-0 ${
           isExpanded ? 'rotate-180' : ''
         }`} />
       </div>
@@ -846,6 +1015,17 @@ function SettingsCard({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
                   </button>
+                  {bulkUpdatePrices && (
+                    <button
+                      onClick={bulkUpdatePrices}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-indigo-600 bg-indigo-800/60 hover:bg-indigo-700 hover:border-indigo-500 text-indigo-200 transition-all duration-200 flex items-center justify-center group"
+                      title="Update Prices from API"
+                    >
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     onClick={bulkDelete}
                     className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
@@ -1164,6 +1344,10 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
   const [mv, setMv] = useState(centsToStr(item?.market_value_cents ?? 0));
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   async function updateItem() {
     if (busy || disabled) return;
@@ -1196,6 +1380,54 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
       alert(`Failed to delete: ${e.message}`);
     }
   }
+
+  async function handleProductSearch(query) {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    try {
+      const response = await searchPriceChartingProducts(query);
+      setSearchResults(response.data?.products || []);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  async function handleLinkProduct(productId) {
+    setBusy(true);
+    setStatus("Linking product...");
+    try {
+      const response = await updateItemPrice(item.id, productId);
+      setStatus("Linked ✓");
+      setTimeout(() => setStatus(""), 1500);
+      onSave();
+      setShowSearch(false);
+      setSearchQuery('');
+      setSearchResults([]);
+    } catch (error) {
+      setStatus(`Link failed: ${error.message}`);
+      setTimeout(() => setStatus(""), 2000);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery) {
+        handleProductSearch(searchQuery);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   return (
     <div 
