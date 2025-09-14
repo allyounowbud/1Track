@@ -105,7 +105,7 @@ async function searchProducts(productName) {
     throw new Error('API key test failed. Please verify your Price Charting API key is correct.');
   }
   
-  // Try multiple search strategies
+  // Try multiple search strategies with more variations
   const searchStrategies = [
     // Strategy 1: Direct name search
     () => searchWithName(productName),
@@ -114,8 +114,22 @@ async function searchProducts(productName) {
     // Strategy 3: Shortened name search
     () => searchWithName(getShortenedName(productName)),
     // Strategy 4: Gaming term enhanced search
-    () => searchWithName(enhanceWithGamingTerms(productName))
+    () => searchWithName(enhanceWithGamingTerms(productName)),
+    // Strategy 5: Try with just the first word
+    () => searchWithName(productName.split(' ')[0]),
+    // Strategy 6: Try with numbers removed
+    () => searchWithName(productName.replace(/\d+/g, '').trim()),
+    // Strategy 7: Try with common variations
+    () => searchWithName(getCommonVariations(productName)),
+    // Strategy 8: Pokemon-specific searches
+    () => searchPokemonVariations(productName),
+    // Strategy 9: Try without leading numbers
+    () => searchWithName(productName.replace(/^\d+\s*/, '').trim()),
+    // Strategy 10: Try with Pokemon 151 specific terms
+    () => searchWithPokemon151Terms(productName)
   ];
+  
+  const allResults = [];
   
   for (let i = 0; i < searchStrategies.length; i++) {
     try {
@@ -124,7 +138,17 @@ async function searchProducts(productName) {
       
       if (results && results.length > 0) {
         console.log(`Strategy ${i + 1} successful: found ${results.length} results`);
-        return results;
+        // Add results with strategy info
+        results.forEach(result => {
+          result.search_strategy = i + 1;
+          result.original_search_term = productName;
+        });
+        allResults.push(...results);
+        
+        // If we have good results, return them
+        if (results.length >= 3) {
+          return results;
+        }
       }
     } catch (error) {
       console.log(`Strategy ${i + 1} failed:`, error.message);
@@ -132,7 +156,30 @@ async function searchProducts(productName) {
     }
   }
   
-  throw new Error(`All search strategies failed for product: "${productName}"`);
+  // If we have any results from any strategy, return them
+  if (allResults.length > 0) {
+    console.log(`Found ${allResults.length} total results across all strategies`);
+    // Remove duplicates and return
+    const uniqueResults = allResults.filter((result, index, self) => 
+      index === self.findIndex(r => (r.id || r.product_id) === (result.id || result.product_id))
+    );
+    return uniqueResults.slice(0, 10); // Limit to 10 results
+  }
+  
+  // If still no results, try a very broad search
+  console.log(`No results found with specific strategies. Trying very broad search...`);
+  try {
+    const broadResults = await searchWithName(productName.split(' ')[0]); // Just first word
+    if (broadResults && broadResults.length > 0) {
+      console.log(`Broad search found ${broadResults.length} results`);
+      return broadResults.slice(0, 5); // Limit to 5 for broad search
+    }
+  } catch (error) {
+    console.log(`Broad search also failed:`, error.message);
+  }
+  
+      // Return a helpful error with suggestions
+      throw new Error(`Product "${productName}" not found in Price Charting database after trying ${searchStrategies.length} search strategies. This product may not be in their database, or you may need to search manually using the product search feature.`);
 }
 
 // Clean product name for better API matching
@@ -176,6 +223,113 @@ function enhanceWithGamingTerms(name) {
   }
   
   return name;
+}
+
+// Get common variations of a product name
+function getCommonVariations(name) {
+  const variations = [];
+  const lowerName = name.toLowerCase();
+  
+  // Try removing numbers and common prefixes/suffixes
+  variations.push(name.replace(/^\d+\s*/, '')); // Remove leading numbers
+  variations.push(name.replace(/\s*\d+$/, '')); // Remove trailing numbers
+  
+  // Special handling for Pokemon cards (like "151 Blooming Waters")
+  if (lowerName.includes('151') || lowerName.includes('blooming') || lowerName.includes('waters')) {
+    // Try with Pokemon-specific terms
+    variations.push(`blooming waters premium collection box`);
+    variations.push(`pokemon scarlet violet 151 blooming waters`);
+    variations.push(`pokemon 151 blooming waters`);
+    variations.push(`blooming waters collection box`);
+  }
+  
+  // Try with common gaming terms if it looks like a game
+  if (lowerName.includes('game') || lowerName.includes('card') || lowerName.includes('pokemon') || lowerName.includes('magic')) {
+    variations.push(`trading card ${name}`);
+    variations.push(`video game ${name}`);
+    variations.push(`pokemon card ${name}`);
+  }
+  
+  // Try with just the main words (remove common words)
+  const words = name.split(/\s+/).filter(word => 
+    !['the', 'a', 'an', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'for'].includes(word.toLowerCase()) &&
+    word.length > 2
+  );
+  if (words.length > 0) {
+    variations.push(words.join(' '));
+  }
+  
+  // For Pokemon cards, try specific Pokemon set variations
+  if (lowerName.includes('151') || lowerName.includes('pokemon')) {
+    variations.push(`pokemon 151`);
+    variations.push(`scarlet violet 151`);
+  }
+  
+  return variations[0] || name; // Return first variation or original name
+}
+
+// Pokemon-specific search variations
+async function searchPokemonVariations(name) {
+  const lowerName = name.toLowerCase();
+  const results = [];
+  
+  // If it contains Pokemon-related terms, try specific searches
+  if (lowerName.includes('151') || lowerName.includes('blooming') || lowerName.includes('waters')) {
+    const pokemonSearches = [
+      'blooming waters premium collection box',
+      'pokemon 151 blooming waters',
+      'scarlet violet 151 blooming waters',
+      'blooming waters collection box',
+      'pokemon card blooming waters'
+    ];
+    
+    for (const searchTerm of pokemonSearches) {
+      try {
+        const searchResults = await searchWithName(searchTerm);
+        if (searchResults && searchResults.length > 0) {
+          results.push(...searchResults);
+        }
+      } catch (error) {
+        // Continue with next search term
+      }
+    }
+  }
+  
+  return results.length > 0 ? results : [];
+}
+
+// Pokemon 151 specific search terms
+async function searchWithPokemon151Terms(name) {
+  const lowerName = name.toLowerCase();
+  const results = [];
+  
+  if (lowerName.includes('151') || lowerName.includes('blooming')) {
+    const pokemon151Searches = [
+      'pokemon 151',
+      'scarlet violet 151',
+      'pokemon scarlet violet 151',
+      'blooming waters',
+      'premium collection box'
+    ];
+    
+    for (const searchTerm of pokemon151Searches) {
+      try {
+        const searchResults = await searchWithName(searchTerm);
+        if (searchResults && searchResults.length > 0) {
+          // Filter results to find ones that might match our product
+          const filteredResults = searchResults.filter(result => {
+            const resultName = (result.product_name || result.name || '').toLowerCase();
+            return resultName.includes('blooming') || resultName.includes('waters') || resultName.includes('151');
+          });
+          results.push(...filteredResults);
+        }
+      } catch (error) {
+        // Continue with next search term
+      }
+    }
+  }
+  
+  return results.length > 0 ? results : [];
 }
 
 // Search with a specific name
