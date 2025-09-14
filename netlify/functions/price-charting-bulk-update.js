@@ -178,6 +178,18 @@ async function searchProducts(productName) {
     console.log(`Broad search also failed:`, error.message);
   }
   
+  // Final fallback: Try known product IDs for common Pokemon products
+  console.log(`Trying known product ID lookup as final fallback...`);
+  try {
+    const knownProductId = await tryKnownProductIds(productName);
+    if (knownProductId) {
+      console.log(`Found product using known ID: ${knownProductId}`);
+      return [knownProductId];
+    }
+  } catch (error) {
+    console.log(`Known product ID lookup failed:`, error.message);
+  }
+  
       // Return a helpful error with suggestions
       throw new Error(`Product "${productName}" not found in Price Charting database after trying ${searchStrategies.length} search strategies. This product may not be in their database, or you may need to search manually using the product search feature.`);
 }
@@ -330,6 +342,55 @@ async function searchWithPokemon151Terms(name) {
   }
   
   return results.length > 0 ? results : [];
+}
+
+// Try known product IDs for common products
+async function tryKnownProductIds(productName) {
+  const lowerName = productName.toLowerCase();
+  
+  // Known product IDs for common Pokemon products
+  const knownProducts = {
+    '151 blooming waters': '8425581',
+    'blooming waters': '8425581',
+    'pokemon 151 blooming waters': '8425581',
+    'blooming waters premium collection box': '8425581'
+  };
+  
+  // Check if this product matches any known products
+  for (const [key, productId] of Object.entries(knownProducts)) {
+    if (lowerName.includes(key) || key.includes(lowerName.replace(/\d+/g, '').trim())) {
+      console.log(`Matched "${productName}" to known product ID: ${productId}`);
+      
+      // Verify the product ID exists by fetching it
+      try {
+        const productUrl = `${PRICE_CHARTING_BASE_URL}/api/product?id=${productId}&t=${PRICE_CHARTING_API_KEY}`;
+        const response = await fetch(productUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': '1Track/1.0',
+          },
+        });
+        
+        if (response.ok) {
+          const productData = await response.json();
+          console.log(`Verified product ID ${productId}: ${productData.product_name}`);
+          return {
+            id: productId,
+            product_name: productData.product_name,
+            loose_price: productData.loose_price,
+            cib_price: productData.cib_price,
+            console_name: productData.console_name,
+            verified: true
+          };
+        }
+      } catch (error) {
+        console.log(`Failed to verify product ID ${productId}:`, error.message);
+      }
+    }
+  }
+  
+  return null;
 }
 
 // Search with a specific name
