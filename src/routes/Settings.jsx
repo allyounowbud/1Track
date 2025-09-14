@@ -35,7 +35,7 @@ async function getMarkets() {
 
 /* ---------- Price Charting API functions ---------- */
 async function searchPriceChartingProducts(productName) {
-  const response = await fetch(`/.netlify/functions/price-charting/search?q=${encodeURIComponent(productName)}`);
+  const response = await fetch(`/.netlify/functions/price-charting-search?q=${encodeURIComponent(productName)}`);
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Search failed');
@@ -44,7 +44,7 @@ async function searchPriceChartingProducts(productName) {
 }
 
 async function updateItemPrice(itemId, productId) {
-  const response = await fetch('/.netlify/functions/price-charting/update-price', {
+  const response = await fetch('/.netlify/functions/price-charting-update-price', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ itemId, productId })
@@ -57,7 +57,7 @@ async function updateItemPrice(itemId, productId) {
 }
 
 async function bulkUpdatePrices(itemIds) {
-  const response = await fetch('/.netlify/functions/price-charting/bulk-update', {
+  const response = await fetch('/.netlify/functions/price-charting-bulk-update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ itemIds })
@@ -439,6 +439,74 @@ export default function Settings() {
     }
   }
 
+  async function handleSyncAllProducts() {
+    if (items.length === 0) {
+      alert('No products to sync');
+      return;
+    }
+    
+    const confirmMessage = `Sync prices for all ${items.length} products? This will search Price Charting API for each product name and update prices automatically. Products that can't be found will be skipped.`;
+    if (!confirm(confirmMessage)) return;
+    
+    setBulkUpdateProgress({ total: items.length, completed: 0, errors: [] });
+    
+    try {
+      const results = [];
+      const errors = [];
+      
+      // Process each item individually
+      for (const item of items) {
+        try {
+          // First, try to search for the product
+          const searchResponse = await searchPriceChartingProducts(item.name);
+          const products = searchResponse.data?.products || [];
+          
+          if (products.length === 0) {
+            errors.push({
+              itemId: item.id,
+              itemName: item.name,
+              error: 'Product not found in Price Charting database'
+            });
+            continue;
+          }
+          
+          // Use the first search result (most relevant)
+          const product = products[0];
+          const productId = product.id;
+          
+          // Update the item with the found product
+          const updateResponse = await updateItemPrice(item.id, productId);
+          results.push(updateResponse.result);
+          
+          // Small delay to respect API rate limits
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+        } catch (itemError) {
+          errors.push({
+            itemId: item.id,
+            itemName: item.name,
+            error: itemError.message
+          });
+        }
+      }
+      
+      await refetchItems(); // Refresh the items list
+      
+      let message = `Synced ${results.length} products successfully`;
+      if (errors.length > 0) {
+        message += `\n\n${errors.length} products couldn't be found or updated:\n`;
+        message += errors.map(e => `• ${e.itemName}: ${e.error}`).join('\n');
+      }
+      
+      alert(message);
+    } catch (error) {
+      console.error('Sync all error:', error);
+      alert(`Sync all failed: ${error.message}`);
+    } finally {
+      setBulkUpdateProgress(null);
+    }
+  }
+
   // Debounced search function
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -669,6 +737,7 @@ export default function Settings() {
           bulkSave={bulkSaveItems}
           bulkDelete={bulkDeleteItems}
           bulkUpdatePrices={handleBulkUpdatePrices}
+          syncAllProducts={handleSyncAllProducts}
           cancelNewRows={cancelNewItemRows}
           addNewRow={addNewItemRow}
           clearSelection={clearItemsSelection}
@@ -840,6 +909,7 @@ function SettingsCard({
   bulkSave, 
   bulkDelete, 
   bulkUpdatePrices,
+  syncAllProducts,
   cancelNewRows, 
   addNewRow, 
   clearSelection, 
@@ -953,18 +1023,31 @@ function SettingsCard({
                 const hasNewRowsInSelection = selectedItems.some(id => id < 0);
                 const hasExistingRows = selectedItems.some(id => id > 0);
                 
-                // Default state: no selection - show only + add button
+                // Default state: no selection - show sync all and add buttons
                 if (!hasSelection) {
                   return (
-                    <button
-                      onClick={addNewRow}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                      title="Add New Item"
-                    >
-                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                    </button>
+                    <>
+                      {syncAllProducts && (
+                        <button
+                          onClick={syncAllProducts}
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-indigo-600 bg-indigo-800/60 hover:bg-indigo-700 hover:border-indigo-500 text-indigo-200 transition-all duration-200 flex items-center justify-center group"
+                          title="Sync All Products from API"
+                        >
+                          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        </button>
+                      )}
+                      <button
+                        onClick={addNewRow}
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                        title="Add New Item"
+                      >
+                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                      </button>
+                    </>
                   );
                 }
                 

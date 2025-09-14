@@ -107,6 +107,22 @@ export default function Hub() {
       author: "Development Team"
     },
     {
+      title: "Sync All Products Feature - One-Click Price Updates for All Items",
+      description: "Added a dedicated 'Sync All Products' button that automatically fetches current prices from Price Charting API for all linked products. The button is always visible in the bulk actions area and works independently of item selection. When clicked, it identifies all products that have been previously linked to Price Charting API and updates their prices in bulk. Features smart filtering to only sync products with existing API links, comprehensive progress tracking, and detailed success/error reporting. This streamlines the price update process by eliminating the need to manually select items for bulk operations.",
+      color: "bg-emerald-600",
+      date: "2024-12-20",
+      time: "06:20",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed Price Charting API Endpoint Routing",
+      description: "Resolved 404 errors by creating separate Netlify function endpoints for search, update-price, and bulk-update operations. The sync functionality now works correctly with proper API endpoint routing. Split the monolithic price-charting function into individual endpoint files for better maintainability and proper Netlify function routing.",
+      color: "bg-yellow-600",
+      date: "2024-12-20",
+      time: "06:25",
+      author: "Development Team"
+    },
+    {
       title: "Optimized Retailer and Marketplace Column Widths for Better Space Utilization",
       description: "Reduced Retailer column width by 20% (from 1fr to 0.8fr) and Marketplace column width by 15% (from 1fr to 0.85fr) on Order Book desktop large screens. These adjustments optimize space distribution across the table, providing more room for other important columns while maintaining adequate space for retailer and marketplace names. The changes improve overall layout balance and space utilization in the Order Book spreadsheet view.",
       color: "bg-slate-600",
