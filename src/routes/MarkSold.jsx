@@ -207,26 +207,9 @@ export default function MarkSold() {
   const [feesLocked, setFeesLocked] = useState(false);
   const [shipping, setShipping] = useState("0");
 
-  // dropdown states
-  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
-
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const target = event.target;
-      const isDropdownInput = target.closest('input[id*="input"]');
-      const isDropdownContent = target.closest('.dropdown-content');
-      
-      if (!isDropdownInput && !isDropdownContent) {
-        setMarketDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // ---------- searchable dropdown (mobile-safe) ----------
 
@@ -365,68 +348,26 @@ export default function MarkSold() {
               />
             </div>
 
-            <div className="min-w-0">
-              <label htmlFor="sale-location-input" className="text-slate-300 mb-1 block text-sm">Sale Location</label>
-              <div className="relative">
-                <input
-                  id="sale-location-input"
-                  name="sale-location"
-                  value={marketName}
-                  onChange={(e) => setMarketName(e.target.value)}
-                  onFocus={() => setMarketDropdownOpen(true)}
-                  placeholder="Add or select a marketplace…"
-                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
-                />
-                {marketName && (
-                  <button
-                    type="button"
-                    onClick={() => setMarketName("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                    </svg>
-                  </button>
-                )}
-                {marketDropdownOpen && (
-                  <div className="absolute left-0 right-0 top-full z-[999999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-                    {/* Add new marketplace option */}
-                    {!markets.some(m => m.name.toLowerCase() === marketName.toLowerCase()) && marketName.trim() && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const createdName = await createMarketplace(marketName.trim());
-                          if (createdName) {
-                            setMarketName(createdName);
-                            setMarketDropdownOpen(false);
-                          }
-                        }}
-                        className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70 border-b border-slate-800"
-                      >
-                        + Add "{marketName.trim()}"
-                      </button>
-                    )}
-
-                    {/* Existing marketplaces */}
-                    {markets.filter(market => 
-                      market.name.toLowerCase().includes(marketName.toLowerCase())
-                    ).slice(0, 20).map((market) => (
-                      <button
-                        type="button"
-                        key={market.id}
-                        onClick={() => {
-                          setMarketName(market.name);
-                          setMarketDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
-                      >
-                        {market.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <SearchDropdown
+              value={marketName}
+              onChange={(value) => setMarketName(value)}
+              options={markets}
+              placeholder="Add or select a marketplace…"
+              label="Sale Location"
+              getOptionLabel={(market) => market.name}
+              getOptionValue={(market) => market.name}
+              filterOptions={(markets, search) => {
+                if (!search.trim()) return markets.slice(0, 20);
+                return markets.filter(market => 
+                  market.name.toLowerCase().includes(search.toLowerCase())
+                ).slice(0, 20);
+              }}
+              onAddNew={async (name) => {
+                const createdName = await createMarketplace(name);
+                return createdName ? { name: createdName, id: Date.now() } : null;
+              }}
+              addNewText="Add"
+            />
 
             <div className="min-w-0">
               <label className="text-slate-300 mb-1 block text-sm">Fee (%)</label>

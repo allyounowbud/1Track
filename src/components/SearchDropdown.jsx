@@ -15,7 +15,10 @@ export const SearchDropdown = ({
     return options.filter(option => 
       getOptionLabel(option).toLowerCase().includes(search.toLowerCase())
     ).slice(0, 20);
-  }
+  },
+  // New props for "Add +" functionality
+  onAddNew,
+  addNewText = "Add"
 }) => {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
@@ -35,6 +38,17 @@ export const SearchDropdown = ({
 
   // Filter options based on search
   const filtered = filterOptions(options, search);
+  
+  // Check if search text matches any existing option (for "Add +" functionality)
+  const hasExactMatch = options.some(option => 
+    getOptionLabel(option).toLowerCase() === search.toLowerCase()
+  );
+  
+  // Show "Add +" option if:
+  // 1. onAddNew function is provided
+  // 2. user is typing something (search has content)
+  // 3. there's no exact match with existing options
+  const showAddOption = onAddNew && search.trim() && !hasExactMatch;
 
   // Handle selection
   const handleSelect = (option) => {
@@ -90,7 +104,30 @@ export const SearchDropdown = ({
         </div>
         {dropdownOpen && (
           <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-            {filtered.length === 0 && (
+            {/* Add new option */}
+            {showAddOption && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const result = await onAddNew(search.trim());
+                    if (result) {
+                      setSearch("");
+                      setDropdownOpen(false);
+                      onChange(getOptionValue(result));
+                    }
+                  } catch (error) {
+                    console.error('Error adding new option:', error);
+                  }
+                }}
+                className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70 border-b border-slate-800"
+              >
+                + {addNewText} "{search.trim()}"
+              </button>
+            )}
+            
+            {/* Existing options */}
+            {filtered.length === 0 && !showAddOption && (
               <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
             )}
             {filtered.map((option) => (

@@ -106,31 +106,10 @@ export default function QuickAdd() {
   const [feesLocked, setFeesLocked] = useState(false);
   const [shipping, setShipping] = useState("0");
 
-  // dropdown states
-  const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
-  const [retailerDropdownOpen, setRetailerDropdownOpen] = useState(false);
-  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
-
   // ui
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const target = event.target;
-      const isDropdownInput = target.closest('input[id*="input"]');
-      const isDropdownContent = target.closest('.dropdown-content');
-      
-      if (!isDropdownInput && !isDropdownContent) {
-        setItemDropdownOpen(false);
-        setRetailerDropdownOpen(false);
-        setMarketDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   /* -------------------------- derived lists (names) ------------------------- */
   const itemNames = useMemo(() => {
@@ -287,68 +266,26 @@ export default function QuickAdd() {
               />
             </div>
 
-            <div className="min-w-0">
-              <label htmlFor="item-input" className="text-slate-300 mb-1 block text-sm">Item</label>
-              <div className="relative">
-                <input
-                  id="item-input"
-                  name="item"
-                  value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
-                  onFocus={() => setItemDropdownOpen(true)}
-                  placeholder="Add or select an item…"
-                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
-                />
-                {itemName && (
-                  <button
-                    type="button"
-                    onClick={() => setItemName("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                    </svg>
-                  </button>
-                )}
-                {itemDropdownOpen && (
-                  <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-                    {/* Add new item option */}
-                    {!itemNames.some(name => name.toLowerCase() === itemName.toLowerCase()) && itemName.trim() && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const createdName = await createItem(itemName.trim());
-                          if (createdName) {
-                            setItemName(createdName);
-                            setItemDropdownOpen(false);
-                          }
-                        }}
-                        className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70 border-b border-slate-800"
-                      >
-                        + Add "{itemName.trim()}"
-                      </button>
-                    )}
-
-                    {/* Existing items */}
-                    {itemNames.filter(name => 
-                      name.toLowerCase().includes(itemName.toLowerCase())
-                    ).slice(0, 20).map((name) => (
-                      <button
-                        type="button"
-                        key={name}
-                        onClick={() => {
-                          setItemName(name);
-                          setItemDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
-                      >
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <SearchDropdown
+              value={itemName}
+              onChange={(value) => setItemName(value)}
+              options={items}
+              placeholder="Add or select an item…"
+              label="Item"
+              getOptionLabel={(item) => item.name}
+              getOptionValue={(item) => item.name}
+              filterOptions={(items, search) => {
+                if (!search.trim()) return items.slice(0, 20);
+                return items.filter(item => 
+                  item.name.toLowerCase().includes(search.toLowerCase())
+                ).slice(0, 20);
+              }}
+              onAddNew={async (name) => {
+                const createdName = await createItem(name);
+                return createdName ? { name: createdName, id: Date.now() } : null;
+              }}
+              addNewText="Add"
+            />
 
             <div className="min-w-0">
               <label htmlFor="profile" className="text-slate-300 mb-1 block text-sm">Profile (optional)</label>
@@ -362,68 +299,26 @@ export default function QuickAdd() {
               />
             </div>
 
-            <div className="min-w-0">
-              <label htmlFor="retailer-input" className="text-slate-300 mb-1 block text-sm">Retailer</label>
-              <div className="relative">
-                <input
-                  id="retailer-input"
-                  name="retailer"
-                  value={retailerName}
-                  onChange={(e) => setRetailerName(e.target.value)}
-                  onFocus={() => setRetailerDropdownOpen(true)}
-                  placeholder="Add or select a retailer…"
-                  className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
-                />
-                {retailerName && (
-                  <button
-                    type="button"
-                    onClick={() => setRetailerName("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                    </svg>
-                  </button>
-                )}
-                {retailerDropdownOpen && (
-                  <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-                    {/* Add new retailer option */}
-                    {!retailerNames.some(name => name.toLowerCase() === retailerName.toLowerCase()) && retailerName.trim() && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const createdName = await createRetailer(retailerName.trim());
-                          if (createdName) {
-                            setRetailerName(createdName);
-                            setRetailerDropdownOpen(false);
-                          }
-                        }}
-                        className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70 border-b border-slate-800"
-                      >
-                        + Add "{retailerName.trim()}"
-                      </button>
-                    )}
-
-                    {/* Existing retailers */}
-                    {retailerNames.filter(name => 
-                      name.toLowerCase().includes(retailerName.toLowerCase())
-                    ).slice(0, 20).map((name) => (
-                      <button
-                        type="button"
-                        key={name}
-                        onClick={() => {
-                          setRetailerName(name);
-                          setRetailerDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
-                      >
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <SearchDropdown
+              value={retailerName}
+              onChange={(value) => setRetailerName(value)}
+              options={retailers}
+              placeholder="Add or select a retailer…"
+              label="Retailer"
+              getOptionLabel={(retailer) => retailer.name}
+              getOptionValue={(retailer) => retailer.name}
+              filterOptions={(retailers, search) => {
+                if (!search.trim()) return retailers.slice(0, 20);
+                return retailers.filter(retailer => 
+                  retailer.name.toLowerCase().includes(search.toLowerCase())
+                ).slice(0, 20);
+              }}
+              onAddNew={async (name) => {
+                const createdName = await createRetailer(name);
+                return createdName ? { name: createdName, id: Date.now() } : null;
+              }}
+              addNewText="Add"
+            />
 
             <div className="min-w-0">
               <label htmlFor="quantity" className="text-slate-300 mb-1 block text-sm">Quantity</label>
@@ -483,68 +378,26 @@ export default function QuickAdd() {
                 />
               </div>
 
-              <div className="min-w-0">
-                <label htmlFor="marketplace-input" className="text-slate-300 mb-1 block text-sm">Marketplace</label>
-                <div className="relative">
-                  <input
-                    id="marketplace-input"
-                    name="marketplace"
-                    value={marketName}
-                    onChange={(e) => setMarketName(e.target.value)}
-                    onFocus={() => setMarketDropdownOpen(true)}
-                    placeholder="Add or select a marketplace…"
-                    className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 px-4"
-                  />
-                  {marketName && (
-                    <button
-                      type="button"
-                      onClick={() => setMarketName("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                      </svg>
-                    </button>
-                  )}
-                  {marketDropdownOpen && (
-                    <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-                      {/* Add new marketplace option */}
-                      {!marketNames.some(name => name.toLowerCase() === marketName.toLowerCase()) && marketName.trim() && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const createdName = await createMarket(marketName.trim());
-                            if (createdName) {
-                              setMarketName(createdName);
-                              setMarketDropdownOpen(false);
-                            }
-                          }}
-                          className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70 border-b border-slate-800"
-                        >
-                          + Add "{marketName.trim()}"
-                        </button>
-                      )}
-
-                      {/* Existing marketplaces */}
-                      {marketNames.filter(name => 
-                        name.toLowerCase().includes(marketName.toLowerCase())
-                      ).slice(0, 20).map((name) => (
-                        <button
-                          type="button"
-                          key={name}
-                          onClick={() => {
-                            setMarketName(name);
-                            setMarketDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
-                        >
-                          {name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <SearchDropdown
+                value={marketName}
+                onChange={(value) => setMarketName(value)}
+                options={markets}
+                placeholder="Add or select a marketplace…"
+                label="Marketplace"
+                getOptionLabel={(market) => market.name}
+                getOptionValue={(market) => market.name}
+                filterOptions={(markets, search) => {
+                  if (!search.trim()) return markets.slice(0, 20);
+                  return markets.filter(market => 
+                    market.name.toLowerCase().includes(search.toLowerCase())
+                  ).slice(0, 20);
+                }}
+                onAddNew={async (name) => {
+                  const createdName = await createMarket(name);
+                  return createdName ? { name: createdName, id: Date.now() } : null;
+                }}
+                addNewText="Add"
+              />
 
               <div className="min-w-0">
                 <label className="text-slate-300 mb-1 block text-sm">Sell Price (total)</label>
