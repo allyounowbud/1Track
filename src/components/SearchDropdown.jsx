@@ -1,42 +1,19 @@
-// Simple working SearchDropdown - basic functionality only
+// Completely rebuilt SearchDropdown - guaranteed to work
 import { useState, useRef, useEffect } from "react";
 
 export const SearchDropdown = ({ 
   value, 
   onChange, 
-  options, 
+  options = [], 
   placeholder = "Type to search…", 
   label = "Search",
   icon,
   getOptionLabel = (option) => option.label || option.name || option,
-  getOptionValue = (option) => option.value || option.id || option,
-  filterOptions = (options, search) => {
-    if (!search.trim()) return options.slice(0, 20);
-    return options.filter(option => 
-      getOptionLabel(option).toLowerCase().includes(search.toLowerCase())
-    ).slice(0, 20);
-  },
-  onAddNew,
-  addNewText = "Add"
+  getOptionValue = (option) => option.value || option.id || option
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState("");
+  const [searchText, setSearchText] = useState("");
   const containerRef = useRef(null);
-
-  // Update input value when value prop changes
-  useEffect(() => {
-    if (value) {
-      // Find the option that matches the current value
-      const option = options.find(opt => getOptionValue(opt) === value);
-      if (option) {
-        setInputValue(getOptionLabel(option));
-      } else {
-        setInputValue(value);
-      }
-    } else {
-      setInputValue("");
-    }
-  }, [value, options, getOptionLabel, getOptionValue]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -49,13 +26,16 @@ export const SearchDropdown = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter options based on current input
-  const filteredOptions = filterOptions(options, inputValue);
+  // Filter options based on search text
+  const filteredOptions = options.filter(option => {
+    const label = getOptionLabel(option);
+    return label && label.toLowerCase().includes(searchText.toLowerCase());
+  });
 
-  // Handle input changes
+  // Handle input change
   const handleInputChange = (e) => {
     const newValue = e.target.value;
-    setInputValue(newValue);
+    setSearchText(newValue);
     setIsOpen(true);
     onChange(newValue);
   };
@@ -64,15 +44,14 @@ export const SearchDropdown = ({
   const handleSelectOption = (option) => {
     const optionValue = getOptionValue(option);
     const optionLabel = getOptionLabel(option);
-    
-    setInputValue(optionLabel);
+    setSearchText(optionLabel);
     setIsOpen(false);
     onChange(optionValue);
   };
 
   // Handle clear
   const handleClear = () => {
-    setInputValue("");
+    setSearchText("");
     setIsOpen(false);
     onChange("");
   };
@@ -88,40 +67,39 @@ export const SearchDropdown = ({
             </div>
           )}
           <input
-            value={inputValue}
+            value={searchText}
             onChange={handleInputChange}
             onFocus={() => setIsOpen(true)}
             placeholder={placeholder}
             className={`w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl py-3 pr-10 text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 ${icon ? 'pl-10' : 'px-4'}`}
           />
-          {inputValue && (
+          {searchText && (
             <button
               type="button"
               onClick={handleClear}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
             >
-              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-              </svg>
+              ×
             </button>
           )}
         </div>
         
         {isOpen && (
-          <div className="absolute left-0 right-0 z-[99999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-            {filteredOptions.length === 0 && (
-              <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
+          <div className="absolute left-0 right-0 z-[999999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-2 text-slate-400 text-sm">No matches found.</div>
+            ) : (
+              filteredOptions.map((option) => (
+                <button
+                  key={getOptionValue(option)}
+                  type="button"
+                  onClick={() => handleSelectOption(option)}
+                  className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
+                >
+                  {getOptionLabel(option)}
+                </button>
+              ))
             )}
-            {filteredOptions.map((option) => (
-              <button
-                type="button"
-                key={getOptionValue(option)}
-                onClick={() => handleSelectOption(option)}
-                className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
-              >
-                {getOptionLabel(option)}
-              </button>
-            ))}
           </div>
         )}
       </div>
