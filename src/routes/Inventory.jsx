@@ -6,7 +6,7 @@ import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
-import { SearchDropdown } from "../components/SearchDropdown.jsx";
+import { TableSearchDropdown } from "../components/TableSearchDropdown.jsx";
 
 /* ---------- data ---------- */
 async function getOrders(limit = 2000) {
@@ -329,6 +329,7 @@ export default function Inventory() {
             <Kpi
               label="Avg Price"
               value={`$${centsToStr(kpis.avgPricePerItem)}`}
+              
               sub="per item"
               className="order-2 min-[550px]:order-2"
             />
@@ -397,20 +398,14 @@ export default function Inventory() {
         <div className={`${pageCard} overflow-hidden`}>
           {/* Search Bar */}
           <div className="px-4 py-3 pb-5 border-b border-slate-800">
-            <SearchDropdown
+            <TableSearchDropdown
               value={itemFilter}
               onChange={setItemFilter}
-              options={onHandNames.map(name => ({ value: name, label: name }))}
+              options={onHandNames.map(name => ({ name, id: name }))}
               placeholder="Search inventory…"
               label=""
-              getOptionLabel={(option) => option.label || option}
-              getOptionValue={(option) => option.value || option}
-              filterOptions={(options, search) => {
-                if (!search.trim()) return options.slice(0, 20);
-                return options.filter(option => 
-                  (option.label || option).toLowerCase().includes(search.toLowerCase())
-                ).slice(0, 20);
-              }}
+              getOptionLabel={(option) => option.name}
+              getOptionValue={(option) => option.name}
             />
           </div>
 

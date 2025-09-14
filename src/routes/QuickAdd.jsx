@@ -6,8 +6,7 @@ import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, parsePct, formatNumber } from "../utils/money.js";
 import { card, inputBase, dateFix, disabledInput } from "../utils/ui.js";
-import { SearchDropdown } from "../components/SearchDropdown.jsx";
-import { SimpleSearchDropdown } from "../components/SimpleSearchDropdown.jsx";
+import { TableSearchDropdown } from "../components/TableSearchDropdown.jsx";
 
 /* ------------------------------ queries ----------------------------- */
 async function getItems() {
@@ -267,7 +266,7 @@ export default function QuickAdd() {
               />
             </div>
 
-            <SearchDropdown
+            <TableSearchDropdown
               value={itemName}
               onChange={setItemName}
               options={items}
@@ -275,12 +274,6 @@ export default function QuickAdd() {
               label="Item"
               getOptionLabel={(item) => item.name}
               getOptionValue={(item) => item.name}
-              filterOptions={(items, search) => {
-                if (!search.trim()) return items.slice(0, 20);
-                return items.filter(item => 
-                  item.name.toLowerCase().includes(search.toLowerCase())
-                ).slice(0, 20);
-              }}
             />
 
             <div className="min-w-0">
@@ -295,7 +288,7 @@ export default function QuickAdd() {
               />
             </div>
 
-            <SearchDropdown
+            <TableSearchDropdown
               value={retailerName}
               onChange={setRetailerName}
               options={retailers}
@@ -303,12 +296,6 @@ export default function QuickAdd() {
               label="Retailer"
               getOptionLabel={(retailer) => retailer.name}
               getOptionValue={(retailer) => retailer.name}
-              filterOptions={(retailers, search) => {
-                if (!search.trim()) return retailers.slice(0, 20);
-                return retailers.filter(retailer => 
-                  retailer.name.toLowerCase().includes(search.toLowerCase())
-                ).slice(0, 20);
-              }}
             />
 
             <div className="min-w-0">
@@ -369,7 +356,7 @@ export default function QuickAdd() {
                 />
               </div>
 
-              <SearchDropdown
+              <TableSearchDropdown
                 value={marketName}
                 onChange={setMarketName}
                 options={markets}
@@ -377,12 +364,6 @@ export default function QuickAdd() {
                 label="Marketplace"
                 getOptionLabel={(market) => market.name}
                 getOptionValue={(market) => market.name}
-                filterOptions={(markets, search) => {
-                  if (!search.trim()) return markets.slice(0, 20);
-                  return markets.filter(market => 
-                    market.name.toLowerCase().includes(search.toLowerCase())
-                  ).slice(0, 20);
-                }}
               />
 
               <div className="min-w-0">

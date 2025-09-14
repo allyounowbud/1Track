@@ -7,7 +7,7 @@ import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, rowCard } from "../utils/ui.js";
 import { Select } from "../components/Select.jsx";
-import { SearchDropdown } from "../components/SearchDropdown.jsx";
+import { TableSearchDropdown } from "../components/TableSearchDropdown.jsx";
 
 // Icons
 const CalendarIcon = () => (
@@ -205,7 +205,7 @@ export default function Stats() {
             )}
 
             {/* Item search */}
-            <SearchDropdown
+            <TableSearchDropdown
               value={itemSearchQuery}
               onChange={setItemSearchQuery}
               options={itemOptions.map(name => ({ name, id: name }))}
@@ -214,12 +214,6 @@ export default function Stats() {
               icon={<PackageIcon />}
               getOptionLabel={(option) => option.name}
               getOptionValue={(option) => option.name}
-              filterOptions={(options, search) => {
-                if (!search.trim()) return options.slice(0, 20);
-                return options.filter(option => 
-                  option.name.toLowerCase().includes(search.toLowerCase())
-                ).slice(0, 20);
-              }}
             />
             </div>
 

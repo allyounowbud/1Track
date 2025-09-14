@@ -8,7 +8,7 @@ import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { Select } from "../components/Select.jsx";
 import { SearchDropdown } from "../components/SearchDropdown.jsx";
-import { SimpleSearchDropdown } from "../components/SimpleSearchDropdown.jsx";
+import { TableSearchDropdown } from "../components/TableSearchDropdown.jsx";
 import { inputBase, disabledInput } from "../utils/ui.js";
 
 /* ---------- queries ---------- */
@@ -349,7 +349,7 @@ export default function MarkSold() {
               />
             </div>
 
-            <SearchDropdown
+            <TableSearchDropdown
               value={marketName}
               onChange={setMarketName}
               options={markets}
@@ -357,12 +357,6 @@ export default function MarkSold() {
               label="Sale Location"
               getOptionLabel={(market) => market.name}
               getOptionValue={(market) => market.name}
-              filterOptions={(markets, search) => {
-                if (!search.trim()) return markets.slice(0, 20);
-                return markets.filter(market => 
-                  market.name.toLowerCase().includes(search.toLowerCase())
-                ).slice(0, 20);
-              }}
             />
 
             <div className="min-w-0">
