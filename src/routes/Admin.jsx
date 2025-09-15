@@ -203,13 +203,35 @@ export default function Admin() {
         <div className="bg-slate-800 rounded-xl p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">CSV Sync Controls</h2>
-            <button
-              onClick={handleDebugCSV}
-              disabled={isSyncing}
-              className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 rounded text-sm transition-colors"
-            >
-              Debug CSV Structure
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDebugCSV}
+                disabled={isSyncing}
+                className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 rounded text-sm transition-colors"
+              >
+                Debug CSV Structure
+              </button>
+              <button
+                onClick={async () => {
+                  setIsSyncing(true);
+                  setSyncStatus('Testing simple CSV debug...');
+                  try {
+                    const response = await fetch('/.netlify/functions/simple-csv-debug');
+                    const result = await response.json();
+                    setSyncStatus(`✅ CSV Debug: ${result.message}`);
+                    console.log('Simple CSV Debug:', result);
+                  } catch (error) {
+                    setSyncStatus(`❌ Debug failed: ${error.message}`);
+                  } finally {
+                    setIsSyncing(false);
+                  }
+                }}
+                disabled={isSyncing}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:opacity-50 rounded text-sm transition-colors"
+              >
+                Simple CSV Debug
+              </button>
+            </div>
           </div>
           
           <div className="space-y-4 mb-4">
