@@ -271,20 +271,59 @@ async function handleBulkUpdate(itemIds) {
 // Main handler
 exports.handler = async (event, context) => {
   console.log('Local bulk update function called');
+  console.log('Event method:', event.httpMethod);
+  console.log('Event body:', event.body);
   
   try {
+    // Handle CORS preflight
+    if (event.httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS'
+        },
+        body: ''
+      };
+    }
+    
     if (event.httpMethod !== 'POST') {
       return {
         statusCode: 405,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
         body: JSON.stringify({ error: 'Method not allowed' })
       };
     }
     
-    const { itemIds } = JSON.parse(event.body);
+    // Validate environment variables
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase configuration. Please check environment variables.');
+    }
+    
+    console.log('Supabase URL configured:', !!supabaseUrl);
+    console.log('Supabase Service Key configured:', !!supabaseServiceKey);
+    
+    let itemIds;
+    try {
+      const body = JSON.parse(event.body || '{}');
+      itemIds = body.itemIds;
+      console.log('Parsed itemIds:', itemIds);
+    } catch (parseError) {
+      console.error('Failed to parse event body:', parseError);
+      throw new Error(`Invalid JSON in request body: ${parseError.message}`);
+    }
     
     if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
       return {
         statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
         body: JSON.stringify({ error: 'Item IDs array is required' })
       };
     }
@@ -292,6 +331,8 @@ exports.handler = async (event, context) => {
     console.log(`Processing ${itemIds.length} items`);
     
     const results = await handleBulkUpdate(itemIds);
+    
+    console.log('Bulk update completed successfully');
     
     return {
       statusCode: 200,
@@ -314,6 +355,7 @@ exports.handler = async (event, context) => {
     
   } catch (error) {
     console.error('Local bulk update error:', error);
+    console.error('Error stack:', error.stack);
     
     return {
       statusCode: 500,
@@ -324,7 +366,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         success: false,
         error: error.message,
-        details: error.stack
+        timestamp: new Date().toISOString()
       })
     };
   }

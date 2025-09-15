@@ -56,18 +56,41 @@ async function updateItemPrice(itemId, productId) {
   return await response.json();
 }
 
-async function bulkUpdatePrices(itemIds) {
-  const response = await fetch('/.netlify/functions/price-charting-local-bulk-update', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemIds })
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Bulk update failed');
+  async function bulkUpdatePrices(itemIds) {
+    console.log('bulkUpdatePrices called with:', itemIds);
+    
+    const requestBody = { itemIds };
+    console.log('Request body:', requestBody);
+    
+    const response = await fetch('/.netlify/functions/price-charting-local-bulk-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    });
+    
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+    
+    if (!response.ok) {
+      let errorText;
+      try {
+        const error = await response.json();
+        errorText = error.error || 'Bulk update failed';
+      } catch (e) {
+        errorText = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorText);
+    }
+    
+    const responseText = await response.text();
+    console.log('Response text:', responseText);
+    
+    try {
+      return JSON.parse(responseText);
+    } catch (e) {
+      throw new Error(`Failed to parse response: ${responseText}`);
+    }
   }
-  return await response.json();
-}
 
 export default function Settings() {
   // Custom checkbox styling for dark theme
@@ -453,9 +476,13 @@ export default function Settings() {
     try {
       // Get all item IDs for bulk update
       const itemIds = items.map(item => item.id);
+      console.log('Sync All Products - Item IDs:', itemIds);
+      console.log('Sync All Products - Item count:', itemIds.length);
       
       // Use the bulk update function with local CSV data
       const response = await bulkUpdatePrices(itemIds);
+      console.log('Sync All Products - Response:', response);
+      
       await refetchItems(); // Refresh the items list
       
       let message = `Synced ${response.results.successful.length} products successfully`;
