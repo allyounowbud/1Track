@@ -220,6 +220,8 @@ export default function Admin() {
                     const result = await response.json();
                     setSyncStatus(`✅ CSV Debug: ${result.message}`);
                     console.log('Simple CSV Debug:', result);
+                    console.log('CSV Headers:', result.headers);
+                    console.log('Sample Data:', result.sampleData);
                   } catch (error) {
                     setSyncStatus(`❌ Debug failed: ${error.message}`);
                   } finally {
