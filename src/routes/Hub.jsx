@@ -27,6 +27,30 @@ export default function Hub() {
   // Changelog data with version numbers
   const changelogData = [
     {
+      title: "Fixed Database Page Organization - Removed Retailers and Marketplaces from Products Tab",
+      description: "Fixed database page organization by removing retailers and marketplaces sections from the products tab, ensuring they only appear on their respective dedicated tabs. Also fixed critical table errors that were causing add button failures for retailers and marketplaces by replacing undefined NewRetailerRowComponent and NewMarketRowComponent with the proper NewRowComponent. Fixed database table name reference from 'markets' to 'marketplaces' to match the actual database schema. The database page now properly displays only products-related content in the products tab, with retailers and marketplaces accessible through their dedicated tabs via the sidebar navigation.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:25",
+      author: "Development Team"
+    },
+    {
+      title: "Complete Database Section Implementation - Full Settings Functionality with New Organization",
+      description: "Successfully implemented the complete Database section as a main workspace alongside Order Book, Emails, and Profiles. The Database section features proper sidebar navigation with Products, Retailers, and Marketplaces tabs. Within the Products tab, users can toggle between Singles and Sealed views, each containing the appropriate product categories (Pokemon Singles/Sealed, Magic Singles/Sealed, Yu-Gi-Oh Singles/Sealed, and Video Games). All original Settings functionality has been preserved including expanded cards, + Add buttons, bulk action buttons, row selection, focused editing mode, and all the advanced features like checkbox disabling during new row creation. The interface maintains the same look and feel as the original Settings page but with much better organization and structure.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:20",
+      author: "Development Team"
+    },
+    {
+      title: "Major Database Restructure - New Dedicated Database Section with Singles/Sealed Organization",
+      description: "Completely restructured the database management system into its own dedicated section with proper organization. The new Database section features three main tabs: Products, Retailers, and Marketplaces. Within the Products tab, users can toggle between Singles and Sealed views. Singles view includes Pokemon Cards (Singles), Magic Cards (Singles), and Yu-Gi-Oh Cards (Singles). Sealed view includes Pokemon Cards (Sealed), Magic Cards (Sealed), Yu-Gi-Oh Cards (Sealed), and Video Games. This creates a much more intuitive and organized way to manage different product types, with proper separation between individual cards and sealed products like booster packs and boxes. The new structure uses dedicated database tables for each category and type combination.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:15",
+      author: "Development Team"
+    },
+    {
       title: "Implemented Focused Editing Mode - Hide All Cards Except Active One During Row Creation",
       description: "Enhanced the new row creation experience by implementing a focused editing mode that hides all other cards when adding a new row to any specific card. When you click 'Add' on any card (Products, Retailers, Marketplaces, Pokemon Cards, Video Games, Magic Cards, Yu-Gi-Oh Cards), all other cards are completely hidden until you either save or cancel the new row. This creates a distraction-free, focused editing environment where users can concentrate on the single task at hand without visual clutter from other sections. The interface automatically returns to normal view once the new row operation is completed, providing an intuitive and streamlined data entry experience.",
       color: "bg-blue-500/70",
@@ -899,7 +923,7 @@ export default function Hub() {
         <div className={`${card} mb-6`}>
           <h2 className="text-lg font-semibold mb-4">Choose a workspace</h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
             <Link to="/orders" className={tile}>
               <div className="h-12 w-12 rounded-xl bg-indigo-600/20 grid place-items-center text-indigo-300">
                 🧾
@@ -948,6 +972,24 @@ export default function Hub() {
                   manage contact details, and build better relationships with your customers.
                 </div>
                 <div className="mt-3 inline-flex items-center text-purple-300 group-hover:text-purple-200">
+                  Open →
+                </div>
+              </div>
+            </Link>
+
+            <Link to="/database" className={tile}>
+              <div className="h-12 w-12 rounded-xl bg-blue-600/20 grid place-items-center text-blue-300">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="text-xl font-semibold">Database</div>
+                <div className="text-slate-400 text-sm">
+                  Manage your product database, retailers, and marketplaces. Organize Pokemon cards, 
+                  Magic cards, Yu-Gi-Oh cards, video games, and more with singles/sealed separation.
+                </div>
+                <div className="mt-3 inline-flex items-center text-blue-300 group-hover:text-blue-200">
                   Open →
                 </div>
               </div>

@@ -10,6 +10,7 @@ import Hub from "./routes/Hub.jsx";                 // Main hub (dashboard)
 import Login from "./routes/Login.jsx";
 import QuickAdd from "./routes/QuickAdd.jsx";       // Renamed from Dashboard.jsx
 import Settings from "./routes/Settings.jsx";
+import Database from "./routes/Database.jsx";
 import MarkSold from "./routes/MarkSold.jsx";
 import Inventory from "./routes/Inventory.jsx";
 import Stats from "./routes/Stats.jsx";
@@ -60,7 +61,22 @@ const router = createBrowserRouter([
   },
   { 
     path: "/database", 
-    element: <Settings />,
+    element: <Navigate to="/database/products" replace />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/database/products", 
+    element: <Database />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/database/retailers", 
+    element: <Database />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/database/marketplaces", 
+    element: <Database />,
     errorElement: <ErrorElement />
   },
   { 

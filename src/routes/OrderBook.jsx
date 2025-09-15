@@ -604,9 +604,9 @@ function UnifiedOrderView({
       <div className="border-b border-slate-700 mb-2"></div>
 
       {/* Header with Selection Count and Actions - Card-like structure without background */}
-      <div className="flex items-center justify-end py-1 px-4 mb-2">
-        {/* Left side - Selection Count (matches card header structure) */}
-        {filtered.length > 0 && (
+      {filtered.length > 0 && (
+        <div className="flex items-center justify-end py-1 px-4 mb-2">
+          {/* Left side - Selection Count (matches card header structure) */}
           <div className="flex items-center gap-4 mr-auto">
             <input
               type="checkbox"
@@ -620,10 +620,9 @@ function UnifiedOrderView({
               </div>
             </div>
           </div>
-        )}
 
-        {/* Right side - Action Buttons and View Toggle */}
-        <div className="flex items-center gap-2">
+          {/* Right side - Action Buttons and View Toggle */}
+          <div className="flex items-center gap-2">
           {/* Determine button visibility based on selection state */}
           {(() => {
             const hasSelection = selectedRows.size > 0;
@@ -739,10 +738,11 @@ function UnifiedOrderView({
             </button>
             </div>
           </div>
+          
+          {/* Page break line */}
+          <div className="border-b border-slate-700 mb-5"></div>
         </div>
-
-      {/* Page break line */}
-      <div className="border-b border-slate-700 mb-5"></div>
+      )}
 
       {/* Content Area */}
       {viewMode === 'grid' ? (
@@ -759,6 +759,7 @@ function UnifiedOrderView({
           orderRowRefs={orderRowRefs}
           formStates={formStates}
           setFormStates={setFormStates}
+          addNewRow={addNewRow}
         />
       ) : (
         <UnifiedListView
@@ -774,6 +775,7 @@ function UnifiedOrderView({
           orderRowRefs={orderRowRefs}
           formStates={formStates}
           setFormStates={setFormStates}
+          addNewRow={addNewRow}
         />
       )}
     </div>
@@ -781,9 +783,19 @@ function UnifiedOrderView({
 }
 
 /* ---------- Unified Grid View Component ---------- */
-function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates }) {
+function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
   if (!grouped.length) {
-    return <div className="text-slate-400">No orders found.</div>;
+    return (
+      <div className="text-slate-400 py-4">
+        No orders found.{" "}
+        <button
+          onClick={addNewRow}
+          className="text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors"
+        >
+          Add your first order
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -814,9 +826,19 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
 }
 
 /* ---------- Unified List View Component ---------- */
-function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates }) {
+function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
   if (!orders.length) {
-    return <div className="text-slate-400">No orders found.</div>;
+    return (
+      <div className="text-slate-400 py-4">
+        No orders found.{" "}
+        <button
+          onClick={addNewRow}
+          className="text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors"
+        >
+          Add your first order
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -1441,7 +1463,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="bg-transparent border border-transparent px-2 py-2 text-sm text-slate-100 focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0"
+          className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none"
         />
 
         {/* Item Name - Most Important */}
@@ -1460,8 +1482,8 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.profile_name}
           onChange={(e) => setProfile(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          placeholder={formState.profile_name ? "" : "Profile"}
-          className={`bg-transparent border border-transparent px-2 py-2 text-sm focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0 ${formState.profile_name ? 'text-slate-100' : 'text-slate-500'}`}
+          placeholder="Profile"
+          className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400 ${formState.profile_name ? 'text-slate-100' : 'text-slate-500'}`}
         />
 
         {/* Retailer */}
@@ -1469,11 +1491,11 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className={`bg-transparent border-none px-2 py-2 text-sm focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer pr-6 rounded-none shadow-none ${formState.retailer && formState.retailer !== "" ? 'text-slate-100' : 'text-slate-500'}`}
+          className={`select-styled w-full h-10 cursor-pointer ${formState.retailer && formState.retailer !== "" ? 'text-slate-100' : 'text-slate-500'}`}
         >
-          <option value="">Retailer</option>
+          <option value="" className="bg-slate-800 text-slate-100">Retailer</option>
           {retailers.map((r) => (
-            <option key={r.name} value={r.name}>
+            <option key={r.name} value={r.name} className="bg-slate-800 text-slate-100">
               {r.name}
             </option>
           ))}
@@ -1485,7 +1507,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setBuyPrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Buy"
-          className="bg-transparent border border-transparent px-2 py-2 text-sm text-slate-100 focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0"
+          className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400"
         />
 
         {/* Sale Price */}
@@ -1493,8 +1515,8 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.salePrice}
           onChange={(e) => setSalePrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          placeholder={formState.salePrice && formState.salePrice !== "0" ? "" : "0.00"}
-          className={`bg-transparent border border-transparent px-2 py-2 text-sm focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
+          placeholder="0.00"
+          className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
         />
 
         {/* Sale Date - Responsive */}
@@ -1504,7 +1526,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setSaleDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="mm/dd/yy"
-          className={`bg-transparent border border-transparent px-2 py-2 text-sm focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0 ${formState.sale_date ? 'text-slate-100' : 'text-slate-500'}`}
+          className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none ${formState.sale_date ? 'text-slate-100' : 'text-slate-500'}`}
         />
 
         {/* Marketplace */}
@@ -1512,11 +1534,11 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.marketplace || ""}
           onChange={handleMarketplaceChange}
           onClick={(e) => e.stopPropagation()}
-          className={`bg-transparent border-none px-2 py-2 text-sm focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer pr-6 rounded-none shadow-none ${formState.marketplace && formState.marketplace !== "" ? 'text-slate-100' : 'text-slate-500'}`}
+          className={`select-styled w-full h-10 cursor-pointer ${formState.marketplace && formState.marketplace !== "" ? 'text-slate-100' : 'text-slate-500'}`}
         >
-          <option value="">Marketplace</option>
+          <option value="" className="bg-slate-800 text-slate-100">Marketplace</option>
           {markets.map((m) => (
-            <option key={m.name} value={m.name}>
+            <option key={m.name} value={m.name} className="bg-slate-800 text-slate-100">
               {m.name}
             </option>
           ))}
@@ -1527,8 +1549,8 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.shipping}
           onChange={(e) => setShipping(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          placeholder={formState.shipping && formState.shipping !== "0" ? "" : "0.00"}
-          className={`bg-transparent border border-transparent px-2 py-2 text-sm focus:bg-slate-800/50 focus:border-indigo-500 focus:border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full min-w-0 ${formState.shipping && formState.shipping !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
+          placeholder="0.00"
+          className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400 ${formState.shipping && formState.shipping !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
         />
 
       </div>

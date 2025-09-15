@@ -1,5 +1,6 @@
 // src/routes/Settings.jsx
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
@@ -216,9 +217,12 @@ export default function Settings() {
   
   // Category-specific states
   const [selectedPokemonCards, setSelectedPokemonCards] = useState(new Set());
+  const [selectedPokemonSingles, setSelectedPokemonSingles] = useState(new Set());
   const [selectedVideoGames, setSelectedVideoGames] = useState(new Set());
   const [selectedMagicCards, setSelectedMagicCards] = useState(new Set());
+  const [selectedMagicSingles, setSelectedMagicSingles] = useState(new Set());
   const [selectedYugiohCards, setSelectedYugiohCards] = useState(new Set());
+  const [selectedYugiohSingles, setSelectedYugiohSingles] = useState(new Set());
   
   const [newItemRows, setNewItemRows] = useState([]);
   const [newRetailerRows, setNewRetailerRows] = useState([]);
@@ -226,14 +230,22 @@ export default function Settings() {
   
   // Category-specific new row states
   const [newPokemonCardRows, setNewPokemonCardRows] = useState([]);
+  const [newPokemonSinglesRows, setNewPokemonSinglesRows] = useState([]);
   const [newVideoGameRows, setNewVideoGameRows] = useState([]);
   const [newMagicCardRows, setNewMagicCardRows] = useState([]);
+  const [newMagicSinglesRows, setNewMagicSinglesRows] = useState([]);
   const [newYugiohCardRows, setNewYugiohCardRows] = useState([]);
+  const [newYugiohSinglesRows, setNewYugiohSinglesRows] = useState([]);
   
   const [nextNewRowId, setNextNewRowId] = useState(-1);
   
   // Single card expansion state
-  const [expandedCard, setExpandedCard] = useState(null); // 'items', 'retailers', 'markets', 'pokemon_cards', 'video_games', 'magic_cards', 'yugioh_cards', or null
+  const [expandedCard, setExpandedCard] = useState(null); // 'items', 'retailers', 'markets', 'pokemon_cards', 'pokemon_singles', 'video_games', 'magic_cards', 'magic_singles', 'yugioh_cards', 'yugioh_singles', or null
+  
+  // Tab and view state
+  const location = useLocation();
+  const activeTab = location.pathname.split('/')[2] || 'products';
+  const [productsView, setProductsView] = useState('sealed'); // 'sealed' or 'singles'
   
   // Price Charting API state
   const [searchResults, setSearchResults] = useState([]);
@@ -296,13 +308,16 @@ export default function Settings() {
   
   // Category-specific helper functions
   const hasNewPokemonCardRows = newPokemonCardRows.length > 0;
+  const hasNewPokemonSinglesRows = newPokemonSinglesRows.length > 0;
   const hasNewVideoGameRows = newVideoGameRows.length > 0;
   const hasNewMagicCardRows = newMagicCardRows.length > 0;
+  const hasNewMagicSinglesRows = newMagicSinglesRows.length > 0;
   const hasNewYugiohCardRows = newYugiohCardRows.length > 0;
+  const hasNewYugiohSinglesRows = newYugiohSinglesRows.length > 0;
 
   // Global check for any new rows across all cards
   const hasAnyNewRows = hasNewItemRows || hasNewRetailerRows || hasNewMarketRows || 
-                       hasNewPokemonCardRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewYugiohCardRows;
+                       hasNewPokemonCardRows || hasNewPokemonSinglesRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewMagicSinglesRows || hasNewYugiohCardRows || hasNewYugiohSinglesRows;
 
   // Function to determine which card is currently being edited
   const getActiveCard = () => {
@@ -310,9 +325,12 @@ export default function Settings() {
     if (hasNewRetailerRows) return 'retailers';
     if (hasNewMarketRows) return 'markets';
     if (hasNewPokemonCardRows) return 'pokemon_cards';
+    if (hasNewPokemonSinglesRows) return 'pokemon_singles';
     if (hasNewVideoGameRows) return 'video_games';
     if (hasNewMagicCardRows) return 'magic_cards';
+    if (hasNewMagicSinglesRows) return 'magic_singles';
     if (hasNewYugiohCardRows) return 'yugioh_cards';
+    if (hasNewYugiohSinglesRows) return 'yugioh_singles';
     return null;
   };
 
@@ -893,6 +911,33 @@ export default function Settings() {
     setSelectedPokemonCards(new Set([newId]));
   }
 
+  // Pokemon Singles Operations
+  function togglePokemonSinglesSelection(rowId) {
+    const newSelected = new Set(selectedPokemonSingles);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (hasNewPokemonSinglesRows) {
+        setSelectedPokemonSingles(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedPokemonSingles(newSelected);
+  }
+
+  function addNewPokemonSinglesRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewPokemonSinglesRows(prev => [...prev, { id: newId, type: 'pokemon_singles', isNew: true }]);
+    setSelectedPokemonSingles(new Set([newId]));
+  }
+
   // Video Games Operations
   function toggleVideoGameSelection(rowId) {
     const newSelected = new Set(selectedVideoGames);
@@ -947,6 +992,33 @@ export default function Settings() {
     setSelectedMagicCards(new Set([newId]));
   }
 
+  // Magic Singles Operations
+  function toggleMagicSinglesSelection(rowId) {
+    const newSelected = new Set(selectedMagicSingles);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (hasNewMagicSinglesRows) {
+        setSelectedMagicSingles(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedMagicSingles(newSelected);
+  }
+
+  function addNewMagicSinglesRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewMagicSinglesRows(prev => [...prev, { id: newId, type: 'magic_singles', isNew: true }]);
+    setSelectedMagicSingles(new Set([newId]));
+  }
+
   // Yu-Gi-Oh Cards Operations
   function toggleYugiohCardSelection(rowId) {
     const newSelected = new Set(selectedYugiohCards);
@@ -972,6 +1044,33 @@ export default function Settings() {
     setNextNewRowId(newId - 1);
     setNewYugiohCardRows(prev => [...prev, { id: newId, type: 'yugioh_card', isNew: true }]);
     setSelectedYugiohCards(new Set([newId]));
+  }
+
+  // Yu-Gi-Oh Singles Operations
+  function toggleYugiohSinglesSelection(rowId) {
+    const newSelected = new Set(selectedYugiohSingles);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (hasNewYugiohSinglesRows) {
+        setSelectedYugiohSingles(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedYugiohSingles(newSelected);
+  }
+
+  function addNewYugiohSinglesRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewYugiohSinglesRows(prev => [...prev, { id: newId, type: 'yugioh_singles', isNew: true }]);
+    setSelectedYugiohSingles(new Set([newId]));
   }
 
   /* ----- Category-specific Bulk Operations ----- */
@@ -1008,6 +1107,43 @@ export default function Settings() {
       if (error) throw error;
       await refetchPokemonCards();
       setSelectedPokemonCards(new Set());
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
+  // Pokemon Singles Bulk Operations
+  function toggleAllPokemonSinglesSelection() {
+    if (selectedPokemonSingles.size === pokemonCards.length) {
+      if (hasNewPokemonSinglesRows) return;
+      setSelectedPokemonSingles(new Set());
+    } else {
+      const allIds = pokemonCards.map(card => card.id);
+      setSelectedPokemonSingles(new Set(allIds));
+    }
+  }
+
+  async function bulkSavePokemonSingles() {
+    // This will be handled by individual row save buttons
+    // Bulk save is not needed since each row saves individually
+    setSelectedPokemonSingles(new Set());
+  }
+
+  async function bulkDeletePokemonSingles() {
+    const selectedIds = Array.from(selectedPokemonSingles).filter(id => id > 0);
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.length} pokemon singles(s)? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('pokemon_cards')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      await refetchPokemonCards();
+      setSelectedPokemonSingles(new Set());
     } catch (e) {
       alert(`Failed to delete: ${e.message}`);
     }
@@ -1083,6 +1219,41 @@ export default function Settings() {
     }
   }
 
+  // Magic Singles Bulk Operations
+  function toggleAllMagicSinglesSelection() {
+    if (selectedMagicSingles.size === magicCards.length) {
+      if (hasNewMagicSinglesRows) return;
+      setSelectedMagicSingles(new Set());
+    } else {
+      const allIds = magicCards.map(card => card.id);
+      setSelectedMagicSingles(new Set(allIds));
+    }
+  }
+
+  async function bulkSaveMagicSingles() {
+    setSelectedMagicSingles(new Set());
+  }
+
+  async function bulkDeleteMagicSingles() {
+    const selectedIds = Array.from(selectedMagicSingles).filter(id => id > 0);
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.length} magic singles(s)? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('magic_cards')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      await refetchMagicCards();
+      setSelectedMagicSingles(new Set());
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
   // Yu-Gi-Oh Cards Bulk Operations
   function toggleAllYugiohCardsSelection() {
     if (selectedYugiohCards.size === yugiohCards.length) {
@@ -1118,9 +1289,44 @@ export default function Settings() {
     }
   }
 
+  // Yu-Gi-Oh Singles Bulk Operations
+  function toggleAllYugiohSinglesSelection() {
+    if (selectedYugiohSingles.size === yugiohCards.length) {
+      if (hasNewYugiohSinglesRows) return;
+      setSelectedYugiohSingles(new Set());
+    } else {
+      const allIds = yugiohCards.map(card => card.id);
+      setSelectedYugiohSingles(new Set(allIds));
+    }
+  }
+
+  async function bulkSaveYugiohSingles() {
+    setSelectedYugiohSingles(new Set());
+  }
+
+  async function bulkDeleteYugiohSingles() {
+    const selectedIds = Array.from(selectedYugiohSingles).filter(id => id > 0);
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.length} yugioh singles(s)? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('yugioh_cards')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      await refetchYugiohCards();
+      setSelectedYugiohSingles(new Set());
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
   return (
-    <LayoutWithSidebar active="database" section="orderbook">
-      <PageHeader title="Settings" />
+    <LayoutWithSidebar active="database" section="database">
+      <PageHeader title={`Database - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`} />
 
         {/* API Status Bar */}
         <div className={`${pageCard} mb-6`}>
@@ -1144,8 +1350,45 @@ export default function Settings() {
           )}
         </div>
 
-        {/* Items Card */}
-        {(!hasAnyNewRows || activeCard === 'items') && (
+        {/* Products Tab Content */}
+        {activeTab === "products" && (
+          <div className="space-y-6">
+            {/* Products View Toggle */}
+            <div className={`${pageCard} mb-6`}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-200">
+                  Product Type
+                </span>
+                <div className="flex bg-slate-800 rounded-lg p-1">
+                  <button
+                    onClick={() => setProductsView('sealed')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      productsView === 'sealed'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Sealed
+                  </button>
+                  <button
+                    onClick={() => setProductsView('singles')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      productsView === 'singles'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Singles
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sealed View */}
+            {productsView === 'sealed' && (
+              <>
+                {/* Items Card */}
+                {(!hasAnyNewRows || activeCard === 'items') && (
           <SettingsCard
             title="Products"
             totalCount={items.length}
@@ -1203,108 +1446,6 @@ export default function Settings() {
             cardType="items"
             isExpanded={expandedCard === 'items'}
             onToggleExpansion={() => setExpandedCard(expandedCard === 'items' ? null : 'items')}
-          />
-        )}
-
-        {/* Retailers Card */}
-        {(!hasAnyNewRows || activeCard === 'retailers') && (
-          <SettingsCard
-            title="Retailers"
-            totalCount={retailers.length}
-            selectedRows={selectedRetailers}
-            newRows={newRetailerRows}
-            hasNewRows={hasNewRetailerRows}
-            toggleAllSelection={toggleAllRetailersSelection}
-            bulkSave={bulkSaveRetailers}
-            bulkDelete={bulkDeleteRetailers}
-            cancelNewRows={cancelNewRetailerRows}
-            addNewRow={addNewRetailerRow}
-            clearSelection={clearRetailersSelection}
-            data={retailers}
-            newRowsData={newRetailerRows}
-            onRowToggle={toggleRetailerSelection}
-            renderRow={(retailer) => (
-              <RetailerRow
-                key={retailer.id}
-                retailer={retailer}
-                isSelected={selectedRetailers.has(retailer.id)}
-                onToggleSelection={() => toggleRetailerSelection(retailer.id)}
-                onSave={() => refetchRetailers()}
-                disabled={hasNewRetailerRows}
-                isCheckboxDisabled={hasNewRetailerRows}
-              />
-            )}
-            renderNewRow={(newRow) => (
-              <NewRowComponent
-                key={newRow.id}
-                row={newRow}
-                isSelected={selectedRetailers.has(newRow.id)}
-                onToggleSelection={() => toggleRetailerSelection(newRow.id)}
-                onSave={(data) => {
-                  setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
-                  setSelectedRetailers(new Set());
-                  refetchRetailers();
-                }}
-                onCancel={() => {
-                  setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
-                  setSelectedRetailers(new Set());
-                }}
-              />
-            )}
-            cardType="retailers"
-            isExpanded={expandedCard === 'retailers'}
-            onToggleExpansion={() => setExpandedCard(expandedCard === 'retailers' ? null : 'retailers')}
-          />
-        )}
-
-        {/* Markets Card */}
-        {(!hasAnyNewRows || activeCard === 'markets') && (
-          <SettingsCard
-            title="Marketplaces"
-            totalCount={markets.length}
-            selectedRows={selectedMarkets}
-            newRows={newMarketRows}
-            hasNewRows={hasNewMarketRows}
-            toggleAllSelection={toggleAllMarketsSelection}
-            bulkSave={bulkSaveMarkets}
-            bulkDelete={bulkDeleteMarkets}
-            cancelNewRows={cancelNewMarketRows}
-            addNewRow={addNewMarketRow}
-            clearSelection={clearMarketsSelection}
-            data={markets}
-            newRowsData={newMarketRows}
-            onRowToggle={toggleMarketSelection}
-            renderRow={(market) => (
-              <MarketRow
-                key={market.id}
-                market={market}
-                isSelected={selectedMarkets.has(market.id)}
-                onToggleSelection={() => toggleMarketSelection(market.id)}
-                onSave={() => refetchMarkets()}
-                disabled={hasNewMarketRows}
-                isCheckboxDisabled={hasNewMarketRows}
-              />
-            )}
-            renderNewRow={(newRow) => (
-              <NewRowComponent
-                key={newRow.id}
-                row={newRow}
-                isSelected={selectedMarkets.has(newRow.id)}
-                onToggleSelection={() => toggleMarketSelection(newRow.id)}
-                onSave={(data) => {
-                  setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
-                  setSelectedMarkets(new Set());
-                  refetchMarkets();
-                }}
-                onCancel={() => {
-                  setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
-                  setSelectedMarkets(new Set());
-                }}
-              />
-            )}
-            cardType="markets"
-            isExpanded={expandedCard === 'markets'}
-            onToggleExpansion={() => setExpandedCard(expandedCard === 'markets' ? null : 'markets')}
           />
         )}
 
@@ -1526,6 +1667,325 @@ export default function Settings() {
             isExpanded={expandedCard === 'yugioh_cards'}
             onToggleExpansion={() => setExpandedCard(expandedCard === 'yugioh_cards' ? null : 'yugioh_cards')}
           />
+        )}
+              </>
+            )}
+
+            {/* Singles View */}
+            {productsView === 'singles' && (
+              <>
+                {/* Pokemon Singles Card */}
+                {(!hasAnyNewRows || activeCard === 'pokemon_singles') && (
+                  <SettingsCard
+                    title="Pokemon Singles"
+                    totalCount={pokemonCards.length}
+                    selectedRows={selectedPokemonSingles}
+                    newRows={newPokemonSinglesRows}
+                    hasNewRows={hasNewPokemonSinglesRows}
+                    toggleAllSelection={toggleAllPokemonSinglesSelection}
+                    bulkSave={bulkSavePokemonSingles}
+                    bulkDelete={bulkDeletePokemonSingles}
+                    cancelNewRows={() => {
+                      setNewPokemonSinglesRows([]);
+                      setSelectedPokemonSingles(new Set());
+                    }}
+                    addNewRow={addNewPokemonSinglesRow}
+                    clearSelection={() => setSelectedPokemonSingles(new Set())}
+                    data={pokemonCards}
+                    newRowsData={newPokemonSinglesRows}
+                    onRowToggle={togglePokemonSinglesSelection}
+                    renderRow={(card) => (
+                      <CategoryItemRow
+                        key={card.id}
+                        item={card}
+                        isSelected={selectedPokemonSingles.has(card.id)}
+                        onToggleSelection={() => togglePokemonSinglesSelection(card.id)}
+                        onSave={() => refetchPokemonCards()}
+                        disabled={hasNewPokemonSinglesRows}
+                        category="pokemon_cards"
+                        isCheckboxDisabled={hasNewPokemonSinglesRows}
+                      />
+                    )}
+                    renderNewRow={(newRow) => (
+                      <NewCategoryRowComponent
+                        key={newRow.id}
+                        row={newRow}
+                        isSelected={selectedPokemonSingles.has(newRow.id)}
+                        onToggleSelection={() => togglePokemonSinglesSelection(newRow.id)}
+                        onSave={(data) => {
+                          setNewPokemonSinglesRows(prev => prev.filter(row => row.id !== newRow.id));
+                          setSelectedPokemonSingles(new Set());
+                          refetchPokemonCards();
+                        }}
+                        onCancel={() => {
+                          setNewPokemonSinglesRows(prev => prev.filter(row => row.id !== newRow.id));
+                          setSelectedPokemonSingles(new Set());
+                        }}
+                      />
+                    )}
+                    cardType="pokemon_singles"
+                    isExpanded={expandedCard === 'pokemon_singles'}
+                    onToggleExpansion={() => setExpandedCard(expandedCard === 'pokemon_singles' ? null : 'pokemon_singles')}
+                  />
+                )}
+
+                {/* Magic Singles Card */}
+                {(!hasAnyNewRows || activeCard === 'magic_singles') && (
+                  <SettingsCard
+                    title="Magic Singles"
+                    totalCount={magicCards.length}
+                    selectedRows={selectedMagicSingles}
+                    newRows={newMagicSinglesRows}
+                    hasNewRows={hasNewMagicSinglesRows}
+                    toggleAllSelection={toggleAllMagicSinglesSelection}
+                    bulkSave={bulkSaveMagicSingles}
+                    bulkDelete={bulkDeleteMagicSingles}
+                    cancelNewRows={() => {
+                      setNewMagicSinglesRows([]);
+                      setSelectedMagicSingles(new Set());
+                    }}
+                    addNewRow={addNewMagicSinglesRow}
+                    clearSelection={() => setSelectedMagicSingles(new Set())}
+                    data={magicCards}
+                    newRowsData={newMagicSinglesRows}
+                    onRowToggle={toggleMagicSinglesSelection}
+                    renderRow={(card) => (
+                      <CategoryItemRow
+                        key={card.id}
+                        item={card}
+                        isSelected={selectedMagicSingles.has(card.id)}
+                        onToggleSelection={() => toggleMagicSinglesSelection(card.id)}
+                        onSave={() => refetchMagicCards()}
+                        disabled={hasNewMagicSinglesRows}
+                        category="magic_cards"
+                        isCheckboxDisabled={hasNewMagicSinglesRows}
+                      />
+                    )}
+                    renderNewRow={(newRow) => (
+                      <NewCategoryRowComponent
+                        key={newRow.id}
+                        row={newRow}
+                        isSelected={selectedMagicSingles.has(newRow.id)}
+                        onToggleSelection={() => toggleMagicSinglesSelection(newRow.id)}
+                        onSave={(data) => {
+                          setNewMagicSinglesRows(prev => prev.filter(row => row.id !== newRow.id));
+                          setSelectedMagicSingles(new Set());
+                          refetchMagicCards();
+                        }}
+                        onCancel={() => {
+                          setNewMagicSinglesRows(prev => prev.filter(row => row.id !== newRow.id));
+                          setSelectedMagicSingles(new Set());
+                        }}
+                      />
+                    )}
+                    cardType="magic_singles"
+                    isExpanded={expandedCard === 'magic_singles'}
+                    onToggleExpansion={() => setExpandedCard(expandedCard === 'magic_singles' ? null : 'magic_singles')}
+                  />
+                )}
+
+                {/* Yu-Gi-Oh Singles Card */}
+                {(!hasAnyNewRows || activeCard === 'yugioh_singles') && (
+                  <SettingsCard
+                    title="Yu-Gi-Oh Singles"
+                    totalCount={yugiohCards.length}
+                    selectedRows={selectedYugiohSingles}
+                    newRows={newYugiohSinglesRows}
+                    hasNewRows={hasNewYugiohSinglesRows}
+                    toggleAllSelection={toggleAllYugiohSinglesSelection}
+                    bulkSave={bulkSaveYugiohSingles}
+                    bulkDelete={bulkDeleteYugiohSingles}
+                    cancelNewRows={() => {
+                      setNewYugiohSinglesRows([]);
+                      setSelectedYugiohSingles(new Set());
+                    }}
+                    addNewRow={addNewYugiohSinglesRow}
+                    clearSelection={() => setSelectedYugiohSingles(new Set())}
+                    data={yugiohCards}
+                    newRowsData={newYugiohSinglesRows}
+                    onRowToggle={toggleYugiohSinglesSelection}
+                    renderRow={(card) => (
+                      <CategoryItemRow
+                        key={card.id}
+                        item={card}
+                        isSelected={selectedYugiohSingles.has(card.id)}
+                        onToggleSelection={() => toggleYugiohSinglesSelection(card.id)}
+                        onSave={() => refetchYugiohCards()}
+                        disabled={hasNewYugiohSinglesRows}
+                        category="yugioh_cards"
+                        isCheckboxDisabled={hasNewYugiohSinglesRows}
+                      />
+                    )}
+                    renderNewRow={(newRow) => (
+                      <NewCategoryRowComponent
+                        key={newRow.id}
+                        row={newRow}
+                        isSelected={selectedYugiohSingles.has(newRow.id)}
+                        onToggleSelection={() => toggleYugiohSinglesSelection(newRow.id)}
+                        onSave={(data) => {
+                          setNewYugiohSinglesRows(prev => prev.filter(row => row.id !== newRow.id));
+                          setSelectedYugiohSingles(new Set());
+                          refetchYugiohCards();
+                        }}
+                        onCancel={() => {
+                          setNewYugiohSinglesRows(prev => prev.filter(row => row.id !== newRow.id));
+                          setSelectedYugiohSingles(new Set());
+                        }}
+                      />
+                    )}
+                    cardType="yugioh_singles"
+                    isExpanded={expandedCard === 'yugioh_singles'}
+                    onToggleExpansion={() => setExpandedCard(expandedCard === 'yugioh_singles' ? null : 'yugioh_singles')}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Retailers Tab Content */}
+        {activeTab === "retailers" && (
+          <div className="space-y-6">
+            {/* Retailers Card - Always Expanded */}
+            <SettingsCard
+              title="Retailers"
+              totalCount={retailers.length}
+              selectedRows={selectedRetailers}
+              newRows={newRetailerRows}
+              hasNewRows={hasNewRetailerRows}
+              toggleAllSelection={toggleAllRetailersSelection}
+              bulkSave={bulkSaveRetailers}
+              bulkDelete={bulkDeleteRetailers}
+              cancelNewRows={() => setNewRetailerRows([])}
+              addNewRow={() => {
+                const newId = nextNewRowId;
+                setNextNewRowId(newId - 1);
+                setNewRetailerRows(prev => [...prev, { id: newId, type: 'retailer', isNew: true }]);
+                setSelectedRetailers(new Set([newId]));
+              }}
+              clearSelection={clearRetailersSelection}
+              data={retailers}
+              newRowsData={newRetailerRows}
+              onRowToggle={toggleRetailerSelection}
+              renderRow={(item) => (
+                <RetailerRow
+                  key={item.id}
+                  retailer={item}
+                  isSelected={selectedRetailers.has(item.id)}
+                  onToggleSelection={() => toggleRetailerSelection(item.id)}
+                  onSave={() => refetchRetailers()}
+                  disabled={hasNewRetailerRows}
+                  isCheckboxDisabled={hasNewRetailerRows}
+                />
+              )}
+              renderNewRow={(newRow) => (
+                <NewRowComponent
+                  key={newRow.id}
+                  row={newRow}
+                  isSelected={selectedRetailers.has(newRow.id)}
+                  onToggleSelection={() => toggleRetailerSelection(newRow.id)}
+                  onSave={async (data) => {
+                    try {
+                      const { data: newRetailer, error } = await supabase
+                        .from('retailers')
+                        .insert([{ name: data.name }])
+                        .select()
+                        .single();
+                      
+                      if (error) throw error;
+                      
+                      setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
+                      setSelectedRetailers(new Set());
+                      refetchRetailers();
+                    } catch (e) {
+                      alert(`Failed to save: ${e.message}`);
+                    }
+                  }}
+                  onCancel={() => {
+                    setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
+                    setSelectedRetailers(new Set());
+                  }}
+                />
+              )}
+              cardType="retailers"
+              isExpanded={true}
+              onToggleExpansion={() => {}}
+            />
+          </div>
+        )}
+
+        {/* Marketplaces Tab Content */}
+        {activeTab === "marketplaces" && (
+          <div className="space-y-6">
+            {/* Marketplaces Card - Always Expanded */}
+            <SettingsCard
+              title="Marketplaces"
+              totalCount={markets.length}
+              selectedRows={selectedMarkets}
+              newRows={newMarketRows}
+              hasNewRows={hasNewMarketRows}
+              toggleAllSelection={toggleAllMarketsSelection}
+              bulkSave={bulkSaveMarkets}
+              bulkDelete={bulkDeleteMarkets}
+              cancelNewRows={() => setNewMarketRows([])}
+              addNewRow={() => {
+                const newId = nextNewRowId;
+                setNextNewRowId(newId - 1);
+                setNewMarketRows(prev => [...prev, { id: newId, type: 'market', isNew: true }]);
+                setSelectedMarkets(new Set([newId]));
+              }}
+              clearSelection={clearMarketsSelection}
+              data={markets}
+              newRowsData={newMarketRows}
+              onRowToggle={toggleMarketSelection}
+              renderRow={(item) => (
+                <MarketRow
+                  key={item.id}
+                  market={item}
+                  isSelected={selectedMarkets.has(item.id)}
+                  onToggleSelection={() => toggleMarketSelection(item.id)}
+                  onSave={() => refetchMarkets()}
+                  disabled={hasNewMarketRows}
+                  isCheckboxDisabled={hasNewMarketRows}
+                />
+              )}
+              renderNewRow={(newRow) => (
+                <NewRowComponent
+                  key={newRow.id}
+                  row={newRow}
+                  isSelected={selectedMarkets.has(newRow.id)}
+                  onToggleSelection={() => toggleMarketSelection(newRow.id)}
+                  onSave={async (data) => {
+                    try {
+                      const { data: newMarket, error } = await supabase
+                        .from('marketplaces')
+                        .insert([{ 
+                          name: data.name, 
+                          default_fees_pct: parseFloat(data.details) / 100 
+                        }])
+                        .select()
+                        .single();
+                      
+                      if (error) throw error;
+                      
+                      setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
+                      setSelectedMarkets(new Set());
+                      refetchMarkets();
+                    } catch (e) {
+                      alert(`Failed to save: ${e.message}`);
+                    }
+                  }}
+                  onCancel={() => {
+                    setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
+                    setSelectedMarkets(new Set());
+                  }}
+                />
+              )}
+              cardType="markets"
+              isExpanded={true}
+              onToggleExpansion={() => {}}
+            />
+          </div>
         )}
 
     </LayoutWithSidebar>

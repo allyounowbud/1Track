@@ -99,15 +99,16 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     const homeItem = { key: "hub", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", to: "/" };
     
     // Check if we're on the homepage (active is "hub")
-    if (active === "hub") {
-      // On homepage, show workspace tabs
-      return [
-        homeItem,
-        { key: "orderbook", label: "Order Book", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", to: "/add" },
-        { key: "emails", label: "Emails", icon: "M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", to: "/emails" },
-        { key: "profiles", label: "Profiles", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", to: "/profiles" }
-      ];
-    }
+      if (active === "hub") {
+        // On homepage, show workspace tabs
+        return [
+          homeItem,
+          { key: "orderbook", label: "Order Book", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", to: "/add" },
+          { key: "emails", label: "Emails", icon: "M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", to: "/emails" },
+          { key: "profiles", label: "Profiles", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", to: "/profiles" },
+          { key: "database", label: "Database", icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4", to: "/database" }
+        ];
+      }
     
     // When in a specific section, show section-specific items
     switch (section) {
@@ -131,6 +132,13 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
         return [
           homeItem,
           { key: "profiles", label: "Profiles", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", to: "/profiles" }
+        ];
+      case "database":
+        return [
+          homeItem,
+          { key: "products", label: "Products", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4", to: "/database/products" },
+          { key: "retailers", label: "Retailers", icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4", to: "/database/retailers" },
+          { key: "marketplaces", label: "Marketplaces", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6", to: "/database/marketplaces" }
         ];
       default:
         return [homeItem];
