@@ -79,7 +79,7 @@ exports.handler = async (event, context) => {
       throw new Error('Missing Price Charting API key. Please check environment variables.');
     }
     
-    const { category = 'pokemon_cards', clearExisting = false, startLine = 1, maxLines = 1000 } = JSON.parse(event.body || '{}');
+    const { category = 'pokemon_cards', clearExisting = false, startLine = 1, maxLines = 200 } = JSON.parse(event.body || '{}');
     
     console.log(`Starting streaming sync for ${category} from line ${startLine}, max ${maxLines} lines`);
     
@@ -123,7 +123,7 @@ exports.handler = async (event, context) => {
     
     // Process only the requested range of lines
     const endLine = Math.min(startLine + maxLines, lines.length);
-    const batchSize = 100; // Smaller batches for faster processing
+    const batchSize = 50; // Even smaller batches for faster processing
     let processedCount = 0;
     let skippedCount = 0;
     let errorCount = 0;

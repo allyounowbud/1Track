@@ -364,6 +364,34 @@ export default function Admin() {
                 </button>
                 <button
                   onClick={async () => {
+                    setIsSyncing(true);
+                    setSyncStatus('Running minimal CSV test...');
+                    try {
+                      const response = await fetch('/.netlify/functions/test-csv-minimal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                      });
+                      const result = await response.json();
+                      if (result.success) {
+                        setSyncStatus(`✅ Minimal test successful: ${result.message}`);
+                        refetchCounts();
+                      } else {
+                        setSyncStatus(`❌ Minimal test failed: ${result.error}`);
+                      }
+                    } catch (error) {
+                      setSyncStatus(`❌ Minimal test failed: ${error.message}`);
+                    } finally {
+                      setIsSyncing(false);
+                    }
+                  }}
+                  disabled={isSyncing}
+                  className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 rounded text-sm transition-colors"
+                >
+                  Minimal CSV Test
+                </button>
+                <button
+                  onClick={async () => {
                     const clearExisting = confirm('Clear existing Pokemon cards data and sync fresh?');
                     setIsSyncing(true);
                     setSyncStatus('Starting efficient sync...');

@@ -18,7 +18,7 @@ export default function StreamingSync({ category, onComplete }) {
 
     try {
       while (hasMore) {
-        setStatus(`Processing lines ${startLine} to ${startLine + 999}...`);
+        setStatus(`Processing lines ${startLine} to ${startLine + 199}...`);
         
         const response = await fetch('/.netlify/functions/csv-sync-streaming', {
           method: 'POST',
@@ -27,7 +27,7 @@ export default function StreamingSync({ category, onComplete }) {
             category, 
             clearExisting: clearExisting && startLine === 1,
             startLine,
-            maxLines: 1000
+            maxLines: 200
           })
         });
 
