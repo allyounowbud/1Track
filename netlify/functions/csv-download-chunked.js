@@ -170,6 +170,7 @@ async function downloadAndStoreCSVBatch(category, batchSize = 500) {
         if (values.length === headers.length) {
           const product = {};
           headers.forEach((header, index) => {
+            // Keep the original hyphenated field names from CSV
             product[header] = values[index];
           });
           
@@ -178,9 +179,9 @@ async function downloadAndStoreCSVBatch(category, batchSize = 500) {
             console.log(`Sample product ${totalProcessed + 1}:`, product);
           }
           
-          // Validate required fields
-          const productName = product.product_name || product.name || '';
-          const productId = product.id || product.product_id || '';
+          // Validate required fields - using correct CSV field names
+          const productName = product['product-name'] || '';
+          const productId = product.id || '';
           
           // Skip products with missing required fields
           if (!productName.trim() || !productId.trim()) {
@@ -188,17 +189,23 @@ async function downloadAndStoreCSVBatch(category, batchSize = 500) {
             continue;
           }
           
+          // Parse prices (remove $ and convert to float)
+          const parsePrice = (priceStr) => {
+            if (!priceStr || priceStr === '$0.00' || priceStr === '') return 0;
+            return parseFloat(priceStr.replace(/[$,]/g, '')) || 0;
+          };
+          
           batchProducts.push({
             category,
             product_id: productId,
             product_name: productName,
-            console_name: product.console_name || product.console || null,
-            loose_price: parseFloat(product.loose_price) || 0,
-            cib_price: parseFloat(product.cib_price) || 0,
-            new_price: parseFloat(product.new_price) || 0,
-            graded_price: parseFloat(product.graded_price) || 0,
-            box_price: parseFloat(product.box_price) || 0,
-            manual_price: parseFloat(product.manual_price) || 0,
+            console_name: product['console-name'] || null,
+            loose_price: parsePrice(product['loose-price']),
+            cib_price: parsePrice(product['cib-price']),
+            new_price: parsePrice(product['new-price']),
+            graded_price: parsePrice(product['graded-price']),
+            box_price: parsePrice(product['box-only-price']),
+            manual_price: parsePrice(product['manual-only-price']),
             raw_data: product,
             downloaded_at: new Date().toISOString()
           });
