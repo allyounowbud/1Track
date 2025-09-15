@@ -332,21 +332,21 @@ export default function Admin() {
                 <button
                   onClick={async () => {
                     setIsSyncing(true);
-                    setSyncStatus('Testing CSV URL accessibility...');
+                    setSyncStatus('Running simple test...');
                     try {
-                      const response = await fetch('/.netlify/functions/test-csv-head', {
+                      const response = await fetch('/.netlify/functions/test-simple', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({})
                       });
                       const result = await response.json();
                       if (result.success) {
-                        setSyncStatus(`✅ CSV URL accessible: ${result.message}`);
+                        setSyncStatus(`✅ Simple test successful: ${result.message}`);
                       } else {
-                        setSyncStatus(`❌ CSV URL test failed: ${result.error}`);
+                        setSyncStatus(`❌ Simple test failed: ${result.error}`);
                       }
                     } catch (error) {
-                      setSyncStatus(`❌ CSV URL test failed: ${error.message}`);
+                      setSyncStatus(`❌ Simple test failed: ${error.message}`);
                     } finally {
                       setIsSyncing(false);
                     }
@@ -354,7 +354,7 @@ export default function Admin() {
                   disabled={isSyncing}
                   className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 rounded text-sm transition-colors"
                 >
-                  Test CSV URL
+                  Simple Test
                 </button>
                 <button
                   onClick={async () => {
