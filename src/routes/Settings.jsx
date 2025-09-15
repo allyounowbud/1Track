@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
 import { moneyToCents, centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm, headerIconBtn, headerGhostBtn, iconSave, iconSaveBusy, iconDelete } from "../utils/ui.js";
 
@@ -1160,6 +1161,16 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
   const [details, setDetails] = useState("");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const handleProductSelect = (product) => {
+    setSelectedProduct(product);
+    setName(product.product_name);
+    // Set market value from the product data if available
+    if (product.loose_price) {
+      setDetails(product.loose_price.toString());
+    }
+  };
 
   const handleSave = async () => {
     if (busy) return;
@@ -1169,9 +1180,25 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
     try {
       if (row.type === 'item') {
         const market_value_cents = moneyToCents(details);
+        const itemData = { 
+          name: name.trim(), 
+          market_value_cents,
+          price_source: selectedProduct ? 'api' : 'manual'
+        };
+        
+        // Add API-related fields if a product was selected
+        if (selectedProduct) {
+          itemData.api_product_id = selectedProduct.product_id;
+          itemData.api_price_cents = selectedProduct.loose_price ? Math.round(selectedProduct.loose_price * 100) : null;
+          itemData.api_last_updated = new Date().toISOString();
+          itemData.upc_code = selectedProduct.upc_code || null;
+          itemData.product_category = 'Pokemon Cards';
+          itemData.console_name = selectedProduct.console_name || null;
+        }
+        
         const { error } = await supabase
           .from("items")
-          .insert({ name: name.trim(), market_value_cents });
+          .insert(itemData);
         if (error) throw error;
       } else if (row.type === 'retailer') {
         const { error } = await supabase
@@ -1234,16 +1261,28 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
           ? 'grid-cols-1 sm:grid-cols-[1fr_auto]' 
           : 'grid-cols-1 sm:grid-cols-[2fr_1fr]'
       }`}>
-        <input
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
-          value={name}
-          onChange={(e) => {
-            e.stopPropagation();
-            setName(e.target.value);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          placeholder={getPlaceholder()}
-        />
+        {row.type === 'item' ? (
+          <div onClick={(e) => e.stopPropagation()}>
+            <ProductSearchDropdown
+              value={name}
+              onChange={setName}
+              onProductSelect={handleProductSelect}
+              placeholder="Search Pokemon cards..."
+              className="w-full"
+            />
+          </div>
+        ) : (
+          <input
+            className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            value={name}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder={getPlaceholder()}
+          />
+        )}
         
         <div className="flex items-center gap-2">
           {row.type !== 'retailer' && (
@@ -1298,16 +1337,28 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
              row.type === 'retailer' ? 'Retailer Name' : 
              'Marketplace Name'}
           </label>
-          <input
-            className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
-            value={name}
-            onChange={(e) => {
-              e.stopPropagation();
-              setName(e.target.value);
-            }}
-            onClick={(e) => e.stopPropagation()}
-            placeholder={getPlaceholder()}
-          />
+          {row.type === 'item' ? (
+            <div onClick={(e) => e.stopPropagation()}>
+              <ProductSearchDropdown
+                value={name}
+                onChange={setName}
+                onProductSelect={handleProductSelect}
+                placeholder="Search Pokemon cards..."
+                className="w-full"
+              />
+            </div>
+          ) : (
+            <input
+              className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+              value={name}
+              onChange={(e) => {
+                e.stopPropagation();
+                setName(e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={getPlaceholder()}
+            />
+          )}
         </div>
         
         {row.type !== 'retailer' && (
