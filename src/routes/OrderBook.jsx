@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
 const fmtNiceDate = (yyyyMmDd) => {
@@ -1239,6 +1240,22 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       return newMap;
     });
   };
+
+  const handleProductSelect = (product) => {
+    // When a product is selected from the search dropdown, set the item name
+    // and potentially update other fields with product data
+    setFormStates(prev => {
+      const newMap = new Map(prev);
+      const currentState = newMap.get(order.id) || {};
+      newMap.set(order.id, { 
+        ...currentState, 
+        item: product.product_name,
+        // You could also set market value or other fields here if needed
+        // marketValue: product.loose_price ? `$${product.loose_price}` : ""
+      });
+      return newMap;
+    });
+  };
   
   const setProfile = (value) => {
     setFormStates(prev => {
@@ -1428,19 +1445,15 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         />
 
         {/* Item Name - Most Important */}
-        <select
-          value={formState.item || ""}
-          onChange={(e) => setItem(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className="bg-transparent border-none px-2 py-2 text-sm text-slate-100 focus:outline-none w-full min-w-0 [&>option]:bg-slate-800 [&>option]:text-slate-100 appearance-none cursor-pointer pr-6 rounded-none shadow-none"
-        >
-          <option value="">Select item...</option>
-          {items.map((it) => (
-            <option key={it.name} value={it.name}>
-              {it.name}
-            </option>
-          ))}
-        </select>
+        <div onClick={(e) => e.stopPropagation()}>
+          <ProductSearchDropdown
+            value={formState.item || ""}
+            onChange={setItem}
+            onProductSelect={handleProductSelect}
+            placeholder="Search for a product..."
+            className="w-full"
+          />
+        </div>
 
         {/* Profile */}
         <input
@@ -1540,19 +1553,15 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           {/* Item */}
           <div>
             <label className="block text-xs text-slate-400 mb-1">Item</label>
-            <select
-              value={formState.item || ""}
-              onChange={(e) => setItem(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none [&>option]:bg-slate-800 [&>option]:text-slate-100"
-            >
-              <option value="">Select item...</option>
-              {items.map((it) => (
-                <option key={it.name} value={it.name}>
-                  {it.name}
-                </option>
-              ))}
-            </select>
+            <div onClick={(e) => e.stopPropagation()}>
+              <ProductSearchDropdown
+                value={formState.item || ""}
+                onChange={setItem}
+                onProductSelect={handleProductSelect}
+                placeholder="Search for a product..."
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Profile */}
