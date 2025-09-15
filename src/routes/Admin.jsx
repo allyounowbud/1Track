@@ -140,6 +140,33 @@ export default function Admin() {
     }
   };
 
+  const handleDebugCSV = async () => {
+    setIsSyncing(true);
+    setSyncStatus(`Debugging CSV structure...`);
+    
+    try {
+      const response = await fetch('/.netlify/functions/debug-csv-structure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      const result = await response.json();
+      setSyncStatus(`✅ CSV Debug: ${result.message}`);
+      console.log('CSV Structure:', result);
+      
+    } catch (error) {
+      setSyncStatus(`❌ Debug failed: ${error.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleFullSync = async () => {
     setIsSyncing(true);
     setSyncStatus('Starting full sync of all categories...');
@@ -174,7 +201,16 @@ export default function Admin() {
         
         {/* Sync Controls */}
         <div className="bg-slate-800 rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">CSV Sync Controls</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">CSV Sync Controls</h2>
+            <button
+              onClick={handleDebugCSV}
+              disabled={isSyncing}
+              className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 rounded text-sm transition-colors"
+            >
+              Debug CSV Structure
+            </button>
+          </div>
           
           <div className="space-y-4 mb-4">
             {/* Video Games */}
