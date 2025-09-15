@@ -5,11 +5,13 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+const PRICE_CHARTING_API_KEY = process.env.PRICE_CHARTING_API_KEY;
+
 const CSV_URLS = {
-  video_games: 'https://www.pricecharting.com/download/video-games.csv?t=YOUR_API_KEY',
-  pokemon_cards: 'https://www.pricecharting.com/download/pokemon-cards.csv?t=YOUR_API_KEY',
-  magic_cards: 'https://www.pricecharting.com/download/magic-cards.csv?t=YOUR_API_KEY',
-  yugioh_cards: 'https://www.pricecharting.com/download/yugioh-cards.csv?t=YOUR_API_KEY'
+  video_games: `https://www.pricecharting.com/download/video-games.csv?t=${PRICE_CHARTING_API_KEY}`,
+  pokemon_cards: `https://www.pricecharting.com/download/pokemon-cards.csv?t=${PRICE_CHARTING_API_KEY}`,
+  magic_cards: `https://www.pricecharting.com/download/magic-cards.csv?t=${PRICE_CHARTING_API_KEY}`,
+  yugioh_cards: `https://www.pricecharting.com/download/yugioh-cards.csv?t=${PRICE_CHARTING_API_KEY}`
 };
 
 // Helper function to parse CSV lines
@@ -80,14 +82,22 @@ exports.handler = async (event, context) => {
       throw new Error('Missing Supabase configuration. Please check environment variables.');
     }
     
+    if (!PRICE_CHARTING_API_KEY) {
+      throw new Error('Missing Price Charting API key. Please check environment variables.');
+    }
+    
     const { category = 'pokemon_cards', clearExisting = false } = JSON.parse(event.body || '{}');
     
     console.log(`Starting efficient sync for ${category}`);
+    console.log(`API Key configured: ${!!PRICE_CHARTING_API_KEY}`);
+    console.log(`API Key length: ${PRICE_CHARTING_API_KEY ? PRICE_CHARTING_API_KEY.length : 0}`);
     
     const csvUrl = CSV_URLS[category];
     if (!csvUrl) {
       throw new Error(`Unknown category: ${category}`);
     }
+    
+    console.log(`CSV URL: ${csvUrl.substring(0, 50)}...`);
     
     // Download CSV once
     console.log(`Downloading CSV for ${category}...`);
