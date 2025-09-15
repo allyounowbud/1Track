@@ -49,6 +49,27 @@ async function triggerCSVDownload(category) {
   return JSON.parse(responseText);
 }
 
+// Admin function to trigger efficient CSV sync
+async function triggerEfficientSync(category, clearExisting = false) {
+  console.log(`Triggering efficient sync for category: ${category}`);
+  
+  const response = await fetch('/.netlify/functions/csv-sync-efficient', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category, clearExisting })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+  
+  const responseText = await response.text();
+  console.log('Efficient sync response:', responseText);
+  
+  return JSON.parse(responseText);
+}
+
 // Get download logs
 async function getDownloadLogs() {
   const { data, error } = await supabase
@@ -307,6 +328,27 @@ export default function Admin() {
                   className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-800 disabled:opacity-50 rounded text-sm transition-colors"
                 >
                   Check Progress
+                </button>
+                <button
+                  onClick={async () => {
+                    const clearExisting = confirm('Clear existing Pokemon cards data and sync fresh?');
+                    setIsSyncing(true);
+                    setSyncStatus('Starting efficient sync...');
+                    try {
+                      const result = await triggerEfficientSync('pokemon_cards', clearExisting);
+                      setSyncStatus(`✅ Efficient sync completed: ${result.processed} products processed`);
+                      refetchCounts();
+                      refetchLogs();
+                    } catch (error) {
+                      setSyncStatus(`❌ Efficient sync failed: ${error.message}`);
+                    } finally {
+                      setIsSyncing(false);
+                    }
+                  }}
+                  disabled={isSyncing}
+                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 disabled:opacity-50 rounded text-sm transition-colors"
+                >
+                  Efficient Sync
                 </button>
               </div>
               {csvStatus.pokemon_cards && (
