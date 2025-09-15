@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
+import { CategoryItemRow, NewCategoryRowComponent } from "../components/CategoryComponents.jsx";
 import { moneyToCents, centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm, headerIconBtn, headerGhostBtn, iconSave, iconSaveBusy, iconDelete } from "../utils/ui.js";
 
@@ -13,6 +14,43 @@ async function getItems() {
   const { data, error } = await supabase
     .from("items")
     .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+// Category-specific queries
+async function getPokemonCards() {
+  const { data, error } = await supabase
+    .from("pokemon_cards")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+async function getVideoGames() {
+  const { data, error } = await supabase
+    .from("video_games")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+async function getMagicCards() {
+  const { data, error } = await supabase
+    .from("magic_cards")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+async function getYugiohCards() {
+  const { data, error } = await supabase
+    .from("yugioh_cards")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name")
     .order("name", { ascending: true });
   if (error) throw error;
   return data;
@@ -136,6 +174,28 @@ export default function Settings() {
     return () => document.head.removeChild(tag);
   }, []);
 
+  // Category-specific queries
+  const { data: pokemonCards = [], refetch: refetchPokemonCards } = useQuery({
+    queryKey: ["pokemon_cards"],
+    queryFn: getPokemonCards,
+  });
+  
+  const { data: videoGames = [], refetch: refetchVideoGames } = useQuery({
+    queryKey: ["video_games"],
+    queryFn: getVideoGames,
+  });
+  
+  const { data: magicCards = [], refetch: refetchMagicCards } = useQuery({
+    queryKey: ["magic_cards"],
+    queryFn: getMagicCards,
+  });
+  
+  const { data: yugiohCards = [], refetch: refetchYugiohCards } = useQuery({
+    queryKey: ["yugioh_cards"],
+    queryFn: getYugiohCards,
+  });
+
+  // Keep the old items query for backward compatibility during transition
   const { data: items = [], refetch: refetchItems } = useQuery({
     queryKey: ["items"],
     queryFn: getItems,
@@ -154,14 +214,26 @@ export default function Settings() {
   const [selectedRetailers, setSelectedRetailers] = useState(new Set());
   const [selectedMarkets, setSelectedMarkets] = useState(new Set());
   
+  // Category-specific states
+  const [selectedPokemonCards, setSelectedPokemonCards] = useState(new Set());
+  const [selectedVideoGames, setSelectedVideoGames] = useState(new Set());
+  const [selectedMagicCards, setSelectedMagicCards] = useState(new Set());
+  const [selectedYugiohCards, setSelectedYugiohCards] = useState(new Set());
+  
   const [newItemRows, setNewItemRows] = useState([]);
   const [newRetailerRows, setNewRetailerRows] = useState([]);
   const [newMarketRows, setNewMarketRows] = useState([]);
   
+  // Category-specific new row states
+  const [newPokemonCardRows, setNewPokemonCardRows] = useState([]);
+  const [newVideoGameRows, setNewVideoGameRows] = useState([]);
+  const [newMagicCardRows, setNewMagicCardRows] = useState([]);
+  const [newYugiohCardRows, setNewYugiohCardRows] = useState([]);
+  
   const [nextNewRowId, setNextNewRowId] = useState(-1);
   
   // Single card expansion state
-  const [expandedCard, setExpandedCard] = useState(null); // 'items', 'retailers', 'markets', or null
+  const [expandedCard, setExpandedCard] = useState(null); // 'items', 'retailers', 'markets', 'pokemon_cards', 'video_games', 'magic_cards', 'yugioh_cards', or null
   
   // Price Charting API state
   const [searchResults, setSearchResults] = useState([]);
@@ -174,12 +246,18 @@ export default function Settings() {
   // Update bulk actions visibility for each card
   useEffect(() => {
     // Each card manages its own bulk actions visibility
-  }, [selectedItems, selectedRetailers, selectedMarkets]);
+  }, [selectedItems, selectedRetailers, selectedMarkets, selectedPokemonCards, selectedVideoGames, selectedMagicCards, selectedYugiohCards]);
 
   // Helper functions to check if there are new rows in each system
   const hasNewItemRows = newItemRows.length > 0;
   const hasNewRetailerRows = newRetailerRows.length > 0;
   const hasNewMarketRows = newMarketRows.length > 0;
+  
+  // Category-specific helper functions
+  const hasNewPokemonCardRows = newPokemonCardRows.length > 0;
+  const hasNewVideoGameRows = newVideoGameRows.length > 0;
+  const hasNewMagicCardRows = newMagicCardRows.length > 0;
+  const hasNewYugiohCardRows = newYugiohCardRows.length > 0;
 
   /* ----- Items Card Operations ----- */
   function toggleItemSelection(rowId) {
@@ -715,6 +793,248 @@ export default function Settings() {
     else await refetchMarkets();
   }
 
+  /* ----- Category-specific Operations ----- */
+  
+  // Pokemon Cards Operations
+  function togglePokemonCardSelection(rowId) {
+    const newSelected = new Set(selectedPokemonCards);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (hasNewPokemonCardRows) {
+        setSelectedPokemonCards(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedPokemonCards(newSelected);
+  }
+
+  function addNewPokemonCardRow() {
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewPokemonCardRows(prev => [...prev, { id: newId, type: 'pokemon_card', isNew: true }]);
+    setSelectedPokemonCards(new Set([newId]));
+  }
+
+  // Video Games Operations
+  function toggleVideoGameSelection(rowId) {
+    const newSelected = new Set(selectedVideoGames);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (hasNewVideoGameRows) {
+        setSelectedVideoGames(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedVideoGames(newSelected);
+  }
+
+  function addNewVideoGameRow() {
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewVideoGameRows(prev => [...prev, { id: newId, type: 'video_game', isNew: true }]);
+    setSelectedVideoGames(new Set([newId]));
+  }
+
+  // Magic Cards Operations
+  function toggleMagicCardSelection(rowId) {
+    const newSelected = new Set(selectedMagicCards);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (hasNewMagicCardRows) {
+        setSelectedMagicCards(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedMagicCards(newSelected);
+  }
+
+  function addNewMagicCardRow() {
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewMagicCardRows(prev => [...prev, { id: newId, type: 'magic_card', isNew: true }]);
+    setSelectedMagicCards(new Set([newId]));
+  }
+
+  // Yu-Gi-Oh Cards Operations
+  function toggleYugiohCardSelection(rowId) {
+    const newSelected = new Set(selectedYugiohCards);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (hasNewYugiohCardRows) {
+        setSelectedYugiohCards(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedYugiohCards(newSelected);
+  }
+
+  function addNewYugiohCardRow() {
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewYugiohCardRows(prev => [...prev, { id: newId, type: 'yugioh_card', isNew: true }]);
+    setSelectedYugiohCards(new Set([newId]));
+  }
+
+  /* ----- Category-specific Bulk Operations ----- */
+  
+  // Pokemon Cards Bulk Operations
+  function toggleAllPokemonCardsSelection() {
+    if (selectedPokemonCards.size === pokemonCards.length) {
+      if (hasNewPokemonCardRows) return;
+      setSelectedPokemonCards(new Set());
+    } else {
+      const allIds = pokemonCards.map(card => card.id);
+      setSelectedPokemonCards(new Set(allIds));
+    }
+  }
+
+  async function bulkSavePokemonCards() {
+    // This will be handled by individual row save buttons
+    // Bulk save is not needed since each row saves individually
+    setSelectedPokemonCards(new Set());
+  }
+
+  async function bulkDeletePokemonCards() {
+    const selectedIds = Array.from(selectedPokemonCards).filter(id => id > 0);
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.length} pokemon card(s)? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('pokemon_cards')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      await refetchPokemonCards();
+      setSelectedPokemonCards(new Set());
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
+  // Video Games Bulk Operations
+  function toggleAllVideoGamesSelection() {
+    if (selectedVideoGames.size === videoGames.length) {
+      if (hasNewVideoGameRows) return;
+      setSelectedVideoGames(new Set());
+    } else {
+      const allIds = videoGames.map(game => game.id);
+      setSelectedVideoGames(new Set(allIds));
+    }
+  }
+
+  async function bulkSaveVideoGames() {
+    setSelectedVideoGames(new Set());
+  }
+
+  async function bulkDeleteVideoGames() {
+    const selectedIds = Array.from(selectedVideoGames).filter(id => id > 0);
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.length} video game(s)? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('video_games')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      await refetchVideoGames();
+      setSelectedVideoGames(new Set());
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
+  // Magic Cards Bulk Operations
+  function toggleAllMagicCardsSelection() {
+    if (selectedMagicCards.size === magicCards.length) {
+      if (hasNewMagicCardRows) return;
+      setSelectedMagicCards(new Set());
+    } else {
+      const allIds = magicCards.map(card => card.id);
+      setSelectedMagicCards(new Set(allIds));
+    }
+  }
+
+  async function bulkSaveMagicCards() {
+    setSelectedMagicCards(new Set());
+  }
+
+  async function bulkDeleteMagicCards() {
+    const selectedIds = Array.from(selectedMagicCards).filter(id => id > 0);
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.length} magic card(s)? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('magic_cards')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      await refetchMagicCards();
+      setSelectedMagicCards(new Set());
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
+  // Yu-Gi-Oh Cards Bulk Operations
+  function toggleAllYugiohCardsSelection() {
+    if (selectedYugiohCards.size === yugiohCards.length) {
+      if (hasNewYugiohCardRows) return;
+      setSelectedYugiohCards(new Set());
+    } else {
+      const allIds = yugiohCards.map(card => card.id);
+      setSelectedYugiohCards(new Set(allIds));
+    }
+  }
+
+  async function bulkSaveYugiohCards() {
+    setSelectedYugiohCards(new Set());
+  }
+
+  async function bulkDeleteYugiohCards() {
+    const selectedIds = Array.from(selectedYugiohCards).filter(id => id > 0);
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.length} yugioh card(s)? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('yugioh_cards')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      await refetchYugiohCards();
+      setSelectedYugiohCards(new Set());
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
   return (
     <LayoutWithSidebar active="database" section="orderbook">
       <PageHeader title="Settings" />
@@ -879,6 +1199,223 @@ export default function Settings() {
           onToggleExpansion={() => setExpandedCard(expandedCard === 'markets' ? null : 'markets')}
         />
         )}
+
+        {/* Pokemon Cards Card */}
+        {!(hasNewItemRows || hasNewRetailerRows || hasNewMarketRows || hasNewPokemonCardRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewYugiohCardRows) && (
+        <SettingsCard
+          title="Pokemon Cards"
+          totalCount={pokemonCards.length}
+          selectedRows={selectedPokemonCards}
+          newRows={newPokemonCardRows}
+          hasNewRows={hasNewPokemonCardRows}
+          toggleAllSelection={toggleAllPokemonCardsSelection}
+          bulkSave={bulkSavePokemonCards}
+          bulkDelete={bulkDeletePokemonCards}
+          cancelNewRows={() => {
+            setNewPokemonCardRows([]);
+            setSelectedPokemonCards(new Set());
+          }}
+          addNewRow={addNewPokemonCardRow}
+          clearSelection={() => setSelectedPokemonCards(new Set())}
+          data={pokemonCards}
+          newRowsData={newPokemonCardRows}
+          onRowToggle={togglePokemonCardSelection}
+          renderRow={(card) => (
+            <CategoryItemRow
+              key={card.id}
+              item={card}
+              isSelected={selectedPokemonCards.has(card.id)}
+              onToggleSelection={() => togglePokemonCardSelection(card.id)}
+              onSave={() => refetchPokemonCards()}
+              disabled={hasNewPokemonCardRows}
+              category="pokemon_cards"
+            />
+          )}
+          renderNewRow={(newRow) => (
+            <NewCategoryRowComponent
+              key={newRow.id}
+              row={newRow}
+              isSelected={selectedPokemonCards.has(newRow.id)}
+              onToggleSelection={() => togglePokemonCardSelection(newRow.id)}
+              onSave={(data) => {
+                setNewPokemonCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedPokemonCards(new Set());
+                refetchPokemonCards();
+              }}
+              onCancel={() => {
+                setNewPokemonCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedPokemonCards(new Set());
+              }}
+            />
+          )}
+          cardType="pokemon_cards"
+          isExpanded={expandedCard === 'pokemon_cards'}
+          onToggleExpansion={() => setExpandedCard(expandedCard === 'pokemon_cards' ? null : 'pokemon_cards')}
+        />
+        )}
+
+        {/* Video Games Card */}
+        {!(hasNewItemRows || hasNewRetailerRows || hasNewMarketRows || hasNewPokemonCardRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewYugiohCardRows) && (
+        <SettingsCard
+          title="Video Games"
+          totalCount={videoGames.length}
+          selectedRows={selectedVideoGames}
+          newRows={newVideoGameRows}
+          hasNewRows={hasNewVideoGameRows}
+          toggleAllSelection={toggleAllVideoGamesSelection}
+          bulkSave={bulkSaveVideoGames}
+          bulkDelete={bulkDeleteVideoGames}
+          cancelNewRows={() => {
+            setNewVideoGameRows([]);
+            setSelectedVideoGames(new Set());
+          }}
+          addNewRow={addNewVideoGameRow}
+          clearSelection={() => setSelectedVideoGames(new Set())}
+          data={videoGames}
+          newRowsData={newVideoGameRows}
+          onRowToggle={toggleVideoGameSelection}
+          renderRow={(game) => (
+            <CategoryItemRow
+              key={game.id}
+              item={game}
+              isSelected={selectedVideoGames.has(game.id)}
+              onToggleSelection={() => toggleVideoGameSelection(game.id)}
+              onSave={() => refetchVideoGames()}
+              disabled={hasNewVideoGameRows}
+              category="video_games"
+            />
+          )}
+          renderNewRow={(newRow) => (
+            <NewCategoryRowComponent
+              key={newRow.id}
+              row={newRow}
+              isSelected={selectedVideoGames.has(newRow.id)}
+              onToggleSelection={() => toggleVideoGameSelection(newRow.id)}
+              onSave={(data) => {
+                setNewVideoGameRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedVideoGames(new Set());
+                refetchVideoGames();
+              }}
+              onCancel={() => {
+                setNewVideoGameRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedVideoGames(new Set());
+              }}
+            />
+          )}
+          cardType="video_games"
+          isExpanded={expandedCard === 'video_games'}
+          onToggleExpansion={() => setExpandedCard(expandedCard === 'video_games' ? null : 'video_games')}
+        />
+        )}
+
+        {/* Magic Cards Card */}
+        {!(hasNewItemRows || hasNewRetailerRows || hasNewMarketRows || hasNewPokemonCardRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewYugiohCardRows) && (
+        <SettingsCard
+          title="Magic Cards"
+          totalCount={magicCards.length}
+          selectedRows={selectedMagicCards}
+          newRows={newMagicCardRows}
+          hasNewRows={hasNewMagicCardRows}
+          toggleAllSelection={toggleAllMagicCardsSelection}
+          bulkSave={bulkSaveMagicCards}
+          bulkDelete={bulkDeleteMagicCards}
+          cancelNewRows={() => {
+            setNewMagicCardRows([]);
+            setSelectedMagicCards(new Set());
+          }}
+          addNewRow={addNewMagicCardRow}
+          clearSelection={() => setSelectedMagicCards(new Set())}
+          data={magicCards}
+          newRowsData={newMagicCardRows}
+          onRowToggle={toggleMagicCardSelection}
+          renderRow={(card) => (
+            <CategoryItemRow
+              key={card.id}
+              item={card}
+              isSelected={selectedMagicCards.has(card.id)}
+              onToggleSelection={() => toggleMagicCardSelection(card.id)}
+              onSave={() => refetchMagicCards()}
+              disabled={hasNewMagicCardRows}
+              category="magic_cards"
+            />
+          )}
+          renderNewRow={(newRow) => (
+            <NewCategoryRowComponent
+              key={newRow.id}
+              row={newRow}
+              isSelected={selectedMagicCards.has(newRow.id)}
+              onToggleSelection={() => toggleMagicCardSelection(newRow.id)}
+              onSave={(data) => {
+                setNewMagicCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedMagicCards(new Set());
+                refetchMagicCards();
+              }}
+              onCancel={() => {
+                setNewMagicCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedMagicCards(new Set());
+              }}
+            />
+          )}
+          cardType="magic_cards"
+          isExpanded={expandedCard === 'magic_cards'}
+          onToggleExpansion={() => setExpandedCard(expandedCard === 'magic_cards' ? null : 'magic_cards')}
+        />
+        )}
+
+        {/* Yu-Gi-Oh Cards Card */}
+        {!(hasNewItemRows || hasNewRetailerRows || hasNewMarketRows || hasNewPokemonCardRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewYugiohCardRows) && (
+        <SettingsCard
+          title="Yu-Gi-Oh Cards"
+          totalCount={yugiohCards.length}
+          selectedRows={selectedYugiohCards}
+          newRows={newYugiohCardRows}
+          hasNewRows={hasNewYugiohCardRows}
+          toggleAllSelection={toggleAllYugiohCardsSelection}
+          bulkSave={bulkSaveYugiohCards}
+          bulkDelete={bulkDeleteYugiohCards}
+          cancelNewRows={() => {
+            setNewYugiohCardRows([]);
+            setSelectedYugiohCards(new Set());
+          }}
+          addNewRow={addNewYugiohCardRow}
+          clearSelection={() => setSelectedYugiohCards(new Set())}
+          data={yugiohCards}
+          newRowsData={newYugiohCardRows}
+          onRowToggle={toggleYugiohCardSelection}
+          renderRow={(card) => (
+            <CategoryItemRow
+              key={card.id}
+              item={card}
+              isSelected={selectedYugiohCards.has(card.id)}
+              onToggleSelection={() => toggleYugiohCardSelection(card.id)}
+              onSave={() => refetchYugiohCards()}
+              disabled={hasNewYugiohCardRows}
+              category="yugioh_cards"
+            />
+          )}
+          renderNewRow={(newRow) => (
+            <NewCategoryRowComponent
+              key={newRow.id}
+              row={newRow}
+              isSelected={selectedYugiohCards.has(newRow.id)}
+              onToggleSelection={() => toggleYugiohCardSelection(newRow.id)}
+              onSave={(data) => {
+                setNewYugiohCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedYugiohCards(new Set());
+                refetchYugiohCards();
+              }}
+              onCancel={() => {
+                setNewYugiohCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                setSelectedYugiohCards(new Set());
+              }}
+            />
+          )}
+          cardType="yugioh_cards"
+          isExpanded={expandedCard === 'yugioh_cards'}
+          onToggleExpansion={() => setExpandedCard(expandedCard === 'yugioh_cards' ? null : 'yugioh_cards')}
+        />
+        )}
+
     </LayoutWithSidebar>
   );
 }
@@ -944,6 +1481,10 @@ function SettingsCard({
                   {cardType === 'items' && "Product catalog with names and market values"}
                   {cardType === 'retailers' && "Retailers where you purchase items"}
                   {cardType === 'markets' && "Marketplaces with their fee percentages"}
+                  {cardType === 'pokemon_cards' && "Pokemon card collection with names and market values"}
+                  {cardType === 'video_games' && "Video game collection with names and market values"}
+                  {cardType === 'magic_cards' && "Magic: The Gathering card collection with names and market values"}
+                  {cardType === 'yugioh_cards' && "Yu-Gi-Oh card collection with names and market values"}
                 </p>
               </div>
               
@@ -971,6 +1512,10 @@ function SettingsCard({
                     {cardType === 'items' && "No products yet"}
                     {cardType === 'retailers' && "No retailers yet"}
                     {cardType === 'markets' && "No marketplaces yet"}
+                    {cardType === 'pokemon_cards' && "No pokemon cards yet"}
+                    {cardType === 'video_games' && "No video games yet"}
+                    {cardType === 'magic_cards' && "No magic cards yet"}
+                    {cardType === 'yugioh_cards' && "No yugioh cards yet"}
                   </p>
                 </div>
               )}
@@ -1474,10 +2019,27 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
   const [consoleName, setConsoleName] = useState(item?.console_name ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const handleProductSelect = (product) => {
+    setSelectedProduct(product);
+    setName(product.product_name);
+    // Set market value from the product data if available
+    if (product.loose_price) {
+      setMv(product.loose_price.toString());
+    }
+    // Set other fields if available
+    if (product.upc_code) {
+      setUpcCode(product.upc_code);
+    }
+    if (product.console_name) {
+      setConsoleName(product.console_name);
+    }
+    // Set category to Pokemon Cards if it's a Pokemon product
+    if (product.console_name && product.console_name.toLowerCase().includes('pokemon')) {
+      setProductCategory('Pokemon Cards');
+    }
+  };
 
   async function updateItem() {
     if (busy || disabled) return;
@@ -1485,15 +2047,27 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
     setStatus("Saving…");
     try {
       const market_value_cents = moneyToCents(mv);
+      const updateData = { 
+        name: name.trim(), 
+        market_value_cents,
+        upc_code: upcCode.trim() || null,
+        product_category: productCategory.trim() || null,
+        console_name: consoleName.trim() || null
+      };
+      
+      // Add API-related fields if a product was selected
+      if (selectedProduct) {
+        updateData.price_source = 'api';
+        updateData.api_product_id = selectedProduct.product_id;
+        updateData.api_price_cents = selectedProduct.loose_price ? Math.round(selectedProduct.loose_price * 100) : null;
+        updateData.api_last_updated = new Date().toISOString();
+      } else {
+        updateData.price_source = 'manual';
+      }
+      
       const { error } = await supabase
         .from("items")
-        .update({ 
-          name: name.trim(), 
-          market_value_cents,
-          upc_code: upcCode.trim() || null,
-          product_category: productCategory.trim() || null,
-          console_name: consoleName.trim() || null
-        })
+        .update(updateData)
         .eq("id", item.id);
       if (error) throw error;
       setStatus("Saved ✓");
@@ -1517,53 +2091,6 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
     }
   }
 
-  async function handleProductSearch(query) {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    
-    setIsSearching(true);
-    try {
-      const response = await searchPriceChartingProducts(query);
-      setSearchResults(response.data?.products || []);
-    } catch (error) {
-      console.error('Search error:', error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }
-
-  async function handleLinkProduct(productId) {
-    setBusy(true);
-    setStatus("Linking product...");
-    try {
-      const response = await updateItemPrice(item.id, productId);
-      setStatus("Linked ✓");
-      setTimeout(() => setStatus(""), 1500);
-      onSave();
-      setShowSearch(false);
-      setSearchQuery('');
-      setSearchResults([]);
-    } catch (error) {
-      setStatus(`Link failed: ${error.message}`);
-      setTimeout(() => setStatus(""), 2000);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // Debounced search
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchQuery) {
-        handleProductSearch(searchQuery);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
 
   return (
     <div 
@@ -1586,17 +2113,15 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
           className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
         />
         
-        <input
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
-          value={name}
-          onChange={(e) => {
-            e.stopPropagation();
-            setName(e.target.value);
-          }}
-          onBlur={updateItem}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Item name…"
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <ProductSearchDropdown
+            value={name}
+            onChange={setName}
+            onProductSelect={handleProductSelect}
+            placeholder="Search Pokemon cards..."
+            className="w-full"
+          />
+        </div>
         
         <input
           className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
@@ -1605,7 +2130,6 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
             e.stopPropagation();
             setMv(e.target.value);
           }}
-          onBlur={updateItem}
           onClick={(e) => e.stopPropagation()}
           placeholder="Market value ($)"
         />
@@ -1617,7 +2141,6 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
             e.stopPropagation();
             setUpcCode(e.target.value);
           }}
-          onBlur={updateItem}
           onClick={(e) => e.stopPropagation()}
           placeholder="UPC/EAN Code"
         />
@@ -1629,7 +2152,6 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
             e.stopPropagation();
             setProductCategory(e.target.value);
           }}
-          onBlur={updateItem}
           onClick={(e) => e.stopPropagation()}
           placeholder="Category (e.g., Video Games)"
         />
@@ -1673,17 +2195,15 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
       <div className="sm:hidden space-y-3">
         <div>
           <label className="block text-xs text-slate-400 mb-1">Item Name</label>
-          <input
-            className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
-            value={name}
-            onChange={(e) => {
-              e.stopPropagation();
-              setName(e.target.value);
-            }}
-            onBlur={updateItem}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="Item name…"
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <ProductSearchDropdown
+              value={name}
+              onChange={setName}
+              onProductSelect={handleProductSelect}
+              placeholder="Search Pokemon cards..."
+              className="w-full"
+            />
+          </div>
         </div>
         
         <div>
@@ -1696,7 +2216,6 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
                 e.stopPropagation();
                 setMv(e.target.value);
               }}
-              onBlur={updateItem}
               onClick={(e) => e.stopPropagation()}
               placeholder="Market value ($)"
             />
