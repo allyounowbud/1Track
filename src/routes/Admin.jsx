@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import BatchSync from '../components/BatchSync';
 import StreamingSync from '../components/StreamingSync';
+import ChunkedPokemonSync from '../components/ChunkedPokemonSync';
 
 // Admin function to check CSV status
 async function checkCSVStatus(category) {
@@ -195,50 +196,27 @@ export default function Admin() {
             )}
 
             {/* Sync Methods */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Full Pokemon Sync - Primary */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Chunked Pokemon Sync - Recommended */}
               <div className="bg-slate-800/30 rounded-lg border border-slate-700 p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <h3 className="font-semibold text-white">Full Pokemon Sync</h3>
+                  <h3 className="font-semibold text-white">Chunked Pokemon Sync</h3>
                   <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-full">
-                    Primary
+                    Recommended
                   </span>
                 </div>
                 <p className="text-sm text-slate-400 mb-4">
-                  Downloads and processes all 71,349 Pokemon cards with exact names and UPCs. 
-                  This is what you need for product search and identification.
+                  Processes all 71,349 Pokemon cards in small chunks (500 at a time) to avoid timeouts. 
+                  Shows real-time progress and handles the complete dataset reliably.
                 </p>
-                <button
-                  onClick={async () => {
-                    const clearExisting = confirm('Clear existing Pokemon cards data and sync the full dataset?');
-                    setIsSyncing(true);
-                    setSyncStatus('Starting full Pokemon cards sync...');
-                    try {
-                      const response = await fetch('/.netlify/functions/sync-full-pokemon', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ clearExisting })
-                      });
-                      const result = await response.json();
-                      if (result.success) {
-                        setSyncStatus(`✅ Full sync completed: ${result.processed.toLocaleString()} Pokemon cards processed`);
-                        refetchCounts();
-                        refetchLogs();
-                      } else {
-                        setSyncStatus(`❌ Full sync failed: ${result.error}`);
-                      }
-                    } catch (error) {
-                      setSyncStatus(`❌ Full sync failed: ${error.message}`);
-                    } finally {
-                      setIsSyncing(false);
-                    }
+                <ChunkedPokemonSync 
+                  onComplete={(count) => {
+                    setSyncStatus(`✅ Chunked sync completed: ${count.toLocaleString()} Pokemon cards processed`);
+                    refetchCounts();
+                    refetchLogs();
                   }}
-                  disabled={isSyncing}
-                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 rounded text-sm transition-colors"
-                >
-                  {isSyncing ? 'Syncing Full Dataset...' : 'Sync Full Pokemon Dataset'}
-                </button>
+                />
               </div>
 
               {/* Streaming Sync - Alternative */}
