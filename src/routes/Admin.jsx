@@ -390,6 +390,43 @@ export default function Admin() {
             >
               Analyze DB
             </button>
+            <button
+              onClick={async () => {
+                setIsSyncing(true);
+                setSyncStatus('Debugging chunk 28 errors...');
+                try {
+                  const response = await fetch('/.netlify/functions/debug-chunk-errors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chunkIndex: 28 })
+                  });
+                  const result = await response.json();
+                  if (result.success) {
+                    let errorMsg = `Chunk ${result.chunkIndex}: ${result.validProducts} valid products`;
+                    if (result.insertError) {
+                      errorMsg += `. Insert error: ${result.insertError.message}`;
+                      if (result.insertError.details) {
+                        errorMsg += ` (${result.insertError.details})`;
+                      }
+                    }
+                    if (result.parseErrors.length > 0) {
+                      errorMsg += `. Parse errors: ${result.parseErrors.slice(0, 3).join(', ')}`;
+                    }
+                    setSyncStatus(`✅ Debug results: ${errorMsg}`);
+                  } else {
+                    setSyncStatus(`❌ Debug failed: ${result.error}`);
+                  }
+                } catch (error) {
+                  setSyncStatus(`❌ Debug failed: ${error.message}`);
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              disabled={isSyncing}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 rounded text-sm transition-colors"
+            >
+              Debug Chunk 28
+            </button>
           </div>
         </div>
 
