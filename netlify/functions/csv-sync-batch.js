@@ -135,10 +135,10 @@ exports.handler = async (event, context) => {
   console.log('CSV batch sync function triggered');
   
   try {
-    const { category = 'pokemon_cards', action = 'start', batchIndex = 0, batchSize = 1000 } = JSON.parse(event.body || '{}');
+    const { category = 'pokemon_cards', action = 'start', batchIndex = 0, batchSize = 1000, clearExisting = false } = JSON.parse(event.body || '{}');
     
     if (action === 'start') {
-      // Initialize sync - clear existing data and return total count
+      // Initialize sync - DON'T clear existing data, just return total count
       console.log(`Starting sync for ${category}`);
       
       const csvUrl = CSV_URLS[category];
@@ -158,27 +158,42 @@ exports.handler = async (event, context) => {
       const lines = csvText.split('\n');
       const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
       
-      // Clear existing data
-      const { error: deleteError } = await supabase
-        .from('price_charting_products')
-        .delete()
-        .eq('category', category);
-        
-      if (deleteError) {
-        console.error('Error clearing existing data:', deleteError);
-      }
-      
       const totalLines = lines.length - 1; // Subtract header
       const totalBatches = Math.ceil(totalLines / batchSize);
+      
+      let currentCount = 0;
+      
+      // Clear existing data if requested
+      if (clearExisting) {
+        console.log(`Clearing existing data for ${category}`);
+        const { error: deleteError } = await supabase
+          .from('price_charting_products')
+          .delete()
+          .eq('category', category);
+          
+        if (deleteError) {
+          console.error('Error clearing existing data:', deleteError);
+        } else {
+          console.log(`Cleared existing data for ${category}`);
+        }
+      } else {
+        // Check current count
+        const { data: currentData } = await supabase
+          .from('price_charting_products')
+          .select('id', { count: 'exact' })
+          .eq('category', category);
+        
+        currentCount = currentData?.length || 0;
+      }
       
       // Log start
       await supabase
         .from('csv_download_logs')
         .insert({
           category,
-          product_count: 0,
+          product_count: currentCount,
           success: true,
-          error_message: null,
+          error_message: `Sync started - ${currentCount} existing products`,
           downloaded_at: new Date().toISOString()
         });
       
@@ -194,7 +209,8 @@ exports.handler = async (event, context) => {
           totalLines,
           totalBatches,
           batchSize,
-          message: `Ready to process ${totalLines} products in ${totalBatches} batches`
+          currentCount,
+          message: `Ready to process ${totalLines} products in ${totalBatches} batches. Currently have ${currentCount} products.`
         })
       };
       

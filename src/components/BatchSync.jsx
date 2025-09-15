@@ -4,6 +4,7 @@ export default function BatchSync({ category, onComplete }) {
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, message: '' });
   const [error, setError] = useState('');
+  const [clearExisting, setClearExisting] = useState(false);
 
   const runBatchSync = async () => {
     setIsRunning(true);
@@ -19,7 +20,8 @@ export default function BatchSync({ category, onComplete }) {
         body: JSON.stringify({ 
           category, 
           action: 'start',
-          batchSize: 1000 
+          batchSize: 1000,
+          clearExisting
         })
       });
 
@@ -93,16 +95,29 @@ export default function BatchSync({ category, onComplete }) {
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={clearExisting}
+            onChange={(e) => setClearExisting(e.target.checked)}
+            className="rounded"
+          />
+          Clear existing data
+        </label>
+      </div>
       <button
         onClick={runBatchSync}
         disabled={isRunning}
         className={`px-4 py-2 rounded-lg transition-colors ${
           isRunning
             ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            : clearExisting
+            ? 'bg-red-600 hover:bg-red-700 text-white'
             : 'bg-green-600 hover:bg-green-700 text-white'
         }`}
       >
-        {isRunning ? 'Syncing...' : `Sync ${category.replace('_', ' ')}`}
+        {isRunning ? 'Syncing...' : clearExisting ? `Clear & Sync ${category.replace('_', ' ')}` : `Sync ${category.replace('_', ' ')}`}
       </button>
 
       {progress.total > 0 && (
