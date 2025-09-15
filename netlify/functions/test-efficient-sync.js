@@ -52,24 +52,51 @@ exports.handler = async (event, context) => {
     
     const { category = 'pokemon_cards' } = JSON.parse(event.body || '{}');
     
-    const csvUrl = `https://www.pricecharting.com/download/pokemon-cards.csv?t=${PRICE_CHARTING_API_KEY}`;
-    console.log(`CSV URL: ${csvUrl.substring(0, 50)}...`);
+    // Try different URL formats
+    const csvUrls = [
+      `https://www.pricecharting.com/download/pokemon-cards.csv?t=${PRICE_CHARTING_API_KEY}`,
+      `https://www.pricecharting.com/api/download/pokemon-cards.csv?t=${PRICE_CHARTING_API_KEY}`,
+      `https://www.pricecharting.com/download/pokemon_cards.csv?t=${PRICE_CHARTING_API_KEY}`,
+      `https://www.pricecharting.com/api/download/pokemon_cards.csv?t=${PRICE_CHARTING_API_KEY}`
+    ];
     
-    // Test CSV download (just first few lines)
-    console.log(`Testing CSV download for ${category}...`);
-    const response = await fetch(csvUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'text/csv',
-        'User-Agent': '1Track-TestSync/1.0',
-      },
-    });
+    console.log('Trying different CSV URL formats...');
+    let csvUrl = null;
+    let csvText = null;
     
-    if (!response.ok) {
-      throw new Error(`Failed to download CSV: ${response.status} ${response.statusText}`);
+    for (let i = 0; i < csvUrls.length; i++) {
+      const testUrl = csvUrls[i];
+      console.log(`Trying URL ${i + 1}: ${testUrl.substring(0, 50)}...`);
+      
+      try {
+        const response = await fetch(testUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'text/csv',
+            'User-Agent': '1Track-TestSync/1.0',
+          },
+        });
+        
+        if (response.ok) {
+          csvUrl = testUrl;
+          csvText = await response.text();
+          console.log(`✅ Success with URL ${i + 1}: ${response.status}`);
+          break;
+        } else {
+          console.log(`❌ Failed with URL ${i + 1}: ${response.status} ${response.statusText}`);
+        }
+      } catch (error) {
+        console.log(`❌ Error with URL ${i + 1}: ${error.message}`);
+      }
     }
     
-    const csvText = await response.text();
+    if (!csvUrl || !csvText) {
+      throw new Error(`All CSV URL formats failed. API key length: ${PRICE_CHARTING_API_KEY.length}`);
+    }
+    
+    console.log(`✅ CSV downloaded successfully from: ${csvUrl.substring(0, 50)}...`);
+    
+    // CSV already downloaded above
     const lines = csvText.split('\n');
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     
