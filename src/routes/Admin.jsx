@@ -2,40 +2,50 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 
-// Admin function to trigger CSV sync
-async function triggerCSVSync(category = 'all') {
-  console.log(`Triggering CSV sync for category: ${category}`);
+// Admin function to check CSV status
+async function checkCSVStatus(category) {
+  console.log(`Checking CSV status for category: ${category}`);
   
-  const response = await fetch('/.netlify/functions/manual-csv-sync', {
+  const response = await fetch('/.netlify/functions/csv-download-chunked', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ category })
+    body: JSON.stringify({ category, action: 'status' })
   });
-  
-  console.log(`Response status: ${response.status}`);
-  console.log(`Response headers:`, response.headers);
   
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Response error:', errorText);
     throw new Error(`HTTP ${response.status}: ${errorText}`);
   }
   
   const responseText = await response.text();
-  console.log('Response text:', responseText);
-  
   if (!responseText) {
     throw new Error('Empty response from server');
   }
   
-  try {
-    const data = JSON.parse(responseText);
-    return data;
-  } catch (parseError) {
-    console.error('JSON parse error:', parseError);
-    console.error('Response text that failed to parse:', responseText);
-    throw new Error(`Invalid JSON response: ${parseError.message}`);
+  return JSON.parse(responseText);
+}
+
+// Admin function to trigger CSV download
+async function triggerCSVDownload(category) {
+  console.log(`Triggering CSV download for category: ${category}`);
+  
+  const response = await fetch('/.netlify/functions/csv-download-chunked', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category, action: 'download' })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
   }
+  
+  const responseText = await response.text();
+  if (!responseText) {
+    throw new Error('Empty response from server');
+  }
+  
+  return JSON.parse(responseText);
 }
 
 // Get download logs
@@ -77,6 +87,7 @@ async function getProductCounts() {
 export default function Admin() {
   const [syncStatus, setSyncStatus] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [csvStatus, setCsvStatus] = useState({});
 
   // Get download logs
   const { data: logs, refetch: refetchLogs } = useQuery({
@@ -92,12 +103,30 @@ export default function Admin() {
     refetchInterval: 30000 // Refresh every 30 seconds
   });
 
-  const handleSync = async (category = 'all') => {
+  const handleCheckStatus = async (category) => {
     setIsSyncing(true);
-    setSyncStatus(`Syncing ${category}...`);
+    setSyncStatus(`Checking ${category} CSV status...`);
     
     try {
-      const result = await triggerCSVSync(category);
+      const result = await checkCSVStatus(category);
+      setCsvStatus(prev => ({
+        ...prev,
+        [category]: result.result
+      }));
+      setSyncStatus(`✅ ${category}: ${result.result.productCount} products available (${Math.round(result.result.csvSize / 1024)}KB)`);
+    } catch (error) {
+      setSyncStatus(`❌ Status check failed: ${error.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleSync = async (category) => {
+    setIsSyncing(true);
+    setSyncStatus(`Downloading ${category}...`);
+    
+    try {
+      const result = await triggerCSVDownload(category);
       setSyncStatus(`✅ Successfully synced ${result.result.productCount} products for ${category}`);
       
       // Refresh the data
@@ -147,46 +176,114 @@ export default function Admin() {
         <div className="bg-slate-800 rounded-xl p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">CSV Sync Controls</h2>
           
-          <div className="flex flex-wrap gap-4 mb-4">
-            <button
-              onClick={() => handleSync('video_games')}
-              disabled={isSyncing}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 rounded-lg transition-colors"
-            >
-              Sync Video Games
-            </button>
-            
-            <button
-              onClick={() => handleSync('pokemon_cards')}
-              disabled={isSyncing}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 rounded-lg transition-colors"
-            >
-              Sync Pokemon Cards
-            </button>
-            
-            <button
-              onClick={() => handleSync('magic_cards')}
-              disabled={isSyncing}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:opacity-50 rounded-lg transition-colors"
-            >
-              Sync Magic Cards
-            </button>
-            
-            <button
-              onClick={() => handleSync('yugioh_cards')}
-              disabled={isSyncing}
-              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:opacity-50 rounded-lg transition-colors"
-            >
-              Sync YuGiOh Cards
-            </button>
-            
-            <button
-              onClick={handleFullSync}
-              disabled={isSyncing}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 disabled:opacity-50 rounded-lg transition-colors"
-            >
-              Full Sync (All Categories)
-            </button>
+          <div className="space-y-4 mb-4">
+            {/* Video Games */}
+            <div className="flex items-center gap-4">
+              <div className="w-32">
+                <button
+                  onClick={() => handleCheckStatus('video_games')}
+                  disabled={isSyncing}
+                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-800 disabled:opacity-50 rounded text-sm transition-colors"
+                >
+                  Check Status
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => handleSync('video_games')}
+                  disabled={isSyncing}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 rounded-lg transition-colors"
+                >
+                  Sync Video Games
+                </button>
+              </div>
+              {csvStatus.video_games && (
+                <div className="text-sm text-slate-400">
+                  {csvStatus.video_games.productCount} products ({Math.round(csvStatus.video_games.csvSize / 1024)}KB)
+                </div>
+              )}
+            </div>
+
+            {/* Pokemon Cards */}
+            <div className="flex items-center gap-4">
+              <div className="w-32">
+                <button
+                  onClick={() => handleCheckStatus('pokemon_cards')}
+                  disabled={isSyncing}
+                  className="px-3 py-2 bg-green-500 hover:bg-green-600 disabled:bg-green-800 disabled:opacity-50 rounded text-sm transition-colors"
+                >
+                  Check Status
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => handleSync('pokemon_cards')}
+                  disabled={isSyncing}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 rounded-lg transition-colors"
+                >
+                  Sync Pokemon Cards
+                </button>
+              </div>
+              {csvStatus.pokemon_cards && (
+                <div className="text-sm text-slate-400">
+                  {csvStatus.pokemon_cards.productCount} products ({Math.round(csvStatus.pokemon_cards.csvSize / 1024)}KB)
+                </div>
+              )}
+            </div>
+
+            {/* Magic Cards */}
+            <div className="flex items-center gap-4">
+              <div className="w-32">
+                <button
+                  onClick={() => handleCheckStatus('magic_cards')}
+                  disabled={isSyncing}
+                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-800 disabled:opacity-50 rounded text-sm transition-colors"
+                >
+                  Check Status
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => handleSync('magic_cards')}
+                  disabled={isSyncing}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:opacity-50 rounded-lg transition-colors"
+                >
+                  Sync Magic Cards
+                </button>
+              </div>
+              {csvStatus.magic_cards && (
+                <div className="text-sm text-slate-400">
+                  {csvStatus.magic_cards.productCount} products ({Math.round(csvStatus.magic_cards.csvSize / 1024)}KB)
+                </div>
+              )}
+            </div>
+
+            {/* YuGiOh Cards */}
+            <div className="flex items-center gap-4">
+              <div className="w-32">
+                <button
+                  onClick={() => handleCheckStatus('yugioh_cards')}
+                  disabled={isSyncing}
+                  className="px-3 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-800 disabled:opacity-50 rounded text-sm transition-colors"
+                >
+                  Check Status
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => handleSync('yugioh_cards')}
+                  disabled={isSyncing}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:opacity-50 rounded-lg transition-colors"
+                >
+                  Sync YuGiOh Cards
+                </button>
+              </div>
+              {csvStatus.yugioh_cards && (
+                <div className="text-sm text-slate-400">
+                  {csvStatus.yugioh_cards.productCount} products ({Math.round(csvStatus.yugioh_cards.csvSize / 1024)}KB)
+                </div>
+              )}
+            </div>
           </div>
           
           {syncStatus && (
