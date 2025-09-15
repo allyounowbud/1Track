@@ -44,7 +44,54 @@ function levenshteinDistance(str1, str2) {
   return matrix[str2.length][str1.length];
 }
 
-// Search for products in local CSV data
+// Fast search for products in local CSV data (optimized for bulk operations)
+async function searchLocalProductsFast(productName) {
+  console.log(`Fast searching local CSV data for: "${productName}"`);
+  
+  // Clean the product name for better matching
+  const cleanName = productName
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, ' ');
+  
+  // Try only the most effective search strategies to save time
+  const searchStrategies = [
+    // Strategy 1: Contains match (most likely to find results)
+    () => searchWithStrategy(cleanName, 'contains'),
+    // Strategy 2: First word only (for Pokemon cards like "151 Blooming Waters")
+    () => searchWithStrategy(cleanName.split(' ')[0], 'contains'),
+    // Strategy 3: Without numbers (for "151 Blooming Waters" -> "blooming waters")
+    () => searchWithStrategy(cleanName.replace(/\d+/g, '').trim(), 'contains')
+  ];
+  
+  for (let i = 0; i < searchStrategies.length; i++) {
+    try {
+      console.log(`Trying fast search strategy ${i + 1} for: "${productName}"`);
+      const results = await searchStrategies[i]();
+      
+      if (results && results.length > 0) {
+        console.log(`Fast strategy ${i + 1} successful: found ${results.length} results`);
+        
+        // Calculate similarity scores and filter (lower threshold for speed)
+        const scoredResults = results.map(result => ({
+          ...result,
+          similarity_score: calculateSimilarity(productName, result.product_name)
+        })).filter(result => result.similarity_score >= 0.5); // Lower threshold for speed
+        
+        if (scoredResults.length > 0) {
+          return scoredResults.sort((a, b) => b.similarity_score - a.similarity_score).slice(0, 3); // Limit to top 3
+        }
+      }
+    } catch (error) {
+      console.log(`Fast strategy ${i + 1} failed:`, error.message);
+    }
+  }
+  
+  return [];
+}
+
+// Search for products in local CSV data (comprehensive version)
 async function searchLocalProducts(productName) {
   console.log(`Searching local CSV data for: "${productName}"`);
   
@@ -100,7 +147,7 @@ async function searchWithStrategy(searchTerm, strategy) {
   let query = supabase
     .from('price_charting_products')
     .select('*')
-    .limit(20);
+    .limit(10); // Reduced limit for faster queries
   
   switch (strategy) {
     case 'exact':
@@ -223,43 +270,62 @@ async function handleBulkUpdate(itemIds) {
   
   console.log(`Found ${items.length} items to update`);
   
-  for (const item of items) {
-    try {
-      console.log(`Processing item: "${item.name}"`);
-      
-      // Search for the product in local CSV data
-      const searchResults = await searchLocalProducts(item.name);
-      
-      if (searchResults.length > 0) {
-        // Use the best match (highest similarity score)
-        const bestMatch = searchResults[0];
-        console.log(`Found match: "${bestMatch.product_name}" (similarity: ${bestMatch.similarity_score})`);
+  // Process items in smaller batches to avoid timeout
+  const batchSize = 10; // Process 10 items at a time
+  const batches = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    batches.push(items.slice(i, i + batchSize));
+  }
+  
+  console.log(`Processing ${batches.length} batches of ${batchSize} items each`);
+  
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    const batch = batches[batchIndex];
+    console.log(`Processing batch ${batchIndex + 1}/${batches.length}`);
+    
+    for (const item of batch) {
+      try {
+        console.log(`Processing item: "${item.name}"`);
         
-        // Update the item with price data
-        const updateResult = await updateItemPrice(item.id, bestMatch);
-        results.successful.push({
-          item_id: item.id,
-          item_name: item.name,
-          matched_product: bestMatch.product_name,
-          product_id: bestMatch.product_id,
-          market_value: updateResult.market_value,
-          similarity_score: bestMatch.similarity_score
-        });
-      } else {
-        console.log(`No match found for: "${item.name}"`);
+        // Use a faster, simpler search strategy first
+        const searchResults = await searchLocalProductsFast(item.name);
+        
+        if (searchResults.length > 0) {
+          // Use the best match (highest similarity score)
+          const bestMatch = searchResults[0];
+          console.log(`Found match: "${bestMatch.product_name}" (similarity: ${bestMatch.similarity_score})`);
+          
+          // Update the item with price data
+          const updateResult = await updateItemPrice(item.id, bestMatch);
+          results.successful.push({
+            item_id: item.id,
+            item_name: item.name,
+            matched_product: bestMatch.product_name,
+            product_id: bestMatch.product_id,
+            market_value: updateResult.market_value,
+            similarity_score: bestMatch.similarity_score
+          });
+        } else {
+          console.log(`No match found for: "${item.name}"`);
+          results.failed.push({
+            item_id: item.id,
+            item_name: item.name,
+            error: 'Product not found in local CSV data'
+          });
+        }
+      } catch (error) {
+        console.error(`Error processing item "${item.name}":`, error);
         results.failed.push({
           item_id: item.id,
           item_name: item.name,
-          error: 'Product not found in local CSV data'
+          error: error.message
         });
       }
-    } catch (error) {
-      console.error(`Error processing item "${item.name}":`, error);
-      results.failed.push({
-        item_id: item.id,
-        item_name: item.name,
-        error: error.message
-      });
+    }
+    
+    // Add a small delay between batches to prevent overwhelming the database
+    if (batchIndex < batches.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
   
