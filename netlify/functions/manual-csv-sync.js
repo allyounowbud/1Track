@@ -3,6 +3,14 @@ const { createClient } = require('@supabase/supabase-js');
 // Initialize Supabase client
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+console.log(`Supabase URL configured: ${!!supabaseUrl}`);
+console.log(`Supabase Service Key configured: ${!!supabaseServiceKey}`);
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Missing Supabase configuration. Please check environment variables.');
+}
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Price Charting API configuration
@@ -192,8 +200,34 @@ async function logDownloadActivity(category, productCount, error = null) {
 // Main handler - this can be called manually to trigger a sync
 exports.handler = async (event, context) => {
   console.log(`[${new Date().toISOString()}] Manual CSV sync function triggered`);
+  console.log(`Event method: ${event.httpMethod}`);
+  console.log(`Event body: ${event.body}`);
   
   try {
+    // Handle OPTIONS request for CORS
+    if (event.httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS'
+        },
+        body: ''
+      };
+    }
+    
+    if (event.httpMethod !== 'POST') {
+      return {
+        statusCode: 405,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ error: 'Method not allowed' })
+      };
+    }
+    
     // Get the category from the request body or default to 'all'
     const { category = 'all' } = JSON.parse(event.body || '{}');
     

@@ -4,14 +4,38 @@ import { supabase } from '../lib/supabaseClient';
 
 // Admin function to trigger CSV sync
 async function triggerCSVSync(category = 'all') {
+  console.log(`Triggering CSV sync for category: ${category}`);
+  
   const response = await fetch('/.netlify/functions/manual-csv-sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ category })
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'CSV sync failed');
-  return data;
+  
+  console.log(`Response status: ${response.status}`);
+  console.log(`Response headers:`, response.headers);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Response error:', errorText);
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+  
+  const responseText = await response.text();
+  console.log('Response text:', responseText);
+  
+  if (!responseText) {
+    throw new Error('Empty response from server');
+  }
+  
+  try {
+    const data = JSON.parse(responseText);
+    return data;
+  } catch (parseError) {
+    console.error('JSON parse error:', parseError);
+    console.error('Response text that failed to parse:', responseText);
+    throw new Error(`Invalid JSON response: ${parseError.message}`);
+  }
 }
 
 // Get download logs
