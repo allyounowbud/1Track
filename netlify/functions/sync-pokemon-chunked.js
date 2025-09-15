@@ -228,22 +228,27 @@ exports.handler = async (event, context) => {
         }
       }
       
-      // Insert batch into database
+      // Insert batch into database using UPSERT to handle duplicates
       if (batchProducts.length > 0) {
         try {
-          console.log(`Inserting ${batchProducts.length} products into database...`);
-          const { error: insertError } = await supabase
-            .from('price_charting_products')
-            .insert(batchProducts);
+          console.log(`Upserting ${batchProducts.length} products into database...`);
           
-          if (insertError) {
-            console.error(`Database insert error for chunk ${chunkIndex}:`, insertError);
+          // Use upsert to handle duplicate product_ids
+          const { error: upsertError } = await supabase
+            .from('price_charting_products')
+            .upsert(batchProducts, {
+              onConflict: 'category,product_id',
+              ignoreDuplicates: false
+            });
+          
+          if (upsertError) {
+            console.error(`Database upsert error for chunk ${chunkIndex}:`, upsertError);
             errorCount += batchProducts.length;
           } else {
-            console.log(`Successfully inserted ${batchProducts.length} products for chunk ${chunkIndex}`);
+            console.log(`Successfully upserted ${batchProducts.length} products for chunk ${chunkIndex}`);
           }
-        } catch (insertError) {
-          console.error(`Database insert exception for chunk ${chunkIndex}:`, insertError);
+        } catch (upsertError) {
+          console.error(`Database upsert exception for chunk ${chunkIndex}:`, upsertError);
           errorCount += batchProducts.length;
         }
       }

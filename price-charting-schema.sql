@@ -152,9 +152,11 @@ CREATE TABLE IF NOT EXISTS price_charting_products (
   graded_price DECIMAL(10,2),
   box_price DECIMAL(10,2),
   manual_price DECIMAL(10,2),
+  upc_code TEXT, -- UPC/EAN barcode
   raw_data JSONB, -- Store the complete CSV row data
   downloaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(category, product_id) -- Ensure unique products per category
 );
 
 -- Create indexes for better search performance
