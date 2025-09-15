@@ -427,6 +427,36 @@ export default function Admin() {
             >
               Debug Chunk 28
             </button>
+            <button
+              onClick={async () => {
+                setIsSyncing(true);
+                setSyncStatus('Checking database schema...');
+                try {
+                  const response = await fetch('/.netlify/functions/check-schema', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                  });
+                  const result = await response.json();
+                  if (result.success) {
+                    const constraintInfo = result.uniqueConstraints.length > 0 
+                      ? `Found ${result.uniqueConstraints.length} unique constraints` 
+                      : 'No unique constraints found';
+                    setSyncStatus(`✅ Schema check: Table exists: ${result.tableExists}, ${constraintInfo}`);
+                  } else {
+                    setSyncStatus(`❌ Schema check failed: ${result.error}`);
+                  }
+                } catch (error) {
+                  setSyncStatus(`❌ Schema check failed: ${error.message}`);
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              disabled={isSyncing}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 rounded text-sm transition-colors"
+            >
+              Check Schema
+            </button>
           </div>
         </div>
 

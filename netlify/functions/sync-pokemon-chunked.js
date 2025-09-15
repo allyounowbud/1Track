@@ -228,27 +228,48 @@ exports.handler = async (event, context) => {
         }
       }
       
-      // Insert batch into database using UPSERT to handle duplicates
+      // Insert batch into database, handling duplicates by checking first
       if (batchProducts.length > 0) {
         try {
-          console.log(`Upserting ${batchProducts.length} products into database...`);
+          console.log(`Processing ${batchProducts.length} products for chunk ${chunkIndex}...`);
           
-          // Use upsert to handle duplicate product_ids
-          const { error: upsertError } = await supabase
+          // Get existing product IDs for this category to avoid duplicates
+          const productIds = batchProducts.map(p => p.product_id);
+          const { data: existingProducts, error: checkError } = await supabase
             .from('price_charting_products')
-            .upsert(batchProducts, {
-              onConflict: 'category,product_id',
-              ignoreDuplicates: false
-            });
+            .select('product_id')
+            .eq('category', 'pokemon_cards')
+            .in('product_id', productIds);
           
-          if (upsertError) {
-            console.error(`Database upsert error for chunk ${chunkIndex}:`, upsertError);
-            errorCount += batchProducts.length;
-          } else {
-            console.log(`Successfully upserted ${batchProducts.length} products for chunk ${chunkIndex}`);
+          if (checkError) {
+            console.error(`Error checking existing products for chunk ${chunkIndex}:`, checkError);
           }
-        } catch (upsertError) {
-          console.error(`Database upsert exception for chunk ${chunkIndex}:`, upsertError);
+          
+          const existingIds = new Set(existingProducts?.map(p => p.product_id) || []);
+          const newProducts = batchProducts.filter(p => !existingIds.has(p.product_id));
+          const duplicateCount = batchProducts.length - newProducts.length;
+          
+          console.log(`Chunk ${chunkIndex}: ${newProducts.length} new products, ${duplicateCount} duplicates skipped`);
+          
+          // Only insert new products
+          if (newProducts.length > 0) {
+            const { error: insertError } = await supabase
+              .from('price_charting_products')
+              .insert(newProducts);
+            
+            if (insertError) {
+              console.error(`Database insert error for chunk ${chunkIndex}:`, insertError);
+              errorCount += newProducts.length;
+            } else {
+              console.log(`Successfully inserted ${newProducts.length} new products for chunk ${chunkIndex}`);
+            }
+          }
+          
+          // Update the processed count to reflect actual inserts
+          processedCount = newProducts.length;
+          
+        } catch (insertError) {
+          console.error(`Database insert exception for chunk ${chunkIndex}:`, insertError);
           errorCount += batchProducts.length;
         }
       }
