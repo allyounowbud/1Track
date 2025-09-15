@@ -39,10 +39,10 @@ exports.handler = async (event, context) => {
     const csvUrl = `https://www.pricecharting.com/price-guide/download-custom?t=${PRICE_CHARTING_API_KEY}&category=pokemon-cards`;
     console.log(`CSV URL: ${csvUrl.substring(0, 50)}...`);
     
-    // Test CSV download with timeout
+    // Test CSV download with longer timeout
     console.log('Testing CSV download...');
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
     try {
       const response = await fetch(csvUrl, {
@@ -91,7 +91,7 @@ exports.handler = async (event, context) => {
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        throw new Error('CSV download timed out after 10 seconds');
+        throw new Error('CSV download timed out after 30 seconds');
       }
       throw fetchError;
     }
