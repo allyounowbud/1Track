@@ -332,21 +332,21 @@ export default function Admin() {
                 <button
                   onClick={async () => {
                     setIsSyncing(true);
-                    setSyncStatus('Testing efficient sync...');
+                    setSyncStatus('Testing CSV download...');
                     try {
-                      const response = await fetch('/.netlify/functions/test-efficient-sync', {
+                      const response = await fetch('/.netlify/functions/test-csv-download', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ category: 'pokemon_cards' })
+                        body: JSON.stringify({})
                       });
                       const result = await response.json();
                       if (result.success) {
-                        setSyncStatus(`✅ Test successful: ${result.message}`);
+                        setSyncStatus(`✅ CSV download test successful: ${result.message}`);
                       } else {
-                        setSyncStatus(`❌ Test failed: ${result.error}`);
+                        setSyncStatus(`❌ CSV download test failed: ${result.error}`);
                       }
                     } catch (error) {
-                      setSyncStatus(`❌ Test failed: ${error.message}`);
+                      setSyncStatus(`❌ CSV download test failed: ${error.message}`);
                     } finally {
                       setIsSyncing(false);
                     }
@@ -354,7 +354,7 @@ export default function Admin() {
                   disabled={isSyncing}
                   className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 rounded text-sm transition-colors"
                 >
-                  Test Sync
+                  Test CSV Download
                 </button>
                 <button
                   onClick={async () => {
