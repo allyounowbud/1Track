@@ -52,12 +52,12 @@ exports.handler = async (event, context) => {
     
     const { category = 'pokemon_cards' } = JSON.parse(event.body || '{}');
     
-    // Try different URL formats
+    // Use the correct URL format from the working csv-download-chunked function
     const csvUrls = [
-      `https://www.pricecharting.com/download/pokemon-cards.csv?t=${PRICE_CHARTING_API_KEY}`,
-      `https://www.pricecharting.com/api/download/pokemon-cards.csv?t=${PRICE_CHARTING_API_KEY}`,
-      `https://www.pricecharting.com/download/pokemon_cards.csv?t=${PRICE_CHARTING_API_KEY}`,
-      `https://www.pricecharting.com/api/download/pokemon_cards.csv?t=${PRICE_CHARTING_API_KEY}`
+      `https://www.pricecharting.com/price-guide/download-custom?t=${PRICE_CHARTING_API_KEY}&category=pokemon-cards`,
+      `https://www.pricecharting.com/price-guide/download-custom?t=${PRICE_CHARTING_API_KEY}&category=pokemon_cards`,
+      `https://www.pricecharting.com/price-guide/download-custom?t=${PRICE_CHARTING_API_KEY}&category=pokemon-cards&format=csv`,
+      `https://www.pricecharting.com/price-guide/download-custom?t=${PRICE_CHARTING_API_KEY}&category=pokemon_cards&format=csv`
     ];
     
     console.log('Trying different CSV URL formats...');
@@ -69,12 +69,19 @@ exports.handler = async (event, context) => {
       console.log(`Trying URL ${i + 1}: ${testUrl.substring(0, 50)}...`);
       
       try {
+        const headers = {
+          'Accept': 'text/csv',
+          'User-Agent': '1Track-TestSync/1.0',
+        };
+        
+        // For URLs without t parameter, try Authorization header
+        if (!testUrl.includes('?t=')) {
+          headers['Authorization'] = `Bearer ${PRICE_CHARTING_API_KEY}`;
+        }
+        
         const response = await fetch(testUrl, {
           method: 'GET',
-          headers: {
-            'Accept': 'text/csv',
-            'User-Agent': '1Track-TestSync/1.0',
-          },
+          headers,
         });
         
         if (response.ok) {
