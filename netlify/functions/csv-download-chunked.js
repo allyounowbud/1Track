@@ -152,6 +152,9 @@ async function downloadAndStoreCSVBatch(category, batchSize = 500) {
     const lines = csvText.split('\n');
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     
+    console.log(`CSV Headers: ${headers.join(', ')}`);
+    console.log(`Total lines: ${lines.length}`);
+    
     let totalProcessed = 0;
     const batches = [];
     
@@ -170,11 +173,26 @@ async function downloadAndStoreCSVBatch(category, batchSize = 500) {
             product[header] = values[index];
           });
           
+          // Log first few products for debugging
+          if (totalProcessed < 3) {
+            console.log(`Sample product ${totalProcessed + 1}:`, product);
+          }
+          
+          // Validate required fields
+          const productName = product.product_name || product.name || '';
+          const productId = product.id || product.product_id || '';
+          
+          // Skip products with missing required fields
+          if (!productName.trim() || !productId.trim()) {
+            console.log(`Skipping product with missing data: name="${productName}", id="${productId}"`);
+            continue;
+          }
+          
           batchProducts.push({
             category,
-            product_id: product.id || product.product_id,
-            product_name: product.product_name || product.name,
-            console_name: product.console_name || product.console,
+            product_id: productId,
+            product_name: productName,
+            console_name: product.console_name || product.console || null,
             loose_price: parseFloat(product.loose_price) || 0,
             cib_price: parseFloat(product.cib_price) || 0,
             new_price: parseFloat(product.new_price) || 0,
