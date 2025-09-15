@@ -22,6 +22,19 @@ exports.handler = async (event, context) => {
     // Get first 5 lines to see structure
     const firstFiveLines = lines.slice(0, 5);
     
+    // Parse the header to see field names
+    const headers = firstFiveLines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    
+    // Parse first data row to see values
+    let sampleData = null;
+    if (firstFiveLines.length > 1) {
+      const values = firstFiveLines[1].split(',').map(v => v.trim().replace(/"/g, ''));
+      sampleData = {};
+      headers.forEach((header, index) => {
+        sampleData[header] = values[index];
+      });
+    }
+    
     return {
       statusCode: 200,
       headers: {
@@ -31,8 +44,10 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         success: true,
         totalLines: lines.length,
+        headers: headers,
+        sampleData: sampleData,
         firstFiveLines: firstFiveLines,
-        message: `CSV has ${lines.length} lines. First 5 lines shown.`
+        message: `CSV has ${lines.length} lines with ${headers.length} columns: ${headers.join(', ')}`
       })
     };
     
