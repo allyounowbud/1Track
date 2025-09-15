@@ -38,7 +38,7 @@ html, body {
     bottom: 0 !important;
     width: 100% !important;
     height: auto !important;
-    z-index: 50 !important;
+    z-index: 9999 !important;
   }
 }
 
@@ -49,6 +49,24 @@ html, body {
   }
   .hidden.xs\:block {
     display: none !important;
+  }
+}
+
+/* Ensure bottom bar is always on top and isolated */
+@media (max-width: 649px) {
+  /* Bottom bar isolation - highest z-index */
+  .mobile-bottom-bar {
+    z-index: 9999 !important;
+    position: fixed !important;
+    isolation: isolate !important;
+    contain: layout style !important;
+  }
+  
+  /* Prevent any content from overlapping bottom bar */
+  .main-content {
+    padding-bottom: 4rem !important; /* 64px - height of bottom bar */
+    max-height: calc(100vh - 4rem) !important;
+    overflow-y: auto !important;
   }
 }
 

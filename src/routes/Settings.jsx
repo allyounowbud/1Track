@@ -1040,7 +1040,6 @@ export default function Settings() {
       <PageHeader title="Settings" />
 
         {/* Items Card */}
-        {!(hasNewRetailerRows || hasNewMarketRows) && (
         <SettingsCard
           title="Products"
           totalCount={items.length}
@@ -1098,10 +1097,8 @@ export default function Settings() {
           isExpanded={expandedCard === 'items'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'items' ? null : 'items')}
         />
-        )}
 
         {/* Retailers Card */}
-        {!(hasNewItemRows || hasNewMarketRows) && (
         <SettingsCard
           title="Retailers"
           totalCount={retailers.length}
@@ -1148,10 +1145,8 @@ export default function Settings() {
           isExpanded={expandedCard === 'retailers'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'retailers' ? null : 'retailers')}
         />
-        )}
 
         {/* Markets Card */}
-        {!(hasNewItemRows || hasNewRetailerRows) && (
         <SettingsCard
           title="Marketplaces"
           totalCount={markets.length}
@@ -1198,10 +1193,8 @@ export default function Settings() {
           isExpanded={expandedCard === 'markets'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'markets' ? null : 'markets')}
         />
-        )}
 
         {/* Pokemon Cards Card */}
-        {!(hasNewItemRows || hasNewRetailerRows || hasNewMarketRows || hasNewPokemonCardRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewYugiohCardRows) && (
         <SettingsCard
           title="Pokemon Cards"
           totalCount={pokemonCards.length}
@@ -1252,10 +1245,8 @@ export default function Settings() {
           isExpanded={expandedCard === 'pokemon_cards'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'pokemon_cards' ? null : 'pokemon_cards')}
         />
-        )}
 
         {/* Video Games Card */}
-        {!(hasNewItemRows || hasNewRetailerRows || hasNewMarketRows || hasNewPokemonCardRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewYugiohCardRows) && (
         <SettingsCard
           title="Video Games"
           totalCount={videoGames.length}
@@ -1306,10 +1297,8 @@ export default function Settings() {
           isExpanded={expandedCard === 'video_games'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'video_games' ? null : 'video_games')}
         />
-        )}
 
         {/* Magic Cards Card */}
-        {!(hasNewItemRows || hasNewRetailerRows || hasNewMarketRows || hasNewPokemonCardRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewYugiohCardRows) && (
         <SettingsCard
           title="Magic Cards"
           totalCount={magicCards.length}
@@ -1360,10 +1349,8 @@ export default function Settings() {
           isExpanded={expandedCard === 'magic_cards'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'magic_cards' ? null : 'magic_cards')}
         />
-        )}
 
         {/* Yu-Gi-Oh Cards Card */}
-        {!(hasNewItemRows || hasNewRetailerRows || hasNewMarketRows || hasNewPokemonCardRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewYugiohCardRows) && (
         <SettingsCard
           title="Yu-Gi-Oh Cards"
           totalCount={yugiohCards.length}
@@ -1414,7 +1401,6 @@ export default function Settings() {
           isExpanded={expandedCard === 'yugioh_cards'}
           onToggleExpansion={() => setExpandedCard(expandedCard === 'yugioh_cards' ? null : 'yugioh_cards')}
         />
-        )}
 
     </LayoutWithSidebar>
   );

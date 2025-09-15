@@ -58,7 +58,7 @@ export default function LayoutWithSidebar({ children, active, section }) {
       {/* Main Content */}
       <div className={`flex-1 flex flex-col ${
         isSmallScreen 
-          ? 'min-h-screen' // Allow natural height without constraint
+          ? 'main-content min-h-screen' // Use CSS class for bottom bar isolation
           : `transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`
       }`}>
         <div ref={contentRef} className="flex-1 w-full p-4 sm:p-6">

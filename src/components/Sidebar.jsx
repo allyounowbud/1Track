@@ -142,7 +142,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   // Mobile bottom bar layout
   if (isSmallScreen) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-50 h-16 pb-safe">
+      <div className="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 h-16 pb-safe">
         {/* Navigation - horizontal layout for mobile */}
         <nav className="flex items-center justify-around px-2 py-2 h-full">
           {navigationItems.map((item) => {

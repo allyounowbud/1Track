@@ -27,6 +27,22 @@ export default function Hub() {
   // Changelog data with version numbers
   const changelogData = [
     {
+      title: "Fixed Settings Page Card Visibility Issue",
+      description: "Fixed a critical issue where clicking 'Add' on any Settings page card would hide all other cards instead of just showing the form for the selected card. Removed the complex conditional rendering logic that was preventing multiple cards from being visible simultaneously. Now when adding new items to any category (Products, Retailers, Marketplaces, Pokemon Cards, Video Games, Magic Cards, Yu-Gi-Oh Cards), only the selected card shows its form while all other cards remain visible in their collapsed state. This provides a much better user experience and allows users to see all available categories at once.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "05:30",
+      author: "Development Team"
+    },
+    {
+      title: "Codebase Cleanup - Removed Unused Files and Components",
+      description: "Performed comprehensive codebase cleanup to remove unused files and components that were cluttering the project and potentially causing performance issues. Removed unused React components (Hub_temp.jsx, HeaderWithTabs variants, SimpleSearchDropdown, ProductSearch), unused Netlify functions (debug-env, simple-csv-debug, test functions, manual-csv-sync, resume-sync), and miscellaneous files (git log file 'h', empty assets directory). This cleanup reduces bundle size, eliminates dead code, and improves maintainability without affecting any current functionality or frontend appearance.",
+      color: "bg-yellow-500/70",
+      date: "2024-12-20",
+      time: "05:25",
+      author: "Development Team"
+    },
+    {
       title: "Fixed Retailer and Marketplace Ghost Text Display Logic",
       description: "Corrected the display logic for Retailer and Marketplace dropdown fields to properly show ghost text (text-slate-500) when no value is selected, instead of showing solid white text. The condition now checks for both null/undefined values and empty strings (formState.retailer && formState.retailer !== '') to ensure proper ghost text styling. This change applies to both desktop and mobile views, providing consistent visual feedback that these fields are empty and need user input.",
       color: "bg-slate-600",
@@ -913,19 +929,49 @@ export default function Hub() {
                 Previous
               </button>
               <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 text-sm rounded-lg border transition-colors ${
-                      currentPage === page
-                        ? 'border-indigo-600 bg-indigo-600 text-white'
-                        : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                {(() => {
+                  const maxVisiblePages = 5;
+                  const pages = [];
+                  
+                  if (totalPages <= maxVisiblePages) {
+                    // Show all pages if total is small
+                    for (let i = 1; i <= totalPages; i++) {
+                      pages.push(i);
+                    }
+                  } else {
+                    // Smart pagination with ellipsis
+                    if (currentPage <= 3) {
+                      // Show first pages + ellipsis + last page
+                      pages.push(1, 2, 3, 4, '...', totalPages);
+                    } else if (currentPage >= totalPages - 2) {
+                      // Show first page + ellipsis + last pages
+                      pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+                    } else {
+                      // Show first + ellipsis + current range + ellipsis + last
+                      pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+                    }
+                  }
+                  
+                  return pages.map((page, index) => (
+                    page === '...' ? (
+                      <span key={`ellipsis-${index}`} className="px-2 text-slate-400">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-1 text-sm rounded-lg border transition-colors ${
+                          currentPage === page
+                            ? 'border-indigo-600 bg-indigo-600 text-white'
+                            : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  ));
+                })()}
               </div>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
@@ -934,7 +980,7 @@ export default function Hub() {
               >
                 Next
               </button>
-        </div>
+            </div>
           </div>
         )}
         </div>
