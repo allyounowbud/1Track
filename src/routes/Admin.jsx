@@ -331,6 +331,33 @@ export default function Admin() {
                 </button>
                 <button
                   onClick={async () => {
+                    setIsSyncing(true);
+                    setSyncStatus('Testing efficient sync...');
+                    try {
+                      const response = await fetch('/.netlify/functions/test-efficient-sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ category: 'pokemon_cards' })
+                      });
+                      const result = await response.json();
+                      if (result.success) {
+                        setSyncStatus(`✅ Test successful: ${result.message}`);
+                      } else {
+                        setSyncStatus(`❌ Test failed: ${result.error}`);
+                      }
+                    } catch (error) {
+                      setSyncStatus(`❌ Test failed: ${error.message}`);
+                    } finally {
+                      setIsSyncing(false);
+                    }
+                  }}
+                  disabled={isSyncing}
+                  className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 rounded text-sm transition-colors"
+                >
+                  Test Sync
+                </button>
+                <button
+                  onClick={async () => {
                     const clearExisting = confirm('Clear existing Pokemon cards data and sync fresh?');
                     setIsSyncing(true);
                     setSyncStatus('Starting efficient sync...');
