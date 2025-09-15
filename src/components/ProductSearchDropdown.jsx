@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function ProductSearchDropdown({ 
   value = "", 
@@ -14,10 +15,23 @@ export default function ProductSearchDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [error, setError] = useState('');
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   
   const searchTimeoutRef = useRef(null);
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Function to update dropdown position
+  const updateDropdownPosition = () => {
+    if (dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width
+      });
+    }
+  };
 
   // Debounced search
   useEffect(() => {
@@ -112,7 +126,10 @@ export default function ProductSearchDropdown({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      const isInsideContainer = dropdownRef.current && dropdownRef.current.contains(event.target);
+      const isInsideDropdown = event.target.closest('[data-dropdown-portal]');
+      
+      if (!isInsideContainer && !isInsideDropdown) {
         setIsOpen(false);
         setSelectedIndex(-1);
       }
@@ -121,6 +138,24 @@ export default function ProductSearchDropdown({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Update dropdown position on scroll and resize
+  useEffect(() => {
+    if (isOpen) {
+      updateDropdownPosition();
+      
+      const handleScroll = () => updateDropdownPosition();
+      const handleResize = () => updateDropdownPosition();
+      
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleResize);
+      
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [isOpen]);
 
   // Format price for display
   const formatPrice = (price) => {
@@ -162,8 +197,18 @@ export default function ProductSearchDropdown({
       </div>
 
       {/* Dropdown Results */}
-      {isOpen && (searchResults.length > 0 || error || isSearching) && (
-        <div className="absolute z-[99999] w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+      {isOpen && (searchResults.length > 0 || error || isSearching) && createPortal(
+        <div 
+          data-dropdown-portal
+          className="fixed z-[999999] bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          style={{ 
+            position: 'fixed',
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`,
+            zIndex: 999999
+          }}
+        >
           {error && (
             <div className="px-3 py-2 text-sm text-red-400 border-b border-slate-700">
               {error}
@@ -216,7 +261,8 @@ export default function ProductSearchDropdown({
               </div>
             </div>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

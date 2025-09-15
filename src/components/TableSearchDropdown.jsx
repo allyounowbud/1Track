@@ -1,5 +1,6 @@
 // Simple working dropdown that displays table data correctly
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { inputBase } from "../utils/ui.js";
 
 export const TableSearchDropdown = ({ 
@@ -14,7 +15,20 @@ export const TableSearchDropdown = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [displayValue, setDisplayValue] = useState("");
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const containerRef = useRef(null);
+
+  // Function to update dropdown position
+  const updateDropdownPosition = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width
+      });
+    }
+  };
 
   // Update display value when value prop changes
   useEffect(() => {
@@ -38,13 +52,34 @@ export const TableSearchDropdown = ({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+      const isInsideContainer = containerRef.current && containerRef.current.contains(event.target);
+      const isInsideDropdown = event.target.closest('[data-dropdown-portal]');
+      
+      if (!isInsideContainer && !isInsideDropdown) {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Update dropdown position on scroll and resize
+  useEffect(() => {
+    if (isOpen) {
+      updateDropdownPosition();
+      
+      const handleScroll = () => updateDropdownPosition();
+      const handleResize = () => updateDropdownPosition();
+      
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleResize);
+      
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [isOpen]);
 
   // Handle option selection
   const handleSelectOption = (option) => {
@@ -98,8 +133,18 @@ export const TableSearchDropdown = ({
           </div>
         </div>
         
-        {isOpen && (
-          <div className="absolute left-0 right-0 z-[999999] mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+        {isOpen && createPortal(
+          <div 
+            data-dropdown-portal
+            className="fixed z-[999999] max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl"
+            style={{ 
+              position: 'fixed',
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: `${dropdownPosition.width}px`,
+              zIndex: 999999
+            }}
+          >
             {options.length === 0 ? (
               <div className="px-3 py-2 text-slate-400 text-sm">
                 No options available. ({options.length} items)
@@ -116,7 +161,8 @@ export const TableSearchDropdown = ({
                 </button>
               ))
             )}
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>

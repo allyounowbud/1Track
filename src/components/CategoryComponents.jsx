@@ -8,7 +8,7 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false, category }) {
+export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false, category, isCheckboxDisabled = false }) {
   const [name, setName] = useState(item?.name ?? "");
   const [mv, setMv] = useState(centsToStr(item?.market_value_cents ?? 0));
   const [upcCode, setUpcCode] = useState(item?.upc_code ?? "");
@@ -93,11 +93,14 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
         <input
           type="checkbox"
           checked={isSelected}
+          disabled={isCheckboxDisabled}
           onChange={(e) => {
             e.stopPropagation();
             onToggleSelection();
           }}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
+          className={`h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500 ${
+            isCheckboxDisabled ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         />
         
         <div onClick={(e) => e.stopPropagation()}>

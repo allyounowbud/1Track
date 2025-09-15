@@ -27,6 +27,70 @@ export default function Hub() {
   // Changelog data with version numbers
   const changelogData = [
     {
+      title: "Implemented Focused Editing Mode - Hide All Cards Except Active One During Row Creation",
+      description: "Enhanced the new row creation experience by implementing a focused editing mode that hides all other cards when adding a new row to any specific card. When you click 'Add' on any card (Products, Retailers, Marketplaces, Pokemon Cards, Video Games, Magic Cards, Yu-Gi-Oh Cards), all other cards are completely hidden until you either save or cancel the new row. This creates a distraction-free, focused editing environment where users can concentrate on the single task at hand without visual clutter from other sections. The interface automatically returns to normal view once the new row operation is completed, providing an intuitive and streamlined data entry experience.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:10",
+      author: "Development Team"
+    },
+    {
+      title: "Improved Page Break Line Visibility - Conditional Display During Row Creation",
+      description: "Implemented conditional page break line visibility that matches the interface design consistency exactly. The page break line now appears in normal mode to maintain proper visual separation between the bulk action section and column headers, using the identical border-slate-800 styling as the column headers below it. When adding a new row, this line is hidden along with the bulk action buttons, creating a cleaner focused editing experience. This ensures perfect visual consistency across the interface while maintaining the improved user experience during new row creation.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:05",
+      author: "Development Team"
+    },
+    {
+      title: "Removed Bulk Action Buttons During New Row Creation - Cleaner Interface",
+      description: "Improved the new row creation experience by completely hiding the bulk action button row (including selection counter and bulk action buttons) when adding a new row. Since new rows have their own individual save and cancel buttons, the bulk action buttons were redundant and created visual clutter. Now when adding a new row, users see a cleaner interface with just the new row and its individual action buttons, making the data entry process more focused and intuitive. The bulk action buttons only appear when in normal selection mode, providing a clear distinction between bulk operations and individual row editing.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:00",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed Bulk Action Button Positioning - Always Stay on Right Side",
+      description: "Fixed layout issue where bulk action buttons would shift to the left side when the selection counter (x/x Selected) was hidden during new row creation. Updated the header layout to use flexbox with a flex-1 container for the left side and a fixed right-side container for action buttons. Now the bulk action buttons (save, delete, add, etc.) consistently stay positioned on the right side of the header regardless of whether the selection counter is visible or hidden, providing a more stable and predictable user interface across all card types.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "05:55",
+      author: "Development Team"
+    },
+    {
+      title: "Implemented Single Row Addition System - One Row at a Time Across All Cards",
+      description: "Enhanced the new row addition system to ensure only one new row can be added at a time across all cards (Products, Retailers, Marketplaces, Pokemon Cards, Video Games, Magic Cards, Yu-Gi-Oh Cards). When adding a new row, all other existing rows are hidden and the selection counter (x/x Selected) is also hidden, creating a focused editing experience. Users must complete (save or cancel) the current new row before they can add another row to any card. This prevents confusion, ensures data integrity, and provides a cleaner, more intuitive interface that guides users through the data entry process one item at a time.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "05:50",
+      author: "Development Team"
+    },
+    {
+      title: "Added Checkbox Disable Feature - Prevents Selection Conflicts During New Row Creation",
+      description: "Implemented intelligent checkbox disabling system that automatically disables all existing row checkboxes when a new row is being added to any table. This prevents users from accidentally selecting other items while in the middle of creating a new entry, ensuring they complete the current operation first. The feature applies to all table types: Items, Retailers, Marketplaces, Pokemon Cards, Video Games, Magic Cards, and Yu-Gi-Oh Cards. Checkboxes are automatically re-enabled once the new row is saved or canceled, providing a smooth and intuitive user experience that eliminates confusion and prevents data entry conflicts.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "05:45",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed Dropdown Z-Index Issues - All Dropdowns Now Render Above Cards",
+      description: "Fixed critical z-index layering issues where search dropdowns (Price Charting API search, product search, retailer/marketplace dropdowns) were being cut off by cards below them. Updated ProductSearchDropdown and TableSearchDropdown components to use React portals that render directly to document.body with maximum z-index (999999), ensuring they always appear on top of all other content. Added proper positioning calculations and scroll/resize event handling to maintain correct dropdown placement. This ensures all dropdown menus are fully visible and accessible regardless of their position on the page or surrounding card content.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "05:40",
+      author: "Development Team"
+    },
+    {
+      title: "Added Market Data Status Monitor to Settings Page",
+      description: "Added a clean and informative status monitoring section to the top of the Settings/Database page that displays real-time information about the market data API connection. The status bar shows whether the API is online or offline with a colored indicator (green for online, red for offline) and displays the last time data was successfully synced. The system automatically checks API health every 6 hours in the background without user intervention. Updates the last sync timestamp whenever price updates, bulk updates, or sync operations complete successfully. This provides users with immediate visibility into data connectivity and freshness without technical jargon or manual refresh requirements.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "05:35",
+      author: "Development Team"
+    },
+    {
       title: "Fixed Settings Page Card Visibility Issue",
       description: "Fixed a critical issue where clicking 'Add' on any Settings page card would hide all other cards instead of just showing the form for the selected card. Removed the complex conditional rendering logic that was preventing multiple cards from being visible simultaneously. Now when adding new items to any category (Products, Retailers, Marketplaces, Pokemon Cards, Video Games, Magic Cards, Yu-Gi-Oh Cards), only the selected card shows its form while all other cards remain visible in their collapsed state. This provides a much better user experience and allows users to see all available categories at once.",
       color: "bg-blue-500/70",

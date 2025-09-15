@@ -242,11 +242,52 @@ export default function Settings() {
   const [selectedSearchResult, setSelectedSearchResult] = useState(null);
   const [isUpdatingPrice, setIsUpdatingPrice] = useState(false);
   const [bulkUpdateProgress, setBulkUpdateProgress] = useState(null);
+  
+  // API Status tracking
+  const [apiStatus, setApiStatus] = useState({ isOnline: false, lastChecked: null, lastUpdate: null });
 
   // Update bulk actions visibility for each card
   useEffect(() => {
     // Each card manages its own bulk actions visibility
   }, [selectedItems, selectedRetailers, selectedMarkets, selectedPokemonCards, selectedVideoGames, selectedMagicCards, selectedYugiohCards]);
+
+  // API Health Check Function
+  const checkApiStatus = async () => {
+    try {
+      const response = await fetch('/.netlify/functions/price-charting-search?q=test&health=1');
+      const isOnline = response.ok;
+      const now = new Date();
+      
+      setApiStatus(prev => ({
+        ...prev,
+        isOnline,
+        lastChecked: now,
+        lastUpdate: prev.lastUpdate || now
+      }));
+    } catch (error) {
+      const now = new Date();
+      setApiStatus(prev => ({
+        ...prev,
+        isOnline: false,
+        lastChecked: now
+      }));
+    }
+  };
+
+  // Check API status on component mount and every 6 hours
+  useEffect(() => {
+    checkApiStatus();
+    const interval = setInterval(checkApiStatus, 6 * 60 * 60 * 1000); // 6 hours
+    return () => clearInterval(interval);
+  }, []);
+
+  // Function to update last update time when API operations complete
+  const updateLastUpdateTime = () => {
+    setApiStatus(prev => ({
+      ...prev,
+      lastUpdate: new Date()
+    }));
+  };
 
   // Helper functions to check if there are new rows in each system
   const hasNewItemRows = newItemRows.length > 0;
@@ -258,6 +299,24 @@ export default function Settings() {
   const hasNewVideoGameRows = newVideoGameRows.length > 0;
   const hasNewMagicCardRows = newMagicCardRows.length > 0;
   const hasNewYugiohCardRows = newYugiohCardRows.length > 0;
+
+  // Global check for any new rows across all cards
+  const hasAnyNewRows = hasNewItemRows || hasNewRetailerRows || hasNewMarketRows || 
+                       hasNewPokemonCardRows || hasNewVideoGameRows || hasNewMagicCardRows || hasNewYugiohCardRows;
+
+  // Function to determine which card is currently being edited
+  const getActiveCard = () => {
+    if (hasNewItemRows) return 'items';
+    if (hasNewRetailerRows) return 'retailers';
+    if (hasNewMarketRows) return 'markets';
+    if (hasNewPokemonCardRows) return 'pokemon_cards';
+    if (hasNewVideoGameRows) return 'video_games';
+    if (hasNewMagicCardRows) return 'magic_cards';
+    if (hasNewYugiohCardRows) return 'yugioh_cards';
+    return null;
+  };
+
+  const activeCard = getActiveCard();
 
   /* ----- Items Card Operations ----- */
   function toggleItemSelection(rowId) {
@@ -324,6 +383,9 @@ export default function Settings() {
   }
 
   function addNewItemRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
     const newId = nextNewRowId;
     setNextNewRowId(newId - 1);
     setNewItemRows(prev => [...prev, { id: newId, type: 'item', isNew: true }]);
@@ -395,6 +457,9 @@ export default function Settings() {
   }
 
   function addNewRetailerRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
     const newId = nextNewRowId;
     setNextNewRowId(newId - 1);
     setNewRetailerRows(prev => [...prev, { id: newId, type: 'retailer', isNew: true }]);
@@ -466,6 +531,9 @@ export default function Settings() {
   }
 
   function addNewMarketRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
     const newId = nextNewRowId;
     setNextNewRowId(newId - 1);
     setNewMarketRows(prev => [...prev, { id: newId, type: 'market', isNew: true }]);
@@ -501,6 +569,7 @@ export default function Settings() {
       setSelectedSearchResult(null);
       setSearchQuery('');
       setSearchResults([]);
+      updateLastUpdateTime(); // Update the last update timestamp
     } catch (error) {
       console.error('Update error:', error);
       alert(`Update failed: ${error.message}`);
@@ -533,6 +602,7 @@ export default function Settings() {
       
       alert(message);
       setSelectedItems(new Set());
+      updateLastUpdateTime(); // Update the last update timestamp
     } catch (error) {
       console.error('Bulk update error:', error);
       alert(`Bulk update failed: ${error.message}`);
@@ -571,6 +641,7 @@ export default function Settings() {
       }
       
       alert(message);
+      updateLastUpdateTime(); // Update the last update timestamp
     } catch (error) {
       console.error('Sync all error:', error);
       alert(`Sync all failed: ${error.message}`);
@@ -813,6 +884,9 @@ export default function Settings() {
   }
 
   function addNewPokemonCardRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
     const newId = nextNewRowId;
     setNextNewRowId(newId - 1);
     setNewPokemonCardRows(prev => [...prev, { id: newId, type: 'pokemon_card', isNew: true }]);
@@ -837,6 +911,9 @@ export default function Settings() {
   }
 
   function addNewVideoGameRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
     const newId = nextNewRowId;
     setNextNewRowId(newId - 1);
     setNewVideoGameRows(prev => [...prev, { id: newId, type: 'video_game', isNew: true }]);
@@ -861,6 +938,9 @@ export default function Settings() {
   }
 
   function addNewMagicCardRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
     const newId = nextNewRowId;
     setNextNewRowId(newId - 1);
     setNewMagicCardRows(prev => [...prev, { id: newId, type: 'magic_card', isNew: true }]);
@@ -885,6 +965,9 @@ export default function Settings() {
   }
 
   function addNewYugiohCardRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
     const newId = nextNewRowId;
     setNextNewRowId(newId - 1);
     setNewYugiohCardRows(prev => [...prev, { id: newId, type: 'yugioh_card', isNew: true }]);
@@ -1039,368 +1122,411 @@ export default function Settings() {
     <LayoutWithSidebar active="database" section="orderbook">
       <PageHeader title="Settings" />
 
+        {/* API Status Bar */}
+        <div className={`${pageCard} mb-6`}>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-slate-200">
+              Market Data API
+            </span>
+            <div className={`px-2 py-1 rounded-lg text-xs font-medium ${
+              apiStatus.isOnline 
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            }`}>
+              {apiStatus.isOnline ? 'Online' : 'Offline'}
+            </div>
+          </div>
+          
+          {apiStatus.lastUpdate && (
+            <div className="text-xs text-slate-400 mt-2">
+              Last sync: {apiStatus.lastUpdate.toLocaleString()}
+            </div>
+          )}
+        </div>
+
         {/* Items Card */}
-        <SettingsCard
-          title="Products"
-          totalCount={items.length}
-          selectedRows={selectedItems}
-          newRows={newItemRows}
-          hasNewRows={hasNewItemRows}
-          toggleAllSelection={toggleAllItemsSelection}
-          bulkSave={bulkSaveItems}
-          bulkDelete={bulkDeleteItems}
-          bulkUpdatePrices={handleBulkUpdatePrices}
-          syncAllProducts={handleSyncAllProducts}
-          cancelNewRows={cancelNewItemRows}
-          addNewRow={addNewItemRow}
-          clearSelection={clearItemsSelection}
-          data={items}
-          newRowsData={newItemRows}
-          onRowToggle={toggleItemSelection}
-          onNewRowSave={(data) => {
-            setNewItemRows(prev => prev.filter(row => row.id !== data.id));
-            setSelectedItems(new Set());
-            refetchItems();
-          }}
-          onNewRowCancel={(data) => {
-            setNewItemRows(prev => prev.filter(row => row.id !== data.id));
-            setSelectedItems(new Set());
-          }}
-          renderRow={(item) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              isSelected={selectedItems.has(item.id)}
-              onToggleSelection={() => toggleItemSelection(item.id)}
-              onSave={() => refetchItems()}
-              disabled={hasNewItemRows}
-            />
-          )}
-          renderNewRow={(newRow) => (
-            <NewRowComponent
-              key={newRow.id}
-              row={newRow}
-              isSelected={selectedItems.has(newRow.id)}
-              onToggleSelection={() => toggleItemSelection(newRow.id)}
-              onSave={(data) => {
-                setNewItemRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedItems(new Set());
-                refetchItems();
-              }}
-              onCancel={() => {
-                setNewItemRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedItems(new Set());
-              }}
-            />
-          )}
-          cardType="items"
-          isExpanded={expandedCard === 'items'}
-          onToggleExpansion={() => setExpandedCard(expandedCard === 'items' ? null : 'items')}
-        />
+        {(!hasAnyNewRows || activeCard === 'items') && (
+          <SettingsCard
+            title="Products"
+            totalCount={items.length}
+            selectedRows={selectedItems}
+            newRows={newItemRows}
+            hasNewRows={hasNewItemRows}
+            toggleAllSelection={toggleAllItemsSelection}
+            bulkSave={bulkSaveItems}
+            bulkDelete={bulkDeleteItems}
+            bulkUpdatePrices={handleBulkUpdatePrices}
+            syncAllProducts={handleSyncAllProducts}
+            cancelNewRows={cancelNewItemRows}
+            addNewRow={addNewItemRow}
+            clearSelection={clearItemsSelection}
+            data={items}
+            newRowsData={newItemRows}
+            onRowToggle={toggleItemSelection}
+            onNewRowSave={(data) => {
+              setNewItemRows(prev => prev.filter(row => row.id !== data.id));
+              setSelectedItems(new Set());
+              refetchItems();
+            }}
+            onNewRowCancel={(data) => {
+              setNewItemRows(prev => prev.filter(row => row.id !== data.id));
+              setSelectedItems(new Set());
+            }}
+            renderRow={(item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                isSelected={selectedItems.has(item.id)}
+                onToggleSelection={() => toggleItemSelection(item.id)}
+                onSave={() => refetchItems()}
+                disabled={hasNewItemRows}
+                isCheckboxDisabled={hasNewItemRows}
+              />
+            )}
+            renderNewRow={(newRow) => (
+              <NewRowComponent
+                key={newRow.id}
+                row={newRow}
+                isSelected={selectedItems.has(newRow.id)}
+                onToggleSelection={() => toggleItemSelection(newRow.id)}
+                onSave={(data) => {
+                  setNewItemRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedItems(new Set());
+                  refetchItems();
+                }}
+                onCancel={() => {
+                  setNewItemRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedItems(new Set());
+                }}
+              />
+            )}
+            cardType="items"
+            isExpanded={expandedCard === 'items'}
+            onToggleExpansion={() => setExpandedCard(expandedCard === 'items' ? null : 'items')}
+          />
+        )}
 
         {/* Retailers Card */}
-        <SettingsCard
-          title="Retailers"
-          totalCount={retailers.length}
-          selectedRows={selectedRetailers}
-          newRows={newRetailerRows}
-          hasNewRows={hasNewRetailerRows}
-          toggleAllSelection={toggleAllRetailersSelection}
-          bulkSave={bulkSaveRetailers}
-          bulkDelete={bulkDeleteRetailers}
-          cancelNewRows={cancelNewRetailerRows}
-          addNewRow={addNewRetailerRow}
-          clearSelection={clearRetailersSelection}
-          data={retailers}
-          newRowsData={newRetailerRows}
-          onRowToggle={toggleRetailerSelection}
-          renderRow={(retailer) => (
-            <RetailerRow
-              key={retailer.id}
-              retailer={retailer}
-              isSelected={selectedRetailers.has(retailer.id)}
-              onToggleSelection={() => toggleRetailerSelection(retailer.id)}
-              onSave={() => refetchRetailers()}
-              disabled={hasNewRetailerRows}
-            />
-          )}
-          renderNewRow={(newRow) => (
-            <NewRowComponent
-              key={newRow.id}
-              row={newRow}
-              isSelected={selectedRetailers.has(newRow.id)}
-              onToggleSelection={() => toggleRetailerSelection(newRow.id)}
-              onSave={(data) => {
-                setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedRetailers(new Set());
-                refetchRetailers();
-              }}
-              onCancel={() => {
-                setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedRetailers(new Set());
-              }}
-            />
-          )}
-          cardType="retailers"
-          isExpanded={expandedCard === 'retailers'}
-          onToggleExpansion={() => setExpandedCard(expandedCard === 'retailers' ? null : 'retailers')}
-        />
+        {(!hasAnyNewRows || activeCard === 'retailers') && (
+          <SettingsCard
+            title="Retailers"
+            totalCount={retailers.length}
+            selectedRows={selectedRetailers}
+            newRows={newRetailerRows}
+            hasNewRows={hasNewRetailerRows}
+            toggleAllSelection={toggleAllRetailersSelection}
+            bulkSave={bulkSaveRetailers}
+            bulkDelete={bulkDeleteRetailers}
+            cancelNewRows={cancelNewRetailerRows}
+            addNewRow={addNewRetailerRow}
+            clearSelection={clearRetailersSelection}
+            data={retailers}
+            newRowsData={newRetailerRows}
+            onRowToggle={toggleRetailerSelection}
+            renderRow={(retailer) => (
+              <RetailerRow
+                key={retailer.id}
+                retailer={retailer}
+                isSelected={selectedRetailers.has(retailer.id)}
+                onToggleSelection={() => toggleRetailerSelection(retailer.id)}
+                onSave={() => refetchRetailers()}
+                disabled={hasNewRetailerRows}
+                isCheckboxDisabled={hasNewRetailerRows}
+              />
+            )}
+            renderNewRow={(newRow) => (
+              <NewRowComponent
+                key={newRow.id}
+                row={newRow}
+                isSelected={selectedRetailers.has(newRow.id)}
+                onToggleSelection={() => toggleRetailerSelection(newRow.id)}
+                onSave={(data) => {
+                  setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedRetailers(new Set());
+                  refetchRetailers();
+                }}
+                onCancel={() => {
+                  setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedRetailers(new Set());
+                }}
+              />
+            )}
+            cardType="retailers"
+            isExpanded={expandedCard === 'retailers'}
+            onToggleExpansion={() => setExpandedCard(expandedCard === 'retailers' ? null : 'retailers')}
+          />
+        )}
 
         {/* Markets Card */}
-        <SettingsCard
-          title="Marketplaces"
-          totalCount={markets.length}
-          selectedRows={selectedMarkets}
-          newRows={newMarketRows}
-          hasNewRows={hasNewMarketRows}
-          toggleAllSelection={toggleAllMarketsSelection}
-          bulkSave={bulkSaveMarkets}
-          bulkDelete={bulkDeleteMarkets}
-          cancelNewRows={cancelNewMarketRows}
-          addNewRow={addNewMarketRow}
-          clearSelection={clearMarketsSelection}
-          data={markets}
-          newRowsData={newMarketRows}
-          onRowToggle={toggleMarketSelection}
-          renderRow={(market) => (
-            <MarketRow
-              key={market.id}
-              market={market}
-              isSelected={selectedMarkets.has(market.id)}
-              onToggleSelection={() => toggleMarketSelection(market.id)}
-              onSave={() => refetchMarkets()}
-              disabled={hasNewMarketRows}
-            />
-          )}
-          renderNewRow={(newRow) => (
-            <NewRowComponent
-              key={newRow.id}
-              row={newRow}
-              isSelected={selectedMarkets.has(newRow.id)}
-              onToggleSelection={() => toggleMarketSelection(newRow.id)}
-              onSave={(data) => {
-                setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedMarkets(new Set());
-                refetchMarkets();
-              }}
-              onCancel={() => {
-                setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedMarkets(new Set());
-              }}
-            />
-          )}
-          cardType="markets"
-          isExpanded={expandedCard === 'markets'}
-          onToggleExpansion={() => setExpandedCard(expandedCard === 'markets' ? null : 'markets')}
-        />
+        {(!hasAnyNewRows || activeCard === 'markets') && (
+          <SettingsCard
+            title="Marketplaces"
+            totalCount={markets.length}
+            selectedRows={selectedMarkets}
+            newRows={newMarketRows}
+            hasNewRows={hasNewMarketRows}
+            toggleAllSelection={toggleAllMarketsSelection}
+            bulkSave={bulkSaveMarkets}
+            bulkDelete={bulkDeleteMarkets}
+            cancelNewRows={cancelNewMarketRows}
+            addNewRow={addNewMarketRow}
+            clearSelection={clearMarketsSelection}
+            data={markets}
+            newRowsData={newMarketRows}
+            onRowToggle={toggleMarketSelection}
+            renderRow={(market) => (
+              <MarketRow
+                key={market.id}
+                market={market}
+                isSelected={selectedMarkets.has(market.id)}
+                onToggleSelection={() => toggleMarketSelection(market.id)}
+                onSave={() => refetchMarkets()}
+                disabled={hasNewMarketRows}
+                isCheckboxDisabled={hasNewMarketRows}
+              />
+            )}
+            renderNewRow={(newRow) => (
+              <NewRowComponent
+                key={newRow.id}
+                row={newRow}
+                isSelected={selectedMarkets.has(newRow.id)}
+                onToggleSelection={() => toggleMarketSelection(newRow.id)}
+                onSave={(data) => {
+                  setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedMarkets(new Set());
+                  refetchMarkets();
+                }}
+                onCancel={() => {
+                  setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedMarkets(new Set());
+                }}
+              />
+            )}
+            cardType="markets"
+            isExpanded={expandedCard === 'markets'}
+            onToggleExpansion={() => setExpandedCard(expandedCard === 'markets' ? null : 'markets')}
+          />
+        )}
 
         {/* Pokemon Cards Card */}
-        <SettingsCard
-          title="Pokemon Cards"
-          totalCount={pokemonCards.length}
-          selectedRows={selectedPokemonCards}
-          newRows={newPokemonCardRows}
-          hasNewRows={hasNewPokemonCardRows}
-          toggleAllSelection={toggleAllPokemonCardsSelection}
-          bulkSave={bulkSavePokemonCards}
-          bulkDelete={bulkDeletePokemonCards}
-          cancelNewRows={() => {
-            setNewPokemonCardRows([]);
-            setSelectedPokemonCards(new Set());
-          }}
-          addNewRow={addNewPokemonCardRow}
-          clearSelection={() => setSelectedPokemonCards(new Set())}
-          data={pokemonCards}
-          newRowsData={newPokemonCardRows}
-          onRowToggle={togglePokemonCardSelection}
-          renderRow={(card) => (
-            <CategoryItemRow
-              key={card.id}
-              item={card}
-              isSelected={selectedPokemonCards.has(card.id)}
-              onToggleSelection={() => togglePokemonCardSelection(card.id)}
-              onSave={() => refetchPokemonCards()}
-              disabled={hasNewPokemonCardRows}
-              category="pokemon_cards"
-            />
-          )}
-          renderNewRow={(newRow) => (
-            <NewCategoryRowComponent
-              key={newRow.id}
-              row={newRow}
-              isSelected={selectedPokemonCards.has(newRow.id)}
-              onToggleSelection={() => togglePokemonCardSelection(newRow.id)}
-              onSave={(data) => {
-                setNewPokemonCardRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedPokemonCards(new Set());
-                refetchPokemonCards();
-              }}
-              onCancel={() => {
-                setNewPokemonCardRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedPokemonCards(new Set());
-              }}
-            />
-          )}
-          cardType="pokemon_cards"
-          isExpanded={expandedCard === 'pokemon_cards'}
-          onToggleExpansion={() => setExpandedCard(expandedCard === 'pokemon_cards' ? null : 'pokemon_cards')}
-        />
+        {(!hasAnyNewRows || activeCard === 'pokemon_cards') && (
+          <SettingsCard
+            title="Pokemon Cards"
+            totalCount={pokemonCards.length}
+            selectedRows={selectedPokemonCards}
+            newRows={newPokemonCardRows}
+            hasNewRows={hasNewPokemonCardRows}
+            toggleAllSelection={toggleAllPokemonCardsSelection}
+            bulkSave={bulkSavePokemonCards}
+            bulkDelete={bulkDeletePokemonCards}
+            cancelNewRows={() => {
+              setNewPokemonCardRows([]);
+              setSelectedPokemonCards(new Set());
+            }}
+            addNewRow={addNewPokemonCardRow}
+            clearSelection={() => setSelectedPokemonCards(new Set())}
+            data={pokemonCards}
+            newRowsData={newPokemonCardRows}
+            onRowToggle={togglePokemonCardSelection}
+            renderRow={(card) => (
+              <CategoryItemRow
+                key={card.id}
+                item={card}
+                isSelected={selectedPokemonCards.has(card.id)}
+                onToggleSelection={() => togglePokemonCardSelection(card.id)}
+                onSave={() => refetchPokemonCards()}
+                disabled={hasNewPokemonCardRows}
+                category="pokemon_cards"
+                isCheckboxDisabled={hasNewPokemonCardRows}
+              />
+            )}
+            renderNewRow={(newRow) => (
+              <NewCategoryRowComponent
+                key={newRow.id}
+                row={newRow}
+                isSelected={selectedPokemonCards.has(newRow.id)}
+                onToggleSelection={() => togglePokemonCardSelection(newRow.id)}
+                onSave={(data) => {
+                  setNewPokemonCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedPokemonCards(new Set());
+                  refetchPokemonCards();
+                }}
+                onCancel={() => {
+                  setNewPokemonCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedPokemonCards(new Set());
+                }}
+              />
+            )}
+            cardType="pokemon_cards"
+            isExpanded={expandedCard === 'pokemon_cards'}
+            onToggleExpansion={() => setExpandedCard(expandedCard === 'pokemon_cards' ? null : 'pokemon_cards')}
+          />
+        )}
 
         {/* Video Games Card */}
-        <SettingsCard
-          title="Video Games"
-          totalCount={videoGames.length}
-          selectedRows={selectedVideoGames}
-          newRows={newVideoGameRows}
-          hasNewRows={hasNewVideoGameRows}
-          toggleAllSelection={toggleAllVideoGamesSelection}
-          bulkSave={bulkSaveVideoGames}
-          bulkDelete={bulkDeleteVideoGames}
-          cancelNewRows={() => {
-            setNewVideoGameRows([]);
-            setSelectedVideoGames(new Set());
-          }}
-          addNewRow={addNewVideoGameRow}
-          clearSelection={() => setSelectedVideoGames(new Set())}
-          data={videoGames}
-          newRowsData={newVideoGameRows}
-          onRowToggle={toggleVideoGameSelection}
-          renderRow={(game) => (
-            <CategoryItemRow
-              key={game.id}
-              item={game}
-              isSelected={selectedVideoGames.has(game.id)}
-              onToggleSelection={() => toggleVideoGameSelection(game.id)}
-              onSave={() => refetchVideoGames()}
-              disabled={hasNewVideoGameRows}
-              category="video_games"
-            />
-          )}
-          renderNewRow={(newRow) => (
-            <NewCategoryRowComponent
-              key={newRow.id}
-              row={newRow}
-              isSelected={selectedVideoGames.has(newRow.id)}
-              onToggleSelection={() => toggleVideoGameSelection(newRow.id)}
-              onSave={(data) => {
-                setNewVideoGameRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedVideoGames(new Set());
-                refetchVideoGames();
-              }}
-              onCancel={() => {
-                setNewVideoGameRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedVideoGames(new Set());
-              }}
-            />
-          )}
-          cardType="video_games"
-          isExpanded={expandedCard === 'video_games'}
-          onToggleExpansion={() => setExpandedCard(expandedCard === 'video_games' ? null : 'video_games')}
-        />
+        {(!hasAnyNewRows || activeCard === 'video_games') && (
+          <SettingsCard
+            title="Video Games"
+            totalCount={videoGames.length}
+            selectedRows={selectedVideoGames}
+            newRows={newVideoGameRows}
+            hasNewRows={hasNewVideoGameRows}
+            toggleAllSelection={toggleAllVideoGamesSelection}
+            bulkSave={bulkSaveVideoGames}
+            bulkDelete={bulkDeleteVideoGames}
+            cancelNewRows={() => {
+              setNewVideoGameRows([]);
+              setSelectedVideoGames(new Set());
+            }}
+            addNewRow={addNewVideoGameRow}
+            clearSelection={() => setSelectedVideoGames(new Set())}
+            data={videoGames}
+            newRowsData={newVideoGameRows}
+            onRowToggle={toggleVideoGameSelection}
+            renderRow={(game) => (
+              <CategoryItemRow
+                key={game.id}
+                item={game}
+                isSelected={selectedVideoGames.has(game.id)}
+                onToggleSelection={() => toggleVideoGameSelection(game.id)}
+                onSave={() => refetchVideoGames()}
+                disabled={hasNewVideoGameRows}
+                category="video_games"
+                isCheckboxDisabled={hasNewVideoGameRows}
+              />
+            )}
+            renderNewRow={(newRow) => (
+              <NewCategoryRowComponent
+                key={newRow.id}
+                row={newRow}
+                isSelected={selectedVideoGames.has(newRow.id)}
+                onToggleSelection={() => toggleVideoGameSelection(newRow.id)}
+                onSave={(data) => {
+                  setNewVideoGameRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedVideoGames(new Set());
+                  refetchVideoGames();
+                }}
+                onCancel={() => {
+                  setNewVideoGameRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedVideoGames(new Set());
+                }}
+              />
+            )}
+            cardType="video_games"
+            isExpanded={expandedCard === 'video_games'}
+            onToggleExpansion={() => setExpandedCard(expandedCard === 'video_games' ? null : 'video_games')}
+          />
+        )}
 
         {/* Magic Cards Card */}
-        <SettingsCard
-          title="Magic Cards"
-          totalCount={magicCards.length}
-          selectedRows={selectedMagicCards}
-          newRows={newMagicCardRows}
-          hasNewRows={hasNewMagicCardRows}
-          toggleAllSelection={toggleAllMagicCardsSelection}
-          bulkSave={bulkSaveMagicCards}
-          bulkDelete={bulkDeleteMagicCards}
-          cancelNewRows={() => {
-            setNewMagicCardRows([]);
-            setSelectedMagicCards(new Set());
-          }}
-          addNewRow={addNewMagicCardRow}
-          clearSelection={() => setSelectedMagicCards(new Set())}
-          data={magicCards}
-          newRowsData={newMagicCardRows}
-          onRowToggle={toggleMagicCardSelection}
-          renderRow={(card) => (
-            <CategoryItemRow
-              key={card.id}
-              item={card}
-              isSelected={selectedMagicCards.has(card.id)}
-              onToggleSelection={() => toggleMagicCardSelection(card.id)}
-              onSave={() => refetchMagicCards()}
-              disabled={hasNewMagicCardRows}
-              category="magic_cards"
-            />
-          )}
-          renderNewRow={(newRow) => (
-            <NewCategoryRowComponent
-              key={newRow.id}
-              row={newRow}
-              isSelected={selectedMagicCards.has(newRow.id)}
-              onToggleSelection={() => toggleMagicCardSelection(newRow.id)}
-              onSave={(data) => {
-                setNewMagicCardRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedMagicCards(new Set());
-                refetchMagicCards();
-              }}
-              onCancel={() => {
-                setNewMagicCardRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedMagicCards(new Set());
-              }}
-            />
-          )}
-          cardType="magic_cards"
-          isExpanded={expandedCard === 'magic_cards'}
-          onToggleExpansion={() => setExpandedCard(expandedCard === 'magic_cards' ? null : 'magic_cards')}
-        />
+        {(!hasAnyNewRows || activeCard === 'magic_cards') && (
+          <SettingsCard
+            title="Magic Cards"
+            totalCount={magicCards.length}
+            selectedRows={selectedMagicCards}
+            newRows={newMagicCardRows}
+            hasNewRows={hasNewMagicCardRows}
+            toggleAllSelection={toggleAllMagicCardsSelection}
+            bulkSave={bulkSaveMagicCards}
+            bulkDelete={bulkDeleteMagicCards}
+            cancelNewRows={() => {
+              setNewMagicCardRows([]);
+              setSelectedMagicCards(new Set());
+            }}
+            addNewRow={addNewMagicCardRow}
+            clearSelection={() => setSelectedMagicCards(new Set())}
+            data={magicCards}
+            newRowsData={newMagicCardRows}
+            onRowToggle={toggleMagicCardSelection}
+            renderRow={(card) => (
+              <CategoryItemRow
+                key={card.id}
+                item={card}
+                isSelected={selectedMagicCards.has(card.id)}
+                onToggleSelection={() => toggleMagicCardSelection(card.id)}
+                onSave={() => refetchMagicCards()}
+                disabled={hasNewMagicCardRows}
+                category="magic_cards"
+                isCheckboxDisabled={hasNewMagicCardRows}
+              />
+            )}
+            renderNewRow={(newRow) => (
+              <NewCategoryRowComponent
+                key={newRow.id}
+                row={newRow}
+                isSelected={selectedMagicCards.has(newRow.id)}
+                onToggleSelection={() => toggleMagicCardSelection(newRow.id)}
+                onSave={(data) => {
+                  setNewMagicCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedMagicCards(new Set());
+                  refetchMagicCards();
+                }}
+                onCancel={() => {
+                  setNewMagicCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedMagicCards(new Set());
+                }}
+              />
+            )}
+            cardType="magic_cards"
+            isExpanded={expandedCard === 'magic_cards'}
+            onToggleExpansion={() => setExpandedCard(expandedCard === 'magic_cards' ? null : 'magic_cards')}
+          />
+        )}
 
         {/* Yu-Gi-Oh Cards Card */}
-        <SettingsCard
-          title="Yu-Gi-Oh Cards"
-          totalCount={yugiohCards.length}
-          selectedRows={selectedYugiohCards}
-          newRows={newYugiohCardRows}
-          hasNewRows={hasNewYugiohCardRows}
-          toggleAllSelection={toggleAllYugiohCardsSelection}
-          bulkSave={bulkSaveYugiohCards}
-          bulkDelete={bulkDeleteYugiohCards}
-          cancelNewRows={() => {
-            setNewYugiohCardRows([]);
-            setSelectedYugiohCards(new Set());
-          }}
-          addNewRow={addNewYugiohCardRow}
-          clearSelection={() => setSelectedYugiohCards(new Set())}
-          data={yugiohCards}
-          newRowsData={newYugiohCardRows}
-          onRowToggle={toggleYugiohCardSelection}
-          renderRow={(card) => (
-            <CategoryItemRow
-              key={card.id}
-              item={card}
-              isSelected={selectedYugiohCards.has(card.id)}
-              onToggleSelection={() => toggleYugiohCardSelection(card.id)}
-              onSave={() => refetchYugiohCards()}
-              disabled={hasNewYugiohCardRows}
-              category="yugioh_cards"
-            />
-          )}
-          renderNewRow={(newRow) => (
-            <NewCategoryRowComponent
-              key={newRow.id}
-              row={newRow}
-              isSelected={selectedYugiohCards.has(newRow.id)}
-              onToggleSelection={() => toggleYugiohCardSelection(newRow.id)}
-              onSave={(data) => {
-                setNewYugiohCardRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedYugiohCards(new Set());
-                refetchYugiohCards();
-              }}
-              onCancel={() => {
-                setNewYugiohCardRows(prev => prev.filter(row => row.id !== newRow.id));
-                setSelectedYugiohCards(new Set());
-              }}
-            />
-          )}
-          cardType="yugioh_cards"
-          isExpanded={expandedCard === 'yugioh_cards'}
-          onToggleExpansion={() => setExpandedCard(expandedCard === 'yugioh_cards' ? null : 'yugioh_cards')}
-        />
+        {(!hasAnyNewRows || activeCard === 'yugioh_cards') && (
+          <SettingsCard
+            title="Yu-Gi-Oh Cards"
+            totalCount={yugiohCards.length}
+            selectedRows={selectedYugiohCards}
+            newRows={newYugiohCardRows}
+            hasNewRows={hasNewYugiohCardRows}
+            toggleAllSelection={toggleAllYugiohCardsSelection}
+            bulkSave={bulkSaveYugiohCards}
+            bulkDelete={bulkDeleteYugiohCards}
+            cancelNewRows={() => {
+              setNewYugiohCardRows([]);
+              setSelectedYugiohCards(new Set());
+            }}
+            addNewRow={addNewYugiohCardRow}
+            clearSelection={() => setSelectedYugiohCards(new Set())}
+            data={yugiohCards}
+            newRowsData={newYugiohCardRows}
+            onRowToggle={toggleYugiohCardSelection}
+            renderRow={(card) => (
+              <CategoryItemRow
+                key={card.id}
+                item={card}
+                isSelected={selectedYugiohCards.has(card.id)}
+                onToggleSelection={() => toggleYugiohCardSelection(card.id)}
+                onSave={() => refetchYugiohCards()}
+                disabled={hasNewYugiohCardRows}
+                category="yugioh_cards"
+                isCheckboxDisabled={hasNewYugiohCardRows}
+              />
+            )}
+            renderNewRow={(newRow) => (
+              <NewCategoryRowComponent
+                key={newRow.id}
+                row={newRow}
+                isSelected={selectedYugiohCards.has(newRow.id)}
+                onToggleSelection={() => toggleYugiohCardSelection(newRow.id)}
+                onSave={(data) => {
+                  setNewYugiohCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedYugiohCards(new Set());
+                  refetchYugiohCards();
+                }}
+                onCancel={() => {
+                  setNewYugiohCardRows(prev => prev.filter(row => row.id !== newRow.id));
+                  setSelectedYugiohCards(new Set());
+                }}
+              />
+            )}
+            cardType="yugioh_cards"
+            isExpanded={expandedCard === 'yugioh_cards'}
+            onToggleExpansion={() => setExpandedCard(expandedCard === 'yugioh_cards' ? null : 'yugioh_cards')}
+          />
+        )}
 
     </LayoutWithSidebar>
   );
@@ -1521,25 +1647,28 @@ function SettingsCard({
           className="pt-5 border-t border-slate-800 mt-4 overflow-visible"
           onClick={(e) => e.stopPropagation()} // Prevent card expansion when clicking in expanded area
         >
-          {/* Header with Selection Count and Actions - Card-like structure without background */}
-          <div className="flex items-center justify-between py-1 px-4 mb-2">
-            {/* Left side - Selection Count (matches card header structure) */}
-            <div className="flex items-center gap-4">
-              <input
-                type="checkbox"
-                checked={selectedRows.size === data.length && data.length > 0}
-                onChange={toggleAllSelection}
-                className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
-              />
-              <div>
-                <div className="text-sm sm:text-lg text-slate-400 whitespace-nowrap">
-                  {selectedRows.size}/{data.length} Selected
+          {/* Header with Selection Count and Actions - Only show when not adding new rows */}
+          {!hasNewRows && (
+            <div className="flex items-center py-1 px-4 mb-2">
+              {/* Left side - Selection Count (matches card header structure) */}
+              <div className="flex-1">
+                <div className="flex items-center gap-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === data.length && data.length > 0}
+                    onChange={toggleAllSelection}
+                    className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
+                  />
+                  <div>
+                    <div className="text-sm sm:text-lg text-slate-400 whitespace-nowrap">
+                      {selectedRows.size}/{data.length} Selected
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Right side - Action Buttons */}
-            <div className="flex items-center gap-2">
+              {/* Right side - Action Buttons */}
+              <div className="flex items-center gap-2">
 
               {/* Determine button visibility based on selection state */}
               {(() => {
@@ -1646,11 +1775,14 @@ function SettingsCard({
                 </>
                 );
               })()}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Page break line */}
-          <div className="border-b border-slate-700 mb-2"></div>
+          {/* Page break line - Hidden when adding new rows */}
+          {!hasNewRows && (
+            <div className="border-b border-slate-800 mb-2"></div>
+          )}
 
           {/* Column Headers */}
           <div className={`hidden sm:grid gap-4 px-4 py-3 border-b border-slate-800 text-xs text-slate-400 font-medium ${
@@ -1997,7 +2129,7 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
   );
 }
 
-function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false }) {
+function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false, isCheckboxDisabled = false }) {
   const [name, setName] = useState(item?.name ?? "");
   const [mv, setMv] = useState(centsToStr(item?.market_value_cents ?? 0));
   const [upcCode, setUpcCode] = useState(item?.upc_code ?? "");
@@ -2092,11 +2224,14 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
         <input
           type="checkbox"
           checked={isSelected}
+          disabled={isCheckboxDisabled}
           onChange={(e) => {
             e.stopPropagation();
             onToggleSelection();
           }}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
+          className={`h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500 ${
+            isCheckboxDisabled ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         />
         
         <div onClick={(e) => e.stopPropagation()}>
@@ -2260,7 +2395,7 @@ function ItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false
   );
 }
 
-function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled = false }) {
+function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled = false, isCheckboxDisabled = false }) {
   const [name, setName] = useState(retailer?.name ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -2310,11 +2445,14 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled
         <input
           type="checkbox"
           checked={isSelected}
+          disabled={isCheckboxDisabled}
           onChange={(e) => {
             e.stopPropagation();
             onToggleSelection();
           }}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
+          className={`h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500 ${
+            isCheckboxDisabled ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         />
         
         <input
@@ -2432,7 +2570,7 @@ function RetailerRow({ retailer, isSelected, onToggleSelection, onSave, disabled
   );
 }
 
-function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = false }) {
+function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = false, isCheckboxDisabled = false }) {
   const [name, setName] = useState(market?.name ?? "");
   const [fee, setFee] = useState(((market?.default_fees_pct ?? 0) * 100).toString());
   const [status, setStatus] = useState("");
@@ -2484,11 +2622,14 @@ function MarketRow({ market, isSelected, onToggleSelection, onSave, disabled = f
         <input
           type="checkbox"
           checked={isSelected}
+          disabled={isCheckboxDisabled}
           onChange={(e) => {
             e.stopPropagation();
             onToggleSelection();
           }}
-          className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
+          className={`h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500 ${
+            isCheckboxDisabled ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         />
         
         <input
