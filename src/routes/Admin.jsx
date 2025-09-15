@@ -348,10 +348,10 @@ export default function Admin() {
                   });
                   const result = await response.json();
                   if (result.success) {
-                    const categoryBreakdown = Object.entries(result.categoryAnalysis)
-                      .map(([cat, data]) => `${cat}: ${data.count.toLocaleString()}`)
+                    const categoryBreakdown = Object.entries(result.uniqueCategories || result.categoryAnalysis)
+                      .map(([cat, count]) => `${cat}: ${count.toLocaleString()}`)
                       .join(', ');
-                    setSyncStatus(`✅ Database Analysis: ${result.totalCount.toLocaleString()} total products. Breakdown: ${categoryBreakdown}`);
+                    setSyncStatus(`✅ Database Analysis: ${result.totalCount.toLocaleString()} total products. Detailed breakdown: ${categoryBreakdown}`);
                     refetchCounts();
                   } else {
                     setSyncStatus(`❌ Analysis failed: ${result.error}`);

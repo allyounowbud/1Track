@@ -93,6 +93,22 @@ exports.handler = async (event, context) => {
       }
     }
     
+    // Get all unique categories to see what's actually there
+    const { data: allCategories, error: categoriesError } = await supabase
+      .from('price_charting_products')
+      .select('category')
+      .order('category');
+    
+    const uniqueCategories = {};
+    if (!categoriesError && allCategories) {
+      allCategories.forEach(item => {
+        if (!uniqueCategories[item.category]) {
+          uniqueCategories[item.category] = 0;
+        }
+        uniqueCategories[item.category]++;
+      });
+    }
+    
     // Get recent download logs
     const { data: recentLogs, error: logsError } = await supabase
       .from('csv_download_logs')
@@ -114,6 +130,7 @@ exports.handler = async (event, context) => {
         success: true,
         totalCount: totalCount || 0,
         categoryAnalysis,
+        uniqueCategories,
         sampleProducts,
         recentLogs: recentLogs || [],
         message: `Database contains ${totalCount || 0} total products across ${Object.keys(categoryAnalysis).length} categories`
