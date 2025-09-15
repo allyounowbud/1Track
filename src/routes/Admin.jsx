@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import BatchSync from '../components/BatchSync';
+import StreamingSync from '../components/StreamingSync';
 
 // Admin function to check CSV status
 async function checkCSVStatus(category) {
@@ -299,6 +300,13 @@ export default function Admin() {
               </div>
               <div className="flex-1 flex gap-2">
                 <BatchSync 
+                  category="pokemon_cards" 
+                  onComplete={() => {
+                    refetchLogs();
+                    refetchCounts();
+                  }}
+                />
+                <StreamingSync 
                   category="pokemon_cards" 
                   onComplete={() => {
                     refetchLogs();
