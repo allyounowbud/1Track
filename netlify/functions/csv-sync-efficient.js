@@ -8,10 +8,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const PRICE_CHARTING_API_KEY = process.env.PRICE_CHARTING_API_KEY;
 
 const CSV_URLS = {
-  video_games: `https://www.pricecharting.com/download/video-games.csv?t=${PRICE_CHARTING_API_KEY}`,
-  pokemon_cards: `https://www.pricecharting.com/download/pokemon-cards.csv?t=${PRICE_CHARTING_API_KEY}`,
-  magic_cards: `https://www.pricecharting.com/download/magic-cards.csv?t=${PRICE_CHARTING_API_KEY}`,
-  yugioh_cards: `https://www.pricecharting.com/download/yugioh-cards.csv?t=${PRICE_CHARTING_API_KEY}`
+  video_games: `https://www.pricecharting.com/price-guide/download-custom?t=${PRICE_CHARTING_API_KEY}&category=video-games`,
+  pokemon_cards: `https://www.pricecharting.com/price-guide/download-custom?t=${PRICE_CHARTING_API_KEY}&category=pokemon-cards`,
+  magic_cards: `https://www.pricecharting.com/price-guide/download-custom?t=${PRICE_CHARTING_API_KEY}&category=magic-cards`,
+  yugioh_cards: `https://www.pricecharting.com/price-guide/download-custom?t=${PRICE_CHARTING_API_KEY}&category=yugioh-cards`
 };
 
 // Helper function to parse CSV lines
@@ -115,7 +115,7 @@ exports.handler = async (event, context) => {
     
     const csvText = await response.text();
     const lines = csvText.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const headers = parseCSVLine(lines[0]);
     
     console.log(`CSV downloaded: ${lines.length} lines`);
     console.log(`Headers: ${headers.join(', ')}`);
