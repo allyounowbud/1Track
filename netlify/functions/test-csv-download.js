@@ -60,23 +60,11 @@ exports.handler = async (event, context) => {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      // Just get the first few lines to test
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let csvText = '';
-      let lineCount = 0;
+      // Just get the first part of the response to test
+      const csvText = await response.text();
       
-      while (lineCount < 10) { // Only read first 10 lines
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        csvText += decoder.decode(value, { stream: true });
-        lineCount = csvText.split('\n').length;
-      }
-      
-      reader.cancel(); // Stop reading
-      
-      const lines = csvText.split('\n');
+      // Limit to first 10 lines to avoid memory issues
+      const lines = csvText.split('\n').slice(0, 10);
       const headers = lines[0] ? lines[0].split(',').map(h => h.trim().replace(/"/g, '')) : [];
       
       console.log(`✅ CSV download successful: ${lines.length} lines read`);
