@@ -866,7 +866,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
   const allRowsSelected = rows.length > 0 && rows.every(row => selectedRows.has(row.id));
 
   return (
-    <div className={`border rounded-xl overflow-hidden transition-all ${
+    <div className={`border rounded-xl overflow-visible transition-all ${
       allRowsSelected 
         ? 'border-indigo-500 bg-indigo-500/10' 
         : 'border-slate-800'
@@ -1138,7 +1138,7 @@ function DayCard({
       </div>
 
       {/* content */}
-      <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 1000 : 0 }}>
+      <div className={`transition-all duration-300 ease-in-out overflow-visible`} style={{ maxHeight: open ? 1000 : 0 }}>
         <div className="pt-5">
           {/* Header row - text only */}
           <div className="hidden lg:block">
@@ -1413,7 +1413,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
   return (
     <div 
-      className={`lg:rounded-lg lg:bg-slate-900/30 lg:py-3 lg:px-3 lg:overflow-hidden lg:transition lg:cursor-pointer lg:relative lg:hover:bg-slate-800/30 rounded-xl border bg-slate-900/60 p-4 space-y-3 ${
+      className={`lg:rounded-lg lg:bg-slate-900/30 lg:py-3 lg:px-3 lg:overflow-visible lg:transition lg:cursor-pointer lg:relative lg:hover:bg-slate-800/30 rounded-xl border bg-slate-900/60 p-4 space-y-3 ${
         isSelected || order.isNew
           ? 'bg-indigo-500/10 border-indigo-500 lg:border-indigo-500' 
           : 'border-slate-800 lg:border-b lg:border-slate-700/50'
