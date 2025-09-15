@@ -129,7 +129,7 @@ export default function ProductSearchDropdown({
   };
 
   return (
-    <div ref={dropdownRef} className={`relative z-[9998] ${className}`}>
+    <div ref={dropdownRef} className={`relative z-[99999] ${className}`}>
       {/* Input Field */}
       <div className="relative">
         <input
@@ -163,7 +163,7 @@ export default function ProductSearchDropdown({
 
       {/* Dropdown Results */}
       {isOpen && (searchResults.length > 0 || error || isSearching) && (
-        <div className="absolute z-[9999] w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-[99999] w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {error && (
             <div className="px-3 py-2 text-sm text-red-400 border-b border-slate-700">
               {error}

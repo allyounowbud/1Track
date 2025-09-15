@@ -987,7 +987,7 @@ function SettingsCard({
       {/* Expanded Content */}
       {isExpanded && (
         <div 
-          className="pt-5 border-t border-slate-800 mt-4"
+          className="pt-5 border-t border-slate-800 mt-4 overflow-visible"
           onClick={(e) => e.stopPropagation()} // Prevent card expansion when clicking in expanded area
         >
           {/* Header with Selection Count and Actions - Card-like structure without background */}
@@ -1135,7 +1135,7 @@ function SettingsCard({
               </div>
 
           {/* Rows - No scroll, show all data */}
-          <div className="space-y-2">
+          <div className="space-y-2 overflow-visible">
             {/* New rows first */}
             {newRowsData.map(renderNewRow)}
 
@@ -1248,7 +1248,7 @@ function NewRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel 
 
   return (
     <div 
-      className={`rounded-xl border bg-slate-900/60 p-3 overflow-hidden transition cursor-pointer ${
+      className={`rounded-xl border bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
         isSelected
           ? 'border-indigo-500 bg-indigo-500/10' 
           : 'border-slate-800 hover:bg-slate-800/50'
