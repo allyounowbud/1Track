@@ -108,442 +108,305 @@ async function getProductCounts() {
 }
 
 export default function Admin() {
-  const [syncStatus, setSyncStatus] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
-  const [csvStatus, setCsvStatus] = useState({});
+  const [syncStatus, setSyncStatus] = useState('');
 
-  // Get download logs
-  const { data: logs, refetch: refetchLogs } = useQuery({
-    queryKey: ['download-logs'],
+  // Queries
+  const { data: logs = [], refetch: refetchLogs } = useQuery({
+    queryKey: ['downloadLogs'],
     queryFn: getDownloadLogs,
-    refetchInterval: 30000 // Refresh every 30 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
-  // Get product counts
-  const { data: productCounts, refetch: refetchCounts } = useQuery({
-    queryKey: ['product-counts'],
+  const { data: counts = {}, refetch: refetchCounts } = useQuery({
+    queryKey: ['productCounts'],
     queryFn: getProductCounts,
-    refetchInterval: 30000 // Refresh every 30 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
-  const handleCheckStatus = async (category) => {
-    setIsSyncing(true);
-    setSyncStatus(`Checking ${category} CSV status...`);
-    
-    try {
-      const result = await checkCSVStatus(category);
-      setCsvStatus(prev => ({
-        ...prev,
-        [category]: result.result
-      }));
-      setSyncStatus(`✅ ${category}: ${result.result.productCount} products available (${Math.round(result.result.csvSize / 1024)}KB)`);
-    } catch (error) {
-      setSyncStatus(`❌ Status check failed: ${error.message}`);
-    } finally {
-      setIsSyncing(false);
-    }
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleString();
   };
 
-  const handleSync = async (category) => {
-    setIsSyncing(true);
-    setSyncStatus(`Downloading ${category}...`);
-    
-    try {
-      const result = await triggerCSVDownload(category);
-      setSyncStatus(`✅ Successfully synced ${result.result.productCount} products for ${category}`);
-      
-      // Refresh the data
-      refetchLogs();
-      refetchCounts();
-      
-    } catch (error) {
-      setSyncStatus(`❌ Sync failed: ${error.message}`);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleDebugCSV = async () => {
-    setIsSyncing(true);
-    setSyncStatus(`Debugging CSV structure...`);
-    
-    try {
-      const response = await fetch('/.netlify/functions/debug-csv-structure', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-      
-      const result = await response.json();
-      setSyncStatus(`✅ CSV Debug: ${result.message}`);
-      console.log('CSV Structure:', result);
-      
-    } catch (error) {
-      setSyncStatus(`❌ Debug failed: ${error.message}`);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleFullSync = async () => {
-    setIsSyncing(true);
-    setSyncStatus('Starting full sync of all categories...');
-    
-    const categories = ['video_games', 'pokemon_cards', 'magic_cards', 'yugioh_cards'];
-    let totalProducts = 0;
-    
-    try {
-      for (const category of categories) {
-        setSyncStatus(`Syncing ${category}...`);
-        const result = await triggerCSVSync(category);
-        totalProducts += result.result.productCount;
-      }
-      
-      setSyncStatus(`✅ Full sync completed: ${totalProducts} total products synced`);
-      
-      // Refresh the data
-      refetchLogs();
-      refetchCounts();
-      
-    } catch (error) {
-      setSyncStatus(`❌ Full sync failed: ${error.message}`);
-    } finally {
-      setIsSyncing(false);
+  const getStatusColor = (status) => {
+    switch (status.toLowerCase()) {
+      case 'success':
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'error':
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
+      default:
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Price Charting Admin</h1>
-        
-        {/* Sync Controls */}
-        <div className="bg-slate-800 rounded-xl p-6 mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">CSV Sync Controls</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={handleDebugCSV}
-                disabled={isSyncing}
-                className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 rounded text-sm transition-colors"
-              >
-                Debug CSV Structure
-              </button>
-              <button
-                onClick={async () => {
-                  setIsSyncing(true);
-                  setSyncStatus('Testing simple CSV debug...');
-                  try {
-                    const response = await fetch('/.netlify/functions/simple-csv-debug');
-                    const result = await response.json();
-                    setSyncStatus(`✅ CSV Debug: ${result.message}`);
-                    console.log('Simple CSV Debug:', result);
-                    console.log('CSV Headers:', result.headers);
-                    console.log('Sample Data:', result.sampleData);
-                  } catch (error) {
-                    setSyncStatus(`❌ Debug failed: ${error.message}`);
-                  } finally {
-                    setIsSyncing(false);
-                  }
-                }}
-                disabled={isSyncing}
-                className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:opacity-50 rounded text-sm transition-colors"
-              >
-                Simple CSV Debug
-              </button>
-            </div>
-          </div>
-          
-          <div className="space-y-4 mb-4">
-            {/* Video Games */}
-            <div className="flex items-center gap-4">
-              <div className="w-32">
-                <button
-                  onClick={() => handleCheckStatus('video_games')}
-                  disabled={isSyncing}
-                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-800 disabled:opacity-50 rounded text-sm transition-colors"
-                >
-                  Check Status
-                </button>
-              </div>
-              <div className="flex-1">
-                <button
-                  onClick={() => handleSync('video_games')}
-                  disabled={isSyncing}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 rounded-lg transition-colors"
-                >
-                  Sync Video Games
-                </button>
-              </div>
-              {csvStatus.video_games && (
-                <div className="text-sm text-slate-400">
-                  {csvStatus.video_games.productCount} products ({Math.round(csvStatus.video_games.csvSize / 1024)}KB)
-                </div>
-              )}
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-white mb-2">Product Database Admin</h1>
+          <p className="text-slate-400">Manage CSV sync operations and monitor database status</p>
+        </div>
 
-            {/* Pokemon Cards */}
-            <div className="flex items-center gap-4">
-              <div className="w-32">
-                <button
-                  onClick={() => handleCheckStatus('pokemon_cards')}
-                  disabled={isSyncing}
-                  className="px-3 py-2 bg-green-500 hover:bg-green-600 disabled:bg-green-800 disabled:opacity-50 rounded text-sm transition-colors"
-                >
-                  Check Status
-                </button>
+        {/* Database Status Overview */}
+        <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
+          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            Database Status
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Object.entries(counts).map(([category, data]) => (
+              <div key={category} className="bg-slate-800/50 rounded-lg border border-slate-700 p-4">
+                <div className="text-sm text-slate-400 mb-1">
+                  {category.replace('_', ' ').toUpperCase()}
+                </div>
+                <div className="text-2xl font-bold text-white mb-1">
+                  {data.count.toLocaleString()}
+                </div>
+                <div className="text-xs text-slate-500">
+                  Last updated: {formatDate(data.lastUpdated)}
+                </div>
               </div>
-              <div className="flex-1 flex gap-2">
-                <BatchSync 
-                  category="pokemon_cards" 
-                  onComplete={() => {
-                    refetchLogs();
-                    refetchCounts();
-                  }}
-                />
+            ))}
+            
+            {Object.keys(counts).length === 0 && (
+              <div className="col-span-full text-center text-slate-500 py-8">
+                No products found in database
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sync Operations */}
+        <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
+          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            Sync Operations
+          </h2>
+          
+          <div className="space-y-6">
+            {/* Current Status */}
+            {syncStatus && (
+              <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4">
+                <div className="text-sm font-medium text-slate-300 mb-1">Current Operation</div>
+                <div className="text-slate-100">{syncStatus}</div>
+              </div>
+            )}
+
+            {/* Sync Methods */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Streaming Sync - Recommended */}
+              <div className="bg-slate-800/30 rounded-lg border border-slate-700 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                  <h3 className="font-semibold text-white">Streaming Sync</h3>
+                  <span className="bg-indigo-500/20 text-indigo-400 text-xs px-2 py-1 rounded-full">
+                    Recommended
+                  </span>
+                </div>
+                <p className="text-sm text-slate-400 mb-4">
+                  Processes CSV in small batches (200 lines at a time) to avoid timeouts. 
+                  Best for large datasets like Pokemon cards (71,349 products).
+                </p>
                 <StreamingSync 
                   category="pokemon_cards" 
-                  onComplete={() => {
-                    refetchLogs();
+                  onComplete={(count) => {
+                    setSyncStatus(`✅ Streaming sync completed: ${count.toLocaleString()} products processed`);
                     refetchCounts();
+                    refetchLogs();
                   }}
                 />
-                <button
-                  onClick={async () => {
-                    setIsSyncing(true);
-                    setSyncStatus('Checking current progress...');
-                    try {
-                      const response = await fetch('/.netlify/functions/resume-sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ category: 'pokemon_cards' })
-                      });
-                      const result = await response.json();
-                      setSyncStatus(`✅ Current progress: ${result.currentCount} products imported`);
-                      refetchCounts();
-                    } catch (error) {
-                      setSyncStatus(`❌ Check failed: ${error.message}`);
-                    } finally {
-                      setIsSyncing(false);
-                    }
-                  }}
-                  disabled={isSyncing}
-                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-800 disabled:opacity-50 rounded text-sm transition-colors"
-                >
-                  Check Progress
-                </button>
-                <button
-                  onClick={async () => {
-                    setIsSyncing(true);
-                    setSyncStatus('Running basic test...');
-                    try {
-                      const response = await fetch('/.netlify/functions/test-basic', {
-                        method: 'GET'
-                      });
-                      const result = await response.json();
-                      if (result.success) {
-                        setSyncStatus(`✅ Basic test successful: ${result.message}`);
-                      } else {
-                        setSyncStatus(`❌ Basic test failed: ${result.error}`);
-                      }
-                    } catch (error) {
-                      setSyncStatus(`❌ Basic test failed: ${error.message}`);
-                    } finally {
-                      setIsSyncing(false);
-                    }
-                  }}
-                  disabled={isSyncing}
-                  className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 rounded text-sm transition-colors"
-                >
-                  Basic Test
-                </button>
-                <button
-                  onClick={async () => {
-                    setIsSyncing(true);
-                    setSyncStatus('Running minimal CSV test...');
-                    try {
-                      const response = await fetch('/.netlify/functions/test-csv-minimal', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({})
-                      });
-                      const result = await response.json();
-                      if (result.success) {
-                        setSyncStatus(`✅ Minimal test successful: ${result.message}`);
-                        refetchCounts();
-                      } else {
-                        setSyncStatus(`❌ Minimal test failed: ${result.error}`);
-                      }
-                    } catch (error) {
-                      setSyncStatus(`❌ Minimal test failed: ${error.message}`);
-                    } finally {
-                      setIsSyncing(false);
-                    }
-                  }}
-                  disabled={isSyncing}
-                  className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 rounded text-sm transition-colors"
-                >
-                  Minimal CSV Test
-                </button>
-                <button
-                  onClick={async () => {
-                    const clearExisting = confirm('Clear existing Pokemon cards data and sync fresh?');
-                    setIsSyncing(true);
-                    setSyncStatus('Starting efficient sync...');
-                    try {
-                      const result = await triggerEfficientSync('pokemon_cards', clearExisting);
-                      setSyncStatus(`✅ Efficient sync completed: ${result.processed} products processed`);
-                      refetchCounts();
-                      refetchLogs();
-                    } catch (error) {
-                      setSyncStatus(`❌ Efficient sync failed: ${error.message}`);
-                    } finally {
-                      setIsSyncing(false);
-                    }
-                  }}
-                  disabled={isSyncing}
-                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 disabled:opacity-50 rounded text-sm transition-colors"
-                >
-                  Efficient Sync
-                </button>
               </div>
-              {csvStatus.pokemon_cards && (
-                <div className="text-sm text-slate-400">
-                  {csvStatus.pokemon_cards.productCount} products ({Math.round(csvStatus.pokemon_cards.csvSize / 1024)}KB)
-                </div>
-              )}
-            </div>
 
-            {/* Magic Cards */}
-            <div className="flex items-center gap-4">
-              <div className="w-32">
-                <button
-                  onClick={() => handleCheckStatus('magic_cards')}
-                  disabled={isSyncing}
-                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-800 disabled:opacity-50 rounded text-sm transition-colors"
-                >
-                  Check Status
-                </button>
-              </div>
-              <div className="flex-1">
-                <button
-                  onClick={() => handleSync('magic_cards')}
-                  disabled={isSyncing}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:opacity-50 rounded-lg transition-colors"
-                >
-                  Sync Magic Cards
-                </button>
-              </div>
-              {csvStatus.magic_cards && (
-                <div className="text-sm text-slate-400">
-                  {csvStatus.magic_cards.productCount} products ({Math.round(csvStatus.magic_cards.csvSize / 1024)}KB)
+              {/* Batch Sync */}
+              <div className="bg-slate-800/30 rounded-lg border border-slate-700 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <h3 className="font-semibold text-white">Batch Sync</h3>
+                  <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded-full">
+                    Legacy
+                  </span>
                 </div>
-              )}
-            </div>
-
-            {/* YuGiOh Cards */}
-            <div className="flex items-center gap-4">
-              <div className="w-32">
-                <button
-                  onClick={() => handleCheckStatus('yugioh_cards')}
-                  disabled={isSyncing}
-                  className="px-3 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-800 disabled:opacity-50 rounded text-sm transition-colors"
-                >
-                  Check Status
-                </button>
+                <p className="text-sm text-slate-400 mb-4">
+                  Original batch processing method. May timeout on large datasets 
+                  but useful for smaller categories.
+                </p>
+                <BatchSync 
+                  category="pokemon_cards" 
+                  onComplete={(count) => {
+                    setSyncStatus(`✅ Batch sync completed: ${count.toLocaleString()} products processed`);
+                    refetchCounts();
+                    refetchLogs();
+                  }}
+                />
               </div>
-              <div className="flex-1">
-                <button
-                  onClick={() => handleSync('yugioh_cards')}
-                  disabled={isSyncing}
-                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:opacity-50 rounded-lg transition-colors"
-                >
-                  Sync YuGiOh Cards
-                </button>
-              </div>
-              {csvStatus.yugioh_cards && (
-                <div className="text-sm text-slate-400">
-                  {csvStatus.yugioh_cards.productCount} products ({Math.round(csvStatus.yugioh_cards.csvSize / 1024)}KB)
-                </div>
-              )}
             </div>
           </div>
-          
-          {syncStatus && (
-            <div className="mt-4 p-3 bg-slate-700 rounded-lg">
-              <p className="text-sm">{syncStatus}</p>
-            </div>
-          )}
         </div>
 
-        {/* Product Counts */}
-        <div className="bg-slate-800 rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Product Database Status</h2>
+        {/* Debug Tools */}
+        <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
+          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+            Debug Tools
+          </h2>
           
-          {productCounts && Object.keys(productCounts).length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Object.entries(productCounts).map(([category, data]) => (
-                <div key={category} className="bg-slate-700 rounded-lg p-4">
-                  <h3 className="font-medium capitalize">{category.replace('_', ' ')}</h3>
-                  <p className="text-2xl font-bold text-indigo-400">{data.count.toLocaleString()}</p>
-                  <p className="text-xs text-slate-400">
-                    Last updated: {new Date(data.lastUpdated).toLocaleString()}
-                  </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button
+              onClick={async () => {
+                setIsSyncing(true);
+                setSyncStatus('Running basic connectivity test...');
+                try {
+                  const response = await fetch('/.netlify/functions/test-basic', {
+                    method: 'GET'
+                  });
+                  const result = await response.json();
+                  if (result.success) {
+                    setSyncStatus(`✅ Basic test successful: ${result.message}`);
+                  } else {
+                    setSyncStatus(`❌ Basic test failed: ${result.error}`);
+                  }
+                } catch (error) {
+                  setSyncStatus(`❌ Basic test failed: ${error.message}`);
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              disabled={isSyncing}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 rounded text-sm transition-colors"
+            >
+              Basic Test
+            </button>
+
+            <button
+              onClick={async () => {
+                setIsSyncing(true);
+                setSyncStatus('Testing CSV URL accessibility...');
+                try {
+                  const response = await fetch('/.netlify/functions/test-csv-head', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                  });
+                  const result = await response.json();
+                  if (result.success) {
+                    setSyncStatus(`✅ CSV accessible: ${result.message}`);
+                  } else {
+                    setSyncStatus(`❌ CSV test failed: ${result.error}`);
+                  }
+                } catch (error) {
+                  setSyncStatus(`❌ CSV test failed: ${error.message}`);
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              disabled={isSyncing}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 rounded text-sm transition-colors"
+            >
+              Test CSV URL
+            </button>
+
+            <button
+              onClick={async () => {
+                setIsSyncing(true);
+                setSyncStatus('Running minimal CSV test (10 products)...');
+                try {
+                  const response = await fetch('/.netlify/functions/test-csv-minimal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                  });
+                  const result = await response.json();
+                  if (result.success) {
+                    setSyncStatus(`✅ Minimal test successful: ${result.message}`);
+                    refetchCounts();
+                  } else {
+                    setSyncStatus(`❌ Minimal test failed: ${result.error}`);
+                  }
+                } catch (error) {
+                  setSyncStatus(`❌ Minimal test failed: ${error.message}`);
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              disabled={isSyncing}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 rounded text-sm transition-colors"
+            >
+              Minimal Test
+            </button>
+
+            <button
+              onClick={async () => {
+                setIsSyncing(true);
+                setSyncStatus('Checking actual database count...');
+                try {
+                  const response = await fetch('/.netlify/functions/check-db-count', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: 'pokemon_cards' })
+                  });
+                  const result = await response.json();
+                  if (result.success) {
+                    setSyncStatus(`✅ Database count: ${result.count.toLocaleString()} products`);
+                    refetchCounts();
+                  } else {
+                    setSyncStatus(`❌ Count check failed: ${result.error}`);
+                  }
+                } catch (error) {
+                  setSyncStatus(`❌ Count check failed: ${error.message}`);
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              disabled={isSyncing}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 rounded text-sm transition-colors"
+            >
+              Check Count
+            </button>
+          </div>
+        </div>
+
+        {/* Activity Logs */}
+        <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-6">
+          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+            Recent Activity
+          </h2>
+          
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {logs.length === 0 ? (
+              <div className="text-center text-slate-500 py-8">
+                No activity logs found
+              </div>
+            ) : (
+              logs.map((log, index) => (
+                <div key={index} className="bg-slate-800/30 rounded-lg border border-slate-700 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(log.success ? 'success' : 'error')}`}>
+                        {log.success ? 'Success' : 'Error'}
+                      </span>
+                      <span className="text-sm font-medium text-white">
+                        {log.category.replace('_', ' ').toUpperCase()}
+                      </span>
+                      <span className="text-sm text-slate-400">
+                        {log.product_count.toLocaleString()} products
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      {formatDate(log.downloaded_at)}
+                    </span>
+                  </div>
+                  {log.error_message && (
+                    <div className="text-sm text-slate-300 bg-slate-700/30 rounded p-2 mt-2">
+                      {log.error_message}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-slate-400">No data available. Run a sync to populate the database.</p>
-          )}
-        </div>
-
-        {/* Download Logs */}
-        <div className="bg-slate-800 rounded-xl p-6">
-          <h2 className="text-xl font-semibold mb-4">Recent Download Activity</h2>
-          
-          {logs && logs.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="text-left py-2">Category</th>
-                    <th className="text-left py-2">Products</th>
-                    <th className="text-left py-2">Status</th>
-                    <th className="text-left py-2">Time</th>
-                    <th className="text-left py-2">Error</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log) => (
-                    <tr key={log.id} className="border-b border-slate-700/50">
-                      <td className="py-2 capitalize">{log.category.replace('_', ' ')}</td>
-                      <td className="py-2">{log.product_count.toLocaleString()}</td>
-                      <td className="py-2">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          log.success ? 'bg-green-600 text-green-100' : 'bg-red-600 text-red-100'
-                        }`}>
-                          {log.success ? 'Success' : 'Failed'}
-                        </span>
-                      </td>
-                      <td className="py-2 text-slate-400">
-                        {new Date(log.downloaded_at).toLocaleString()}
-                      </td>
-                      <td className="py-2 text-red-400">
-                        {log.error_message ? log.error_message.substring(0, 50) + '...' : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-slate-400">No download logs available.</p>
-          )}
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

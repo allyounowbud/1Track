@@ -116,6 +116,7 @@ exports.handler = async (event, context) => {
         
       if (deleteError) {
         console.error('Error clearing existing data:', deleteError);
+        throw new Error(`Failed to clear existing data: ${deleteError.message}`);
       } else {
         console.log(`Cleared existing data for ${category}`);
       }
@@ -185,21 +186,26 @@ exports.handler = async (event, context) => {
       // Insert batch into database
       if (batchProducts.length > 0) {
         try {
-          const { error: insertError } = await supabase
+          console.log(`Attempting to insert ${batchProducts.length} products into database...`);
+          const { data, error: insertError } = await supabase
             .from('price_charting_products')
-            .insert(batchProducts);
+            .insert(batchProducts)
+            .select('id');
           
           if (insertError) {
             console.error(`Database insert error for batch starting at line ${startIndex}:`, insertError);
+            console.error(`Insert error details:`, insertError.message, insertError.details, insertError.hint);
             errorCount += batchProducts.length;
           } else {
             processedCount += batchProducts.length;
-            console.log(`Successfully inserted ${batchProducts.length} products`);
+            console.log(`Successfully inserted ${batchProducts.length} products. Returned data:`, data ? data.length : 'no data returned');
           }
         } catch (insertError) {
           console.error(`Database insert exception for batch starting at line ${startIndex}:`, insertError);
           errorCount += batchProducts.length;
         }
+      } else {
+        console.log(`No products to insert for batch starting at line ${startIndex}`);
       }
     }
     
