@@ -86,24 +86,46 @@ async function getDownloadLogs() {
 
 // Get product counts by category
 async function getProductCounts() {
-  const { data, error } = await supabase
-    .from('price_charting_products')
-    .select('category, downloaded_at')
-    .order('downloaded_at', { ascending: false });
-  
-  if (error) throw error;
-  
-  // Count products by category
+  // Get counts for each category using proper COUNT queries
+  const categories = ['pokemon_cards', 'video_games', 'magic_cards', 'yugioh_cards'];
   const counts = {};
-  data.forEach(product => {
-    if (!counts[product.category]) {
-      counts[product.category] = {
-        count: 0,
-        lastUpdated: product.downloaded_at
+  
+  for (const category of categories) {
+    try {
+      // Get count for this category
+      const { count, error: countError } = await supabase
+        .from('price_charting_products')
+        .select('*', { count: 'exact', head: true })
+        .eq('category', category);
+      
+      if (countError) {
+        console.error(`Error getting count for ${category}:`, countError);
+        counts[category] = { count: 0, lastUpdated: null };
+        continue;
+      }
+      
+      // Get the most recent download time for this category
+      const { data: recentData, error: recentError } = await supabase
+        .from('price_charting_products')
+        .select('downloaded_at')
+        .eq('category', category)
+        .order('downloaded_at', { ascending: false })
+        .limit(1);
+      
+      if (recentError) {
+        console.error(`Error getting recent data for ${category}:`, recentError);
+      }
+      
+      counts[category] = {
+        count: count || 0,
+        lastUpdated: recentData && recentData.length > 0 ? recentData[0].downloaded_at : null
       };
+      
+    } catch (error) {
+      console.error(`Error processing ${category}:`, error);
+      counts[category] = { count: 0, lastUpdated: null };
     }
-    counts[product.category].count++;
-  });
+  }
   
   return counts;
 }
@@ -155,6 +177,16 @@ export default function Admin() {
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             Database Status
           </h2>
+          
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-white">Product Counts</h3>
+            <button
+              onClick={() => refetchCounts()}
+              className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {Object.entries(counts).map(([category, data]) => (
