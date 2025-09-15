@@ -50,6 +50,7 @@ async function processBatch(category, headers, lines, startIndex, batchSize) {
   
   const batchProducts = [];
   const endIndex = Math.min(startIndex + batchSize, lines.length);
+  let skippedCount = 0;
   
   for (let i = startIndex; i < endIndex; i++) {
     const line = lines[i];
@@ -68,40 +69,63 @@ async function processBatch(category, headers, lines, startIndex, batchSize) {
         const productId = product.id || '';
         
         if (productName.trim() && productId.trim()) {
-          batchProducts.push({
-            category,
-            product_id: productId,
-            product_name: productName,
-            console_name: product['console-name'] || null,
-            loose_price: parsePrice(product['loose-price']),
-            cib_price: parsePrice(product['cib-price']),
-            new_price: parsePrice(product['new-price']),
-            graded_price: parsePrice(product['graded-price']),
-            box_price: parsePrice(product['box-only-price']),
-            manual_price: parsePrice(product['manual-only-price']),
-            raw_data: product,
-            downloaded_at: new Date().toISOString()
-          });
+          // Additional validation for data integrity
+          try {
+            const productData = {
+              category,
+              product_id: productId,
+              product_name: productName,
+              console_name: product['console-name'] || null,
+              loose_price: parsePrice(product['loose-price']),
+              cib_price: parsePrice(product['cib-price']),
+              new_price: parsePrice(product['new-price']),
+              graded_price: parsePrice(product['graded-price']),
+              box_price: parsePrice(product['box-only-price']),
+              manual_price: parsePrice(product['manual-only-price']),
+              raw_data: product,
+              downloaded_at: new Date().toISOString()
+            };
+            
+            batchProducts.push(productData);
+          } catch (validationError) {
+            console.error(`Validation error for line ${i}:`, validationError);
+            skippedCount++;
+          }
+        } else {
+          skippedCount++;
         }
+      } else {
+        console.log(`Line ${i} has ${values.length} values, expected ${headers.length}`);
+        skippedCount++;
       }
     } catch (error) {
       console.error(`Error parsing line ${i}:`, error);
+      skippedCount++;
     }
   }
   
+  console.log(`Batch ${startIndex}: ${batchProducts.length} valid products, ${skippedCount} skipped`);
+  
   if (batchProducts.length > 0) {
-    const { error } = await supabase
-      .from('price_charting_products')
-      .insert(batchProducts);
-      
-    if (error) {
-      console.error(`Error inserting batch:`, error);
-      throw error;
+    try {
+      const { error } = await supabase
+        .from('price_charting_products')
+        .insert(batchProducts);
+        
+      if (error) {
+        console.error(`Database error for batch starting at ${startIndex}:`, error);
+        console.error(`First few products in batch:`, batchProducts.slice(0, 3));
+        throw error;
+      }
+    } catch (dbError) {
+      console.error(`Database insertion failed for batch ${startIndex}:`, dbError);
+      throw dbError;
     }
   }
   
   return {
     processed: batchProducts.length,
+    skipped: skippedCount,
     total: endIndex - startIndex
   };
 }

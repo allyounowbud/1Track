@@ -276,7 +276,7 @@ export default function Admin() {
                   Check Status
                 </button>
               </div>
-              <div className="flex-1">
+              <div className="flex-1 flex gap-2">
                 <BatchSync 
                   category="pokemon_cards" 
                   onComplete={() => {
@@ -284,6 +284,30 @@ export default function Admin() {
                     refetchCounts();
                   }}
                 />
+                <button
+                  onClick={async () => {
+                    setIsSyncing(true);
+                    setSyncStatus('Checking current progress...');
+                    try {
+                      const response = await fetch('/.netlify/functions/resume-sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ category: 'pokemon_cards' })
+                      });
+                      const result = await response.json();
+                      setSyncStatus(`✅ Current progress: ${result.currentCount} products imported`);
+                      refetchCounts();
+                    } catch (error) {
+                      setSyncStatus(`❌ Check failed: ${error.message}`);
+                    } finally {
+                      setIsSyncing(false);
+                    }
+                  }}
+                  disabled={isSyncing}
+                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-800 disabled:opacity-50 rounded text-sm transition-colors"
+                >
+                  Check Progress
+                </button>
               </div>
               {csvStatus.pokemon_cards && (
                 <div className="text-sm text-slate-400">
