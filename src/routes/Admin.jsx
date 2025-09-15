@@ -339,22 +339,25 @@ export default function Admin() {
             <button
               onClick={async () => {
                 setIsSyncing(true);
-                setSyncStatus('Checking actual database count...');
+                setSyncStatus('Analyzing database contents...');
                 try {
-                  const response = await fetch('/.netlify/functions/check-db-count', {
+                  const response = await fetch('/.netlify/functions/database-analysis', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ category: 'pokemon_cards' })
+                    body: JSON.stringify({})
                   });
                   const result = await response.json();
                   if (result.success) {
-                    setSyncStatus(`✅ Database count: ${result.count.toLocaleString()} products`);
+                    const categoryBreakdown = Object.entries(result.categoryAnalysis)
+                      .map(([cat, data]) => `${cat}: ${data.count.toLocaleString()}`)
+                      .join(', ');
+                    setSyncStatus(`✅ Database Analysis: ${result.totalCount.toLocaleString()} total products. Breakdown: ${categoryBreakdown}`);
                     refetchCounts();
                   } else {
-                    setSyncStatus(`❌ Count check failed: ${result.error}`);
+                    setSyncStatus(`❌ Analysis failed: ${result.error}`);
                   }
                 } catch (error) {
-                  setSyncStatus(`❌ Count check failed: ${error.message}`);
+                  setSyncStatus(`❌ Analysis failed: ${error.message}`);
                 } finally {
                   setIsSyncing(false);
                 }
@@ -362,7 +365,7 @@ export default function Admin() {
               disabled={isSyncing}
               className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 rounded text-sm transition-colors"
             >
-              Check Count
+              Analyze DB
             </button>
           </div>
         </div>
