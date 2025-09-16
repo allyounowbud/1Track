@@ -7,6 +7,7 @@ import PageHeader from "../components/PageHeader.jsx";
 import { moneyToCents, parsePct, formatNumber } from "../utils/money.js";
 import { card, inputBase, dateFix, disabledInput } from "../utils/ui.js";
 import { SearchDropdown } from "../components/SearchDropdown.jsx";
+import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
 
 /* ------------------------------ queries ----------------------------- */
 async function getItems() {
@@ -503,17 +504,22 @@ export default function QuickAdd() {
                 />
               </div>
 
-              <SearchDropdown
-                value={itemName}
-                onChange={setItemName}
-                options={allItems}
-                placeholder="Type to search items…"
-                label="Item"
-                getOptionLabel={(item) => item.name}
-                getOptionValue={(item) => item.name}
-                onTemporaryCreate={createTemporaryItem}
-                createNewLabel="Create new item"
-              />
+              <div className="min-w-0">
+                <label htmlFor="item" className="text-slate-300 mb-2 block text-sm">Item</label>
+                <ProductSearchDropdown
+                  value={itemName}
+                  onChange={setItemName}
+                  placeholder="Search products..."
+                  onProductSelect={(product) => {
+                    // Create a display name that includes set information if available
+                    let displayName = product.product_name;
+                    if (product.console_name && product.console_name !== product.product_name) {
+                      displayName = `${product.product_name} - ${product.console_name}`;
+                    }
+                    setItemName(displayName);
+                  }}
+                />
+              </div>
             </div>
 
             {/* Row 2: Profile & Retailer */}
