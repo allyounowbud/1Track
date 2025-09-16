@@ -65,11 +65,42 @@ async function getPriceChartingProducts() {
   return data || [];
 }
 
+// Category-specific queries for inventory data
+async function getTCGSealed() {
+  const { data, error } = await supabase
+    .from("tcg_sealed")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+async function getTCGSingles() {
+  const { data, error } = await supabase
+    .from("tcg_singles")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+async function getVideoGames() {
+  const { data, error } = await supabase
+    .from("video_games")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
 /* --------------------------------- page --------------------------------- */
 export default function Stats() {
   const { data: orders = [], isLoading: ordersLoading } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
   const { data: priceChartingProducts = [] } = useQuery({ queryKey: ["price_charting_products"], queryFn: getPriceChartingProducts });
+  const { data: tcgSealed = [] } = useQuery({ queryKey: ["tcg_sealed"], queryFn: getTCGSealed });
+  const { data: tcgSingles = [] } = useQuery({ queryKey: ["tcg_singles"], queryFn: getTCGSingles });
+  const { data: videoGames = [] } = useQuery({ queryKey: ["video_games"], queryFn: getVideoGames });
 
 
   /* --------------------------- filter controls -------------------------- */
@@ -147,36 +178,89 @@ export default function Stats() {
   const marketByName = useMemo(() => {
     const m = new Map();
     
-    // First, add API/CSV data (prioritized)
-    for (const product of priceChartingProducts) {
-      if (product.loose_price && product.loose_price > 0) {
-        // Try exact product name match first
-        const exactKey = (product.product_name || "").toLowerCase();
-        const apiValue = Math.round(product.loose_price * 100); // Convert to cents
-        if (!m.has(exactKey)) m.set(exactKey, apiValue);
-        else m.set(exactKey, Math.max(m.get(exactKey), apiValue));
-        
-        // Also try with set name if available
-        if (product.console_name && product.console_name !== product.product_name) {
-          const setKey = `${product.product_name} - ${product.console_name}`.toLowerCase();
-          if (!m.has(setKey)) m.set(setKey, apiValue);
-          else m.set(setKey, Math.max(m.get(setKey), apiValue));
+    // Helper function to find best match in price charting data
+    const findBestMatch = (itemName) => {
+      if (!itemName) return null;
+      
+      const itemLower = itemName.toLowerCase();
+      
+      // Try exact match first
+      for (const product of priceChartingProducts) {
+        if (product.loose_price && product.loose_price > 0) {
+          const productLower = (product.product_name || "").toLowerCase();
+          if (productLower === itemLower) {
+            return Math.round(product.loose_price * 100);
+          }
+          
+          // Try with set name
+          if (product.console_name && product.console_name !== product.product_name) {
+            const setLower = `${product.product_name} - ${product.console_name}`.toLowerCase();
+            if (setLower === itemLower) {
+              return Math.round(product.loose_price * 100);
+            }
+          }
         }
+      }
+      
+      // Try partial matches (contains)
+      for (const product of priceChartingProducts) {
+        if (product.loose_price && product.loose_price > 0) {
+          const productLower = (product.product_name || "").toLowerCase();
+          if (itemLower.includes(productLower) || productLower.includes(itemLower)) {
+            return Math.round(product.loose_price * 100);
+          }
+          
+          // Try with set name
+          if (product.console_name && product.console_name !== product.product_name) {
+            const setLower = `${product.product_name} - ${product.console_name}`.toLowerCase();
+            if (itemLower.includes(setLower) || setLower.includes(itemLower)) {
+              return Math.round(product.loose_price * 100);
+            }
+          }
+        }
+      }
+      
+      return null;
+    };
+    
+    // Build map from all possible item names (orders + category tables + manual items)
+    const allItemNames = new Set();
+    
+    // Add item names from orders
+    for (const order of orders) {
+      if (order.item) allItemNames.add(order.item);
+    }
+    
+    // Add item names from category tables
+    const allCategoryItems = [...tcgSealed, ...tcgSingles, ...videoGames];
+    for (const item of allCategoryItems) {
+      if (item.name) allItemNames.add(item.name);
+    }
+    
+    // Add item names from manual items
+    for (const item of items) {
+      if (item.name) allItemNames.add(item.name);
+    }
+    
+    // For each unique item name, find the best market value
+    for (const itemName of allItemNames) {
+      const apiValue = findBestMatch(itemName);
+      if (apiValue) {
+        m.set(itemName.toLowerCase(), apiValue);
       }
     }
     
-    // Then, add manual database values as fallback (only if not already in API data)
+    // Add manual database values as fallback (only if not already present)
     for (const it of items) {
       const k = (it.name || "").toLowerCase();
       const v = cents(it.market_value_cents);
-      // Only add if not already present from API data
-      if (!m.has(k) && v > 0) {
+      if (v > 0 && !m.has(k)) {
         m.set(k, v);
       }
     }
     
     return m;
-  }, [items, priceChartingProducts]);
+  }, [items, priceChartingProducts, orders, tcgSealed, tcgSingles, videoGames]);
 
   /* ---------- filtered orders by time + item ---------- */
   const filtered = useMemo(() => {
