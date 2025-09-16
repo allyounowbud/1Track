@@ -27,6 +27,22 @@ export default function Hub() {
   // Changelog data with version numbers (showing most recent 25 entries)
   const allChangelogData = [
     {
+      title: "Enhanced Search Ranking to Prioritize Set Name Matches",
+      description: "Improved the search algorithm to better prioritize results where the set name (console_name) contains the search terms. Added special scoring boosts for set name matches (0.15 boost for >80% similarity, 0.1 boost for >50% similarity) and implemented word order checking to rank results higher when search words appear in the same order as in the target text. This ensures that searches like 'Elite Trainer Box Black Bolt' will now properly rank 'Elite Trainer Box - Pokemon Black Bolt' at the top instead of showing Elite Trainer Boxes from other sets first. The algorithm now gives higher priority to set-specific matches, making it much easier to find products from specific Pokemon sets.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "07:15",
+      author: "Development Team"
+    },
+    {
+      title: "Implemented Database-Level Duplicate Order Prevention",
+      description: "Added database-level unique constraints to prevent true duplicate orders while preserving the ability to sell the same item multiple times legitimately. Created a unique index on the orders table that prevents identical orders (same item, order date, retailer, marketplace, buy price, and user) from being inserted at the database level. This approach is superior to application-level checking because it prevents accidental duplicates (like double-clicking save) while still allowing legitimate multiple sales of the same item on the same day. The database constraint ensures data integrity without interfering with normal business operations where users might sell multiple copies of the same product. A SQL migration script (add-orders-unique-constraints.sql) has been created for easy deployment.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "07:00",
+      author: "Development Team"
+    },
+    {
       title: "Fixed Sealed Search Ranking - Prismatic Evolutions Now Appears First",
       description: "Fixed a critical issue where sealed product searches weren't properly ranking results by relevance. When searching 'sealed prismatic evolutions', the search was correctly filtering to show only sealed products but was losing the ranking priority that puts Prismatic Evolutions products at the top. Implemented intelligent search query cleaning that removes 'sealed' from the search terms for better matching while still applying the sealed filter. Added fallback broad search functionality that activates when too few sealed results are found, ensuring users can always find relevant sealed products. Now searches like 'sealed prismatic evolutions' will show Elite Trainer Boxes, Booster Bundles, and other sealed products from the Prismatic Evolutions set at the top of results, followed by other sealed products in order of relevance.",
       color: "bg-blue-500/70",

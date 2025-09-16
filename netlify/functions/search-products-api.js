@@ -44,7 +44,9 @@ function calculateSimilarity(str1, str2) {
   
   // Boost score significantly if ALL search words are found
   if (searchWordsFound === words1.length && words1.length > 1) {
-    return 0.95; // Very high score for complete word coverage
+    // Extra boost if words appear in the same order (more relevant)
+    const wordsInOrder = checkWordOrder(words1, s2);
+    return wordsInOrder ? 0.98 : 0.95; // Very high score for complete word coverage
   }
   
   // If most words match, give good score
@@ -61,6 +63,18 @@ function calculateSimilarity(str1, str2) {
   
   const distance = levenshteinDistance(longer, shorter);
   return (longer.length - distance) / longer.length;
+}
+
+// Helper function to check if words appear in the same order
+function checkWordOrder(words, targetString) {
+  let lastIndex = -1;
+  for (const word of words) {
+    const index = targetString.indexOf(word);
+    if (index === -1) return false;
+    if (index < lastIndex) return false; // Word appears before previous word
+    lastIndex = index;
+  }
+  return true;
 }
 
 function levenshteinDistance(str1, str2) {
@@ -201,12 +215,20 @@ async function searchProducts(query, category = 'pokemon_cards') {
           const combinedText = `${result.product_name || ''} ${result.console_name || ''}`.trim();
           const combinedSimilarity = calculateSimilarity(searchQuery, combinedText);
           
+          // Special boost for set name matches (console_name) - these should rank higher
+          let setMatchBoost = 0;
+          if (consoleSimilarity > 0.8) {
+            setMatchBoost = 0.15; // Significant boost for good set name matches
+          } else if (consoleSimilarity > 0.5) {
+            setMatchBoost = 0.1; // Moderate boost for decent set name matches
+          }
+          
           // Use the best similarity score (individual or combined)
           const maxSimilarity = Math.max(productSimilarity, consoleSimilarity, combinedSimilarity);
           
           // Boost score based on strategy priority (exact matches get higher scores)
           const priorityBoost = (result.strategy_priority || 0) * 0.1;
-          const finalScore = Math.min(1.0, maxSimilarity + priorityBoost);
+          const finalScore = Math.min(1.0, maxSimilarity + priorityBoost + setMatchBoost);
           
           // Determine match type
           let matchType = 'product_name';

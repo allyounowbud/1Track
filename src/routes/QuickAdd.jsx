@@ -519,6 +519,9 @@ export default function QuickAdd() {
                     setItemName(displayName);
                   }}
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  Add "sealed" at the beginning of your search to filter sealed products only.
+                </p>
               </div>
             </div>
 
