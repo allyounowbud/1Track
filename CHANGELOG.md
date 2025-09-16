@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - **Order Book Layout**: Hidden checkbox column when adding new orders and adjusted header rows to perfectly align with input fields below
 - **Order Book Dropdown Styling**: Fixed retailer and marketplace dropdown fields to have the same border outline as other input fields by adding `new-order-select` class to bypass CSS that removes styling from existing order rows
 - **Order Book Dropdown Text Alignment**: Fixed vertical text alignment in retailer and marketplace dropdowns using CSS flexbox properties to properly center text on large screens
+- **Market Data Debugging**: Added comprehensive logging to investigate why market values are showing as N/A in the Order Book despite API data being available
 
 ### Added
 - Enhanced image display in Portfolio collection page with improved loading states and error handling

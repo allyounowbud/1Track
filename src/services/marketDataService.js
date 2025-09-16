@@ -75,6 +75,8 @@ export async function getProductMarketData(productName) {
 export async function getBatchMarketData(productNames) {
   if (!productNames || productNames.length === 0) return {};
   
+  console.log('getBatchMarketData called with:', productNames);
+  
   const results = {};
   const uncachedNames = [];
   
@@ -83,8 +85,10 @@ export async function getBatchMarketData(productNames) {
     const cacheKey = name.toLowerCase().trim();
     const cached = marketDataCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log('Found cached data for:', name);
       results[name] = cached.data;
     } else {
+      console.log('No cached data for:', name);
       uncachedNames.push(name);
     }
   });
@@ -108,10 +112,13 @@ export async function getBatchMarketData(productNames) {
       }
       
       const data = await response.json();
+      console.log('API response:', data);
       
       if (data.success && data.data) {
+        console.log('Processing batch results:', data.data);
         // Process the batch results
         Object.entries(data.data).forEach(([productName, marketData]) => {
+          console.log(`Processing ${productName}:`, marketData);
           if (marketData) {
             // Convert prices from cents to dollars
             const formattedData = {
@@ -121,6 +128,7 @@ export async function getBatchMarketData(productNames) {
               new_price: marketData.new_price ? (parseFloat(marketData.new_price) / 100).toFixed(2) : '',
             };
             
+            console.log(`Formatted data for ${productName}:`, formattedData);
             results[productName] = formattedData;
             
             // Cache the result
@@ -131,6 +139,8 @@ export async function getBatchMarketData(productNames) {
             });
           }
         });
+      } else {
+        console.log('API response not successful or no data:', data);
       }
     } catch (error) {
       console.error('Error fetching batch market data:', error);

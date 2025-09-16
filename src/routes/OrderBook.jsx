@@ -132,10 +132,13 @@ export default function OrderBook() {
   useEffect(() => {
     if (orders.length > 0) {
       const uniqueItems = [...new Set(orders.map(o => o.item).filter(Boolean))];
+      console.log('Unique items to fetch market data for:', uniqueItems);
       if (uniqueItems.length > 0) {
         setMarketDataLoading(true);
         getBatchMarketData(uniqueItems)
           .then(data => {
+            console.log('Market data fetched:', data);
+            console.log('Market data keys:', Object.keys(data));
             setMarketData(data);
             setMarketDataLoading(false);
           })
@@ -1331,6 +1334,7 @@ function OrderRow({ order, items, retailers, markets, marketData, marketDataLoad
   
   // Calculate market value and profit/loss
   const marketInfo = marketData[order.item];
+  console.log('Market data lookup for item:', order.item, 'found:', marketInfo);
   const currentMarketValue = marketInfo ? getMarketValueInCents(marketInfo) : 0;
   const buyPriceCents = moneyToCents(formState.buyPrice || 0);
   const salePriceCents = moneyToCents(formState.salePrice || 0);
