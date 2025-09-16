@@ -24,8 +24,16 @@ export default function Hub() {
     }
   }
 
-  // Changelog data with version numbers
-  const changelogData = [
+  // Changelog data with version numbers (showing most recent 25 entries)
+  const allChangelogData = [
+    {
+      title: "Optimized Changelog Display - Reduced to Most Recent 25 Entries",
+      description: "Streamlined the changelog display to show only the most recent 25 entries instead of all historical entries, significantly reducing the amount of code and improving page load performance. The changelog now focuses on the most relevant recent changes while maintaining all functionality including pagination, search, and navigation. This creates a cleaner, more focused user experience while keeping the changelog manageable and up-to-date with the latest developments.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:20",
+      author: "Development Team"
+    },
     {
       title: "Simplified Retailers and Marketplaces - Name-Only Interface",
       description: "Created dedicated SimpleItemRow and NewSimpleRowComponent for retailers and marketplaces that only display the name field, removing unnecessary product-related columns like market value, UPC codes, and console names. The retailers and marketplaces sections now have a clean, focused interface with just the name column and action buttons. Updated column headers to be conditional based on card type, showing only 'Name' for retailers/marketplaces while maintaining the full product layout for other categories. This provides a more appropriate and streamlined interface for managing simple name-based data.",
@@ -875,6 +883,9 @@ export default function Hub() {
       author: "Development Team"
     }
   ];
+
+  // Show only the most recent 25 entries to save space
+  const changelogData = allChangelogData.slice(0, 25);
 
   // Helper function to determine which page a changelog entry should link to
   const getChangelogLink = (title, description) => {
