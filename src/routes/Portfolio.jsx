@@ -235,14 +235,19 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
     
     // Calculate current market value using real API data
     let estimatedMarketValue = 0;
+    let itemsWithMarketData = 0;
+    let itemsWithoutMarketData = 0;
+    
     portfolioItems.forEach(item => {
       const marketInfo = marketData[item.item];
       if (marketInfo && marketInfo.loose_price) {
         // Use loose price as market value (convert to cents)
         estimatedMarketValue += Math.round(parseFloat(marketInfo.loose_price) * 100);
+        itemsWithMarketData++;
       } else {
         // Fallback to cost if no market data available
         estimatedMarketValue += item.buy_price_cents || 0;
+        itemsWithoutMarketData++;
       }
     });
     
@@ -255,6 +260,9 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       estimatedMarketValue,
       totalProfit,
       profitPercentage,
+      itemsWithMarketData,
+      itemsWithoutMarketData,
+      marketDataCoverage: totalItems > 0 ? (itemsWithMarketData / totalItems) * 100 : 0,
     };
   }, [portfolioItems, marketData]);
 
@@ -469,6 +477,47 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         </div>
       </div>
 
+      {/* Market Data Coverage */}
+      {metrics.totalItems > 0 && (
+        <div className={`${card} p-6`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-slate-100">Market Data Coverage</h3>
+            <div className="text-sm text-slate-400">
+              {metrics.itemsWithMarketData} of {metrics.totalItems} items
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-300">Items with market data</span>
+              <span className="text-green-400 font-medium">{metrics.itemsWithMarketData}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-300">Items without market data</span>
+              <span className="text-yellow-400 font-medium">{metrics.itemsWithoutMarketData}</span>
+            </div>
+            <div className="w-full bg-slate-800 rounded-full h-2">
+              <div 
+                className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${metrics.marketDataCoverage}%` }}
+              ></div>
+            </div>
+            <div className="text-center text-sm text-slate-400">
+              {metrics.marketDataCoverage.toFixed(1)}% coverage
+            </div>
+          </div>
+          
+          {metrics.itemsWithoutMarketData > 0 && (
+            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <p className="text-yellow-300 text-sm">
+                {metrics.itemsWithoutMarketData} item{metrics.itemsWithoutMarketData !== 1 ? 's' : ''} 
+                {' '}are using cost price as market value. Consider updating product names to match API data for more accurate valuations.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Recent Activity */}
       <div className={`${card} p-6`}>
         <h3 className="text-lg font-semibold text-slate-100 mb-4">Recent Activity</h3>
@@ -549,6 +598,22 @@ function CollectionTab({ portfolioItems, marketData }) {
             {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
           </div>
         </div>
+        
+        {/* Legend */}
+        <div className="mt-4 flex items-center gap-6 text-xs text-slate-400">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <span>Market data available</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+            <span>Product image available</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+            <span>Using cost price</span>
+          </div>
+        </div>
       </div>
 
       {/* Collection Grid */}
@@ -571,9 +636,17 @@ function CollectionTab({ portfolioItems, marketData }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className="text-slate-200 font-medium truncate">{cleanTitle}</h4>
-                    {marketInfo && marketInfo.image_url && (
-                      <div className="flex-shrink-0 w-2 h-2 bg-green-400 rounded-full" title="Image available from PriceCharting"></div>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {marketInfo && marketInfo.loose_price && (
+                        <div className="flex-shrink-0 w-2 h-2 bg-green-400 rounded-full" title="Market data available from PriceCharting API"></div>
+                      )}
+                      {marketInfo && marketInfo.image_url && (
+                        <div className="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full" title="Product image available"></div>
+                      )}
+                      {!marketInfo && (
+                        <div className="flex-shrink-0 w-2 h-2 bg-yellow-400 rounded-full" title="No market data found - using cost price"></div>
+                      )}
+                    </div>
                   </div>
                   {marketInfo && marketInfo.console_name && (
                     <p className="text-slate-400 text-xs truncate">{marketInfo.console_name}</p>

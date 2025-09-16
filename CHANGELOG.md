@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file.
 - **Order Book Dropdown Arrows**: Added dropdown arrow icons to retailer and marketplace dropdowns in Order Book for consistent UX across all dropdowns
 - **Dropdown Background Consistency**: Fixed dropdown background colors to match other input fields, ensuring all form elements have the same visual appearance
 - **Database Interface Simplification**: Removed singles/sealed toggle and TCG singles card, now using unified products card for all product categories
+- **Portfolio API Integration Enhancement**: Improved market data coverage tracking and visualization in Portfolio page with detailed indicators for items with/without API data, enhanced error handling and logging in market data service, and added market data coverage metrics to help users identify items needing better product name matching
 
 ### Added
 - Enhanced image display in Portfolio collection page with improved loading states and error handling

@@ -92,6 +92,8 @@ export async function getBatchMarketData(productNames) {
   // Fetch uncached products
   if (uncachedNames.length > 0) {
     try {
+      console.log(`Fetching market data for ${uncachedNames.length} uncached products:`, uncachedNames);
+      
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/portfolio-data`, {
         method: 'POST',
         headers: {
@@ -110,6 +112,9 @@ export async function getBatchMarketData(productNames) {
       const data = await response.json();
       
       if (data.success && data.data) {
+        let foundCount = 0;
+        let notFoundCount = 0;
+        
         // Process the batch results
         Object.entries(data.data).forEach(([productName, marketData]) => {
           if (marketData) {
@@ -122,6 +127,7 @@ export async function getBatchMarketData(productNames) {
             };
             
             results[productName] = formattedData;
+            foundCount++;
             
             // Cache the result
             const cacheKey = productName.toLowerCase().trim();
@@ -129,8 +135,20 @@ export async function getBatchMarketData(productNames) {
               data: formattedData,
               timestamp: Date.now()
             });
+          } else {
+            notFoundCount++;
           }
         });
+        
+        console.log(`Market data fetch complete: ${foundCount} found, ${notFoundCount} not found`);
+        
+        // Log products that weren't found for debugging
+        if (notFoundCount > 0) {
+          const notFoundProducts = uncachedNames.filter(name => !results[name]);
+          console.log('Products without market data:', notFoundProducts);
+        }
+      } else {
+        console.warn('No market data returned from API:', data);
       }
     } catch (error) {
       console.error('Error fetching batch market data:', error);
