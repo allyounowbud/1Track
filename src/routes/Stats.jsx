@@ -267,14 +267,24 @@ export default function Stats() {
     const findBestMatch = (itemName) => {
       if (!itemName) return null;
       
-      const searchResults = searchProducts(itemName);
+      // First, try to remove the set name part (everything after " - ")
+      const cleanItemName = itemName.split(' - ')[0].trim();
+      
+      // Try searching with the cleaned name first
+      const searchResults = searchProducts(cleanItemName);
       if (searchResults.length > 0) {
         // Return the price of the best match
         return Math.round(searchResults[0].loose_price * 100);
       }
       
-      // Try more flexible matching - split the item name and search for each part
-      const words = itemName.toLowerCase().split(' ').filter(word => word.length > 2);
+      // If that doesn't work, try with the full original name
+      const fullSearchResults = searchProducts(itemName);
+      if (fullSearchResults.length > 0) {
+        return Math.round(fullSearchResults[0].loose_price * 100);
+      }
+      
+      // Try more flexible matching - split the cleaned item name and search for each part
+      const words = cleanItemName.toLowerCase().split(' ').filter(word => word.length > 2);
       if (words.length > 1) {
         // Try searching with each significant word
         for (const word of words) {
@@ -283,10 +293,10 @@ export default function Stats() {
             // Check if any result contains the full item name or vice versa
             for (const result of wordResults) {
               const resultName = (result.product_name || "").toLowerCase();
-              const itemNameLower = itemName.toLowerCase();
+              const cleanItemNameLower = cleanItemName.toLowerCase();
               
-              // If the result name contains the item name or item name contains result name
-              if (resultName.includes(itemNameLower) || itemNameLower.includes(resultName.split(' - ')[0])) {
+              // If the result name contains the clean item name or clean item name contains result name
+              if (resultName.includes(cleanItemNameLower) || cleanItemNameLower.includes(resultName.split(' - ')[0])) {
                 return Math.round(result.loose_price * 100);
               }
             }
