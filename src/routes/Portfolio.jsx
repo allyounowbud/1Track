@@ -60,7 +60,7 @@ async function getPortfolioItems() {
 // Get market data for a product using Supabase Edge Functions
 async function getProductMarketData(productName) {
   try {
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting-simple/search?q=${encodeURIComponent(productName)}`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(productName)}`, {
       headers: {
         'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ async function getProductMarketData(productName) {
 // Optimized batch fetch using Supabase Edge Functions
 async function getBatchMarketData(productNames) {
   try {
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting-simple/portfolio-data`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/portfolio-data`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,

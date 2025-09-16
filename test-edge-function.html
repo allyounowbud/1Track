@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Edge Function</title>
+</head>
+<body>
+    <h1>Test Supabase Edge Function</h1>
+    
+    <div>
+        <h2>Test Search</h2>
+        <input type="text" id="searchInput" placeholder="Enter product name (e.g., charizard)" value="charizard">
+        <button onclick="testSearch()">Test Search</button>
+        <div id="searchResult"></div>
+    </div>
+    
+    <div>
+        <h2>Test Portfolio Data</h2>
+        <button onclick="testPortfolioData()">Test Portfolio Data</button>
+        <div id="portfolioResult"></div>
+    </div>
+
+    <script>
+        // Replace these with your actual Supabase values
+        const SUPABASE_URL = 'https://your-project-ref.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key-here';
+        
+        // Replace with your actual function name
+        const FUNCTION_NAME = 'price-charting'; // Your function name
+        
+        async function testSearch() {
+            const searchInput = document.getElementById('searchInput').value;
+            const resultDiv = document.getElementById('searchResult');
+            resultDiv.innerHTML = 'Testing search...';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/${FUNCTION_NAME}/search?q=${encodeURIComponent(searchInput)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+            } catch (error) {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testPortfolioData() {
+            const resultDiv = document.getElementById('portfolioResult');
+            resultDiv.innerHTML = 'Testing portfolio data...';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/${FUNCTION_NAME}/portfolio-data`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        productNames: ['charizard', 'pikachu', 'blastoise']
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+            } catch (error) {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
