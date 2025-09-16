@@ -178,46 +178,96 @@ export default function Stats() {
   const marketByName = useMemo(() => {
     const m = new Map();
     
-    // Helper function to find best match in price charting data
-    const findBestMatch = (itemName) => {
-      if (!itemName) return null;
+    // Helper function to search products using the same logic as the search API
+    const searchProducts = (query) => {
+      if (!query || query.trim().length < 2) return [];
       
-      const itemLower = itemName.toLowerCase();
+      const cleanQuery = query.trim().toLowerCase();
+      const results = [];
       
-      // Try exact match first
+      // Strategy 1: Contains match (most likely to find results)
       for (const product of priceChartingProducts) {
         if (product.loose_price && product.loose_price > 0) {
           const productLower = (product.product_name || "").toLowerCase();
-          if (productLower === itemLower) {
-            return Math.round(product.loose_price * 100);
+          if (productLower.includes(cleanQuery)) {
+            results.push({
+              ...product,
+              similarity_score: 1.0
+            });
           }
-          
-          // Try with set name
-          if (product.console_name && product.console_name !== product.product_name) {
-            const setLower = `${product.product_name} - ${product.console_name}`.toLowerCase();
-            if (setLower === itemLower) {
-              return Math.round(product.loose_price * 100);
+        }
+      }
+      
+      if (results.length > 0) return results;
+      
+      // Strategy 2: First word only
+      const firstWord = cleanQuery.split(' ')[0];
+      if (firstWord.length > 2) {
+        for (const product of priceChartingProducts) {
+          if (product.loose_price && product.loose_price > 0) {
+            const productLower = (product.product_name || "").toLowerCase();
+            if (productLower.includes(firstWord)) {
+              results.push({
+                ...product,
+                similarity_score: 0.8
+              });
             }
           }
         }
       }
       
-      // Try partial matches (contains)
-      for (const product of priceChartingProducts) {
-        if (product.loose_price && product.loose_price > 0) {
-          const productLower = (product.product_name || "").toLowerCase();
-          if (itemLower.includes(productLower) || productLower.includes(itemLower)) {
-            return Math.round(product.loose_price * 100);
-          }
-          
-          // Try with set name
-          if (product.console_name && product.console_name !== product.product_name) {
-            const setLower = `${product.product_name} - ${product.console_name}`.toLowerCase();
-            if (itemLower.includes(setLower) || setLower.includes(itemLower)) {
-              return Math.round(product.loose_price * 100);
+      if (results.length > 0) return results;
+      
+      // Strategy 3: Without numbers
+      const withoutNumbers = cleanQuery.replace(/\d+/g, '').trim();
+      if (withoutNumbers.length > 2) {
+        for (const product of priceChartingProducts) {
+          if (product.loose_price && product.loose_price > 0) {
+            const productLower = (product.product_name || "").toLowerCase();
+            if (productLower.includes(withoutNumbers)) {
+              results.push({
+                ...product,
+                similarity_score: 0.7
+              });
             }
           }
         }
+      }
+      
+      if (results.length > 0) return results;
+      
+      // Strategy 4: Individual words
+      const words = cleanQuery.split(' ').filter(word => word.length > 2);
+      for (const word of words) {
+        for (const product of priceChartingProducts) {
+          if (product.loose_price && product.loose_price > 0) {
+            const productLower = (product.product_name || "").toLowerCase();
+            if (productLower.includes(word)) {
+              results.push({
+                ...product,
+                similarity_score: 0.6
+              });
+            }
+          }
+        }
+      }
+      
+      // Remove duplicates and sort by similarity
+      const uniqueResults = results.filter((result, index, self) => 
+        index === self.findIndex(r => r.product_name === result.product_name)
+      );
+      
+      return uniqueResults.sort((a, b) => b.similarity_score - a.similarity_score);
+    };
+    
+    // Helper function to find best match for an item name
+    const findBestMatch = (itemName) => {
+      if (!itemName) return null;
+      
+      const searchResults = searchProducts(itemName);
+      if (searchResults.length > 0) {
+        // Return the price of the best match
+        return Math.round(searchResults[0].loose_price * 100);
       }
       
       return null;
@@ -242,7 +292,7 @@ export default function Stats() {
       if (item.name) allItemNames.add(item.name);
     }
     
-    // For each unique item name, find the best market value
+    // For each unique item name, find the best market value using search logic
     for (const itemName of allItemNames) {
       const apiValue = findBestMatch(itemName);
       if (apiValue) {
