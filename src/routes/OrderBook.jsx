@@ -614,11 +614,13 @@ function UnifiedOrderView({
               onChange={toggleAllSelection}
               className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
             />
-            <div>
-              <div className="text-sm text-slate-400 whitespace-nowrap">
-                {selectedRows.size}/{filtered.length} Selected
+            {newRows.length === 0 && (
+              <div>
+                <div className="text-sm text-slate-400 whitespace-nowrap">
+                  {selectedRows.size}/{filtered.length} Selected
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right side - Action Buttons and View Toggle */}
@@ -844,19 +846,30 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
   return (
     <>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[auto_140px_2fr_0.8fr_0.8fr_56px_56px_140px_0.85fr_56px] gap-1 items-center mb-4 pb-3 border-b border-slate-700 w-full">
-        <div className="flex items-center justify-start">
-          <div className="w-4 h-4"></div>
+      <div className="hidden lg:grid grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+        <div className="w-6 flex items-center justify-center">
+          <input
+            type="checkbox"
+            checked={selectedRows.size === orders.length && orders.length > 0}
+            onChange={() => {
+              if (selectedRows.size === orders.length) {
+                setSelectedRows(new Set());
+              } else {
+                setSelectedRows(new Set(orders.map(o => o.id)));
+              }
+            }}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
+          />
         </div>
-        <div className="text-xs text-slate-300 font-medium">Order date</div>
-        <div className="text-xs text-slate-300 font-medium">Item</div>
-        <div className="text-xs text-slate-300 font-medium">Profile</div>
-        <div className="text-xs text-slate-300 font-medium">Retailer</div>
-        <div className="text-xs text-slate-300 font-medium">Buy $</div>
-        <div className="text-xs text-slate-300 font-medium">Sale $</div>
-        <div className="text-xs text-slate-300 font-medium">Sale date</div>
-        <div className="text-xs text-slate-300 font-medium">Marketplace</div>
-        <div className="text-xs text-slate-300 font-medium">Ship $</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Item</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
       </div>
 
       {/* Table Body */}
@@ -903,31 +916,33 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-4">
-          <input
-            type="checkbox"
-            checked={allRowsSelected}
-            onChange={(e) => {
-              e.stopPropagation();
-              const newSelected = new Set(selectedRows);
-              if (allRowsSelected) {
-                // Check if this section contains new orders - prevent deselection
-                const hasNewOrdersInSection = rows.some(row => row.isNew);
-                if (hasNewOrdersInSection) {
-                  // Don't allow deselection when new orders are present in this section
-                  return;
+          {title !== "New Order" && (
+            <input
+              type="checkbox"
+              checked={allRowsSelected}
+              onChange={(e) => {
+                e.stopPropagation();
+                const newSelected = new Set(selectedRows);
+                if (allRowsSelected) {
+                  // Check if this section contains new orders - prevent deselection
+                  const hasNewOrdersInSection = rows.some(row => row.isNew);
+                  if (hasNewOrdersInSection) {
+                    // Don't allow deselection when new orders are present in this section
+                    return;
+                  }
+                  // Deselect all rows in this section
+                  rows.forEach(row => newSelected.delete(row.id));
+                } else {
+                  // Select all rows in this section
+                  rows.forEach(row => newSelected.add(row.id));
                 }
-                // Deselect all rows in this section
-                rows.forEach(row => newSelected.delete(row.id));
-              } else {
-                // Select all rows in this section
-                rows.forEach(row => newSelected.add(row.id));
-              }
-              setSelectedRows(newSelected);
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
-          />
-          <div>
+                setSelectedRows(newSelected);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
+            />
+          )}
+          <div className={title === "New Order" ? "ml-0" : ""}>
             <div className="text-lg font-semibold text-slate-100">{title}</div>
             <div className="text-sm text-slate-400">
               {title === "New Order" ? "Click save to add new order" : `${count} orders`}
@@ -941,19 +956,16 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
       {open && (
         <div className="p-4 border-t border-slate-700">
           {/* Header Row for Orders */}
-          <div className="hidden lg:grid grid-cols-[auto_140px_2fr_0.8fr_0.8fr_56px_56px_140px_0.85fr_56px] gap-1 items-center mb-3 pb-2 border-b border-slate-700 w-full">
-            <div className="flex items-center justify-start">
-              <div className="w-4 h-4"></div>
-            </div>
-            <div className="text-xs text-slate-300 font-medium">Order date</div>
-            <div className="text-xs text-slate-300 font-medium">Item</div>
-            <div className="text-xs text-slate-300 font-medium">Profile</div>
-            <div className="text-xs text-slate-300 font-medium">Retailer</div>
-            <div className="text-xs text-slate-300 font-medium">Buy $</div>
-            <div className="text-xs text-slate-300 font-medium">Sale $</div>
-            <div className="text-xs text-slate-300 font-medium">Sale date</div>
-            <div className="text-xs text-slate-300 font-medium">Marketplace</div>
-            <div className="text-xs text-slate-300 font-medium">Ship $</div>
+          <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+            <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
+            <div className="text-xs text-slate-300 font-medium px-3">Item</div>
+            <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
+            <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
+            <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
+            <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
+            <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
+            <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
+            <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
           </div>
 
           {/* Order Rows */}
@@ -990,30 +1002,16 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
   return (
     <div className={`${pageCard}`}>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[auto_140px_2fr_0.8fr_0.8fr_56px_56px_140px_0.85fr_56px] gap-1 items-center mb-4 pb-3 border-b border-slate-700 w-full">
-        <div className="w-6 flex items-center justify-center">
-          <input
-            type="checkbox"
-            checked={selectedRows.size === orders.length && orders.length > 0}
-            onChange={() => {
-              if (selectedRows.size === orders.length) {
-                setSelectedRows(new Set());
-              } else {
-                setSelectedRows(new Set(orders.map(o => o.id)));
-              }
-            }}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
-          />
-        </div>
-        <div className="text-xs text-slate-300 font-medium">Order date</div>
-        <div className="text-xs text-slate-300 font-medium">Item</div>
-        <div className="text-xs text-slate-300 font-medium">Profile</div>
-        <div className="text-xs text-slate-300 font-medium">Retailer</div>
-        <div className="text-xs text-slate-300 font-medium">Buy $</div>
-        <div className="text-xs text-slate-300 font-medium">Sale $</div>
-        <div className="text-xs text-slate-300 font-medium">Sale date</div>
-        <div className="text-xs text-slate-300 font-medium">Marketplace</div>
-        <div className="text-xs text-slate-300 font-medium">Ship $</div>
+      <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+        <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Item</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
       </div>
 
       {/* Mobile Header - Show on small screens */}
@@ -1164,37 +1162,16 @@ function DayCard({
         <div className="pt-5">
           {/* Header row - text only */}
           <div className="hidden lg:block">
-            <div className="grid grid-cols-[auto_140px_2fr_0.8fr_0.8fr_56px_56px_140px_0.85fr_56px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
-              <div className="flex items-center justify-center">
-                <input
-                  type="checkbox"
-                  checked={rows.every(row => selectedRows.has(row.id))}
-                  onChange={(e) => {
-                    const rowIds = rows.map(row => row.id);
-                    if (e.target.checked) {
-                      // Select all rows in this card
-                      const newSelected = new Set(selectedRows);
-                      rowIds.forEach(id => newSelected.add(id));
-                      setSelectedRows(newSelected);
-                    } else {
-                      // Deselect all rows in this card
-                      const newSelected = new Set(selectedRows);
-                      rowIds.forEach(id => newSelected.delete(id));
-                      setSelectedRows(newSelected);
-                    }
-                  }}
-                  className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
-                />
-              </div>
-              <div className="text-xs text-slate-300 font-medium">Order date</div>
-              <div className="text-xs text-slate-300 font-medium">Item</div>
-              <div className="text-xs text-slate-300 font-medium">Profile</div>
-              <div className="text-xs text-slate-300 font-medium">Retailer</div>
-              <div className="text-xs text-slate-300 font-medium">Buy $</div>
-              <div className="text-xs text-slate-300 font-medium">Sale $</div>
-              <div className="text-xs text-slate-300 font-medium">Sale date</div>
-              <div className="text-xs text-slate-300 font-medium">Marketplace</div>
-              <div className="text-xs text-slate-300 font-medium">Ship $</div>
+            <div className="grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_132px_0.68fr_73px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
+              <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
+              <div className="text-xs text-slate-300 font-medium px-3">Item</div>
+              <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
+              <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
+              <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
+              <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
+              <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
+              <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
+              <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
             </div>
           </div>
 
@@ -1450,19 +1427,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       onClick={onToggleSelection}
     >
       {/* Desktop: Grid layout */}
-      <div className="hidden lg:grid grid-cols-[auto_140px_2fr_0.8fr_0.8fr_56px_56px_140px_0.85fr_56px] gap-1 items-center w-full min-w-0 grid-rows-1">
-        {/* Selection checkbox - desktop only */}
-        <div className="flex items-center justify-start">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(e) => {
-              e.stopPropagation();
-              onToggleSelection();
-            }}
-            className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
-          />
-        </div>
+      <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_132px_0.68fr_73px] gap-1 items-center w-full min-w-0 grid-rows-1 py-2">
         
         {/* Order Date - Responsive */}
         <input
