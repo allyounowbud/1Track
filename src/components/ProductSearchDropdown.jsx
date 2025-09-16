@@ -51,7 +51,7 @@ export default function ProductSearchDropdown({
 
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(searchQuery)}`, {
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting-simple/search?q=${encodeURIComponent(searchQuery)}`, {
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json',
