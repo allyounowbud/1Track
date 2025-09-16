@@ -27,6 +27,14 @@ export default function Hub() {
   // Changelog data with version numbers (showing most recent 25 entries)
   const allChangelogData = [
     {
+      title: "Fixed Sealed Search Ranking - Prismatic Evolutions Now Appears First",
+      description: "Fixed a critical issue where sealed product searches weren't properly ranking results by relevance. When searching 'sealed prismatic evolutions', the search was correctly filtering to show only sealed products but was losing the ranking priority that puts Prismatic Evolutions products at the top. Implemented intelligent search query cleaning that removes 'sealed' from the search terms for better matching while still applying the sealed filter. Added fallback broad search functionality that activates when too few sealed results are found, ensuring users can always find relevant sealed products. Now searches like 'sealed prismatic evolutions' will show Elite Trainer Boxes, Booster Bundles, and other sealed products from the Prismatic Evolutions set at the top of results, followed by other sealed products in order of relevance.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:50",
+      author: "Development Team"
+    },
+    {
       title: "Improved Sealed Product Detection and Search Filtering",
       description: "Enhanced the sealed product detection system with two key improvements: (1) Fixed sealed pill detection to exclude single cards - any product name containing '#' (like 'Pikachu #25' or 'Charizard #150') is now correctly identified as a single card and won't show the 'Sealed' pill. This ensures only actual sealed products like booster boxes, bundles, and collections get the green 'Sealed' indicator. (2) Added intelligent search filtering - when users include 'sealed' in their search query (regardless of capitalization), the search now automatically filters to show only sealed products, making it much easier to find boxes, bundles, and collections when specifically looking for sealed items. Both improvements work together to provide more accurate product categorization and better search targeting.",
       color: "bg-blue-500/70",

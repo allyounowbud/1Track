@@ -126,46 +126,49 @@ async function searchProducts(query, category = 'pokemon_cards') {
   // Check if user is searching for sealed products specifically
   const isSealedSearch = cleanQuery.includes('sealed');
   
+  // Remove "sealed" from the search query for better matching
+  const searchQuery = isSealedSearch ? cleanQuery.replace(/\bsealed\b/g, '').trim() : cleanQuery;
+  
   // Try different search strategies with improved algorithms and weighting
   const searchStrategies = [
     // Strategy 1: Exact match (case insensitive) - HIGHEST PRIORITY
-    () => searchWithStrategy(cleanQuery, 'exact').then(results => 
+    () => searchWithStrategy(searchQuery, 'exact').then(results => 
       results.map(r => ({ ...r, strategy_priority: 10 }))
     ),
     // Strategy 2: Exact match in console_name (set name) - HIGH PRIORITY
-    () => searchWithConsoleStrategy(cleanQuery, 'exact').then(results => 
+    () => searchWithConsoleStrategy(searchQuery, 'exact').then(results => 
       results.map(r => ({ ...r, strategy_priority: 9 }))
     ),
     // Strategy 3: Combined exact search (product_name OR console_name) - HIGH PRIORITY
-    () => searchWithCombinedStrategy(cleanQuery).then(results => 
+    () => searchWithCombinedStrategy(searchQuery).then(results => 
       results.map(r => ({ ...r, strategy_priority: 8 }))
     ),
     // Strategy 4: Contains match in product name - MEDIUM PRIORITY
-    () => searchWithStrategy(cleanQuery, 'contains').then(results => 
+    () => searchWithStrategy(searchQuery, 'contains').then(results => 
       results.map(r => ({ ...r, strategy_priority: 7 }))
     ),
     // Strategy 5: Contains match in console_name (set name) - MEDIUM PRIORITY
-    () => searchWithConsoleStrategy(cleanQuery, 'contains').then(results => 
+    () => searchWithConsoleStrategy(searchQuery, 'contains').then(results => 
       results.map(r => ({ ...r, strategy_priority: 6 }))
     ),
     // Strategy 6: Word-based matching for all words - MEDIUM PRIORITY
     () => {
-      const words = cleanQuery.split(' ').filter(word => word.length > 2);
+      const words = searchQuery.split(' ').filter(word => word.length > 2);
       if (words.length === 0) return Promise.resolve([]);
       return Promise.all(words.map(word => searchWithStrategy(word, 'contains')))
         .then(results => results.flat().map(r => ({ ...r, strategy_priority: 5 })));
     },
     // Strategy 7: First word only - LOWER PRIORITY
-    () => searchWithStrategy(cleanQuery.split(' ')[0], 'contains').then(results => 
+    () => searchWithStrategy(searchQuery.split(' ')[0], 'contains').then(results => 
       results.map(r => ({ ...r, strategy_priority: 4 }))
     ),
     // Strategy 8: First word in console name - LOWER PRIORITY
-    () => searchWithConsoleStrategy(cleanQuery.split(' ')[0], 'contains').then(results => 
+    () => searchWithConsoleStrategy(searchQuery.split(' ')[0], 'contains').then(results => 
       results.map(r => ({ ...r, strategy_priority: 3 }))
     ),
     // Strategy 9: Without numbers - LOWER PRIORITY
     () => {
-      const withoutNumbers = cleanQuery.replace(/\d+/g, '').trim();
+      const withoutNumbers = searchQuery.replace(/\d+/g, '').trim();
       if (withoutNumbers.length > 2) {
         return searchWithStrategy(withoutNumbers, 'contains').then(results => 
           results.map(r => ({ ...r, strategy_priority: 2 }))
@@ -174,7 +177,7 @@ async function searchProducts(query, category = 'pokemon_cards') {
       return Promise.resolve([]);
     },
     // Strategy 10: Full-text search - LOWEST PRIORITY
-    () => searchWithFullText(cleanQuery).then(results => 
+    () => searchWithFullText(searchQuery).then(results => 
       results.map(r => ({ ...r, strategy_priority: 1 }))
     )
   ];
@@ -191,12 +194,12 @@ async function searchProducts(query, category = 'pokemon_cards') {
         
         // Calculate similarity scores against both product_name and console_name
         const scoredResults = results.map(result => {
-          const productSimilarity = calculateSimilarity(query, result.product_name || '');
-          const consoleSimilarity = calculateSimilarity(query, result.console_name || '');
+          const productSimilarity = calculateSimilarity(searchQuery, result.product_name || '');
+          const consoleSimilarity = calculateSimilarity(searchQuery, result.console_name || '');
           
           // Combine product name and set name for comprehensive matching
           const combinedText = `${result.product_name || ''} ${result.console_name || ''}`.trim();
-          const combinedSimilarity = calculateSimilarity(query, combinedText);
+          const combinedSimilarity = calculateSimilarity(searchQuery, combinedText);
           
           // Use the best similarity score (individual or combined)
           const maxSimilarity = Math.max(productSimilarity, consoleSimilarity, combinedSimilarity);
@@ -236,8 +239,19 @@ async function searchProducts(query, category = 'pokemon_cards') {
   
   // Filter for sealed products only if "sealed" was in the search query
   if (isSealedSearch) {
+    const beforeFilter = uniqueResults.length;
     uniqueResults = uniqueResults.filter(result => isSealedProduct(result.product_name));
-    console.log(`Filtered for sealed products only: ${uniqueResults.length} results`);
+    console.log(`Filtered for sealed products only: ${beforeFilter} -> ${uniqueResults.length} results`);
+    
+    // If we filtered out too many results, try a broader search for sealed products
+    if (uniqueResults.length < 5) {
+      console.log('Too few sealed results, trying broader sealed product search...');
+      const broadSealedResults = await searchBroadSealedProducts(searchQuery);
+      uniqueResults = [...uniqueResults, ...broadSealedResults]
+        .filter((result, index, self) => 
+          index === self.findIndex(r => r.product_id === result.product_id)
+        );
+    }
   }
   
   return uniqueResults
@@ -339,6 +353,48 @@ async function searchWithFullText(searchTerm) {
   }
   
   return data || [];
+}
+
+// Search for sealed products with broader criteria when specific search yields few results
+async function searchBroadSealedProducts(searchTerm) {
+  if (!searchTerm) return [];
+  
+  const words = searchTerm.split(' ').filter(word => word.length > 2);
+  if (words.length === 0) return [];
+  
+  try {
+    // Search for any sealed products that contain any of the search words
+    const { data, error } = await supabase
+      .from('price_charting_products')
+      .select('*')
+      .or(`product_name.ilike.%${words.join('%,product_name.ilike.%')}%,console_name.ilike.%${words.join('%,console_name.ilike.%')}%`)
+      .limit(30);
+    
+    if (error) {
+      console.error('Broad sealed search error:', error);
+      return [];
+    }
+    
+    // Filter for sealed products and calculate similarity
+    const sealedResults = (data || [])
+      .filter(result => isSealedProduct(result.product_name))
+      .map(result => {
+        const similarity = calculateSimilarity(searchTerm, `${result.product_name} ${result.console_name}`.trim());
+        return {
+          ...result,
+          similarity_score: similarity,
+          strategy_priority: 0 // Lower priority for broad search results
+        };
+      })
+      .filter(result => result.similarity_score >= 0.3)
+      .sort((a, b) => b.similarity_score - a.similarity_score)
+      .slice(0, 10);
+    
+    return sealedResults;
+  } catch (error) {
+    console.error('Broad sealed search error:', error);
+    return [];
+  }
 }
 
 // Main handler
