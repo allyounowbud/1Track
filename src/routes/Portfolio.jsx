@@ -92,13 +92,17 @@ async function getProductMarketData(productName) {
              if (products.length > 0) {
                // Return the first (most relevant) result
                const product = products[0];
+               const loosePrice = product['loose-price'] || product.loose_price || product.price || product.loose || '';
+               const cibPrice = product['cib-price'] || product.cib_price || product.complete_price || product.complete || '';
+               const newPrice = product['new-price'] || product.new_price || product.sealed_price || product.sealed || '';
+               
                return {
                  product_id: product.id || product['product-id'] || product.product_id || '',
                  product_name: product['product-name'] || product.product_name || product.name || product.title || 'Unknown Product',
                  console_name: product['console-name'] || product.console_name || product.console || product.platform || '',
-                 loose_price: product['loose-price'] || product.loose_price || product.price || product.loose || '',
-                 cib_price: product['cib-price'] || product.cib_price || product.complete_price || product.complete || '',
-                 new_price: product['new-price'] || product.new_price || product.sealed_price || product.sealed || '',
+                 loose_price: loosePrice ? (parseFloat(loosePrice) / 100).toFixed(2) : '',
+                 cib_price: cibPrice ? (parseFloat(cibPrice) / 100).toFixed(2) : '',
+                 new_price: newPrice ? (parseFloat(newPrice) / 100).toFixed(2) : '',
                  image_url: product['image-url'] || product.image_url || product.image || product.thumbnail || ''
                };
              }

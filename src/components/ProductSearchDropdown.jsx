@@ -96,9 +96,9 @@ export default function ProductSearchDropdown({
                        product_id: product.id || product['product-id'] || product.product_id || '',
                        product_name: productName,
                        console_name: consoleName,
-                       loose_price: loosePrice,
-                       cib_price: cibPrice,
-                       new_price: newPrice,
+                       loose_price: loosePrice ? (parseFloat(loosePrice) / 100).toFixed(2) : '',
+                       cib_price: cibPrice ? (parseFloat(cibPrice) / 100).toFixed(2) : '',
+                       new_price: newPrice ? (parseFloat(newPrice) / 100).toFixed(2) : '',
                        image_url: imageUrl,
                        similarity_score: 1.0 // Price Charting API doesn't provide similarity scores
                      };
