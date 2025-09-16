@@ -241,70 +241,6 @@ export default function Settings() {
 
   const activeCard = getActiveCard();
 
-  /* ----- Other Items Operations ----- */
-  
-  // Other Items Operations
-  function toggleItemsSelection(rowId) {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(rowId)) {
-      const isNewRow = rowId < 0;
-      if (isNewRow) return;
-      newSelected.delete(rowId);
-    } else {
-      if (hasNewItemRows) {
-        setSelectedItems(new Set([rowId]));
-        return;
-      }
-      newSelected.add(rowId);
-    }
-    setSelectedItems(newSelected);
-  }
-
-  function addNewItemRow() {
-    // Prevent adding new rows if any other card already has a new row
-    if (hasAnyNewRows) return;
-    
-    const newId = nextNewRowId;
-    setNextNewRowId(newId - 1);
-    setNewItemRows(prev => [...prev, { id: newId, type: 'item', isNew: true }]);
-    setSelectedItems(new Set([newId]));
-    setExpandedCard('items'); // Auto-expand the card when adding a new row
-  }
-
-  // Other Items Bulk Operations
-  function toggleAllItemsSelection() {
-    if (selectedItems.size === items.length) {
-      if (hasNewItemRows) return;
-      setSelectedItems(new Set());
-    } else {
-      const allIds = items.map(item => item.id);
-      setSelectedItems(new Set(allIds));
-    }
-  }
-
-  async function bulkSaveItems() {
-    setSelectedItems(new Set());
-  }
-
-  async function bulkDeleteItems() {
-    const selectedIds = Array.from(selectedItems).filter(id => id > 0);
-    if (selectedIds.length === 0) return;
-    
-    if (!confirm(`Delete ${selectedIds.length} item(s)? This action cannot be undone.`)) return;
-    
-    try {
-      const { error } = await supabase
-        .from('items')
-        .delete()
-        .in('id', selectedIds);
-      
-      if (error) throw error;
-      await refetchItems();
-      setSelectedItems(new Set());
-    } catch (e) {
-      alert(`Failed to delete: ${e.message}`);
-    }
-  }
 
   /* ----- Retailer Operations ----- */
   
@@ -554,6 +490,71 @@ export default function Settings() {
       if (error) throw error;
       await refetchTCGSealed();
       setSelectedTCGSealed(new Set());
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
+  /* ----- Other Items Operations ----- */
+  
+  // Other Items Operations
+  function toggleItemsSelection(rowId) {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (hasNewItemRows) {
+        setSelectedItems(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedItems(newSelected);
+  }
+
+  function addNewItemRow() {
+    // Prevent adding new rows if any other card already has a new row
+    if (hasAnyNewRows) return;
+    
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewItemRows(prev => [...prev, { id: newId, type: 'item', isNew: true }]);
+    setSelectedItems(new Set([newId]));
+    setExpandedCard('items'); // Auto-expand the card when adding a new row
+  }
+
+  // Other Items Bulk Operations
+  function toggleAllItemsSelection() {
+    if (selectedItems.size === items.length) {
+      if (hasNewItemRows) return;
+      setSelectedItems(new Set());
+    } else {
+      const allIds = items.map(item => item.id);
+      setSelectedItems(new Set(allIds));
+    }
+  }
+
+  async function bulkSaveItems() {
+    setSelectedItems(new Set());
+  }
+
+  async function bulkDeleteItems() {
+    const selectedIds = Array.from(selectedItems).filter(id => id > 0);
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.length} item(s)? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('items')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      await refetchItems();
+      setSelectedItems(new Set());
     } catch (e) {
       alert(`Failed to delete: ${e.message}`);
     }
@@ -1130,6 +1131,7 @@ function SettingsCard({
               }}
                 />
               )}
+
             </>
           )}
 
