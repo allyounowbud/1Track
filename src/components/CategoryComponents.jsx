@@ -279,7 +279,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
       onClick={onToggleSelection}
     >
       {/* Desktop: Grid layout with checkbox */}
-      <div className="hidden sm:grid grid-cols-[auto_2fr_1fr_1fr_auto] gap-4 items-center min-w-0">
+      <div className="hidden sm:grid grid-cols-[auto_2fr_1fr_auto] gap-4 items-center min-w-0">
         <div className="flex items-center gap-2">
         <input
           type="checkbox"
@@ -297,9 +297,9 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
           <div 
             className={`w-2 h-2 rounded-full flex-shrink-0 ${
               item?.price_source === 'api' || item?.api_product_id 
-                ? 'bg-green-400' 
+                ? 'bg-blue-400' 
                 : item?.price_source === 'manual' || item?.manual_override
-                  ? 'bg-blue-400'
+                  ? 'bg-slate-400'
                   : 'bg-slate-500'
             }`}
             title={
@@ -331,17 +331,6 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
           }}
           onClick={(e) => e.stopPropagation()}
           placeholder="Market value ($)"
-        />
-        
-        <input
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
-          value={upcCode}
-          onChange={(e) => {
-            e.stopPropagation();
-            setUpcCode(e.target.value);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="UPC/EAN Code"
         />
         
         <div className="flex items-center gap-2">
@@ -438,19 +427,6 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
           </div>
         </div>
         
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">UPC/EAN Code</label>
-          <input
-            className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
-            value={upcCode}
-            onChange={(e) => {
-              e.stopPropagation();
-              setUpcCode(e.target.value);
-            }}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="UPC/EAN Code"
-          />
-        </div>
       </div>
       
       {/* Mobile-only ghost text for row selection */}
