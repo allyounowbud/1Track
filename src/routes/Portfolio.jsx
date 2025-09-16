@@ -8,6 +8,7 @@ import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, rowCard } from "../utils/ui.js";
 import { getBatchMarketData, getMarketValueInCents } from "../services/marketDataService.js";
+import { getBackgroundMarketData, isBackgroundLoadingComplete } from "../services/backgroundMarketDataService.js";
 import Stats from "./Stats.jsx";
 import Inventory from "./Inventory.jsx";
 
@@ -894,20 +895,51 @@ export default function Portfolio() {
   // Fetch market data when portfolio items change
   useEffect(() => {
     if (uniqueProductNames.length > 0) {
-      console.log('Portfolio: Fetching market data for product names:', uniqueProductNames);
-      setIsLoadingMarketData(true);
+      console.log('Portfolio: Checking for market data for product names:', uniqueProductNames);
       
-      getBatchMarketData(uniqueProductNames)
-        .then(data => {
-          console.log('Portfolio: Received market data:', data);
-          setMarketData(data);
-          setIsLoadingMarketData(false);
-        })
-        .catch(error => {
-          console.error('Error fetching market data:', error);
-          setMarketData({});
-          setIsLoadingMarketData(false);
-        });
+      // First, try to get data from background cache
+      const backgroundData = getBackgroundMarketData(uniqueProductNames);
+      const backgroundDataCount = Object.keys(backgroundData).length;
+      
+      if (backgroundDataCount === uniqueProductNames.length) {
+        // All data is available from background cache
+        console.log('Portfolio: All market data loaded from background cache');
+        setMarketData(backgroundData);
+        setIsLoadingMarketData(false);
+      } else if (backgroundDataCount > 0) {
+        // Some data is available, use it and fetch the rest
+        console.log(`Portfolio: ${backgroundDataCount}/${uniqueProductNames.length} products loaded from background cache`);
+        setMarketData(backgroundData);
+        setIsLoadingMarketData(true);
+        
+        getBatchMarketData(uniqueProductNames)
+          .then(data => {
+            console.log('Portfolio: Received complete market data:', data);
+            setMarketData(data);
+            setIsLoadingMarketData(false);
+          })
+          .catch(error => {
+            console.error('Error fetching market data:', error);
+            setMarketData(backgroundData); // Keep what we have from background
+            setIsLoadingMarketData(false);
+          });
+      } else {
+        // No background data available, fetch all
+        console.log('Portfolio: No background data available, fetching all market data');
+        setIsLoadingMarketData(true);
+        
+        getBatchMarketData(uniqueProductNames)
+          .then(data => {
+            console.log('Portfolio: Received market data:', data);
+            setMarketData(data);
+            setIsLoadingMarketData(false);
+          })
+          .catch(error => {
+            console.error('Error fetching market data:', error);
+            setMarketData({});
+            setIsLoadingMarketData(false);
+          });
+      }
     } else {
       setMarketData({});
       setIsLoadingMarketData(false);

@@ -172,14 +172,23 @@ export function initializeBackgroundMarketData() {
     const stored = localStorage.getItem('backgroundMarketData');
     if (stored) {
       const { data, timestamp } = JSON.parse(stored);
-      if (Date.now() - timestamp < CACHE_DURATION) {
+      const age = Date.now() - timestamp;
+      const hoursOld = Math.floor(age / (1000 * 60 * 60));
+      
+      if (age < CACHE_DURATION) {
         // Restore cache from localStorage
         Object.entries(data).forEach(([key, value]) => {
           backgroundMarketDataCache.set(key, value);
         });
-        console.log(`📦 Restored ${Object.keys(data).length} cached market data entries from localStorage`);
+        console.log(`📦 Restored ${Object.keys(data).length} cached market data entries from localStorage (${hoursOld}h old)`);
         return;
+      } else {
+        console.log(`🕐 Background market data cache expired (${hoursOld}h old), will refresh`);
+        // Clear expired cache
+        localStorage.removeItem('backgroundMarketData');
       }
+    } else {
+      console.log('📭 No background market data found in localStorage');
     }
   } catch (error) {
     console.error('Error loading background market data from localStorage:', error);
@@ -210,6 +219,20 @@ export function getBackgroundMarketData(productNames) {
 // Check if background loading is complete
 export function isBackgroundLoadingComplete() {
   return !isBackgroundLoading;
+}
+
+// Check if background data is available and ready
+export function isBackgroundDataReady() {
+  return backgroundMarketDataCache.size > 0;
+}
+
+// Get background cache stats
+export function getBackgroundCacheStats() {
+  return {
+    size: backgroundMarketDataCache.size,
+    isLoading: isBackgroundLoading,
+    hasData: backgroundMarketDataCache.size > 0
+  };
 }
 
 // Force refresh background data (for manual refresh)
