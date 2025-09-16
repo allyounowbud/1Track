@@ -27,6 +27,14 @@ export default function Hub() {
   // Changelog data with version numbers (showing most recent 25 entries)
   const allChangelogData = [
     {
+      title: "Fixed Set Name Not Saving in OrderBook Product Selection",
+      description: "Fixed an issue where selecting products from the search dropdown in the OrderBook was only saving the base product name (e.g., 'Elite Trainer Box') instead of the full name with set information (e.g., 'Elite Trainer Box - Pokemon Journey Together'). Updated the handleProductSelect function in OrderBook.jsx to match the logic used in QuickAdd.jsx, ensuring that when a product is selected, it creates a display name that includes set information if available. This ensures consistency across both QuickAdd and OrderBook components, so users get the complete product name with set details when selecting items from the search dropdown.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "07:20",
+      author: "Development Team"
+    },
+    {
       title: "Enhanced Search Ranking to Prioritize Set Name Matches",
       description: "Improved the search algorithm to better prioritize results where the set name (console_name) contains the search terms. Added special scoring boosts for set name matches (0.15 boost for >80% similarity, 0.1 boost for >50% similarity) and implemented word order checking to rank results higher when search words appear in the same order as in the target text. This ensures that searches like 'Elite Trainer Box Black Bolt' will now properly rank 'Elite Trainer Box - Pokemon Black Bolt' at the top instead of showing Elite Trainer Boxes from other sets first. The algorithm now gives higher priority to set-specific matches, making it much easier to find products from specific Pokemon sets.",
       color: "bg-blue-500/70",

@@ -1269,9 +1269,16 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
     setFormStates(prev => {
       const newMap = new Map(prev);
       const currentState = newMap.get(order.id) || {};
+      
+      // Create a display name that includes set information if available
+      let displayName = product.product_name;
+      if (product.console_name && product.console_name !== product.product_name) {
+        displayName = `${product.product_name} - ${product.console_name}`;
+      }
+      
       newMap.set(order.id, { 
         ...currentState, 
-        item: product.product_name,
+        item: displayName,
         // You could also set market value or other fields here if needed
         // marketValue: product.loose_price ? `$${product.loose_price}` : ""
       });
