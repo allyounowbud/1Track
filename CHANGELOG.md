@@ -24,6 +24,8 @@ All notable changes to this project will be documented in this file.
 - **Database Input Consistency**: Unified background styling across all database input fields (item name, category dropdown, and market value) for a cohesive visual appearance
 - **Database Dropdown Arrow**: Added dropdown arrow icon to category dropdown for better user experience and visual clarity
 - **Order Book Dropdown Arrows**: Added dropdown arrow icons to retailer and marketplace dropdowns in Order Book for consistent UX across all dropdowns
+- **Dropdown Background Consistency**: Fixed dropdown background colors to match other input fields, ensuring all form elements have the same visual appearance
+- **Database Interface Simplification**: Removed singles/sealed toggle and TCG singles card, now using unified products card for all product categories
 
 ### Added
 - Enhanced image display in Portfolio collection page with improved loading states and error handling
