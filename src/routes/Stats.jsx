@@ -189,7 +189,10 @@ export default function Stats() {
       for (const product of priceChartingProducts) {
         if (product.loose_price && product.loose_price > 0) {
           const productLower = (product.product_name || "").toLowerCase();
-          if (productLower.includes(cleanQuery)) {
+          const consoleLower = (product.console_name || "").toLowerCase();
+          const combinedText = `${productLower} ${consoleLower}`.trim();
+          
+          if (productLower.includes(cleanQuery) || consoleLower.includes(cleanQuery) || combinedText.includes(cleanQuery)) {
             results.push({
               ...product,
               similarity_score: 1.0
@@ -268,6 +271,27 @@ export default function Stats() {
       if (searchResults.length > 0) {
         // Return the price of the best match
         return Math.round(searchResults[0].loose_price * 100);
+      }
+      
+      // Try more flexible matching - split the item name and search for each part
+      const words = itemName.toLowerCase().split(' ').filter(word => word.length > 2);
+      if (words.length > 1) {
+        // Try searching with each significant word
+        for (const word of words) {
+          const wordResults = searchProducts(word);
+          if (wordResults.length > 0) {
+            // Check if any result contains the full item name or vice versa
+            for (const result of wordResults) {
+              const resultName = (result.product_name || "").toLowerCase();
+              const itemNameLower = itemName.toLowerCase();
+              
+              // If the result name contains the item name or item name contains result name
+              if (resultName.includes(itemNameLower) || itemNameLower.includes(resultName.split(' - ')[0])) {
+                return Math.round(result.loose_price * 100);
+              }
+            }
+          }
+        }
       }
       
       return null;

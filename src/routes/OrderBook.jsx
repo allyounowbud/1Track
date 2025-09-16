@@ -607,21 +607,21 @@ function UnifiedOrderView({
       {filtered.length > 0 && (
         <div className="flex items-center justify-end py-1 px-4 mb-2">
           {/* Left side - Selection Count (matches card header structure) */}
-          <div className="flex items-center gap-4 mr-auto">
-            <input
-              type="checkbox"
-              checked={selectedRows.size === filtered.length && filtered.length > 0}
-              onChange={toggleAllSelection}
-              className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
-            />
-            {newRows.length === 0 && (
+          {newRows.length === 0 && (
+            <div className="flex items-center gap-4 mr-auto">
+              <input
+                type="checkbox"
+                checked={selectedRows.size === filtered.length && filtered.length > 0}
+                onChange={toggleAllSelection}
+                className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
+              />
               <div>
                 <div className="text-sm text-slate-400 whitespace-nowrap">
                   {selectedRows.size}/{filtered.length} Selected
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Right side - Action Buttons and View Toggle */}
           <div className="flex items-center gap-2">
