@@ -27,6 +27,14 @@ export default function Hub() {
   // Changelog data with version numbers (showing most recent 25 entries)
   const allChangelogData = [
     {
+      title: "Improved Search Ranking - Exact Matches Now Appear at Top of Results",
+      description: "Enhanced the search ranking algorithm to prioritize exact matches and more relevant results. Implemented a strategy priority system where exact matches in product names and set names receive the highest priority (10), followed by combined exact searches (8), then contains matches (7-6), and finally partial matches (5-1). Added priority boosting to similarity scores so exact matches always appear at the top of search results. This fixes issues where searching for specific terms like 'Elite trainer box prismatic' would show generic Elite Trainer Boxes from other sets before the actual Prismatic Evolutions Elite Trainer Box. Now the most relevant results based on exact query matches appear first, making it much easier to find the specific products you're looking for.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:35",
+      author: "Development Team"
+    },
+    {
       title: "Expanded Product Search Results - Increased Limits to Match Price Charting",
       description: "Significantly expanded the product search functionality to show comprehensive results like the actual Price Charting website. Increased search result limits from 20 to 100 items, with individual strategy limits raised from 15 to 50 results each. Added 'Show More' functionality that displays the first 20 results initially with an option to expand and see all results (up to 100). This addresses the limitation where searching for complete sets like 'Pokemon Prismatic Evolutions' (which has 493 items) would only show a small fraction of available products. Now users can access the full range of products including all cards and sealed items from any set, matching the comprehensive results available on Price Charting.",
       color: "bg-blue-500/70",

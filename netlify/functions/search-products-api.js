@@ -87,36 +87,57 @@ async function searchProducts(query, category = 'pokemon_cards') {
   
   const cleanQuery = query.trim().toLowerCase();
   
-  // Try different search strategies with improved algorithms
+  // Try different search strategies with improved algorithms and weighting
   const searchStrategies = [
-    // Strategy 1: Exact match (case insensitive)
-    () => searchWithStrategy(cleanQuery, 'exact'),
-    // Strategy 2: Contains match in product name
-    () => searchWithStrategy(cleanQuery, 'contains'),
-    // Strategy 3: Contains match in console_name (set name)
-    () => searchWithConsoleStrategy(cleanQuery, 'contains'),
-    // Strategy 4: Combined search (product_name OR console_name)
-    () => searchWithCombinedStrategy(cleanQuery),
-    // Strategy 5: First word only (for Pokemon cards like "151 Blooming Waters")
-    () => searchWithStrategy(cleanQuery.split(' ')[0], 'contains'),
-    // Strategy 6: First word in console name
-    () => searchWithConsoleStrategy(cleanQuery.split(' ')[0], 'contains'),
-    // Strategy 7: Without numbers (for "151 Blooming Waters" -> "blooming waters")
+    // Strategy 1: Exact match (case insensitive) - HIGHEST PRIORITY
+    () => searchWithStrategy(cleanQuery, 'exact').then(results => 
+      results.map(r => ({ ...r, strategy_priority: 10 }))
+    ),
+    // Strategy 2: Exact match in console_name (set name) - HIGH PRIORITY
+    () => searchWithConsoleStrategy(cleanQuery, 'exact').then(results => 
+      results.map(r => ({ ...r, strategy_priority: 9 }))
+    ),
+    // Strategy 3: Combined exact search (product_name OR console_name) - HIGH PRIORITY
+    () => searchWithCombinedStrategy(cleanQuery).then(results => 
+      results.map(r => ({ ...r, strategy_priority: 8 }))
+    ),
+    // Strategy 4: Contains match in product name - MEDIUM PRIORITY
+    () => searchWithStrategy(cleanQuery, 'contains').then(results => 
+      results.map(r => ({ ...r, strategy_priority: 7 }))
+    ),
+    // Strategy 5: Contains match in console_name (set name) - MEDIUM PRIORITY
+    () => searchWithConsoleStrategy(cleanQuery, 'contains').then(results => 
+      results.map(r => ({ ...r, strategy_priority: 6 }))
+    ),
+    // Strategy 6: Word-based matching for all words - MEDIUM PRIORITY
+    () => {
+      const words = cleanQuery.split(' ').filter(word => word.length > 2);
+      if (words.length === 0) return Promise.resolve([]);
+      return Promise.all(words.map(word => searchWithStrategy(word, 'contains')))
+        .then(results => results.flat().map(r => ({ ...r, strategy_priority: 5 })));
+    },
+    // Strategy 7: First word only - LOWER PRIORITY
+    () => searchWithStrategy(cleanQuery.split(' ')[0], 'contains').then(results => 
+      results.map(r => ({ ...r, strategy_priority: 4 }))
+    ),
+    // Strategy 8: First word in console name - LOWER PRIORITY
+    () => searchWithConsoleStrategy(cleanQuery.split(' ')[0], 'contains').then(results => 
+      results.map(r => ({ ...r, strategy_priority: 3 }))
+    ),
+    // Strategy 9: Without numbers - LOWER PRIORITY
     () => {
       const withoutNumbers = cleanQuery.replace(/\d+/g, '').trim();
       if (withoutNumbers.length > 2) {
-        return searchWithStrategy(withoutNumbers, 'contains');
+        return searchWithStrategy(withoutNumbers, 'contains').then(results => 
+          results.map(r => ({ ...r, strategy_priority: 2 }))
+        );
       }
       return Promise.resolve([]);
     },
-    // Strategy 8: Individual words
-    () => {
-      const words = cleanQuery.split(' ').filter(word => word.length > 2);
-      return Promise.all(words.map(word => searchWithStrategy(word, 'contains')))
-        .then(results => results.flat());
-    },
-    // Strategy 9: Full-text search
-    () => searchWithFullText(cleanQuery)
+    // Strategy 10: Full-text search - LOWEST PRIORITY
+    () => searchWithFullText(cleanQuery).then(results => 
+      results.map(r => ({ ...r, strategy_priority: 1 }))
+    )
   ];
   
   const allResults = [];
@@ -135,9 +156,13 @@ async function searchProducts(query, category = 'pokemon_cards') {
           const consoleSimilarity = calculateSimilarity(query, result.console_name || '');
           const maxSimilarity = Math.max(productSimilarity, consoleSimilarity);
           
+          // Boost score based on strategy priority (exact matches get higher scores)
+          const priorityBoost = (result.strategy_priority || 0) * 0.1;
+          const finalScore = Math.min(1.0, maxSimilarity + priorityBoost);
+          
           return {
             ...result,
-            similarity_score: maxSimilarity,
+            similarity_score: finalScore,
             match_type: productSimilarity > consoleSimilarity ? 'product_name' : 'console_name'
           };
         }).filter(result => result.similarity_score >= 0.2); // Lower threshold for better results
@@ -158,9 +183,11 @@ async function searchProducts(query, category = 'pokemon_cards') {
   
   return uniqueResults
     .sort((a, b) => {
-      // Prioritize exact matches first, then by similarity score
-      if (a.similarity_score === 1.0 && b.similarity_score !== 1.0) return -1;
-      if (b.similarity_score === 1.0 && a.similarity_score !== 1.0) return 1;
+      // First sort by strategy priority (higher is better)
+      const priorityDiff = (b.strategy_priority || 0) - (a.strategy_priority || 0);
+      if (priorityDiff !== 0) return priorityDiff;
+      
+      // Then sort by similarity score (higher is better)
       return b.similarity_score - a.similarity_score;
     })
     .slice(0, 100); // Increased limit to show more results like Price Charting
