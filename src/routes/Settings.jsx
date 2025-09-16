@@ -283,11 +283,16 @@ export default function Settings() {
   }
 
   async function bulkSaveItems() {
+    alert('bulkSaveItems called - Other Items');
+    console.log('bulkSaveItems called - Other Items');
     setSelectedItems(new Set());
   }
 
   async function bulkDeleteItems() {
+    alert('bulkDeleteItems called - Other Items');
+    console.log('bulkDeleteItems called - Other Items');
     const selectedIds = Array.from(selectedItems).filter(id => id > 0);
+    console.log('selectedIds:', selectedIds);
     if (selectedIds.length === 0) return;
     
     if (!confirm(`Delete ${selectedIds.length} item(s)? This action cannot be undone.`)) return;
