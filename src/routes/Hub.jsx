@@ -27,6 +27,22 @@ export default function Hub() {
   // Changelog data with version numbers (showing most recent 25 entries)
   const allChangelogData = [
     {
+      title: "Improved Sealed Product Detection and Search Filtering",
+      description: "Enhanced the sealed product detection system with two key improvements: (1) Fixed sealed pill detection to exclude single cards - any product name containing '#' (like 'Pikachu #25' or 'Charizard #150') is now correctly identified as a single card and won't show the 'Sealed' pill. This ensures only actual sealed products like booster boxes, bundles, and collections get the green 'Sealed' indicator. (2) Added intelligent search filtering - when users include 'sealed' in their search query (regardless of capitalization), the search now automatically filters to show only sealed products, making it much easier to find boxes, bundles, and collections when specifically looking for sealed items. Both improvements work together to provide more accurate product categorization and better search targeting.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:45",
+      author: "Development Team"
+    },
+    {
+      title: "Enhanced Search Word Matching - Prioritizes Results with ALL Search Terms",
+      description: "Significantly improved the search ranking algorithm to prioritize results that contain ALL words from the search query. Added comprehensive word coverage scoring where products matching every search term receive a 95% similarity score, ensuring they appear at the top of results. Implemented combined text matching that considers both product names and set names together, so searches like 'Prismatic Evolutions Elite' will now prioritize 'Elite Trainer Box' from 'Pokemon Prismatic Evolutions' over generic 'Elite Trainer Box' products from other sets that don't contain 'prismatic'. This fixes ranking issues where partial matches would appear before complete matches, making search results much more intuitive and relevant.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:40",
+      author: "Development Team"
+    },
+    {
       title: "Improved Search Ranking - Exact Matches Now Appear at Top of Results",
       description: "Enhanced the search ranking algorithm to prioritize exact matches and more relevant results. Implemented a strategy priority system where exact matches in product names and set names receive the highest priority (10), followed by combined exact searches (8), then contains matches (7-6), and finally partial matches (5-1). Added priority boosting to similarity scores so exact matches always appear at the top of search results. This fixes issues where searching for specific terms like 'Elite trainer box prismatic' would show generic Elite Trainer Boxes from other sets before the actual Prismatic Evolutions Elite Trainer Box. Now the most relevant results based on exact query matches appear first, making it much easier to find the specific products you're looking for.",
       color: "bg-blue-500/70",

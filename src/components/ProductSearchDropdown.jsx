@@ -175,6 +175,12 @@ export default function ProductSearchDropdown({
   const isSealedProduct = (productName) => {
     if (!productName) return false;
     
+    // Single cards always have # in their name (e.g., "Pikachu #25", "Charizard #150")
+    // If it has #, it's definitely a single card, not sealed
+    if (productName.includes('#')) {
+      return false;
+    }
+    
     const sealedKeywords = [
       'booster', 'bundle', 'box', 'collection', 'pack', 'tin', 'case', 'display',
       'booster box', 'booster bundle', 'booster pack', 'theme deck', 'starter deck',

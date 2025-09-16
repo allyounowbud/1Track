@@ -18,11 +18,13 @@ function calculateSimilarity(str1, str2) {
   // Contains match (high score)
   if (s1.includes(s2) || s2.includes(s1)) return 0.9;
   
-  // Word-based similarity
+  // Word-based similarity with emphasis on ALL words matching
   const words1 = s1.split(/\s+/);
   const words2 = s2.split(/\s+/);
   
   let matchingWords = 0;
+  let totalWords = Math.max(words1.length, words2.length);
+  
   for (const word1 of words1) {
     for (const word2 of words2) {
       if (word1 === word2 || word1.includes(word2) || word2.includes(word1)) {
@@ -32,11 +34,23 @@ function calculateSimilarity(str1, str2) {
     }
   }
   
-  // If most words match, give high score
+  // Calculate word coverage (how many search words are found)
+  let searchWordsFound = 0;
+  for (const searchWord of words1) {
+    if (s2.includes(searchWord)) {
+      searchWordsFound++;
+    }
+  }
+  
+  // Boost score significantly if ALL search words are found
+  if (searchWordsFound === words1.length && words1.length > 1) {
+    return 0.95; // Very high score for complete word coverage
+  }
+  
+  // If most words match, give good score
   if (matchingWords > 0) {
-    const maxWords = Math.max(words1.length, words2.length);
-    const wordSimilarity = matchingWords / maxWords;
-    if (wordSimilarity >= 0.5) return wordSimilarity;
+    const wordSimilarity = matchingWords / totalWords;
+    return wordSimilarity;
   }
   
   // Fall back to Levenshtein distance
@@ -77,6 +91,28 @@ function levenshteinDistance(str1, str2) {
   return matrix[str2.length][str1.length];
 }
 
+// Check if a product is sealed (not an individual card)
+function isSealedProduct(productName) {
+  if (!productName) return false;
+  
+  // Single cards always have # in their name (e.g., "Pikachu #25", "Charizard #150")
+  // If it has #, it's definitely a single card, not sealed
+  if (productName.includes('#')) {
+    return false;
+  }
+  
+  const sealedKeywords = [
+    'booster', 'bundle', 'box', 'collection', 'pack', 'tin', 'case', 'display',
+    'booster box', 'booster bundle', 'booster pack', 'theme deck', 'starter deck',
+    'elite trainer box', 'etb', 'premium collection', 'v box', 'vmax box',
+    'mini tin', 'pin collection', 'build & battle box', 'champions path',
+    'hidden fates', 'shining fates', 'celebrations', 'pokemon go', 'go'
+  ];
+  
+  const name = productName.toLowerCase();
+  return sealedKeywords.some(keyword => name.includes(keyword));
+}
+
 // Search products with multiple strategies
 async function searchProducts(query, category = 'pokemon_cards') {
   console.log(`Searching products for: "${query}" in category: ${category}`);
@@ -86,6 +122,9 @@ async function searchProducts(query, category = 'pokemon_cards') {
   }
   
   const cleanQuery = query.trim().toLowerCase();
+  
+  // Check if user is searching for sealed products specifically
+  const isSealedSearch = cleanQuery.includes('sealed');
   
   // Try different search strategies with improved algorithms and weighting
   const searchStrategies = [
@@ -154,16 +193,30 @@ async function searchProducts(query, category = 'pokemon_cards') {
         const scoredResults = results.map(result => {
           const productSimilarity = calculateSimilarity(query, result.product_name || '');
           const consoleSimilarity = calculateSimilarity(query, result.console_name || '');
-          const maxSimilarity = Math.max(productSimilarity, consoleSimilarity);
+          
+          // Combine product name and set name for comprehensive matching
+          const combinedText = `${result.product_name || ''} ${result.console_name || ''}`.trim();
+          const combinedSimilarity = calculateSimilarity(query, combinedText);
+          
+          // Use the best similarity score (individual or combined)
+          const maxSimilarity = Math.max(productSimilarity, consoleSimilarity, combinedSimilarity);
           
           // Boost score based on strategy priority (exact matches get higher scores)
           const priorityBoost = (result.strategy_priority || 0) * 0.1;
           const finalScore = Math.min(1.0, maxSimilarity + priorityBoost);
           
+          // Determine match type
+          let matchType = 'product_name';
+          if (consoleSimilarity > productSimilarity) {
+            matchType = 'console_name';
+          } else if (combinedSimilarity > Math.max(productSimilarity, consoleSimilarity)) {
+            matchType = 'combined';
+          }
+          
           return {
             ...result,
             similarity_score: finalScore,
-            match_type: productSimilarity > consoleSimilarity ? 'product_name' : 'console_name'
+            match_type: matchType
           };
         }).filter(result => result.similarity_score >= 0.2); // Lower threshold for better results
         
@@ -177,9 +230,15 @@ async function searchProducts(query, category = 'pokemon_cards') {
   }
   
   // Remove duplicates and sort by similarity
-  const uniqueResults = allResults.filter((result, index, self) => 
+  let uniqueResults = allResults.filter((result, index, self) => 
     index === self.findIndex(r => r.product_id === result.product_id)
   );
+  
+  // Filter for sealed products only if "sealed" was in the search query
+  if (isSealedSearch) {
+    uniqueResults = uniqueResults.filter(result => isSealedProduct(result.product_name));
+    console.log(`Filtered for sealed products only: ${uniqueResults.length} results`);
+  }
   
   return uniqueResults
     .sort((a, b) => {
