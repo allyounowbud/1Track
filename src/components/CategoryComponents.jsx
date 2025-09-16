@@ -304,7 +304,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
             }`}
             title={
               item?.price_source === 'api' || item?.api_product_id 
-                ? 'API/CSV Connected - Automatic Pricing' 
+                ? 'API Connected - Automatic Pricing' 
                 : item?.price_source === 'manual' || item?.manual_override
                   ? 'Manual Entry - User Set Pricing'
                   : 'Unknown Pricing Source'

@@ -569,7 +569,12 @@ function CollectionTab({ portfolioItems, marketData }) {
             <div key={index} className={`${card} p-4 hover:bg-slate-800/60 transition-colors`}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-slate-200 font-medium truncate">{cleanTitle}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-slate-200 font-medium truncate">{cleanTitle}</h4>
+                    {marketInfo && marketInfo.image_url && (
+                      <div className="flex-shrink-0 w-2 h-2 bg-green-400 rounded-full" title="Image available from PriceCharting"></div>
+                    )}
+                  </div>
                   {marketInfo && marketInfo.console_name && (
                     <p className="text-slate-400 text-xs truncate">{marketInfo.console_name}</p>
                   )}
@@ -585,19 +590,50 @@ function CollectionTab({ portfolioItems, marketData }) {
               </div>
               
               {/* Product image */}
-              <div className="w-full h-32 bg-slate-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+              <div className="w-full h-32 bg-slate-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative group cursor-pointer" 
+                   onClick={() => {
+                     if (marketInfo && marketInfo.image_url) {
+                       window.open(marketInfo.image_url, '_blank');
+                     }
+                   }}
+                   title={marketInfo && marketInfo.image_url ? "Click to view full image" : ""}>
                 {marketInfo && marketInfo.image_url ? (
-                  <img 
-                    src={marketInfo.image_url} 
-                    alt={cleanTitle}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
+                  <>
+                    <img 
+                      src={marketInfo.image_url} 
+                      alt={cleanTitle}
+                      className="w-full h-full object-cover transition-all duration-200 group-hover:scale-105"
+                      loading="lazy"
+                      onLoad={(e) => {
+                        e.target.style.opacity = '1';
+                        const loadingSpinner = e.target.parentElement.querySelector('.loading-spinner');
+                        if (loadingSpinner) loadingSpinner.style.display = 'none';
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        const fallback = e.target.parentElement.querySelector('.image-fallback');
+                        if (fallback) fallback.style.display = 'flex';
+                        const loadingSpinner = e.target.parentElement.querySelector('.loading-spinner');
+                        if (loadingSpinner) loadingSpinner.style.display = 'none';
+                      }}
+                      style={{ opacity: 0 }}
+                    />
+                    {/* Loading spinner */}
+                    <div className="loading-spinner absolute inset-0 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-400"></div>
+                    </div>
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </>
                 ) : null}
-                <div className="w-full h-full flex items-center justify-center" style={{ display: marketInfo && marketInfo.image_url ? 'none' : 'flex' }}>
+                {/* Fallback icon */}
+                <div className="image-fallback w-full h-full flex items-center justify-center" style={{ display: marketInfo && marketInfo.image_url ? 'none' : 'flex' }}>
                   <CollectionIcon />
                 </div>
               </div>
@@ -742,16 +778,16 @@ export default function Portfolio() {
     queryFn: getPortfolioItems,
   });
 
+  // Create stable dependency for market data fetching
+  const uniqueProductNames = useMemo(() => {
+    if (portfolioItems.length === 0) return [];
+    return [...new Set(portfolioItems.map(item => item.item).filter(Boolean))];
+  }, [portfolioItems]);
+
   // Fetch market data when portfolio items change
   useEffect(() => {
-    if (portfolioItems.length > 0) {
+    if (uniqueProductNames.length > 0) {
       setIsLoadingMarketData(true);
-      const uniqueProductNames = [...new Set(portfolioItems.map(item => item.item).filter(Boolean))];
-      
-      if (uniqueProductNames.length === 0) {
-        setIsLoadingMarketData(false);
-        return;
-      }
       
       getBatchMarketData(uniqueProductNames)
         .then(data => {
@@ -767,7 +803,7 @@ export default function Portfolio() {
       setMarketData({});
       setIsLoadingMarketData(false);
     }
-  }, [portfolioItems]);
+  }, [uniqueProductNames]);
 
   const isLoading = ordersLoading || itemsLoading;
 

@@ -172,7 +172,7 @@ export default function Hub() {
     },
     {
       title: "Added Pricing Source Indicators - Visual API/Manual Entry Status",
-      description: "Added small color-coded indicators to all database rows showing the pricing source status. Green dots indicate items connected to API/CSV with automatic pricing updates, blue dots show manually entered items with user-set pricing, and gray dots indicate unknown pricing sources. The indicators appear next to checkboxes on desktop and next to item names on mobile, with helpful tooltips explaining each status. This provides immediate visual feedback about which items are automatically updated versus manually managed, helping users understand their data sources at a glance.",
+      description: "Added small color-coded indicators to all database rows showing the pricing source status. Green dots indicate items connected to API with automatic pricing updates, blue dots show manually entered items with user-set pricing, and gray dots indicate unknown pricing sources. The indicators appear next to checkboxes on desktop and next to item names on mobile, with helpful tooltips explaining each status. This provides immediate visual feedback about which items are automatically updated versus manually managed, helping users understand their data sources at a glance.",
       color: "bg-blue-500/70",
       date: "2024-12-20",
       time: "07:30",
@@ -300,7 +300,7 @@ export default function Hub() {
     },
     {
       title: "Codebase Cleanup - Removed Unused Files and Components",
-      description: "Performed comprehensive codebase cleanup to remove unused files and components that were cluttering the project and potentially causing performance issues. Removed unused React components (Hub_temp.jsx, HeaderWithTabs variants, SimpleSearchDropdown, ProductSearch), unused Netlify functions (debug-env, simple-csv-debug, test functions, manual-csv-sync, resume-sync), and miscellaneous files (git log file 'h', empty assets directory). This cleanup reduces bundle size, eliminates dead code, and improves maintainability without affecting any current functionality or frontend appearance.",
+      description: "Performed comprehensive codebase cleanup to remove unused files and components that were cluttering the project and potentially causing performance issues. Removed unused React components (Hub_temp.jsx, HeaderWithTabs variants, SimpleSearchDropdown, ProductSearch), unused Netlify functions (debug-env, test functions), and miscellaneous files (git log file 'h', empty assets directory). This cleanup reduces bundle size, eliminates dead code, and improves maintainability without affecting any current functionality or frontend appearance.",
       color: "bg-yellow-500/70",
       date: "2024-12-20",
       time: "05:25",
@@ -475,16 +475,7 @@ export default function Hub() {
       author: "Development Team"
     },
     {
-      title: "Price Charting CSV-Based Product Matching System",
-      description: "Implemented comprehensive CSV-based approach for Price Charting integration. Created daily CSV download system, local product database with full-text search, and fuzzy matching algorithms. This eliminates API search limitations and provides reliable, fast product matching using locally stored Price Charting data. Includes scheduled downloads, download logging, and batch processing capabilities.",
-      color: "bg-green-600",
-      date: "2024-12-20",
-      time: "07:30",
-      author: "Development Team"
-    },
-    {
       title: "Automated Daily Price Charting Data Sync System",
-      description: "Implemented fully automated daily CSV sync system with Netlify scheduled functions. Created admin interface for manual sync triggers and monitoring. System automatically downloads Pokemon cards, video games, and trading cards data daily at 2 AM UTC. Includes comprehensive logging, error handling, and real-time monitoring dashboard accessible at /admin route.",
       color: "bg-green-600",
       date: "2024-12-20",
       time: "07:35",
@@ -1082,6 +1073,7 @@ export default function Hub() {
               {userInfo.email && (
                 <div className="text-slate-400 text-sm">{userInfo.email}</div>
               )}
+              <div className="text-slate-400 text-xs">Beta User</div>
             </div>
 
             <button

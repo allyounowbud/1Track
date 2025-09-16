@@ -1,9 +1,0 @@
-{
-  "functions": [
-    {
-      "name": "daily-csv-sync",
-      "schedule": "0 2 * * *",
-      "description": "Daily Price Charting CSV sync at 2 AM UTC"
-    }
-  ]
-}

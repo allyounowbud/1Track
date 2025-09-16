@@ -901,21 +901,8 @@ function UnifiedListView({ orders, items, retailers, markets, marketData, market
   return (
     <>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
-        <div className="w-6 flex items-center justify-center">
-          <input
-            type="checkbox"
-            checked={selectedRows.size === orders.length && orders.length > 0}
-            onChange={() => {
-              if (selectedRows.size === orders.length) {
-                setSelectedRows(new Set());
-              } else {
-                setSelectedRows(new Set(orders.map(o => o.id)));
-              }
-            }}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
-          />
-        </div>
+      <div className="hidden lg:grid grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+        <div className="w-6"></div>
         <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
         <div className="text-xs text-slate-300 font-medium px-3">Item</div>
         <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
@@ -1014,7 +1001,8 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
       {open && (
         <div className="p-4 border-t border-slate-700">
           {/* Header Row for Orders */}
-          <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+          <div className="hidden lg:grid grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+            <div className="w-6"></div>
             <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
             <div className="text-xs text-slate-300 font-medium px-3">Item</div>
             <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
@@ -1083,7 +1071,8 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
   return (
     <div className={`${pageCard}`}>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+      <div className="hidden lg:grid grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+        <div className="w-6"></div>
         <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
         <div className="text-xs text-slate-300 font-medium px-3">Item</div>
         <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
@@ -1246,7 +1235,8 @@ function DayCard({
         <div className="pt-5">
           {/* Header row - text only */}
           <div className="hidden lg:block">
-            <div className="grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
+            <div className="grid grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
+              <div className="w-6"></div>
               <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
               <div className="text-xs text-slate-300 font-medium px-3">Item</div>
               <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
@@ -1532,7 +1522,20 @@ function OrderRow({ order, items, retailers, markets, marketData, marketDataLoad
       onClick={onToggleSelection}
     >
       {/* Desktop: Grid layout */}
-      <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center w-full min-w-0 grid-rows-1 py-2">
+      <div className="hidden lg:grid grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center w-full min-w-0 grid-rows-1 py-2">
+        
+        {/* Checkbox */}
+        <div className="w-6 flex items-center justify-center">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              onToggleSelection();
+            }}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
+          />
+        </div>
         
         {/* Order Date - Responsive */}
         <input

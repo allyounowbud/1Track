@@ -56,14 +56,6 @@ async function getItems() {
   return data || [];
 }
 
-async function getPriceChartingProducts() {
-  const { data, error } = await supabase
-    .from("price_charting_products")
-    .select("product_name, console_name, loose_price")
-    .order("product_name", { ascending: true });
-  if (error) throw error;
-  return data || [];
-}
 
 // Category-specific queries for inventory data
 async function getTCGSealed() {
@@ -97,7 +89,6 @@ async function getVideoGames() {
 export default function Stats({ noLayout = false }) {
   const { data: orders = [], isLoading: ordersLoading } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
-  const { data: priceChartingProducts = [] } = useQuery({ queryKey: ["price_charting_products"], queryFn: getPriceChartingProducts });
   const { data: tcgSealed = [] } = useQuery({ queryKey: ["tcg_sealed"], queryFn: getTCGSealed });
   const { data: tcgSingles = [] } = useQuery({ queryKey: ["tcg_singles"], queryFn: getTCGSingles });
   const { data: videoGames = [] } = useQuery({ queryKey: ["video_games"], queryFn: getVideoGames });
@@ -178,173 +169,27 @@ export default function Stats({ noLayout = false }) {
   const marketByName = useMemo(() => {
     const m = new Map();
     
-    // Helper function to search products using the same logic as the search API
-    const searchProducts = (query) => {
-      if (!query || query.trim().length < 2) return [];
-      
-      const cleanQuery = query.trim().toLowerCase();
-      const results = [];
-      
-      // Strategy 1: Contains match (most likely to find results)
-      for (const product of priceChartingProducts) {
-        if (product.loose_price && product.loose_price > 0) {
-          const productLower = (product.product_name || "").toLowerCase();
-          const consoleLower = (product.console_name || "").toLowerCase();
-          const combinedText = `${productLower} ${consoleLower}`.trim();
-          
-          if (productLower.includes(cleanQuery) || consoleLower.includes(cleanQuery) || combinedText.includes(cleanQuery)) {
-            results.push({
-              ...product,
-              similarity_score: 1.0
-            });
-          }
-        }
-      }
-      
-      if (results.length > 0) return results;
-      
-      // Strategy 2: First word only
-      const firstWord = cleanQuery.split(' ')[0];
-      if (firstWord.length > 2) {
-        for (const product of priceChartingProducts) {
-          if (product.loose_price && product.loose_price > 0) {
-            const productLower = (product.product_name || "").toLowerCase();
-            if (productLower.includes(firstWord)) {
-              results.push({
-                ...product,
-                similarity_score: 0.8
-              });
-            }
-          }
-        }
-      }
-      
-      if (results.length > 0) return results;
-      
-      // Strategy 3: Without numbers
-      const withoutNumbers = cleanQuery.replace(/\d+/g, '').trim();
-      if (withoutNumbers.length > 2) {
-        for (const product of priceChartingProducts) {
-          if (product.loose_price && product.loose_price > 0) {
-            const productLower = (product.product_name || "").toLowerCase();
-            if (productLower.includes(withoutNumbers)) {
-              results.push({
-                ...product,
-                similarity_score: 0.7
-              });
-            }
-          }
-        }
-      }
-      
-      if (results.length > 0) return results;
-      
-      // Strategy 4: Individual words
-      const words = cleanQuery.split(' ').filter(word => word.length > 2);
-      for (const word of words) {
-        for (const product of priceChartingProducts) {
-          if (product.loose_price && product.loose_price > 0) {
-            const productLower = (product.product_name || "").toLowerCase();
-            if (productLower.includes(word)) {
-              results.push({
-                ...product,
-                similarity_score: 0.6
-              });
-            }
-          }
-        }
-      }
-      
-      // Remove duplicates and sort by similarity
-      const uniqueResults = results.filter((result, index, self) => 
-        index === self.findIndex(r => r.product_name === result.product_name)
-      );
-      
-      return uniqueResults.sort((a, b) => b.similarity_score - a.similarity_score);
-    };
-    
-    // Helper function to find best match for an item name
-    const findBestMatch = (itemName) => {
-      if (!itemName) return null;
-      
-      // First, try to remove the set name part (everything after " - ")
-      const cleanItemName = itemName.split(' - ')[0].trim();
-      
-      // Try searching with the cleaned name first
-      const searchResults = searchProducts(cleanItemName);
-      if (searchResults.length > 0) {
-        // Return the price of the best match
-        return Math.round(searchResults[0].loose_price * 100);
-      }
-      
-      // If that doesn't work, try with the full original name
-      const fullSearchResults = searchProducts(itemName);
-      if (fullSearchResults.length > 0) {
-        return Math.round(fullSearchResults[0].loose_price * 100);
-      }
-      
-      // Try more flexible matching - split the cleaned item name and search for each part
-      const words = cleanItemName.toLowerCase().split(' ').filter(word => word.length > 2);
-      if (words.length > 1) {
-        // Try searching with each significant word
-        for (const word of words) {
-          const wordResults = searchProducts(word);
-          if (wordResults.length > 0) {
-            // Check if any result contains the full item name or vice versa
-            for (const result of wordResults) {
-              const resultName = (result.product_name || "").toLowerCase();
-              const cleanItemNameLower = cleanItemName.toLowerCase();
-              
-              // If the result name contains the clean item name or clean item name contains result name
-              if (resultName.includes(cleanItemNameLower) || cleanItemNameLower.includes(resultName.split(' - ')[0])) {
-                return Math.round(result.loose_price * 100);
-              }
-            }
-          }
-        }
-      }
-      
-      return null;
-    };
-    
-    // Build map from all possible item names (orders + category tables + manual items)
-    const allItemNames = new Set();
-    
-    // Add item names from orders
-    for (const order of orders) {
-      if (order.item) allItemNames.add(order.item);
-    }
-    
-    // Add item names from category tables
-    const allCategoryItems = [...tcgSealed, ...tcgSingles, ...videoGames];
-    for (const item of allCategoryItems) {
-      if (item.name) allItemNames.add(item.name);
-    }
-    
-    // Add item names from manual items
-    for (const item of items) {
-      if (item.name) allItemNames.add(item.name);
-    }
-    
-    // For each unique item name, find the best market value using search logic
-    for (const itemName of allItemNames) {
-      const apiValue = findBestMatch(itemName);
-      if (apiValue) {
-        m.set(itemName.toLowerCase(), apiValue);
-      }
-    }
-    
-    // Add manual database values as fallback (only if not already present)
+    // Add manual database values
     for (const it of items) {
       const k = (it.name || "").toLowerCase();
       const v = cents(it.market_value_cents);
+      if (v > 0) {
+        m.set(k, v);
+      }
+    }
+    
+    // Add category table values
+    const allCategoryItems = [...tcgSealed, ...tcgSingles, ...videoGames];
+    for (const item of allCategoryItems) {
+      const k = (item.name || "").toLowerCase();
+      const v = cents(item.market_value_cents);
       if (v > 0 && !m.has(k)) {
         m.set(k, v);
       }
     }
     
     return m;
-  }, [items, priceChartingProducts, orders, tcgSealed, tcgSingles, videoGames]);
+  }, [items, tcgSealed, tcgSingles, videoGames]);
 
   /* ---------- filtered orders by time + item ---------- */
   const filtered = useMemo(() => {

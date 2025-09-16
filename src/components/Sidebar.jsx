@@ -290,7 +290,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                 {userInfo.username}
               </div>
               <div className="text-xs text-slate-400 truncate">
-                Account
+                Beta User
               </div>
             </div>
           </Link>
