@@ -1,5 +1,5 @@
 // src/routes/Portfolio.jsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
@@ -110,6 +110,139 @@ async function getBatchMarketData(productNames) {
   return results;
 }
 
+/* ----------------------------- Portfolio Chart Component ---------------------------- */
+function PortfolioChart({ data }) {
+  const svgRef = useRef(null);
+
+  useEffect(() => {
+    if (!svgRef.current || data.length === 0) return;
+
+    const svg = svgRef.current;
+    const width = svg.clientWidth;
+    const height = svg.clientHeight;
+    const padding = { top: 20, right: 20, bottom: 40, left: 60 };
+
+    // Clear previous content
+    svg.innerHTML = '';
+
+    // Calculate scales
+    const xMin = Math.min(...data.map(d => d.x));
+    const xMax = Math.max(...data.map(d => d.x));
+    const yMin = Math.min(...data.map(d => d.y));
+    const yMax = Math.max(...data.map(d => d.y));
+
+    const xScale = (x - xMin) / (xMax - xMin) * (width - padding.left - padding.right) + padding.left;
+    const yScale = (y) => height - padding.bottom - ((y - yMin) / (yMax - yMin)) * (height - padding.top - padding.bottom);
+
+    // Create gradient for the area under the line
+    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const linearGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    linearGradient.setAttribute('id', 'portfolio-gradient');
+    linearGradient.setAttribute('x1', '0%');
+    linearGradient.setAttribute('y1', '0%');
+    linearGradient.setAttribute('x2', '0%');
+    linearGradient.setAttribute('y2', '100%');
+    
+    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop1.setAttribute('offset', '0%');
+    stop1.setAttribute('stop-color', 'rgb(234, 179, 8)');
+    stop1.setAttribute('stop-opacity', '0.3');
+    
+    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop2.setAttribute('offset', '100%');
+    stop2.setAttribute('stop-color', 'rgb(234, 179, 8)');
+    stop2.setAttribute('stop-opacity', '0');
+    
+    linearGradient.appendChild(stop1);
+    linearGradient.appendChild(stop2);
+    gradient.appendChild(linearGradient);
+    svg.appendChild(gradient);
+
+    // Create area path
+    const areaPath = data.map((point, index) => {
+      const x = xScale(point.x);
+      const y = yScale(point.y);
+      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+    }).join(' ');
+
+    const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    area.setAttribute('d', `${areaPath} L ${xScale(data[data.length - 1].x)} ${height - padding.bottom} L ${xScale(data[0].x)} ${height - padding.bottom} Z`);
+    area.setAttribute('fill', 'url(#portfolio-gradient)');
+    svg.appendChild(area);
+
+    // Create line path
+    const linePath = data.map((point, index) => {
+      const x = xScale(point.x);
+      const y = yScale(point.y);
+      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+    }).join(' ');
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    line.setAttribute('d', linePath);
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', 'rgb(234, 179, 8)');
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('stroke-linecap', 'round');
+    line.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(line);
+
+    // Add data points
+    data.forEach((point, index) => {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', xScale(point.x));
+      circle.setAttribute('cy', yScale(point.y));
+      circle.setAttribute('r', '3');
+      circle.setAttribute('fill', 'rgb(234, 179, 8)');
+      circle.setAttribute('stroke', 'rgb(15, 23, 42)');
+      circle.setAttribute('stroke-width', '2');
+      svg.appendChild(circle);
+    });
+
+    // Add Y-axis labels
+    const yTicks = 5;
+    for (let i = 0; i <= yTicks; i++) {
+      const value = yMin + (yMax - yMin) * (i / yTicks);
+      const y = yScale(value);
+      
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', padding.left - 10);
+      text.setAttribute('y', y + 4);
+      text.setAttribute('text-anchor', 'end');
+      text.setAttribute('fill', 'rgb(148, 163, 184)');
+      text.setAttribute('font-size', '12');
+      text.textContent = `$${value.toFixed(0)}`;
+      svg.appendChild(text);
+    }
+
+    // Add X-axis labels (dates)
+    const xTicks = Math.min(5, data.length);
+    for (let i = 0; i < xTicks; i++) {
+      const index = Math.floor((data.length - 1) * (i / (xTicks - 1)));
+      const point = data[index];
+      const x = xScale(point.x);
+      
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', x);
+      text.setAttribute('y', height - padding.bottom + 20);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', 'rgb(148, 163, 184)');
+      text.setAttribute('font-size', '12');
+      text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      svg.appendChild(text);
+    }
+
+  }, [data]);
+
+  return (
+    <svg
+      ref={svgRef}
+      className="w-full h-full"
+      viewBox="0 0 100% 100%"
+      preserveAspectRatio="none"
+    />
+  );
+}
+
 /* ----------------------------- Portfolio Content Router ---------------------------- */
 function PortfolioContent({ orders, portfolioItems, marketData, currentTab }) {
   switch (currentTab) {
@@ -125,6 +258,8 @@ function PortfolioContent({ orders, portfolioItems, marketData, currentTab }) {
 
 /* ----------------------------- Overview Tab ---------------------------- */
 function OverviewTab({ orders, portfolioItems, marketData }) {
+  const [selectedTimeframe, setSelectedTimeframe] = useState('1M');
+
   // Calculate portfolio metrics
   const metrics = useMemo(() => {
     const totalItems = portfolioItems.length;
@@ -155,8 +290,155 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
     };
   }, [portfolioItems, marketData]);
 
+  // Calculate portfolio value over time for the chart
+  const portfolioHistory = useMemo(() => {
+    if (!orders.length) return [];
+
+    // Get date range based on selected timeframe
+    const now = new Date();
+    let startDate = new Date();
+    
+    switch (selectedTimeframe) {
+      case '1D':
+        startDate.setDate(now.getDate() - 1);
+        break;
+      case '7D':
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case '1M':
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case '3M':
+        startDate.setMonth(now.getMonth() - 3);
+        break;
+      case '6M':
+        startDate.setMonth(now.getMonth() - 6);
+        break;
+      case 'All':
+        startDate = new Date(Math.min(...orders.map(o => new Date(o.order_date).getTime())));
+        break;
+    }
+
+    // Group orders by date and calculate cumulative portfolio value
+    const dailyData = {};
+    const sortedOrders = orders
+      .filter(order => new Date(order.order_date) >= startDate)
+      .sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
+
+    let cumulativeCost = 0;
+    let cumulativeMarketValue = 0;
+
+    sortedOrders.forEach(order => {
+      const date = order.order_date;
+      if (!dailyData[date]) {
+        dailyData[date] = { date, cost: 0, marketValue: 0, orders: 0 };
+      }
+      
+      dailyData[date].cost += order.buy_price_cents || 0;
+      dailyData[date].orders += 1;
+      
+      // Calculate market value for this order
+      const marketInfo = marketData[order.item];
+      if (marketInfo && marketInfo.loose_price) {
+        dailyData[date].marketValue += Math.round(parseFloat(marketInfo.loose_price) * 100);
+      } else {
+        dailyData[date].marketValue += order.buy_price_cents || 0;
+      }
+    });
+
+    // Convert to cumulative values
+    const result = [];
+    Object.values(dailyData).forEach(day => {
+      cumulativeCost += day.cost;
+      cumulativeMarketValue += day.marketValue;
+      result.push({
+        date: day.date,
+        cost: cumulativeCost,
+        marketValue: cumulativeMarketValue,
+        orders: day.orders
+      });
+    });
+
+    return result;
+  }, [orders, marketData, selectedTimeframe]);
+
+  // Get chart data points
+  const chartData = useMemo(() => {
+    if (portfolioHistory.length === 0) return [];
+    
+    return portfolioHistory.map(point => ({
+      x: new Date(point.date).getTime(),
+      y: point.marketValue / 100, // Convert cents to dollars
+      cost: point.cost / 100,
+      orders: point.orders
+    }));
+  }, [portfolioHistory]);
+
+  // Calculate chart metrics
+  const chartMetrics = useMemo(() => {
+    if (chartData.length === 0) return { change: 0, changePercent: 0 };
+    
+    const firstValue = chartData[0].y;
+    const lastValue = chartData[chartData.length - 1].y;
+    const change = lastValue - firstValue;
+    const changePercent = firstValue > 0 ? (change / firstValue) * 100 : 0;
+    
+    return { change, changePercent };
+  }, [chartData]);
+
   return (
     <div className="space-y-6">
+      {/* Portfolio Value Chart */}
+      <div className={`${card} p-6`}>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-100">Portfolio Value</h3>
+            <div className="flex items-center gap-4 mt-2">
+              <div className="text-2xl font-bold text-slate-100">
+                ${chartData.length > 0 ? chartData[chartData.length - 1].y.toFixed(2) : '0.00'}
+              </div>
+              <div className={`flex items-center gap-1 text-sm font-medium ${
+                chartMetrics.change >= 0 ? 'text-green-400' : 'text-red-400'
+              }`}>
+                {chartMetrics.change >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
+                {chartMetrics.change >= 0 ? '+' : ''}${chartMetrics.change.toFixed(2)} ({chartMetrics.changePercent >= 0 ? '+' : ''}{chartMetrics.changePercent.toFixed(1)}%)
+              </div>
+            </div>
+          </div>
+          
+          {/* Time Period Selector */}
+          <div className="flex space-x-1 bg-slate-800/50 p-1 rounded-lg">
+            {['1D', '7D', '1M', '3M', '6M', 'All'].map((period) => (
+              <button
+                key={period}
+                onClick={() => setSelectedTimeframe(period)}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  selectedTimeframe === period
+                    ? 'bg-yellow-500/20 text-yellow-300'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                }`}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Chart Area */}
+        <div className="h-64 w-full">
+          {chartData.length > 0 ? (
+            <PortfolioChart data={chartData} />
+          ) : (
+            <div className="h-full flex items-center justify-center text-slate-400">
+              <div className="text-center">
+                <ChartIcon />
+                <p className="mt-2">No data available for selected period</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Portfolio Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className={`${card} p-6`}>
@@ -245,12 +527,38 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
 function CollectionTab({ portfolioItems, marketData }) {
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Group items by name and calculate totals
+  const groupedItems = useMemo(() => {
+    const groups = {};
+    
+    portfolioItems.forEach(item => {
+      const itemName = item.item;
+      if (!itemName) return;
+      
+      if (!groups[itemName]) {
+        groups[itemName] = {
+          name: itemName,
+          quantity: 0,
+          totalCost: 0,
+          orderDates: [],
+          marketInfo: marketData[itemName] || null
+        };
+      }
+      
+      groups[itemName].quantity += 1;
+      groups[itemName].totalCost += item.buy_price_cents || 0;
+      groups[itemName].orderDates.push(item.order_date);
+    });
+    
+    return Object.values(groups);
+  }, [portfolioItems, marketData]);
+
   const filteredItems = useMemo(() => {
-    if (!searchTerm) return portfolioItems;
-    return portfolioItems.filter(item => 
-      item.item?.toLowerCase().includes(searchTerm.toLowerCase())
+    if (!searchTerm) return groupedItems;
+    return groupedItems.filter(item => 
+      item.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [portfolioItems, searchTerm]);
+  }, [groupedItems, searchTerm]);
 
   return (
     <div className="space-y-6">
@@ -275,26 +583,33 @@ function CollectionTab({ portfolioItems, marketData }) {
       {/* Collection Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredItems.map((item, index) => {
-          const marketInfo = marketData[item.item];
+          const marketInfo = item.marketInfo;
           const currentMarketValue = marketInfo && marketInfo.loose_price 
             ? Math.round(parseFloat(marketInfo.loose_price) * 100)
-            : item.buy_price_cents;
-          const profit = currentMarketValue - item.buy_price_cents;
-          const profitPercentage = item.buy_price_cents > 0 ? (profit / item.buy_price_cents) * 100 : 0;
+            : item.totalCost;
+          const totalMarketValue = currentMarketValue * item.quantity;
+          const profit = totalMarketValue - item.totalCost;
+          const profitPercentage = item.totalCost > 0 ? (profit / item.totalCost) * 100 : 0;
+          
+          // Clean up the title by removing "- Pokemon [Set Name]" if it exists
+          const cleanTitle = item.name.replace(/\s*-\s*Pokemon\s+.*$/i, '');
           
           return (
             <div key={index} className={`${card} p-4 hover:bg-slate-800/60 transition-colors`}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-slate-200 font-medium truncate">{item.item}</h4>
+                  <h4 className="text-slate-200 font-medium truncate">{cleanTitle}</h4>
                   {marketInfo && marketInfo.console_name && (
                     <p className="text-slate-400 text-xs truncate">{marketInfo.console_name}</p>
                   )}
-                  <p className="text-slate-400 text-sm">Added {item.order_date}</p>
+                  <p className="text-slate-400 text-sm">
+                    {item.quantity} item{item.quantity !== 1 ? 's' : ''} • Added {item.orderDates[0]}
+                    {item.quantity > 1 && ` (+${item.quantity - 1} more)`}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-slate-200 font-medium">{centsToStr(item.buy_price_cents)}</p>
-                  <p className="text-slate-400 text-xs">Cost</p>
+                  <p className="text-slate-200 font-medium">{centsToStr(item.totalCost)}</p>
+                  <p className="text-slate-400 text-xs">Total Cost</p>
                 </div>
               </div>
               
@@ -303,7 +618,7 @@ function CollectionTab({ portfolioItems, marketData }) {
                 {marketInfo && marketInfo.image_url ? (
                   <img 
                     src={marketInfo.image_url} 
-                    alt={item.item}
+                    alt={cleanTitle}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       e.target.style.display = 'none';
@@ -321,7 +636,7 @@ function CollectionTab({ portfolioItems, marketData }) {
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 text-sm">Market Value:</span>
                   <span className="text-green-400 text-sm font-medium">
-                    {centsToStr(currentMarketValue)}
+                    {centsToStr(totalMarketValue)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -330,6 +645,14 @@ function CollectionTab({ portfolioItems, marketData }) {
                     {profit >= 0 ? '+' : ''}{centsToStr(profit)} ({profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%)
                   </span>
                 </div>
+                {item.quantity > 1 && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Per item:</span>
+                    <span className="text-slate-400">
+                      {centsToStr(Math.round(item.totalCost / item.quantity))} cost • {centsToStr(currentMarketValue)} market
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           );

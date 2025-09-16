@@ -120,3 +120,4 @@ CREATE POLICY "Users can update their own yugioh cards" ON yugioh_cards
 DROP POLICY IF EXISTS "Users can delete their own yugioh cards" ON yugioh_cards;
 CREATE POLICY "Users can delete their own yugioh cards" ON yugioh_cards
   FOR DELETE USING (auth.uid() IS NOT NULL);
+
