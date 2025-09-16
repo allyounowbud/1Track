@@ -94,15 +94,16 @@ export async function getBatchMarketData(productNames) {
     try {
       console.log(`Fetching market data for ${uncachedNames.length} uncached products:`, uncachedNames);
       
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/portfolio-data`, {
-        method: 'POST',
+      // Temporarily use search endpoint to test if the issue is with portfolio-data specifically
+      console.log('Testing with search endpoint instead of portfolio-data...');
+      
+      // For now, let's just fetch the first product to test
+      const testProduct = uncachedNames[0];
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(testProduct)}`, {
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productNames: uncachedNames.filter(Boolean)
-        })
+        }
       });
       
       if (!response.ok) {
@@ -110,45 +111,47 @@ export async function getBatchMarketData(productNames) {
       }
       
       const data = await response.json();
+      console.log('Search endpoint response:', data);
       
       if (data.success && data.data) {
-        let foundCount = 0;
-        let notFoundCount = 0;
+        // Handle search endpoint response format
+        let products = [];
         
-        // Process the batch results
-        Object.entries(data.data).forEach(([productName, marketData]) => {
-          if (marketData) {
-            // Convert prices from cents to dollars
-            const formattedData = {
-              ...marketData,
-              loose_price: marketData.loose_price ? (parseFloat(marketData.loose_price) / 100).toFixed(2) : '',
-              cib_price: marketData.cib_price ? (parseFloat(marketData.cib_price) / 100).toFixed(2) : '',
-              new_price: marketData.new_price ? (parseFloat(marketData.new_price) / 100).toFixed(2) : '',
-            };
-            
-            results[productName] = formattedData;
-            foundCount++;
-            
-            // Cache the result
-            const cacheKey = productName.toLowerCase().trim();
-            marketDataCache.set(cacheKey, {
-              data: formattedData,
-              timestamp: Date.now()
-            });
-          } else {
-            notFoundCount++;
-          }
-        });
+        if (data.data.products && Array.isArray(data.data.products)) {
+          products = data.data.products;
+        } else if (Array.isArray(data.data)) {
+          products = data.data;
+        } else if (data.data.product) {
+          products = [data.data.product];
+        }
         
-        console.log(`Market data fetch complete: ${foundCount} found, ${notFoundCount} not found`);
-        
-        // Log products that weren't found for debugging
-        if (notFoundCount > 0) {
-          const notFoundProducts = uncachedNames.filter(name => !results[name]);
-          console.log('Products without market data:', notFoundProducts);
+        if (products.length > 0) {
+          const product = products[0];
+          const formattedData = {
+            product_id: product.id || product['product-id'] || product.product_id || '',
+            product_name: product['product-name'] || product.product_name || product.name || product.title || 'Unknown Product',
+            console_name: product['console-name'] || product.console_name || product.console || product.platform || '',
+            loose_price: product['loose-price'] ? (parseFloat(product['loose-price']) / 100).toFixed(2) : '',
+            cib_price: product['cib-price'] ? (parseFloat(product['cib-price']) / 100).toFixed(2) : '',
+            new_price: product['new-price'] ? (parseFloat(product['new-price']) / 100).toFixed(2) : '',
+            image_url: product['image-url'] || product.image_url || product.image || product.thumbnail || '',
+          };
+          
+          results[testProduct] = formattedData;
+          
+          // Cache the result
+          const cacheKey = testProduct.toLowerCase().trim();
+          marketDataCache.set(cacheKey, {
+            data: formattedData,
+            timestamp: Date.now()
+          });
+          
+          console.log(`Market data found for test product: ${testProduct}`);
+        } else {
+          console.log(`No market data found for test product: ${testProduct}`);
         }
       } else {
-        console.warn('No market data returned from API:', data);
+        console.warn('No market data returned from search API:', data);
       }
     } catch (error) {
       console.error('Error fetching batch market data:', error);
