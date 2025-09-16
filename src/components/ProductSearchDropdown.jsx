@@ -247,10 +247,20 @@ export default function ProductSearchDropdown({
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">
                     {product.product_name}
+                    {product.match_type === 'console_name' && (
+                      <span className="ml-1 text-xs bg-blue-600/20 text-blue-300 px-1 rounded">
+                        Set
+                      </span>
+                    )}
                   </div>
                   {product.console_name && (
                     <div className="text-xs text-slate-400 truncate">
                       {product.console_name}
+                    </div>
+                  )}
+                  {product.similarity_score && (
+                    <div className="text-xs text-slate-500">
+                      Match: {Math.round(product.similarity_score * 100)}%
                     </div>
                   )}
                 </div>

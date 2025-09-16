@@ -179,6 +179,14 @@ export default function Hub() {
       author: "Development Team"
     },
     {
+      title: "Enhanced Product Search - Fixed Case Sensitivity & Added Set Name Search",
+      description: "Completely overhauled the product search functionality to fix critical usability issues. Fixed case sensitivity problems where 'Booster Bundle' vs 'booster bundle' returned different results. Added comprehensive search capabilities including set name search (console_name field) so users can now find products by searching for set names like 'Pokemon Prismatic Evolutions'. Implemented 9 different search strategies including exact match, contains, combined product/set search, word-based matching, and full-text search. Improved similarity scoring algorithm with word-based matching and better fuzzy search. Search results now show match type indicators and similarity percentages. This makes finding specific products much easier and more intuitive.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:15",
+      author: "Development Team"
+    },
+    {
       title: "Fixed Dropdown Z-Index Issues - All Dropdowns Now Render Above Cards",
       description: "Fixed critical z-index layering issues where search dropdowns (Price Charting API search, product search, retailer/marketplace dropdowns) were being cut off by cards below them. Updated ProductSearchDropdown and TableSearchDropdown components to use React portals that render directly to document.body with maximum z-index (999999), ensuring they always appear on top of all other content. Added proper positioning calculations and scroll/resize event handling to maintain correct dropdown placement. This ensures all dropdown menus are fully visible and accessible regardless of their position on the page or surrounding card content.",
       color: "bg-blue-500/70",
