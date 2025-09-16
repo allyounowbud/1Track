@@ -283,21 +283,12 @@ export default function Settings() {
   }
 
   async function bulkSaveItems() {
-    alert('bulkSaveItems called - Other Items');
-    console.log('bulkSaveItems called - Other Items');
     setSelectedItems(new Set());
   }
 
   async function bulkDeleteItems() {
-    alert(`bulkDeleteItems called - Other Items\nSelected items: ${Array.from(selectedItems).join(', ')}\nSelected count: ${selectedItems.size}`);
-    console.log('bulkDeleteItems called - Other Items');
-    console.log('selectedItems:', selectedItems);
     const selectedIds = Array.from(selectedItems).filter(id => id > 0);
-    console.log('selectedIds:', selectedIds);
-    if (selectedIds.length === 0) {
-      alert('No valid IDs to delete - selection is empty or contains only new rows');
-      return;
-    }
+    if (selectedIds.length === 0) return;
     
     if (!confirm(`Delete ${selectedIds.length} item(s)? This action cannot be undone.`)) return;
     
@@ -1112,8 +1103,6 @@ function SettingsCard({
                       disabled={hasNewItemRows}
                       category="items"
                       isCheckboxDisabled={hasNewItemRows}
-                      marketData={marketData}
-                      marketDataLoading={marketDataLoading}
                     />
                   )}
                   renderNewRow={(newRow) => (
