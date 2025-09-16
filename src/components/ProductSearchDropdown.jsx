@@ -86,8 +86,14 @@ export default function ProductSearchDropdown({
 
   // Handle product selection
   const handleProductSelect = (product) => {
-    setSearchQuery(product.product_name);
-    onChange?.(product.product_name);
+    // Create a display name that includes set information if available
+    let displayName = product.product_name;
+    if (product.console_name && product.console_name !== product.product_name) {
+      displayName = `${product.product_name} - ${product.console_name}`;
+    }
+    
+    setSearchQuery(displayName);
+    onChange?.(displayName);
     onProductSelect?.(product);
     setIsOpen(false);
     setSelectedIndex(-1);

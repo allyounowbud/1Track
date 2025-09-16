@@ -202,7 +202,14 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
 
   const handleProductSelect = (product) => {
     setSelectedProduct(product);
-    setName(product.product_name);
+    
+    // Create a display name that includes set information if available
+    let displayName = product.product_name;
+    if (product.console_name && product.console_name !== product.product_name) {
+      displayName = `${product.product_name} - ${product.console_name}`;
+    }
+    setName(displayName);
+    
     if (product.loose_price) {
       setMv(product.loose_price.toString());
     }
@@ -615,7 +622,14 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
 
   const handleProductSelect = (product) => {
     setSelectedProduct(product);
-    setName(product.product_name);
+    
+    // Create a display name that includes set information if available
+    let displayName = product.product_name;
+    if (product.console_name && product.console_name !== product.product_name) {
+      displayName = `${product.product_name} - ${product.console_name}`;
+    }
+    setName(displayName);
+    
     if (product.loose_price) {
       setDetails(product.loose_price.toString());
     }
