@@ -626,12 +626,12 @@ function CollectionTab({ portfolioItems, marketData }) {
             <span>Market data available</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-            <span>Product image available</span>
-          </div>
-          <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
             <span>Using cost price</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+            <span>Product placeholder</span>
           </div>
         </div>
       </div>
@@ -660,9 +660,6 @@ function CollectionTab({ portfolioItems, marketData }) {
                       {marketInfo && marketInfo.loose_price && (
                         <div className="flex-shrink-0 w-2 h-2 bg-green-400 rounded-full" title="Market data available from PriceCharting API"></div>
                       )}
-                      {marketInfo && marketInfo.image_url && (
-                        <div className="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full" title="Product image available"></div>
-                      )}
                       {!marketInfo && (
                         <div className="flex-shrink-0 w-2 h-2 bg-yellow-400 rounded-full" title="No market data found - using cost price"></div>
                       )}
@@ -682,53 +679,38 @@ function CollectionTab({ portfolioItems, marketData }) {
                 </div>
               </div>
               
-              {/* Product image */}
-              <div className="w-full h-32 bg-slate-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative group cursor-pointer" 
-                   onClick={() => {
-                     if (marketInfo && marketInfo.image_url) {
-                       window.open(marketInfo.image_url, '_blank');
-                     }
-                   }}
-                   title={marketInfo && marketInfo.image_url ? "Click to view full image" : ""}>
-                {marketInfo && marketInfo.image_url ? (
-                  <>
-                    <img 
-                      src={marketInfo.image_url} 
-                      alt={cleanTitle}
-                      className="w-full h-full object-cover transition-all duration-200 group-hover:scale-105"
-                      loading="lazy"
-                      onLoad={(e) => {
-                        e.target.style.opacity = '1';
-                        const loadingSpinner = e.target.parentElement.querySelector('.loading-spinner');
-                        if (loadingSpinner) loadingSpinner.style.display = 'none';
-                      }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        const fallback = e.target.parentElement.querySelector('.image-fallback');
-                        if (fallback) fallback.style.display = 'flex';
-                        const loadingSpinner = e.target.parentElement.querySelector('.loading-spinner');
-                        if (loadingSpinner) loadingSpinner.style.display = 'none';
-                      }}
-                      style={{ opacity: 0 }}
-                    />
-                    {/* Loading spinner */}
-                    <div className="loading-spinner absolute inset-0 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-400"></div>
-                    </div>
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </>
-                ) : null}
-                {/* Fallback icon */}
-                <div className="image-fallback w-full h-full flex items-center justify-center" style={{ display: marketInfo && marketInfo.image_url ? 'none' : 'flex' }}>
-                  <CollectionIcon />
+              {/* Product placeholder */}
+              <div className="w-full h-32 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg mb-3 flex flex-col items-center justify-center overflow-hidden relative group border border-slate-700">
+                {/* Pokemon card icon */}
+                <div className="flex items-center justify-center mb-2">
+                  <svg className="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  </svg>
                 </div>
+                
+                {/* Product type indicator */}
+                <div className="text-center">
+                  <div className="text-xs font-medium text-slate-300 mb-1">
+                    {cleanTitle.includes('Elite Trainer Box') ? 'ETB' :
+                     cleanTitle.includes('Booster Box') ? 'Booster Box' :
+                     cleanTitle.includes('Booster Pack') ? 'Pack' :
+                     cleanTitle.includes('Collection') ? 'Collection' :
+                     cleanTitle.includes('Premium') ? 'Premium' :
+                     'Card'}
+                  </div>
+                  
+                  {/* Set name if available */}
+                  {marketInfo && marketInfo.console_name && (
+                    <div className="text-xs text-slate-400 truncate max-w-full px-2">
+                      {marketInfo.console_name}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Decorative elements */}
+                <div className="absolute top-2 right-2 w-2 h-2 bg-yellow-400 rounded-full opacity-60"></div>
+                <div className="absolute bottom-2 left-2 w-1 h-1 bg-blue-400 rounded-full opacity-40"></div>
+                <div className="absolute top-1/2 left-1 w-1 h-1 bg-red-400 rounded-full opacity-30"></div>
               </div>
               
               {/* Market value and profit */}

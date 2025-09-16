@@ -79,7 +79,7 @@ async function fetchProductMarketData(productName) {
           loose_price: product['loose-price'] ? (parseFloat(product['loose-price']) / 100).toFixed(2) : '',
           cib_price: product['cib-price'] ? (parseFloat(product['cib-price']) / 100).toFixed(2) : '',
           new_price: product['new-price'] ? (parseFloat(product['new-price']) / 100).toFixed(2) : '',
-          image_url: product['image-url'] || product.image_url || product.image || product.thumbnail || '',
+          image_url: '', // PriceCharting API doesn't provide image URLs
         };
       }
     }
