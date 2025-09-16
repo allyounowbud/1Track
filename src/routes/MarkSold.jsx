@@ -385,9 +385,9 @@ export default function MarkSold() {
           />
 
           {/* Grid of inputs (stacks on mobile) */}
-          <div className="space-y-6">
+          <div className="space-y-6 sm:space-y-4 md:space-y-6">
             {/* Row 1: Sell Price & Sale Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
               <div className="min-w-0">
                 <label className="text-slate-300 mb-2 block text-sm">Sell Price</label>
                 <input
@@ -425,7 +425,7 @@ export default function MarkSold() {
             </div>
 
             {/* Row 3: Fee & Shipping */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
               <div className="min-w-0">
                 <label className="text-slate-300 mb-2 block text-sm">Fee (%)</label>
                 <input

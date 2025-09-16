@@ -8,6 +8,7 @@ import { moneyToCents, parsePct, formatNumber } from "../utils/money.js";
 import { card, inputBase, dateFix, disabledInput } from "../utils/ui.js";
 import { SearchDropdown } from "../components/SearchDropdown.jsx";
 import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
+import { getProductMarketData, getMarketValueFormatted } from "../services/marketDataService.js";
 
 /* ------------------------------ queries ----------------------------- */
 async function getItems() {
@@ -232,6 +233,9 @@ export default function QuickAdd() {
   const [temporaryRetailers, setTemporaryRetailers] = useState([]);
   const [temporaryMarkets, setTemporaryMarkets] = useState([]);
 
+  // Market data state
+  const [selectedProductMarketData, setSelectedProductMarketData] = useState(null);
+  const [marketDataLoading, setMarketDataLoading] = useState(false);
 
   /* -------------------------- derived lists (names) ------------------------- */
   const itemNames = useMemo(() => {
@@ -466,6 +470,7 @@ export default function QuickAdd() {
       setMarketName("");
       setSalePrice("");
       setFeesPct("0");
+      setSelectedProductMarketData(null);
       setFeesLocked(false);
       setShipping("0");
     } catch (err) {
@@ -489,9 +494,9 @@ export default function QuickAdd() {
             <div className="border-b border-slate-800 mt-4"></div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 sm:space-y-4 md:space-y-6">
             {/* Row 1: Order Date & Item */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
               <div className="min-w-0">
                 <label htmlFor="order-date" className="text-slate-300 mb-2 block text-sm">Order Date</label>
                 <input
@@ -510,13 +515,30 @@ export default function QuickAdd() {
                   value={itemName}
                   onChange={setItemName}
                   placeholder="Search products..."
-                  onProductSelect={(product) => {
+                  onProductSelect={async (product) => {
                     // Create a display name that includes set information if available
                     let displayName = product.product_name;
                     if (product.console_name && product.console_name !== product.product_name) {
                       displayName = `${product.product_name} - ${product.console_name}`;
                     }
                     setItemName(displayName);
+                    
+                    // Fetch market data for the selected product
+                    setMarketDataLoading(true);
+                    try {
+                      const marketData = await getProductMarketData(product.product_name);
+                      setSelectedProductMarketData(marketData);
+                      
+                      // Auto-fill buy price with market value if available
+                      if (marketData && marketData.loose_price) {
+                        setBuyPrice(marketData.loose_price);
+                      }
+                    } catch (error) {
+                      console.error('Error fetching market data:', error);
+                      setSelectedProductMarketData(null);
+                    } finally {
+                      setMarketDataLoading(false);
+                    }
                   }}
                 />
                 <p className="text-xs text-slate-500 mt-1">
@@ -526,7 +548,7 @@ export default function QuickAdd() {
             </div>
 
             {/* Row 2: Profile & Retailer */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
               <div className="min-w-0">
                 <label htmlFor="profile" className="text-slate-300 mb-2 block text-sm">Profile (optional)</label>
                 <input
@@ -553,7 +575,7 @@ export default function QuickAdd() {
             </div>
 
             {/* Row 3: Quantity & Buy Price */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
               <div className="min-w-0">
                 <label htmlFor="quantity" className="text-slate-300 mb-2 block text-sm">Quantity</label>
                 <input
@@ -586,6 +608,32 @@ export default function QuickAdd() {
                   placeholder="e.g. 67.70"
                   className={inputBase}
                 />
+                {/* Market Price Suggestion */}
+                {marketDataLoading && (
+                  <p className="text-xs text-slate-500 mt-1">Loading market data...</p>
+                )}
+                {selectedProductMarketData && !marketDataLoading && (
+                  <div className="mt-2 p-2 bg-slate-800/50 rounded-lg border border-slate-700">
+                    <p className="text-xs text-slate-400 mb-1">Market Price Suggestion:</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-green-400">
+                        {getMarketValueFormatted(selectedProductMarketData)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setBuyPrice(selectedProductMarketData.loose_price || '')}
+                        className="text-xs text-blue-400 hover:text-blue-300 underline"
+                      >
+                        Use this price
+                      </button>
+                    </div>
+                    {selectedProductMarketData.console_name && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        {selectedProductMarketData.console_name}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -605,9 +653,9 @@ export default function QuickAdd() {
 
           {/* Smoothly collapsing sale fields */}
           <Collapse open={sold}>
-            <div className="space-y-6">
+            <div className="space-y-6 sm:space-y-4 md:space-y-6">
               {/* Row 1: Sale Date & Sell Price */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
                 <div className="min-w-0">
                   <label className="text-slate-300 mb-2 block text-sm">Sale Date</label>
                   <input
@@ -648,7 +696,7 @@ export default function QuickAdd() {
               </div>
 
               {/* Row 3: Fees & Shipping */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
                 <div className="min-w-0">
                   <label className="text-slate-300 mb-2 block text-sm">Fees (%)</label>
                   <input

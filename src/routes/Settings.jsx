@@ -9,6 +9,7 @@ import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
 import { CategoryItemRow, NewCategoryRowComponent, SimpleItemRow, NewSimpleRowComponent } from "../components/CategoryComponents.jsx";
 import { moneyToCents, centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm, headerIconBtn, headerGhostBtn, iconSave, iconSaveBusy, iconDelete } from "../utils/ui.js";
+import { getBatchMarketData, getMarketValueInCents, getMarketValueFormatted } from "../services/marketDataService.js";
 
 /* ---------- queries ---------- */
 async function getItems() {
@@ -93,6 +94,33 @@ export default function Settings() {
     queryKey: ["items"],
     queryFn: getItems,
   });
+
+  // Market data state for all categories
+  const [marketData, setMarketData] = useState({});
+  const [marketDataLoading, setMarketDataLoading] = useState(false);
+
+  // Fetch market data for all products
+  useEffect(() => {
+    const allProducts = [
+      ...tcgSealed.map(item => item.name),
+      ...tcgSingles.map(item => item.name),
+      ...videoGames.map(item => item.name),
+      ...items.map(item => item.name)
+    ].filter(Boolean);
+
+    if (allProducts.length > 0) {
+      setMarketDataLoading(true);
+      getBatchMarketData(allProducts)
+        .then(data => {
+          setMarketData(data);
+          setMarketDataLoading(false);
+        })
+        .catch(error => {
+          console.error('Error fetching market data:', error);
+          setMarketDataLoading(false);
+        });
+    }
+  }, [tcgSealed, tcgSingles, videoGames, items]);
 
   const { data: retailers = [], refetch: refetchRetailers } = useQuery({
     queryKey: ["retailers"],
@@ -955,6 +983,8 @@ function SettingsCard({
                       category="tcg_sealed"
                       isCheckboxDisabled={hasNewTCGSealedRows}
                       gameType={item.game_type}
+                      marketData={marketData}
+                      marketDataLoading={marketDataLoading}
                     />
                   )}
                   renderNewRow={(newRow) => (
@@ -1013,6 +1043,8 @@ function SettingsCard({
                       disabled={hasNewVideoGameRows}
                       category="video_games"
                       isCheckboxDisabled={hasNewVideoGameRows}
+                      marketData={marketData}
+                      marketDataLoading={marketDataLoading}
                     />
                   )}
                   renderNewRow={(newRow) => (
@@ -1071,6 +1103,8 @@ function SettingsCard({
                       disabled={hasNewItemRows}
                       category="items"
                       isCheckboxDisabled={hasNewItemRows}
+                      marketData={marketData}
+                      marketDataLoading={marketDataLoading}
                     />
                   )}
                   renderNewRow={(newRow) => (
@@ -1135,6 +1169,8 @@ function SettingsCard({
                       category="tcg_singles"
                       isCheckboxDisabled={hasNewTCGSinglesRows}
                       gameType={item.game_type}
+                      marketData={marketData}
+                      marketDataLoading={marketDataLoading}
                     />
                   )}
                   renderNewRow={(newRow) => (

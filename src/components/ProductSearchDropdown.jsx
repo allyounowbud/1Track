@@ -342,11 +342,6 @@ export default function ProductSearchDropdown({
                   <div className="text-xs font-medium text-green-400">
                     {formatPrice(product.loose_price)}
                   </div>
-                  {product.cib_price && product.cib_price !== product.loose_price && (
-                    <div className="text-xs text-slate-400">
-                      CIB: {formatPrice(product.cib_price)}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

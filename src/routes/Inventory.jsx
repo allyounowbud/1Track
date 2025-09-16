@@ -6,6 +6,7 @@ import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
+import { getBatchMarketData, getMarketValueInCents } from "../services/marketDataService.js";
 
 /* ---------- data ---------- */
 async function getOrders(limit = 2000) {
@@ -29,7 +30,7 @@ async function getItems() {
 }
 
 /* ========================================================= */
-export default function Inventory() {
+export default function Inventory({ noLayout = false }) {
   const { data: orders = [], isLoading, error } = useQuery({
     queryKey: ["inv_orders"],
     queryFn: () => getOrders(2000),
@@ -39,12 +40,49 @@ export default function Inventory() {
     queryFn: getItems,
   });
 
-  // Market value lookup by name
+  // Fetch market data for all unique items
+  const [marketData, setMarketData] = useState({});
+  const [marketDataLoading, setMarketDataLoading] = useState(false);
+
+  useEffect(() => {
+    if (orders.length > 0) {
+      const uniqueItems = [...new Set(orders.map(o => o.item).filter(Boolean))];
+      if (uniqueItems.length > 0) {
+        setMarketDataLoading(true);
+        getBatchMarketData(uniqueItems)
+          .then(data => {
+            setMarketData(data);
+            setMarketDataLoading(false);
+          })
+          .catch(error => {
+            console.error('Error fetching market data:', error);
+            setMarketDataLoading(false);
+          });
+      }
+    }
+  }, [orders]);
+
+  // Market value lookup by name - prioritize API data over database values
   const mvByName = useMemo(() => {
     const m = new Map();
-    for (const it of items) m.set(it.name, Number(it.market_value_cents || 0));
+    
+    // First, add database values as fallback
+    for (const it of items) {
+      m.set(it.name, Number(it.market_value_cents || 0));
+    }
+    
+    // Then, override with real-time API data where available
+    Object.entries(marketData).forEach(([itemName, apiData]) => {
+      if (apiData) {
+        const apiValue = getMarketValueInCents(apiData);
+        if (apiValue > 0) {
+          m.set(itemName, apiValue);
+        }
+      }
+    });
+    
     return m;
-  }, [items]);
+  }, [items, marketData]);
 
   // Aggregate orders into inventory rows by item
   const byItem = useMemo(() => {
@@ -340,8 +378,8 @@ export default function Inventory() {
     return arr;
   }, [filteredRows, sortKey, sortDir]);
 
-  return (
-    <LayoutWithSidebar active="inventory" section="orderbook">
+  const content = (
+    <>
       <PageHeader title="Inventory" />
 
         {/* KPI pills (9 total: 3x3 on 550px+, 2x4 on small) */}
@@ -594,6 +632,16 @@ export default function Inventory() {
             )}
           </div>
         </div>
+    </>
+  );
+
+  if (noLayout) {
+    return content;
+  }
+
+  return (
+    <LayoutWithSidebar active="inventory" section="orderbook">
+      {content}
     </LayoutWithSidebar>
   );
 }

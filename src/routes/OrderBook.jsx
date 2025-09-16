@@ -7,6 +7,7 @@ import PageHeader from "../components/PageHeader.jsx";
 import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
+import { getBatchMarketData, getMarketValueInCents } from "../services/marketDataService.js";
 const fmtNiceDate = (yyyyMmDd) => {
   if (!yyyyMmDd) return "Unknown date";
   const [y, m, d] = yyyyMmDd.split("-").map((n) => Number(n));
@@ -123,6 +124,28 @@ export default function OrderBook() {
     queryKey: ["markets"],
     queryFn: getMarkets,
   });
+
+  // Fetch market data for all unique items
+  const [marketData, setMarketData] = useState({});
+  const [marketDataLoading, setMarketDataLoading] = useState(false);
+
+  useEffect(() => {
+    if (orders.length > 0) {
+      const uniqueItems = [...new Set(orders.map(o => o.item).filter(Boolean))];
+      if (uniqueItems.length > 0) {
+        setMarketDataLoading(true);
+        getBatchMarketData(uniqueItems)
+          .then(data => {
+            setMarketData(data);
+            setMarketDataLoading(false);
+          })
+          .catch(error => {
+            console.error('Error fetching market data:', error);
+            setMarketDataLoading(false);
+          });
+      }
+    }
+  }, [orders]);
 
   // Use real data only
   const allItems = items;
@@ -512,6 +535,8 @@ export default function OrderBook() {
           items={allItems}
           retailers={allRetailers}
           markets={allMarkets}
+          marketData={marketData}
+          marketDataLoading={marketDataLoading}
           onSaved={refetch}
           onDeleted={refetch}
           selectedRows={selectedRows}
@@ -542,6 +567,8 @@ function UnifiedOrderView({
   items, 
   retailers, 
   markets, 
+  marketData,
+  marketDataLoading,
   onSaved, 
   onDeleted, 
   selectedRows, 
@@ -753,6 +780,8 @@ function UnifiedOrderView({
           items={items}
           retailers={retailers}
           markets={markets}
+          marketData={marketData}
+          marketDataLoading={marketDataLoading}
           onSaved={onSaved}
           onDeleted={onDeleted}
           selectedRows={selectedRows}
@@ -769,6 +798,8 @@ function UnifiedOrderView({
           items={items}
           retailers={retailers}
           markets={markets}
+          marketData={marketData}
+          marketDataLoading={marketDataLoading}
           onSaved={onSaved}
           onDeleted={onDeleted}
           selectedRows={selectedRows}
@@ -785,17 +816,25 @@ function UnifiedOrderView({
 }
 
 /* ---------- Unified Grid View Component ---------- */
-function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
+function UnifiedGridView({ grouped, items, retailers, markets, marketData, marketDataLoading, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
   if (!grouped.length) {
     return (
-      <div className="text-slate-400 py-4">
-        No orders found.{" "}
+      <div className="px-4 py-8 text-center text-slate-400">
+        No orders found. Click{" "}
         <button
           onClick={addNewRow}
           className="text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors"
         >
-          Add your first order
+          + add new
         </button>
+        {" "}order or use{" "}
+        <a
+          href="/add"
+          className="text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors"
+        >
+          Quick Add
+        </a>
+        {" "}for bulk imports.
       </div>
     );
   }
@@ -813,6 +852,8 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
               items={items}
               retailers={retailers}
               markets={markets}
+              marketData={marketData}
+              marketDataLoading={marketDataLoading}
           onSaved={onSaved}
           onDeleted={onDeleted}
           selectedRows={selectedRows}
@@ -821,24 +862,32 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
           orderRowRefs={orderRowRefs}
           formStates={formStates}
           setFormStates={setFormStates}
-            />
-          ))}
+        />
+      ))}
     </div>
   );
 }
 
 /* ---------- Unified List View Component ---------- */
-function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
+function UnifiedListView({ orders, items, retailers, markets, marketData, marketDataLoading, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
   if (!orders.length) {
     return (
-      <div className="text-slate-400 py-4">
-        No orders found.{" "}
+      <div className="px-4 py-8 text-center text-slate-400">
+        No orders found. Click{" "}
         <button
           onClick={addNewRow}
           className="text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors"
         >
-          Add your first order
+          + add new
         </button>
+        {" "}order or use{" "}
+        <a
+          href="/add"
+          className="text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors"
+        >
+          Quick Add
+        </a>
+        {" "}for bulk imports.
       </div>
     );
   }
@@ -867,6 +916,7 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
         <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
         <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
         <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Market $</div>
         <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
         <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
         <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
@@ -881,6 +931,8 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
             items={items}
             retailers={retailers}
             markets={markets}
+            marketData={marketData}
+            marketDataLoading={marketDataLoading}
             onSaved={onSaved}
             onDeleted={onDeleted}
             isSelected={selectedRows.has(order.id)}
@@ -896,7 +948,7 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
 }
 
 /* ---------- Unified Day Section Component ---------- */
-function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates }) {
+function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, retailers, markets, marketData, marketDataLoading, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates }) {
   const [open, setOpen] = useState(defaultOpen);
   const allRowsSelected = rows.length > 0 && rows.every(row => selectedRows.has(row.id));
 
@@ -956,13 +1008,14 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
       {open && (
         <div className="p-4 border-t border-slate-700">
           {/* Header Row for Orders */}
-          <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+          <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
             <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
             <div className="text-xs text-slate-300 font-medium px-3">Item</div>
             <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
             <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
             <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
             <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
+            <div className="text-xs text-slate-300 font-medium px-3">Market $</div>
             <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
             <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
             <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
@@ -977,6 +1030,8 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
                 items={items}
                 retailers={retailers}
                 markets={markets}
+                marketData={marketData}
+                marketDataLoading={marketDataLoading}
                 onSaved={onSaved}
                 onDeleted={onDeleted}
                 isSelected={selectedRows.has(order.id)}
@@ -984,8 +1039,8 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
                 orderRowRefs={orderRowRefs}
                 formStates={formStates}
                 setFormStates={setFormStates}
-            />
-          ))}
+              />
+            ))}
           </div>
         </div>
           )}
@@ -994,21 +1049,42 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
 }
 
 /* ---------- List View Component ---------- */
-function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows }) {
+function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, addNewRow }) {
   if (!orders.length) {
-    return <div className={`${pageCard} text-slate-400`}>No orders found.</div>;
+    return (
+      <div className={`${pageCard}`}>
+        <div className="px-4 py-8 text-center text-slate-400">
+          No orders found. Click{" "}
+          <button
+            onClick={addNewRow}
+            className="text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors"
+          >
+            + add new
+          </button>
+          {" "}order or use{" "}
+          <a
+            href="/add"
+            className="text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors"
+          >
+            Quick Add
+          </a>
+          {" "}for bulk imports.
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className={`${pageCard}`}>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+      <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
         <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
         <div className="text-xs text-slate-300 font-medium px-3">Item</div>
         <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
         <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
         <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
         <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Market $</div>
         <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
         <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
         <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
@@ -1030,6 +1106,8 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
             items={items}
             retailers={retailers}
             markets={markets}
+            marketData={marketData}
+            marketDataLoading={marketDataLoading}
             onSaved={onSaved}
             onDeleted={onDeleted}
             isSelected={selectedRows.has(order.id)}
@@ -1162,13 +1240,14 @@ function DayCard({
         <div className="pt-5">
           {/* Header row - text only */}
           <div className="hidden lg:block">
-            <div className="grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_132px_0.68fr_73px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
+            <div className="grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-2 items-center min-w-0 px-3 py-2 mb-1">
               <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
               <div className="text-xs text-slate-300 font-medium px-3">Item</div>
               <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
               <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
               <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
               <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
+              <div className="text-xs text-slate-300 font-medium px-3">Market $</div>
               <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
               <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
               <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
@@ -1183,6 +1262,8 @@ function DayCard({
                 items={items}
                 retailers={retailers}
                 markets={markets}
+                marketData={marketData}
+                marketDataLoading={marketDataLoading}
                 onSaved={onSaved}
                 onDeleted={onDeleted}
                 isSelected={selectedRows.has(o.id)}
@@ -1197,7 +1278,7 @@ function DayCard({
 }
 
 /* ============== Row component ============== */
-function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSelected, onToggleSelection, orderRowRefs, formStates, setFormStates }) {
+function OrderRow({ order, items, retailers, markets, marketData, marketDataLoading, onSaved, onDeleted, isSelected, onToggleSelection, orderRowRefs, formStates, setFormStates }) {
   // Get or initialize form state for this order
   const getFormState = () => {
     if (!formStates.has(order.id)) {
@@ -1220,6 +1301,19 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
   };
 
   const formState = getFormState();
+  
+  // Calculate market value and profit/loss
+  const marketInfo = marketData[order.item];
+  const currentMarketValue = marketInfo ? getMarketValueInCents(marketInfo) : 0;
+  const buyPriceCents = moneyToCents(formState.buyPrice || 0);
+  const salePriceCents = moneyToCents(formState.salePrice || 0);
+  
+  // Calculate profit/loss
+  const isSold = salePriceCents > 0;
+  const profitLoss = isSold 
+    ? salePriceCents - buyPriceCents 
+    : currentMarketValue - buyPriceCents;
+  const profitLossPercentage = buyPriceCents > 0 ? (profitLoss / buyPriceCents) * 100 : 0;
   
   // State setters that update the persistent form state
   const setOrderDate = (value) => {
@@ -1427,7 +1521,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       onClick={onToggleSelection}
     >
       {/* Desktop: Grid layout */}
-      <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_132px_0.68fr_73px] gap-1 items-center w-full min-w-0 grid-rows-1 py-2">
+      <div className="hidden lg:grid grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center w-full min-w-0 grid-rows-1 py-2">
         
         {/* Order Date - Responsive */}
         <input
@@ -1491,6 +1585,24 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
         />
 
+        {/* Market Value */}
+        <div className="flex flex-col items-center justify-center h-10 px-2">
+          {marketDataLoading ? (
+            <div className="text-xs text-slate-500">Loading...</div>
+          ) : currentMarketValue > 0 ? (
+            <>
+              <div className="text-xs font-medium text-green-400">
+                {centsToStr(currentMarketValue)}
+              </div>
+              <div className={`text-xs ${profitLoss >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {profitLoss >= 0 ? '+' : ''}{centsToStr(profitLoss)}
+              </div>
+            </>
+          ) : (
+            <div className="text-xs text-slate-500">N/A</div>
+          )}
+        </div>
+
         {/* Sale Date - Responsive */}
         <input
           type="date"
@@ -1528,10 +1640,10 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       </div>
 
       {/* Mobile: Stacked layout with labels */}
-      <div className="lg:hidden space-y-3">
+      <div className="lg:hidden space-y-6 sm:space-y-4 md:space-y-6">
 
         {/* Mobile form fields */}
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-6 sm:gap-4 md:gap-6">
           {/* Order Date */}
           <div>
             <label className="block text-xs text-slate-400 mb-1">Order Date</label>

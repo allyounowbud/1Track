@@ -983,12 +983,12 @@ export default function Hub() {
         titleLower.includes('kpi') || titleLower.includes('financial trend') ||
         descLower.includes('stats') || descLower.includes('analytics') || 
         descLower.includes('kpi') || descLower.includes('chart')) {
-      return '/stats';
+      return '/portfolio/stats';
     }
     
     // Inventory related
     if (titleLower.includes('inventory') || descLower.includes('inventory')) {
-      return '/inventory';
+      return '/portfolio/inventory';
     }
     
     // Emails related
@@ -1102,10 +1102,12 @@ export default function Hub() {
         <div className={`${card} mb-6`}>
           <h2 className="text-lg font-semibold mb-4">Choose a workspace</h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Link to="/orders" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-indigo-600/20 grid place-items-center text-indigo-300">
-                🧾
+              <div className="h-12 w-12 rounded-xl bg-slate-500/20 grid place-items-center text-slate-300">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
               </div>
               <div className="flex-1">
                 <div className="text-xl font-semibold">Order Book</div>
@@ -1113,30 +1115,32 @@ export default function Hub() {
                   Track purchases, sales, and inventory. Quickly add new orders, mark existing orders as sold, 
                   and track your stats from anywhere!
                 </div>
-                <div className="mt-3 inline-flex items-center text-indigo-300 group-hover:text-indigo-200">
+                <div className="mt-3 inline-flex items-center text-slate-300 group-hover:text-slate-200">
                   Open →
                 </div>
               </div>
             </Link>
 
             <Link to="/portfolio" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-yellow-500/20 grid place-items-center text-yellow-300">
-                📊
+              <div className="h-12 w-12 rounded-xl bg-emerald-500/20 grid place-items-center text-emerald-300">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
               </div>
               <div className="flex-1">
                 <div className="text-xl font-semibold">Portfolio</div>
                 <div className="text-slate-400 text-sm">
-                  Track your collection value, view trends, and monitor performance. 
-                  Collectr-style portfolio with market data integration.
+                  Track your collection value, view trends, monitor performance, and analyze detailed statistics. 
+                  Includes inventory management and comprehensive analytics with market data integration.
                 </div>
-                <div className="mt-3 inline-flex items-center text-yellow-300 group-hover:text-yellow-200">
+                <div className="mt-3 inline-flex items-center text-emerald-300 group-hover:text-emerald-200">
                   Open →
                 </div>
               </div>
             </Link>
 
             <Link to="/emails" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-emerald-600/20 grid place-items-center text-emerald-300">
+              <div className="h-12 w-12 rounded-xl bg-red-500/20 grid place-items-center text-red-300">
                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <rect x="3" y="5" width="18" height="14" rx="2" />
                   <path d="M3 7l9 6 9-6" />
@@ -1148,14 +1152,14 @@ export default function Hub() {
                   Auto-import orders & shipping updates. Connect your Gmail to automatically sync order confirmations, 
                   track shipments, and add orders to your order book.
                 </div>
-                <div className="mt-3 inline-flex items-center text-emerald-300 group-hover:text-emerald-200">
+                <div className="mt-3 inline-flex items-center text-red-300 group-hover:text-red-200">
                   Open →
                 </div>
               </div>
             </Link>
 
             <Link to="/profiles" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-purple-600/20 grid place-items-center text-purple-300">
+              <div className="h-12 w-12 rounded-xl bg-purple-500/20 grid place-items-center text-purple-300">
                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
@@ -1173,7 +1177,7 @@ export default function Hub() {
             </Link>
 
             <Link to="/database" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-blue-600/20 grid place-items-center text-blue-300">
+              <div className="h-12 w-12 rounded-xl bg-cyan-500/20 grid place-items-center text-cyan-300">
                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                 </svg>
@@ -1184,7 +1188,7 @@ export default function Hub() {
                   Manage your product database, retailers, and marketplaces. Organize Pokemon cards, 
                   Magic cards, Yu-Gi-Oh cards, video games, and more with singles/sealed separation.
                 </div>
-                <div className="mt-3 inline-flex items-center text-blue-300 group-hover:text-blue-200">
+                <div className="mt-3 inline-flex items-center text-cyan-300 group-hover:text-cyan-200">
                   Open →
                 </div>
               </div>

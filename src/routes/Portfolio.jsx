@@ -7,6 +7,9 @@ import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, rowCard } from "../utils/ui.js";
+import { getBatchMarketData, getMarketValueInCents } from "../services/marketDataService.js";
+import Stats from "./Stats.jsx";
+import Inventory from "./Inventory.jsx";
 
 // Icons
 const TrendingUpIcon = () => (
@@ -57,93 +60,7 @@ async function getPortfolioItems() {
   return data || [];
 }
 
-// Get market data for a product using Supabase Edge Functions
-async function getProductMarketData(productName) {
-  try {
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(productName)}`, {
-      headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    
-    if (data.success && data.data) {
-      // Handle different possible response structures
-      let products = [];
-      
-      if (data.data.products && Array.isArray(data.data.products)) {
-        products = data.data.products;
-      } else if (Array.isArray(data.data)) {
-        products = data.data;
-      } else if (data.data.product) {
-        products = [data.data.product];
-      }
-      
-      // Debug: Log the first product to see its structure
-      if (products.length > 0) {
-        console.log('First product structure:', products[0]);
-        console.log('First product keys:', Object.keys(products[0]));
-      }
-      
-             if (products.length > 0) {
-               // Return the first (most relevant) result
-               const product = products[0];
-               const loosePrice = product['loose-price'] || product.loose_price || product.price || product.loose || '';
-               const cibPrice = product['cib-price'] || product.cib_price || product.complete_price || product.complete || '';
-               const newPrice = product['new-price'] || product.new_price || product.sealed_price || product.sealed || '';
-               
-               return {
-                 product_id: product.id || product['product-id'] || product.product_id || '',
-                 product_name: product['product-name'] || product.product_name || product.name || product.title || 'Unknown Product',
-                 console_name: product['console-name'] || product.console_name || product.console || product.platform || '',
-                 loose_price: loosePrice ? (parseFloat(loosePrice) / 100).toFixed(2) : '',
-                 cib_price: cibPrice ? (parseFloat(cibPrice) / 100).toFixed(2) : '',
-                 new_price: newPrice ? (parseFloat(newPrice) / 100).toFixed(2) : '',
-                 image_url: product['image-url'] || product.image_url || product.image || product.thumbnail || ''
-               };
-             }
-    }
-    return null;
-  } catch (error) {
-    console.error('Error fetching market data for', productName, ':', error);
-    return null;
-  }
-}
 
-// Optimized batch fetch using Supabase Edge Functions
-async function getBatchMarketData(productNames) {
-  try {
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/portfolio-data`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        productNames: productNames.filter(Boolean)
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (data.success && data.data) {
-      return data.data;
-    }
-    
-    return {};
-  } catch (error) {
-    console.error('Error fetching batch market data:', error);
-    return {};
-  }
-}
 
 /* ----------------------------- Portfolio Chart Component ---------------------------- */
 function PortfolioChart({ data }) {
@@ -297,6 +214,10 @@ function PortfolioContent({ orders, portfolioItems, marketData, currentTab }) {
       return <CollectionTab portfolioItems={portfolioItems} marketData={marketData} />;
     case 'trends':
       return <TrendsTab orders={orders} />;
+    case 'stats':
+      return <StatsTab orders={orders} />;
+    case 'inventory':
+      return <InventoryTab orders={orders} />;
     case 'overview':
     default:
       return <OverviewTab orders={orders} portfolioItems={portfolioItems} marketData={marketData} />;
@@ -795,6 +716,8 @@ export default function Portfolio() {
     const path = location.pathname;
     if (path.includes('/collection')) return 'collection';
     if (path.includes('/trends')) return 'trends';
+    if (path.includes('/stats')) return 'stats';
+    if (path.includes('/inventory')) return 'inventory';
     return 'overview';
   }, [location.pathname]);
 
@@ -803,6 +726,8 @@ export default function Portfolio() {
     switch (currentTab) {
       case 'collection': return 'portfolio-collection';
       case 'trends': return 'portfolio-trends';
+      case 'stats': return 'portfolio-stats';
+      case 'inventory': return 'portfolio-inventory';
       default: return 'portfolio-overview';
     }
   }, [currentTab]);
@@ -875,4 +800,14 @@ export default function Portfolio() {
       />
     </LayoutWithSidebar>
   );
+}
+
+/* ----------------------------- Stats Tab ---------------------------- */
+function StatsTab({ orders }) {
+  return <Stats noLayout={true} />;
+}
+
+/* ----------------------------- Inventory Tab ---------------------------- */
+function InventoryTab({ orders }) {
+  return <Inventory noLayout={true} />;
 }

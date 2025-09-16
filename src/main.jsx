@@ -51,16 +51,6 @@ const router = createBrowserRouter([
     errorElement: <ErrorElement />
   },
   { 
-    path: "/inventory", 
-    element: <Inventory />,
-    errorElement: <ErrorElement />
-  },
-  { 
-    path: "/stats", 
-    element: <Stats />,
-    errorElement: <ErrorElement />
-  },
-  { 
     path: "/database", 
     element: <Navigate to="/database/products" replace />,
     errorElement: <ErrorElement />
@@ -107,6 +97,16 @@ const router = createBrowserRouter([
   },
   { 
     path: "/portfolio/trends", 
+    element: <Portfolio />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/portfolio/stats", 
+    element: <Portfolio />,
+    errorElement: <ErrorElement />
+  },
+  { 
+    path: "/portfolio/inventory", 
     element: <Portfolio />,
     errorElement: <ErrorElement />
   },

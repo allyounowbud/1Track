@@ -94,7 +94,7 @@ async function getVideoGames() {
 }
 
 /* --------------------------------- page --------------------------------- */
-export default function Stats() {
+export default function Stats({ noLayout = false }) {
   const { data: orders = [], isLoading: ordersLoading } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
   const { data: priceChartingProducts = [] } = useQuery({ queryKey: ["price_charting_products"], queryFn: getPriceChartingProducts });
@@ -382,8 +382,8 @@ export default function Stats() {
     });
   };
 
-  return (
-    <LayoutWithSidebar active="stats" section="orderbook">
+  const content = (
+    <>
       <PageHeader title="Stats" />
 
         {/* -------------------- Performance Analytics with Filters -------------------- */}
@@ -644,6 +644,16 @@ export default function Stats() {
             <div className="text-slate-400 text-center py-8">No items in this view.</div>
           )}
         </div>
+    </>
+  );
+
+  if (noLayout) {
+    return content;
+  }
+
+  return (
+    <LayoutWithSidebar active="stats" section="orderbook">
+      {content}
     </LayoutWithSidebar>
   );
 }
