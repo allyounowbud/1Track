@@ -245,18 +245,26 @@ export default function Settings() {
   
   // Other Items Operations
   function toggleItemsSelection(rowId) {
+    console.log('toggleItemsSelection called with rowId:', rowId);
+    console.log('Current selectedItems:', selectedItems);
+    console.log('hasNewItemRows:', hasNewItemRows);
+    
     const newSelected = new Set(selectedItems);
     if (newSelected.has(rowId)) {
       const isNewRow = rowId < 0;
       if (isNewRow) return;
       newSelected.delete(rowId);
+      console.log('Removed rowId from selection');
     } else {
       if (hasNewItemRows) {
         setSelectedItems(new Set([rowId]));
+        console.log('Set single selection due to new rows');
         return;
       }
       newSelected.add(rowId);
+      console.log('Added rowId to selection');
     }
+    console.log('New selection:', newSelected);
     setSelectedItems(newSelected);
   }
 
@@ -273,16 +281,25 @@ export default function Settings() {
 
   // Other Items Bulk Operations
   function toggleAllItemsSelection() {
+    console.log('toggleAllItemsSelection called');
+    console.log('selectedItems.size:', selectedItems.size);
+    console.log('items.length:', items.length);
+    console.log('hasNewItemRows:', hasNewItemRows);
+    
     if (selectedItems.size === items.length) {
       if (hasNewItemRows) return;
+      console.log('Clearing all selections');
       setSelectedItems(new Set());
     } else {
       const allIds = items.map(item => item.id);
+      console.log('Selecting all items:', allIds);
       setSelectedItems(new Set(allIds));
     }
   }
 
   async function bulkSaveItems() {
+    console.log('bulkSaveItems called');
+    console.log('selectedItems:', selectedItems);
     setSelectedItems(new Set());
   }
 
