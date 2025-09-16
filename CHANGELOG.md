@@ -32,6 +32,7 @@ All notable changes to this project will be documented in this file.
 - **Background Market Data Loading**: Implemented background market data service that pre-loads portfolio data while users navigate other pages, with 24-hour caching and localStorage persistence for instant Portfolio page loading
 - **Portfolio Instant Loading**: Enhanced Portfolio page to check background cache first and load data instantly without API calls when cached data is available, eliminating loading states on page refresh
 - **Portfolio Image Placeholder System**: Replaced non-functional image placeholders with attractive product type indicators since PriceCharting API doesn't provide image URLs. Added smart product type detection (ETB, Booster Box, Pack, Collection, Premium, Card) and set name display with decorative elements
+- **Order Book Number Parsing Fix**: Fixed critical bug where editing numeric values in Order Book was corrupting data (e.g., 30.65 becoming 306,500.00). Improved parseMoney function to handle commas and multiple decimal points correctly, and updated centsToStr to only add commas for values >= 1000
 
 ### Added
 - Enhanced image display in Portfolio collection page with improved loading states and error handling
