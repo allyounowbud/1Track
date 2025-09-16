@@ -56,10 +56,20 @@ async function getItems() {
   return data || [];
 }
 
+async function getPriceChartingProducts() {
+  const { data, error } = await supabase
+    .from("price_charting_products")
+    .select("product_name, console_name, loose_price")
+    .order("product_name", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
 /* --------------------------------- page --------------------------------- */
 export default function Stats() {
   const { data: orders = [], isLoading: ordersLoading } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
+  const { data: priceChartingProducts = [] } = useQuery({ queryKey: ["price_charting_products"], queryFn: getPriceChartingProducts });
 
 
   /* --------------------------- filter controls -------------------------- */
@@ -136,14 +146,37 @@ export default function Stats() {
   /* ---------- market value lookup ---------- */
   const marketByName = useMemo(() => {
     const m = new Map();
+    
+    // First, add API/CSV data (prioritized)
+    for (const product of priceChartingProducts) {
+      if (product.loose_price && product.loose_price > 0) {
+        // Try exact product name match first
+        const exactKey = (product.product_name || "").toLowerCase();
+        const apiValue = Math.round(product.loose_price * 100); // Convert to cents
+        if (!m.has(exactKey)) m.set(exactKey, apiValue);
+        else m.set(exactKey, Math.max(m.get(exactKey), apiValue));
+        
+        // Also try with set name if available
+        if (product.console_name && product.console_name !== product.product_name) {
+          const setKey = `${product.product_name} - ${product.console_name}`.toLowerCase();
+          if (!m.has(setKey)) m.set(setKey, apiValue);
+          else m.set(setKey, Math.max(m.get(setKey), apiValue));
+        }
+      }
+    }
+    
+    // Then, add manual database values as fallback (only if not already in API data)
     for (const it of items) {
       const k = (it.name || "").toLowerCase();
       const v = cents(it.market_value_cents);
-      if (!m.has(k)) m.set(k, v);
-      else m.set(k, Math.max(m.get(k), v));
+      // Only add if not already present from API data
+      if (!m.has(k) && v > 0) {
+        m.set(k, v);
+      }
     }
+    
     return m;
-  }, [items]);
+  }, [items, priceChartingProducts]);
 
   /* ---------- filtered orders by time + item ---------- */
   const filtered = useMemo(() => {
