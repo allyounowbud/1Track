@@ -57,20 +57,25 @@ async function getPortfolioItems() {
   return data || [];
 }
 
-// Get market data for a product using the search API
+// Get market data for a product using Supabase Edge Functions
 async function getProductMarketData(productName) {
   try {
-    const response = await fetch(`/.netlify/functions/search-products-api?q=${encodeURIComponent(productName)}&category=pokemon_cards`);
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(productName)}`, {
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
     
-    if (data.success && data.results && data.results.length > 0) {
+    if (data.success && data.data && data.data.products && data.data.products.length > 0) {
       // Return the first (most relevant) result
-      const product = data.results[0];
+      const product = data.data.products[0];
       return {
-        product_id: product.product_id,
+        product_id: product.id,
         product_name: product.product_name,
         console_name: product.console_name,
         loose_price: product.loose_price,
@@ -86,36 +91,35 @@ async function getProductMarketData(productName) {
   }
 }
 
-// Batch fetch market data for multiple products
+// Optimized batch fetch using Supabase Edge Functions
 async function getBatchMarketData(productNames) {
-  const results = {};
-  
-  // Process in smaller batches to avoid overwhelming the API
-  const batchSize = 3;
-  for (let i = 0; i < productNames.length; i += batchSize) {
-    const batch = productNames.slice(i, i + batchSize);
-    const promises = batch.map(async (name) => {
-      try {
-        const data = await getProductMarketData(name);
-        return { name, data };
-      } catch (error) {
-        console.error(`Failed to fetch data for ${name}:`, error);
-        return { name, data: null };
-      }
+  try {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/portfolio-data`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        productNames: productNames.filter(Boolean)
+      })
     });
     
-    const batchResults = await Promise.all(promises);
-    batchResults.forEach(({ name, data }) => {
-      results[name] = data;
-    });
-    
-    // Longer delay between batches to avoid rate limiting
-    if (i + batchSize < productNames.length) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+    
+    const data = await response.json();
+    
+    if (data.success && data.data) {
+      return data.data;
+    }
+    
+    return {};
+  } catch (error) {
+    console.error('Error fetching batch market data:', error);
+    return {};
   }
-  
-  return results;
 }
 
 /* ----------------------------- Portfolio Chart Component ---------------------------- */

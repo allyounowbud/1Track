@@ -51,11 +51,28 @@ export default function ProductSearchDropdown({
 
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const response = await fetch(`/.netlify/functions/search-products-api?q=${encodeURIComponent(searchQuery)}&category=pokemon_cards`);
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(searchQuery)}`, {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
         const data = await response.json();
         
-        if (data.success) {
-          setSearchResults(data.results || []);
+        if (data.success && data.data && data.data.products) {
+          // Format the results to match the expected structure
+          const formattedResults = data.data.products.map(product => ({
+            product_id: product.id,
+            product_name: product.product_name,
+            console_name: product.console_name,
+            loose_price: product.loose_price,
+            cib_price: product.cib_price,
+            new_price: product.new_price,
+            image_url: product.image_url,
+            similarity_score: 1.0 // Price Charting API doesn't provide similarity scores
+          }));
+          
+          setSearchResults(formattedResults);
         } else {
           setError(data.error || 'Search failed');
           setSearchResults([]);

@@ -19,6 +19,8 @@ const PRICE_CHARTING_API_KEY = process.env.PRICE_CHARTING_API_KEY;
 const PRICE_CHARTING_BASE_URL = "https://www.pricecharting.com/api";
 const CACHE_DURATION_HOURS = 24; // Cache API responses for 24 hours
 const MAX_API_CALLS_PER_DAY = 1000; // Adjust based on your API plan
+const BATCH_SIZE = 10; // Process items in batches
+const API_DELAY_MS = 100; // Delay between API calls to respect rate limits
 
 /* ----------------------------- Helper Functions ----------------------------- */
 function json(data, statusCode = 200) {
@@ -227,6 +229,12 @@ exports.handler = async (event) => {
       case 'cache-status':
         return await handleCacheStatus(params);
       
+      case 'bulk-search':
+        return await handleBulkSearch(params, requestData);
+      
+      case 'portfolio-data':
+        return await handlePortfolioData(params, requestData);
+      
       default:
         return error('Invalid action', 404);
     }
@@ -429,5 +437,182 @@ async function handleCacheStatus(params) {
   } catch (err) {
     console.error('Cache status error:', err);
     return error(`Cache status failed: ${err.message}`, 500);
+  }
+}
+
+// Optimized bulk search for multiple products
+async function handleBulkSearch(params, requestData) {
+  const { productNames } = requestData;
+  
+  if (!productNames || !Array.isArray(productNames) || productNames.length === 0) {
+    return error('Product names array is required');
+  }
+  
+  if (productNames.length > 50) {
+    return error('Maximum 50 products can be searched at once');
+  }
+  
+  try {
+    const results = {};
+    const errors = [];
+    const cachedResults = {};
+    
+    // First, check cache for all products
+    for (const productName of productNames) {
+      const cachedResponse = await getCachedResponse(productName);
+      if (cachedResponse) {
+        cachedResults[productName] = cachedResponse;
+      }
+    }
+    
+    // Check rate limit for uncached items
+    const uncachedItems = productNames.filter(name => !cachedResults[name]);
+    if (uncachedItems.length > 0) {
+      const withinRateLimit = await checkRateLimit();
+      if (!withinRateLimit) {
+        return error('Daily API rate limit exceeded. Please try again tomorrow.', 429);
+      }
+    }
+    
+    // Process uncached items in batches
+    for (let i = 0; i < uncachedItems.length; i += BATCH_SIZE) {
+      const batch = uncachedItems.slice(i, i + BATCH_SIZE);
+      
+      const batchPromises = batch.map(async (productName) => {
+        try {
+          const apiResponse = await searchProducts(productName);
+          await cacheResponse(productName, apiResponse);
+          return { productName, data: apiResponse, cached: false };
+        } catch (error) {
+          return { productName, error: error.message, cached: false };
+        }
+      });
+      
+      const batchResults = await Promise.all(batchPromises);
+      
+      batchResults.forEach(({ productName, data, error }) => {
+        if (error) {
+          errors.push({ productName, error });
+        } else {
+          results[productName] = data;
+        }
+      });
+      
+      // Add delay between batches
+      if (i + BATCH_SIZE < uncachedItems.length) {
+        await new Promise(resolve => setTimeout(resolve, API_DELAY_MS));
+      }
+    }
+    
+    // Combine cached and new results
+    const allResults = { ...cachedResults, ...results };
+    
+    return json({
+      success: true,
+      data: allResults,
+      errors,
+      summary: {
+        total: productNames.length,
+        cached: Object.keys(cachedResults).length,
+        new: Object.keys(results).length,
+        failed: errors.length,
+      },
+    });
+    
+  } catch (err) {
+    console.error('Bulk search error:', err);
+    return error(`Bulk search failed: ${err.message}`, 500);
+  }
+}
+
+// Optimized portfolio data endpoint
+async function handlePortfolioData(params, requestData) {
+  const { productNames } = requestData;
+  
+  if (!productNames || !Array.isArray(productNames) || productNames.length === 0) {
+    return error('Product names array is required');
+  }
+  
+  try {
+    // Get unique product names
+    const uniqueNames = [...new Set(productNames)];
+    
+    // Check cache first
+    const cachedResults = {};
+    const uncachedItems = [];
+    
+    for (const productName of uniqueNames) {
+      const cachedResponse = await getCachedResponse(productName);
+      if (cachedResponse) {
+        cachedResults[productName] = cachedResponse;
+      } else {
+        uncachedItems.push(productName);
+      }
+    }
+    
+    // Process uncached items
+    const newResults = {};
+    if (uncachedItems.length > 0) {
+      const withinRateLimit = await checkRateLimit();
+      if (!withinRateLimit) {
+        // Return cached results only if rate limit exceeded
+        return json({
+          success: true,
+          data: cachedResults,
+          rateLimitExceeded: true,
+          message: 'Rate limit exceeded. Returning cached data only.',
+        });
+      }
+      
+      // Process uncached items
+      for (const productName of uncachedItems) {
+        try {
+          const apiResponse = await searchProducts(productName);
+          await cacheResponse(productName, apiResponse);
+          newResults[productName] = apiResponse;
+          
+          // Small delay to respect rate limits
+          await new Promise(resolve => setTimeout(resolve, API_DELAY_MS));
+        } catch (error) {
+          console.error(`Failed to fetch data for ${productName}:`, error);
+        }
+      }
+    }
+    
+    // Combine results
+    const allResults = { ...cachedResults, ...newResults };
+    
+    // Format results for portfolio use
+    const formattedResults = {};
+    Object.entries(allResults).forEach(([productName, data]) => {
+      if (data && data.products && data.products.length > 0) {
+        const product = data.products[0]; // Get first result
+        formattedResults[productName] = {
+          product_id: product.id,
+          product_name: product.product_name,
+          console_name: product.console_name,
+          loose_price: product.loose_price,
+          cib_price: product.cib_price,
+          new_price: product.new_price,
+          image_url: product.image_url,
+          cached: !!cachedResults[productName],
+        };
+      }
+    });
+    
+    return json({
+      success: true,
+      data: formattedResults,
+      summary: {
+        total: uniqueNames.length,
+        cached: Object.keys(cachedResults).length,
+        new: Object.keys(newResults).length,
+        formatted: Object.keys(formattedResults).length,
+      },
+    });
+    
+  } catch (err) {
+    console.error('Portfolio data error:', err);
+    return error(`Portfolio data failed: ${err.message}`, 500);
   }
 }
