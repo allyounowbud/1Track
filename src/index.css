@@ -521,3 +521,97 @@ select::-webkit-appearance {
   background-color: rgb(15, 23, 42) !important; /* slate-900 */
   color: rgb(241, 245, 249) !important; /* slate-100 */
 }
+
+/* Fix text centering for new product select elements */
+.new-product-select {
+  display: flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  height: 2.5rem !important;
+  background-color: rgb(15 23 42 / 0.6) !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 0.75rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1.25rem 1.25rem !important;
+  padding-right: 2.5rem !important;
+}
+
+/* Ensure new product selects maintain their styling on all screen sizes */
+.new-product-select:focus {
+  background: rgb(15 23 42 / 0.6) !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 0.75rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1.25rem 1.25rem !important;
+  border: 1px solid rgb(99 102 241) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0.75rem !important;
+}
+
+/* Apply flexbox centering for medium and small screens */
+@media (max-width: 1023px) {
+  .new-product-select {
+    display: flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    height: 2.5rem !important;
+    background-color: rgb(15 23 42 / 0.6) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 0.75rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.25rem 1.25rem !important;
+    padding-right: 2.5rem !important;
+  }
+}
+
+/* Fix text centering for new order select elements */
+.new-order-select {
+  display: flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  height: 2.5rem !important;
+  background-color: rgb(15 23 42 / 0.6) !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 0.75rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1.25rem 1.25rem !important;
+  padding-right: 2.5rem !important;
+}
+
+/* Ensure new order selects maintain their styling on all screen sizes */
+.new-order-select:focus {
+  background: rgb(15 23 42 / 0.6) !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 0.75rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1.25rem 1.25rem !important;
+  border: 1px solid rgb(99 102 241) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0.75rem !important;
+}
+
+/* Apply flexbox centering for medium and small screens */
+@media (max-width: 1023px) {
+  .new-order-select {
+    display: flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    height: 2.5rem !important;
+    background-color: rgb(15 23 42 / 0.6) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 0.75rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.25rem 1.25rem !important;
+    padding-right: 2.5rem !important;
+  }
+}

@@ -79,7 +79,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Enter product name..."
-            className="w-full min-w-[150px] h-10 bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            className="w-full min-w-[150px] h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 focus:border-indigo-500 outline-none"
           />
         </div>
         
@@ -87,11 +87,11 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full h-10 bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            className="new-product-select w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 focus:border-indigo-500 outline-none cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           >
             {categories.map(cat => (
-              <option key={cat.value} value={cat.value} className="bg-slate-800 text-slate-100 text-sm">
+              <option key={cat.value} value={cat.value} className="bg-slate-800 text-slate-100">
                 {cat.label}
               </option>
             ))}
@@ -100,7 +100,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
         
         <div onClick={(e) => e.stopPropagation()} className="min-w-0 overflow-hidden">
           <input
-            className="w-full h-10 bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+            className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 focus:border-indigo-500 outline-none"
             value={marketValue}
             onChange={(e) => {
               e.stopPropagation();
@@ -152,7 +152,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter product name..."
-              className="w-full h-10 bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+              className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 focus:border-indigo-500 outline-none"
             />
           </div>
         </div>
@@ -162,11 +162,11 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-lg px-3 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+            className="new-product-select w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           >
             {categories.map(cat => (
-              <option key={cat.value} value={cat.value} className="bg-slate-800 text-slate-100 text-sm">
+              <option key={cat.value} value={cat.value} className="bg-slate-800 text-slate-100">
                 {cat.label}
               </option>
             ))}
@@ -177,7 +177,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
           <label className="block text-xs text-slate-400 mb-1">Market Value</label>
           <div className="flex items-center gap-2">
             <input
-              className="flex-1 h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-lg px-3 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+              className="flex-1 h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
               value={marketValue}
               onChange={(e) => {
                 e.stopPropagation();

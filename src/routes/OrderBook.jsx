@@ -7,7 +7,6 @@ import PageHeader from "../components/PageHeader.jsx";
 import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
-import { getBatchMarketData, getMarketValueInCents } from "../services/marketDataService.js";
 const fmtNiceDate = (yyyyMmDd) => {
   if (!yyyyMmDd) return "Unknown date";
   const [y, m, d] = yyyyMmDd.split("-").map((n) => Number(n));
@@ -125,30 +124,6 @@ export default function OrderBook() {
     queryFn: getMarkets,
   });
 
-  // Fetch market data for all unique items
-  const [marketData, setMarketData] = useState({});
-  const [marketDataLoading, setMarketDataLoading] = useState(false);
-
-  useEffect(() => {
-    if (orders.length > 0) {
-      const uniqueItems = [...new Set(orders.map(o => o.item).filter(Boolean))];
-      console.log('Unique items to fetch market data for:', uniqueItems);
-      if (uniqueItems.length > 0) {
-        setMarketDataLoading(true);
-        getBatchMarketData(uniqueItems)
-          .then(data => {
-            console.log('Market data fetched:', data);
-            console.log('Market data keys:', Object.keys(data));
-            setMarketData(data);
-            setMarketDataLoading(false);
-          })
-          .catch(error => {
-            console.error('Error fetching market data:', error);
-            setMarketDataLoading(false);
-          });
-      }
-    }
-  }, [orders]);
 
   // Use real data only
   const allItems = items;
@@ -563,8 +538,6 @@ export default function OrderBook() {
           items={allItems}
           retailers={allRetailers}
           markets={allMarkets}
-          marketData={marketData}
-          marketDataLoading={marketDataLoading}
           onSaved={refetch}
           onDeleted={refetch}
           selectedRows={selectedRows}
@@ -595,8 +568,6 @@ function UnifiedOrderView({
   items, 
   retailers, 
   markets, 
-  marketData,
-  marketDataLoading,
   onSaved, 
   onDeleted, 
   selectedRows, 
@@ -808,8 +779,6 @@ function UnifiedOrderView({
           items={items}
           retailers={retailers}
           markets={markets}
-          marketData={marketData}
-          marketDataLoading={marketDataLoading}
           onSaved={onSaved}
           onDeleted={onDeleted}
           selectedRows={selectedRows}
@@ -826,8 +795,6 @@ function UnifiedOrderView({
           items={items}
           retailers={retailers}
           markets={markets}
-          marketData={marketData}
-          marketDataLoading={marketDataLoading}
           onSaved={onSaved}
           onDeleted={onDeleted}
           selectedRows={selectedRows}
@@ -844,7 +811,7 @@ function UnifiedOrderView({
 }
 
 /* ---------- Unified Grid View Component ---------- */
-function UnifiedGridView({ grouped, items, retailers, markets, marketData, marketDataLoading, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
+function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
   if (!grouped.length) {
     return (
       <div className="px-4 py-8 text-center text-slate-400">
@@ -880,8 +847,6 @@ function UnifiedGridView({ grouped, items, retailers, markets, marketData, marke
               items={items}
               retailers={retailers}
               markets={markets}
-              marketData={marketData}
-              marketDataLoading={marketDataLoading}
           onSaved={onSaved}
           onDeleted={onDeleted}
           selectedRows={selectedRows}
@@ -897,7 +862,7 @@ function UnifiedGridView({ grouped, items, retailers, markets, marketData, marke
 }
 
 /* ---------- Unified List View Component ---------- */
-function UnifiedListView({ orders, items, retailers, markets, marketData, marketDataLoading, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
+function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
   if (!orders.length) {
     return (
       <div className="px-4 py-8 text-center text-slate-400">
@@ -946,8 +911,6 @@ function UnifiedListView({ orders, items, retailers, markets, marketData, market
             items={items}
             retailers={retailers}
             markets={markets}
-            marketData={marketData}
-            marketDataLoading={marketDataLoading}
             onSaved={onSaved}
             onDeleted={onDeleted}
             isSelected={selectedRows.has(order.id)}
@@ -963,9 +926,13 @@ function UnifiedListView({ orders, items, retailers, markets, marketData, market
 }
 
 /* ---------- Unified Day Section Component ---------- */
-function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, retailers, markets, marketData, marketDataLoading, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates }) {
+function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates }) {
   const [open, setOpen] = useState(defaultOpen);
   const allRowsSelected = rows.length > 0 && rows.every(row => selectedRows.has(row.id));
+  
+  // Always keep "New Order" section open
+  const isNewOrderSection = title === "New Order";
+  const effectiveOpen = isNewOrderSection ? true : open;
 
   return (
     <div className={`border rounded-xl overflow-visible transition-all ${
@@ -975,12 +942,21 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
     }`}>
       {/* Header Row */}
       <div 
-        className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${
+        className={`flex items-center justify-between p-4 transition-colors ${
+          title === "New Order" 
+            ? 'cursor-default' 
+            : 'cursor-pointer'
+        } ${
           allRowsSelected
             ? 'bg-indigo-500/20 hover:bg-indigo-500/30'
             : 'bg-slate-800/30 hover:bg-slate-800/50'
         }`}
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          // Prevent collapsing when there are new orders
+          if (title !== "New Order") {
+            setOpen(!open);
+          }
+        }}
       >
         <div className="flex items-center gap-4">
           {title !== "New Order" && (
@@ -1016,17 +992,19 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
             </div>
           </div>
         </div>
-        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        {!isNewOrderSection && (
+          <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${effectiveOpen ? 'rotate-180' : ''}`} />
+        )}
       </div>
 
       {/* Content */}
-      {open && (
+      {effectiveOpen && (
         <div className="p-4 border-t border-slate-700">
           {/* Header Row for Orders */}
           <div className={`hidden lg:grid gap-1 items-center border-b border-slate-700 w-full py-2 ${
             title === "New Order"
-              ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px]' 
-              : 'grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px]'
+              ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]' 
+              : 'grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]'
           }`}>
             {title !== "New Order" && <div className="w-6"></div>}
             <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
@@ -1034,9 +1012,8 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
             <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
             <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
             <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
-            <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
-            <div className="text-xs text-slate-300 font-medium px-3">Market $</div>
             <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
+            <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
             <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
             <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
           </div>
@@ -1050,8 +1027,6 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
                 items={items}
                 retailers={retailers}
                 markets={markets}
-                marketData={marketData}
-                marketDataLoading={marketDataLoading}
                 onSaved={onSaved}
                 onDeleted={onDeleted}
                 isSelected={selectedRows.has(order.id)}
@@ -1099,8 +1074,8 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
       {/* Table Header - Hidden on mobile */}
       <div className={`hidden lg:grid gap-1 items-center border-b border-slate-700 w-full py-2 ${
         newRows.length > 0 
-          ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px]' 
-          : 'grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px]'
+          ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]' 
+          : 'grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]'
       }`}>
         {newRows.length === 0 && <div className="w-6"></div>}
         <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
@@ -1108,9 +1083,8 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
         <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
         <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
         <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Market $</div>
         <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
+        <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
         <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
         <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
       </div>
@@ -1131,8 +1105,6 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
             items={items}
             retailers={retailers}
             markets={markets}
-            marketData={marketData}
-            marketDataLoading={marketDataLoading}
             onSaved={onSaved}
             onDeleted={onDeleted}
             isSelected={selectedRows.has(order.id)}
@@ -1267,8 +1239,8 @@ function DayCard({
           <div className="hidden lg:block">
             <div className={`grid gap-2 items-center min-w-0 px-3 py-2 mb-1 ${
               newRows.length > 0
-                ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px]' 
-                : 'grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px]'
+                ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]' 
+                : 'grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]'
             }`}>
               {newRows.length === 0 && <div className="w-6"></div>}
               <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
@@ -1276,9 +1248,8 @@ function DayCard({
               <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
               <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
               <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
-              <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
-              <div className="text-xs text-slate-300 font-medium px-3">Market $</div>
               <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
+              <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
               <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
               <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
             </div>
@@ -1292,8 +1263,6 @@ function DayCard({
                 items={items}
                 retailers={retailers}
                 markets={markets}
-                marketData={marketData}
-                marketDataLoading={marketDataLoading}
                 onSaved={onSaved}
                 onDeleted={onDeleted}
                 isSelected={selectedRows.has(o.id)}
@@ -1308,7 +1277,7 @@ function DayCard({
 }
 
 /* ============== Row component ============== */
-function OrderRow({ order, items, retailers, markets, marketData, marketDataLoading, onSaved, onDeleted, isSelected, onToggleSelection, orderRowRefs, formStates, setFormStates }) {
+function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSelected, onToggleSelection, orderRowRefs, formStates, setFormStates }) {
   // Get or initialize form state for this order
   const getFormState = () => {
     if (!formStates.has(order.id)) {
@@ -1332,18 +1301,12 @@ function OrderRow({ order, items, retailers, markets, marketData, marketDataLoad
 
   const formState = getFormState();
   
-  // Calculate market value and profit/loss
-  const marketInfo = marketData[order.item];
-  console.log('Market data lookup for item:', order.item, 'found:', marketInfo);
-  const currentMarketValue = marketInfo ? getMarketValueInCents(marketInfo) : 0;
   const buyPriceCents = moneyToCents(formState.buyPrice || 0);
   const salePriceCents = moneyToCents(formState.salePrice || 0);
   
-  // Calculate profit/loss
+  // Calculate profit/loss (only for sold items since we don't have market data)
   const isSold = salePriceCents > 0;
-  const profitLoss = isSold 
-    ? salePriceCents - buyPriceCents 
-    : currentMarketValue - buyPriceCents;
+  const profitLoss = isSold ? salePriceCents - buyPriceCents : 0;
   const profitLossPercentage = buyPriceCents > 0 ? (profitLoss / buyPriceCents) * 100 : 0;
   
   // State setters that update the persistent form state
@@ -1559,8 +1522,8 @@ function OrderRow({ order, items, retailers, markets, marketData, marketDataLoad
       {/* Desktop: Grid layout */}
       <div className={`hidden lg:grid gap-1 items-center w-full min-w-0 grid-rows-1 py-2 ${
         order.isNew 
-          ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px]' 
-          : 'grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px]'
+          ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]' 
+          : 'grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]'
       }`}>
         
         {/* Checkbox - Hidden for new orders */}
@@ -1631,33 +1594,6 @@ function OrderRow({ order, items, retailers, markets, marketData, marketDataLoad
           className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400"
         />
 
-        {/* Sale Price */}
-        <input
-          value={formState.salePrice}
-          onChange={(e) => setSalePrice(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="0.00"
-          className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
-        />
-
-        {/* Market Value */}
-        <div className="flex flex-col items-center justify-center h-10 px-2">
-          {marketDataLoading ? (
-            <div className="text-xs text-slate-500">Loading...</div>
-          ) : currentMarketValue > 0 ? (
-            <>
-              <div className="text-xs font-medium text-green-400">
-                {centsToStr(currentMarketValue)}
-              </div>
-              <div className={`text-xs ${profitLoss >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {profitLoss >= 0 ? '+' : ''}{centsToStr(profitLoss)}
-              </div>
-            </>
-          ) : (
-            <div className="text-xs text-slate-500">N/A</div>
-          )}
-        </div>
-
         {/* Sale Date - Responsive */}
         <input
           type="date"
@@ -1666,6 +1602,15 @@ function OrderRow({ order, items, retailers, markets, marketData, marketDataLoad
           onClick={(e) => e.stopPropagation()}
           placeholder="mm/dd/yy"
           className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none ${formState.sale_date ? 'text-slate-100' : 'text-slate-500'}`}
+        />
+
+        {/* Sale Price */}
+        <input
+          value={formState.salePrice}
+          onChange={(e) => setSalePrice(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="0.00"
+          className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
         />
 
         {/* Marketplace */}
@@ -1767,18 +1712,6 @@ function OrderRow({ order, items, retailers, markets, marketData, marketDataLoad
             />
           </div>
 
-          {/* Sale Price */}
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Sale Price</label>
-            <input
-              value={formState.salePrice}
-              onChange={(e) => setSalePrice(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-              placeholder={formState.salePrice && formState.salePrice !== "0" ? "" : "0.00"}
-              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
-            />
-          </div>
-
           {/* Sale Date */}
           <div>
             <label className="block text-xs text-slate-400 mb-1">Sale Date</label>
@@ -1789,6 +1722,18 @@ function OrderRow({ order, items, retailers, markets, marketData, marketDataLoad
               onClick={(e) => e.stopPropagation()}
               placeholder="mm/dd/yy"
               className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.sale_date ? 'text-slate-100' : 'text-slate-500'}`}
+            />
+          </div>
+
+          {/* Sale Price */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Sale Price</label>
+            <input
+              value={formState.salePrice}
+              onChange={(e) => setSalePrice(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={formState.salePrice && formState.salePrice !== "0" ? "" : "0.00"}
+              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
             />
           </div>
 

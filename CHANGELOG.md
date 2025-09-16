@@ -16,6 +16,14 @@ All notable changes to this project will be documented in this file.
 - **Order Book Dropdown Styling**: Fixed retailer and marketplace dropdown fields to have the same border outline as other input fields by adding `new-order-select` class to bypass CSS that removes styling from existing order rows
 - **Order Book Dropdown Text Alignment**: Fixed vertical text alignment in retailer and marketplace dropdowns using CSS flexbox properties to properly center text on large screens
 - **Market Data Debugging**: Added comprehensive logging to investigate why market values are showing as N/A in the Order Book despite API data being available
+- **Order Book Simplification**: Removed Market $ column from Order Book since market data is already stored by the API and doesn't need to be displayed in the order management interface
+- **Order Book Error Fix**: Fixed ReferenceError caused by remaining marketData references after removing Market $ column
+- **Order Book Column Reorder**: Swapped positions of Sale Date and Sale Price columns for better workflow (Sale Date now comes before Sale Price)
+- **Order Book New Row UX**: Prevented grid card from collapsing when adding new rows to ensure form remains accessible during data entry, and hid the expand/collapse arrow since new order sections cannot be collapsed
+- **Database Dropdown Styling**: Applied consistent dropdown styling to database category dropdowns to match other input fields, ensuring proper border outline and text alignment
+- **Database Input Consistency**: Unified background styling across all database input fields (item name, category dropdown, and market value) for a cohesive visual appearance
+- **Database Dropdown Arrow**: Added dropdown arrow icon to category dropdown for better user experience and visual clarity
+- **Order Book Dropdown Arrows**: Added dropdown arrow icons to retailer and marketplace dropdowns in Order Book for consistent UX across all dropdowns
 
 ### Added
 - Enhanced image display in Portfolio collection page with improved loading states and error handling
