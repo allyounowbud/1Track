@@ -58,22 +58,49 @@ export default function ProductSearchDropdown({
           },
         });
         const data = await response.json();
+        console.log('API Response:', data);
         
-        if (data.success && data.data && data.data.products) {
-          // Format the results to match the expected structure
-          const formattedResults = data.data.products.map(product => ({
-            product_id: product.id,
-            product_name: product.product_name,
-            console_name: product.console_name,
-            loose_price: product.loose_price,
-            cib_price: product.cib_price,
-            new_price: product.new_price,
-            image_url: product.image_url,
-            similarity_score: 1.0 // Price Charting API doesn't provide similarity scores
-          }));
+        if (data.success && data.data) {
+          // Handle different possible response structures
+          let products = [];
           
-          setSearchResults(formattedResults);
+          if (data.data.products && Array.isArray(data.data.products)) {
+            products = data.data.products;
+          } else if (Array.isArray(data.data)) {
+            products = data.data;
+          } else if (data.data.product) {
+            products = [data.data.product];
+          }
+          
+          console.log('Products found:', products.length);
+          
+          if (products.length > 0) {
+            // Format the results to match the expected structure
+            const formattedResults = products.map(product => {
+              // Add null checks to prevent trim() errors
+              const productName = product.product_name || product.name || 'Unknown Product';
+              const consoleName = product.console_name || product.console || '';
+              
+              return {
+                product_id: product.id || product.product_id || '',
+                product_name: productName,
+                console_name: consoleName,
+                loose_price: product.loose_price || product.price || '',
+                cib_price: product.cib_price || product.complete_price || '',
+                new_price: product.new_price || product.sealed_price || '',
+                image_url: product.image_url || product.image || '',
+                similarity_score: 1.0 // Price Charting API doesn't provide similarity scores
+              };
+            });
+            
+            console.log('Formatted results:', formattedResults);
+            setSearchResults(formattedResults);
+          } else {
+            setError('No products found');
+            setSearchResults([]);
+          }
         } else {
+          console.error('API Error:', data.error || 'Search failed');
           setError(data.error || 'Search failed');
           setSearchResults([]);
         }

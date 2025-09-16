@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API Key</title>
+</head>
+<body>
+    <h1>Test Price Charting API Key</h1>
+    
+    <div>
+        <h2>Test Edge Function</h2>
+        <button onclick="testEdgeFunction()">Test Edge Function</button>
+        <div id="edgeResult"></div>
+    </div>
+    
+    <div>
+        <h2>Test Direct API Call</h2>
+        <input type="text" id="apiKeyInput" placeholder="Enter your API key">
+        <button onclick="testDirectAPI()">Test Direct API</button>
+        <div id="directResult"></div>
+    </div>
+
+    <script>
+        // Replace these with your actual Supabase values
+        const SUPABASE_URL = 'https://your-project-ref.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key-here';
+        
+        async function testEdgeFunction() {
+            const resultDiv = document.getElementById('edgeResult');
+            resultDiv.innerHTML = 'Testing Edge Function...';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/price-charting/test`, {
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+            } catch (error) {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testDirectAPI() {
+            const apiKey = document.getElementById('apiKeyInput').value;
+            const resultDiv = document.getElementById('directResult');
+            
+            if (!apiKey) {
+                resultDiv.innerHTML = 'Please enter your API key';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Testing direct API call...';
+            
+            try {
+                const response = await fetch(`https://www.pricecharting.com/api/products?q=charizard&api_key=${apiKey}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+            } catch (error) {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -71,18 +71,31 @@ async function getProductMarketData(productName) {
     }
     const data = await response.json();
     
-    if (data.success && data.data && data.data.products && data.data.products.length > 0) {
-      // Return the first (most relevant) result
-      const product = data.data.products[0];
-      return {
-        product_id: product.id,
-        product_name: product.product_name,
-        console_name: product.console_name,
-        loose_price: product.loose_price,
-        cib_price: product.cib_price,
-        new_price: product.new_price,
-        image_url: product.image_url
-      };
+    if (data.success && data.data) {
+      // Handle different possible response structures
+      let products = [];
+      
+      if (data.data.products && Array.isArray(data.data.products)) {
+        products = data.data.products;
+      } else if (Array.isArray(data.data)) {
+        products = data.data;
+      } else if (data.data.product) {
+        products = [data.data.product];
+      }
+      
+      if (products.length > 0) {
+        // Return the first (most relevant) result
+        const product = products[0];
+        return {
+          product_id: product.id || product.product_id || '',
+          product_name: product.product_name || product.name || 'Unknown Product',
+          console_name: product.console_name || product.console || '',
+          loose_price: product.loose_price || product.price || '',
+          cib_price: product.cib_price || product.complete_price || '',
+          new_price: product.new_price || product.sealed_price || '',
+          image_url: product.image_url || product.image || ''
+        };
+      }
     }
     return null;
   } catch (error) {
