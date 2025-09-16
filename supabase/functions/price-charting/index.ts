@@ -104,7 +104,7 @@ async function searchProducts(productName: string): Promise<any> {
   }
   
   const normalizedName = normalizeProductName(productName)
-  const searchUrl = `${PRICE_CHARTING_BASE_URL}/products?q=${encodeURIComponent(normalizedName)}&api_key=${PRICE_CHARTING_API_KEY}`
+  const searchUrl = `${PRICE_CHARTING_BASE_URL}/api/products?q=${encodeURIComponent(normalizedName)}&t=${PRICE_CHARTING_API_KEY}`
   
   console.log(`Searching Price Charting API for: ${normalizedName}`)
   
@@ -120,6 +120,16 @@ async function searchProducts(productName: string): Promise<any> {
   }
   
   const data = await response.json()
+  
+  // Log the structure for debugging
+  console.log('API Response structure:', {
+    type: typeof data,
+    keys: Object.keys(data),
+    hasProducts: !!(data.products),
+    productsLength: data.products ? data.products.length : 0,
+    firstProduct: data.products && data.products.length > 0 ? data.products[0] : null
+  })
+  
   return data
 }
 
@@ -129,7 +139,7 @@ async function getProductPrice(productId: string): Promise<any> {
     throw new Error('Price Charting API key not configured')
   }
   
-  const priceUrl = `${PRICE_CHARTING_BASE_URL}/product/${productId}?api_key=${PRICE_CHARTING_API_KEY}`
+  const priceUrl = `${PRICE_CHARTING_BASE_URL}/api/product/${productId}?t=${PRICE_CHARTING_API_KEY}`
   
   console.log(`Fetching price for product ID: ${productId}`)
   

@@ -72,26 +72,37 @@ export default function ProductSearchDropdown({
             products = [data.data.product];
           }
           
-          console.log('Products found:', products.length);
-          
-          if (products.length > 0) {
-            // Format the results to match the expected structure
-            const formattedResults = products.map(product => {
-              // Add null checks to prevent trim() errors
-              const productName = product.product_name || product.name || 'Unknown Product';
-              const consoleName = product.console_name || product.console || '';
-              
-              return {
-                product_id: product.id || product.product_id || '',
-                product_name: productName,
-                console_name: consoleName,
-                loose_price: product.loose_price || product.price || '',
-                cib_price: product.cib_price || product.complete_price || '',
-                new_price: product.new_price || product.sealed_price || '',
-                image_url: product.image_url || product.image || '',
-                similarity_score: 1.0 // Price Charting API doesn't provide similarity scores
-              };
-            });
+                 console.log('Products found:', products.length);
+                 
+                 // Debug: Log the first product to see its structure
+                 if (products.length > 0) {
+                   console.log('First product structure:', products[0]);
+                   console.log('First product keys:', Object.keys(products[0]));
+                 }
+                 
+                 if (products.length > 0) {
+                   // Format the results to match the expected structure
+                   const formattedResults = products.map(product => {
+                     // Add null checks to prevent trim() errors
+                     // Use the correct field names from PriceCharting API documentation
+                     const productName = product['product-name'] || product.product_name || product.name || product.title || 'Unknown Product';
+                     const consoleName = product['console-name'] || product.console_name || product.console || product.platform || '';
+                     const loosePrice = product['loose-price'] || product.loose_price || product.price || product.loose || '';
+                     const cibPrice = product['cib-price'] || product.cib_price || product.complete_price || product.complete || '';
+                     const newPrice = product['new-price'] || product.new_price || product.sealed_price || product.sealed || '';
+                     const imageUrl = product['image-url'] || product.image_url || product.image || product.thumbnail || '';
+                     
+                     return {
+                       product_id: product.id || product['product-id'] || product.product_id || '',
+                       product_name: productName,
+                       console_name: consoleName,
+                       loose_price: loosePrice,
+                       cib_price: cibPrice,
+                       new_price: newPrice,
+                       image_url: imageUrl,
+                       similarity_score: 1.0 // Price Charting API doesn't provide similarity scores
+                     };
+                   });
             
             console.log('Formatted results:', formattedResults);
             setSearchResults(formattedResults);

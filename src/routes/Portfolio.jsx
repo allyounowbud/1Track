@@ -83,19 +83,25 @@ async function getProductMarketData(productName) {
         products = [data.data.product];
       }
       
+      // Debug: Log the first product to see its structure
       if (products.length > 0) {
-        // Return the first (most relevant) result
-        const product = products[0];
-        return {
-          product_id: product.id || product.product_id || '',
-          product_name: product.product_name || product.name || 'Unknown Product',
-          console_name: product.console_name || product.console || '',
-          loose_price: product.loose_price || product.price || '',
-          cib_price: product.cib_price || product.complete_price || '',
-          new_price: product.new_price || product.sealed_price || '',
-          image_url: product.image_url || product.image || ''
-        };
+        console.log('First product structure:', products[0]);
+        console.log('First product keys:', Object.keys(products[0]));
       }
+      
+             if (products.length > 0) {
+               // Return the first (most relevant) result
+               const product = products[0];
+               return {
+                 product_id: product.id || product['product-id'] || product.product_id || '',
+                 product_name: product['product-name'] || product.product_name || product.name || product.title || 'Unknown Product',
+                 console_name: product['console-name'] || product.console_name || product.console || product.platform || '',
+                 loose_price: product['loose-price'] || product.loose_price || product.price || product.loose || '',
+                 cib_price: product['cib-price'] || product.cib_price || product.complete_price || product.complete || '',
+                 new_price: product['new-price'] || product.new_price || product.sealed_price || product.sealed || '',
+                 image_url: product['image-url'] || product.image_url || product.image || product.thumbnail || ''
+               };
+             }
     }
     return null;
   } catch (error) {

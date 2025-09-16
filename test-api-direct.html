@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct API Test</title>
+</head>
+<body>
+    <h1>Direct Price Charting API Test</h1>
+    
+    <div>
+        <input type="text" id="searchInput" placeholder="Enter product name" value="charizard">
+        <button onclick="testDirectAPI()">Test Direct API</button>
+    </div>
+    
+    <div>
+        <h2>Raw API Response:</h2>
+        <pre id="rawResponse"></pre>
+    </div>
+    
+    <div>
+        <h2>First Product Details:</h2>
+        <pre id="firstProduct"></pre>
+    </div>
+
+    <script>
+        async function testDirectAPI() {
+            const searchInput = document.getElementById('searchInput').value;
+            const rawDiv = document.getElementById('rawResponse');
+            const firstProductDiv = document.getElementById('firstProduct');
+            
+            rawDiv.textContent = 'Loading...';
+            firstProductDiv.textContent = 'Loading...';
+            
+            try {
+                // Replace with your actual API key
+                const API_KEY = 'c48c819005ad6b004f469e4e2d9329b3368ca30d';
+                const apiUrl = `https://www.pricecharting.com/api/products?q=${encodeURIComponent(searchInput)}&t=${API_KEY}`;
+                
+                console.log('Testing URL:', apiUrl.replace(API_KEY, 'HIDDEN'));
+                
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    rawDiv.textContent = `Error: ${response.status} ${response.statusText}\n${errorText}`;
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                // Show raw response
+                rawDiv.textContent = JSON.stringify(data, null, 2);
+                
+                // Show first product details
+                if (data.products && data.products.length > 0) {
+                    firstProductDiv.textContent = JSON.stringify(data.products[0], null, 2);
+                } else {
+                    firstProductDiv.textContent = 'No products found';
+                }
+                
+            } catch (error) {
+                rawDiv.textContent = 'Error: ' + error.message;
+                firstProductDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
