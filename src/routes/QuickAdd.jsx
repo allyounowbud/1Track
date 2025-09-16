@@ -494,73 +494,73 @@ export default function QuickAdd() {
             <div className="border-b border-slate-800 mt-4"></div>
           </div>
 
-          <div className="space-y-6 sm:space-y-4 md:space-y-6">
-            {/* Row 1: Order Date & Item */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
-              <div className="min-w-0">
-                <label htmlFor="order-date" className="text-slate-300 mb-2 block text-sm">Order Date</label>
-                <input
-                  id="order-date"
-                  name="order-date"
-                  type="date"
-                  value={orderDate}
-                  onChange={(e) => setOrderDate(e.target.value)}
-                  className={`${inputBase} ${dateFix}`}
-                />
-              </div>
-
-              <div className="min-w-0">
-                <label htmlFor="item" className="text-slate-300 mb-2 block text-sm">Item</label>
-                <ProductSearchDropdown
-                  value={itemName}
-                  onChange={setItemName}
-                  placeholder="Search products..."
-                  onProductSelect={async (product) => {
-                    // Create a display name that includes set information if available
-                    let displayName = product.product_name;
-                    if (product.console_name && product.console_name !== product.product_name) {
-                      displayName = `${product.product_name} - ${product.console_name}`;
-                    }
-                    setItemName(displayName);
-                    
-                    // Fetch market data for the selected product
-                    setMarketDataLoading(true);
-                    try {
-                      const marketData = await getProductMarketData(product.product_name);
-                      setSelectedProductMarketData(marketData);
-                      
-                      // Auto-fill buy price with market value if available
-                      if (marketData && marketData.loose_price) {
-                        setBuyPrice(marketData.loose_price);
-                      }
-                    } catch (error) {
-                      console.error('Error fetching market data:', error);
-                      setSelectedProductMarketData(null);
-                    } finally {
-                      setMarketDataLoading(false);
-                    }
-                  }}
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  Add "sealed" at the beginning of your search to filter sealed products only.
-                </p>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Order Date */}
+            <div className="min-w-0">
+              <label htmlFor="order-date" className="text-slate-300 mb-2 block text-sm">Order Date</label>
+              <input
+                id="order-date"
+                name="order-date"
+                type="date"
+                value={orderDate}
+                onChange={(e) => setOrderDate(e.target.value)}
+                className={`${inputBase} ${dateFix}`}
+              />
             </div>
 
-            {/* Row 2: Profile & Retailer */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
-              <div className="min-w-0">
-                <label htmlFor="profile" className="text-slate-300 mb-2 block text-sm">Profile (optional)</label>
-                <input
-                  id="profile"
-                  name="profile"
-                  value={profileName}
-                  onChange={(e) => setProfile(e.target.value)}
-                  placeholder="e.g. Target 3244"
-                  className={inputBase}
-                />
-              </div>
+            {/* Item */}
+            <div className="min-w-0">
+              <label htmlFor="item" className="text-slate-300 mb-2 block text-sm">Item</label>
+              <ProductSearchDropdown
+                value={itemName}
+                onChange={setItemName}
+                placeholder="Search products..."
+                onProductSelect={async (product) => {
+                  // Create a display name that includes set information if available
+                  let displayName = product.product_name;
+                  if (product.console_name && product.console_name !== product.product_name) {
+                    displayName = `${product.product_name} - ${product.console_name}`;
+                  }
+                  setItemName(displayName);
+                  
+                  // Fetch market data for the selected product
+                  setMarketDataLoading(true);
+                  try {
+                    const marketData = await getProductMarketData(product.product_name);
+                    setSelectedProductMarketData(marketData);
+                    
+                    // Auto-fill buy price with market value if available
+                    if (marketData && marketData.loose_price) {
+                      setBuyPrice(marketData.loose_price);
+                    }
+                  } catch (error) {
+                    console.error('Error fetching market data:', error);
+                    setSelectedProductMarketData(null);
+                  } finally {
+                    setMarketDataLoading(false);
+                  }
+                }}
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Add "sealed" at the beginning of your search to filter sealed products only.
+              </p>
+            </div>
 
+            {/* Profile */}
+            <div className="min-w-0">
+              <label htmlFor="profile" className="text-slate-300 mb-2 block text-sm">Profile (optional)</label>
+              <input
+                id="profile"
+                name="profile"
+                value={profileName}
+                onChange={(e) => setProfile(e.target.value)}
+                placeholder="e.g. Target 3244"
+                className={inputBase}
+              />
+            </div>
+
+            {/* Retailer */}
+            <div className="min-w-0">
               <SearchDropdown
                 value={retailerName}
                 onChange={setRetailerName}
@@ -574,67 +574,66 @@ export default function QuickAdd() {
               />
             </div>
 
-            {/* Row 3: Quantity & Buy Price */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
-              <div className="min-w-0">
-                <label htmlFor="quantity" className="text-slate-300 mb-2 block text-sm">Quantity</label>
-                <input
-                  id="quantity"
-                  name="quantity"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={qtyStr}
-                  onChange={(e) => {
-                    // allow empty while typing; keep only digits
-                    const v = e.target.value.replace(/[^\d]/g, "");
-                    setQtyStr(v);
-                  }}
-                  placeholder="e.g. 3"
-                  className={inputBase}
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  We'll insert that many rows and split totals equally.
-                </p>
-              </div>
+            {/* Quantity */}
+            <div className="min-w-0">
+              <label htmlFor="quantity" className="text-slate-300 mb-2 block text-sm">Quantity</label>
+              <input
+                id="quantity"
+                name="quantity"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={qtyStr}
+                onChange={(e) => {
+                  // allow empty while typing; keep only digits
+                  const v = e.target.value.replace(/[^\d]/g, "");
+                  setQtyStr(v);
+                }}
+                placeholder="e.g. 3"
+                className={inputBase}
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                We'll insert that many rows and split totals equally.
+              </p>
+            </div>
 
-              <div className="min-w-0">
-                <label htmlFor="buy-price" className="text-slate-300 mb-2 block text-sm">Buy Price (total)</label>
-                <input
-                  id="buy-price"
-                  name="buy-price"
-                  value={buyPrice}
-                  onChange={(e) => setBuyPrice(e.target.value)}
-                  placeholder="e.g. 67.70"
-                  className={inputBase}
-                />
-                {/* Market Price Suggestion */}
-                {marketDataLoading && (
-                  <p className="text-xs text-slate-500 mt-1">Loading market data...</p>
-                )}
-                {selectedProductMarketData && !marketDataLoading && (
-                  <div className="mt-2 p-2 bg-slate-800/50 rounded-lg border border-slate-700">
-                    <p className="text-xs text-slate-400 mb-1">Market Price Suggestion:</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-green-400">
-                        {getMarketValueFormatted(selectedProductMarketData)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setBuyPrice(selectedProductMarketData.loose_price || '')}
-                        className="text-xs text-blue-400 hover:text-blue-300 underline"
-                      >
-                        Use this price
-                      </button>
-                    </div>
-                    {selectedProductMarketData.console_name && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        {selectedProductMarketData.console_name}
-                      </p>
-                    )}
+            {/* Buy Price */}
+            <div className="min-w-0">
+              <label htmlFor="buy-price" className="text-slate-300 mb-2 block text-sm">Buy Price (total)</label>
+              <input
+                id="buy-price"
+                name="buy-price"
+                value={buyPrice}
+                onChange={(e) => setBuyPrice(e.target.value)}
+                placeholder="e.g. 67.70"
+                className={inputBase}
+              />
+              {/* Market Price Suggestion */}
+              {marketDataLoading && (
+                <p className="text-xs text-slate-500 mt-1">Loading market data...</p>
+              )}
+              {selectedProductMarketData && !marketDataLoading && (
+                <div className="mt-2 p-2 bg-slate-800/50 rounded-lg border border-slate-700">
+                  <p className="text-xs text-slate-400 mb-1">Market Price Suggestion:</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-green-400">
+                      {getMarketValueFormatted(selectedProductMarketData)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setBuyPrice(selectedProductMarketData.loose_price || '')}
+                      className="text-xs text-blue-400 hover:text-blue-300 underline"
+                    >
+                      Use this price
+                    </button>
                   </div>
-                )}
-              </div>
+                  {selectedProductMarketData.console_name && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      {selectedProductMarketData.console_name}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -653,35 +652,34 @@ export default function QuickAdd() {
 
           {/* Smoothly collapsing sale fields */}
           <Collapse open={sold}>
-            <div className="space-y-6 sm:space-y-4 md:space-y-6">
-              {/* Row 1: Sale Date & Sell Price */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
-                <div className="min-w-0">
-                  <label className="text-slate-300 mb-2 block text-sm">Sale Date</label>
-                  <input
-                    type="date"
-                    value={saleDate}
-                    onChange={(e) => setSaleDate(e.target.value)}
-                    className={`${inputBase} ${dateFix}`}
-                  />
-                </div>
-
-                <div className="min-w-0">
-                  <label className="text-slate-300 mb-2 block text-sm">Sell Price (total)</label>
-                  <input
-                    value={salePrice}
-                    onChange={(e) => setSalePrice(e.target.value)}
-                    placeholder="0"
-                    className={inputBase}
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    If qty &gt; 1 we'll split this total across rows.
-                  </p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Sale Date */}
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-2 block text-sm">Sale Date</label>
+                <input
+                  type="date"
+                  value={saleDate}
+                  onChange={(e) => setSaleDate(e.target.value)}
+                  className={`${inputBase} ${dateFix}`}
+                />
               </div>
 
-              {/* Row 2: Marketplace (full width) */}
+              {/* Sell Price */}
               <div className="min-w-0">
+                <label className="text-slate-300 mb-2 block text-sm">Sell Price (total)</label>
+                <input
+                  value={salePrice}
+                  onChange={(e) => setSalePrice(e.target.value)}
+                  placeholder="0"
+                  className={inputBase}
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  If qty &gt; 1 we'll split this total across rows.
+                </p>
+              </div>
+
+              {/* Marketplace */}
+              <div className="min-w-0 md:col-span-2">
                 <SearchDropdown
                   value={marketName}
                   onChange={setMarketName}
@@ -695,37 +693,36 @@ export default function QuickAdd() {
                 />
               </div>
 
-              {/* Row 3: Fees & Shipping */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
-                <div className="min-w-0">
-                  <label className="text-slate-300 mb-2 block text-sm">Fees (%)</label>
-                  <input
-                    value={feesPct}
-                    onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
-                    placeholder="e.g. 9 or 9%"
-                    disabled={feesLocked}
-                    className={`${inputBase} ${feesLocked ? disabledInput : ""}`}
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Auto filled once a marketplace is selected..
-                  </p>
-                  {feesLocked && (
-                    <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
-                  )}
-                </div>
+              {/* Fees */}
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-2 block text-sm">Fees (%)</label>
+                <input
+                  value={feesPct}
+                  onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
+                  placeholder="e.g. 9 or 9%"
+                  disabled={feesLocked}
+                  className={`${inputBase} ${feesLocked ? disabledInput : ""}`}
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Auto filled once a marketplace is selected..
+                </p>
+                {feesLocked && (
+                  <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
+                )}
+              </div>
 
-                <div className="min-w-0">
-                  <label className="text-slate-300 mb-2 block text-sm">Shipping (total)</label>
-                  <input
-                    value={shipping}
-                    onChange={(e) => setShipping(e.target.value)}
-                    className={inputBase}
-                    placeholder="0"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    If qty &gt; 1 we'll split shipping across rows.
-                  </p>
-                </div>
+              {/* Shipping */}
+              <div className="min-w-0">
+                <label className="text-slate-300 mb-2 block text-sm">Shipping (total)</label>
+                <input
+                  value={shipping}
+                  onChange={(e) => setShipping(e.target.value)}
+                  className={inputBase}
+                  placeholder="0"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  If qty &gt; 1 we'll split shipping across rows.
+                </p>
               </div>
             </div>
           </Collapse>

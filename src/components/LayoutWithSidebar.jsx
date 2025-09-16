@@ -23,6 +23,14 @@ export default function LayoutWithSidebar({ children, active, section }) {
     }
     return false;
   });
+  const [isLargeScreen, setIsLargeScreen] = useState(() => {
+    // Initialize with immediate check to prevent flash
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+      return width >= 1024; // lg breakpoint
+    }
+    return false;
+  });
   const contentRef = useRef(null);
   const location = useLocation();
 
@@ -31,7 +39,9 @@ export default function LayoutWithSidebar({ children, active, section }) {
     const checkScreenSize = () => {
       const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
       const small = width < 650; // Custom breakpoint for mobile bottom bar
+      const large = width >= 1024; // lg breakpoint
       setIsSmallScreen(small);
+      setIsLargeScreen(large);
     };
 
     checkScreenSize();
@@ -59,7 +69,7 @@ export default function LayoutWithSidebar({ children, active, section }) {
       <div className={`flex-1 flex flex-col ${
         isSmallScreen 
           ? 'main-content min-h-screen' // Use CSS class for bottom bar isolation
-          : `transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`
+          : `transition-all duration-300 ${(sidebarCollapsed || !isLargeScreen) ? 'ml-16' : 'ml-64'}`
       }`}>
         <div ref={contentRef} className="flex-1 w-full p-4 sm:p-6">
           {children}

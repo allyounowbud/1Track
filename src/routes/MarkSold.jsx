@@ -364,53 +364,53 @@ export default function MarkSold() {
             <p className="text-slate-400 text-sm -mt-1">Mark an existing order as sold</p>
             <div className="border-b border-slate-800 mt-4"></div>
           </div>
-          {/* Open purchase (searchable) */}
-          <SearchDropdown
-            value={selected ? selected.id : ""}
-            onChange={(value) => {
-              const order = openOrders.find(o => o.id === value);
-              setSelected(order || null);
-            }}
-            options={openOrders}
-            placeholder="Type to search…"
-            label="Select Open Purchase"
-            getOptionLabel={(order) => label(order)}
-            getOptionValue={(order) => order.id}
-            filterOptions={(orders, search) => {
-              if (!search.trim()) return orders.slice(0, 20);
-              return orders.filter(order => 
-                label(order).toLowerCase().includes(search.toLowerCase())
-              ).slice(0, 20);
-            }}
-          />
-
           {/* Grid of inputs (stacks on mobile) */}
-          <div className="space-y-6 sm:space-y-4 md:space-y-6">
-            {/* Row 1: Sell Price & Sale Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-2 block text-sm">Sell Price</label>
-                <input
-                  value={salePrice}
-                  onChange={(e) => setSalePrice(e.target.value)}
-                  placeholder="e.g. 120.00"
-                  className={inputBase}
-                />
-              </div>
-
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-2 block text-sm">Sale Date</label>
-                <input
-                  type="date"
-                  value={saleDate}
-                  onChange={(e) => setSaleDate(e.target.value)}
-                  className={inputBase}
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Select Open Purchase */}
+            <div className="min-w-0 md:col-span-2">
+              <SearchDropdown
+                value={selected ? selected.id : ""}
+                onChange={(value) => {
+                  const order = openOrders.find(o => o.id === value);
+                  setSelected(order || null);
+                }}
+                options={openOrders}
+                placeholder="Type to search…"
+                label="Select Open Purchase"
+                getOptionLabel={(order) => label(order)}
+                getOptionValue={(order) => order.id}
+                filterOptions={(orders, search) => {
+                  if (!search.trim()) return orders.slice(0, 20);
+                  return orders.filter(order => 
+                    label(order).toLowerCase().includes(search.toLowerCase())
+                  ).slice(0, 20);
+                }}
+              />
+            </div>
+            {/* Sell Price */}
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-2 block text-sm">Sell Price</label>
+              <input
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+                placeholder="e.g. 120.00"
+                className={inputBase}
+              />
             </div>
 
-            {/* Row 2: Marketplace (full width) */}
+            {/* Sale Date */}
             <div className="min-w-0">
+              <label className="text-slate-300 mb-2 block text-sm">Sale Date</label>
+              <input
+                type="date"
+                value={saleDate}
+                onChange={(e) => setSaleDate(e.target.value)}
+                className={inputBase}
+              />
+            </div>
+
+            {/* Marketplace (full width) */}
+            <div className="min-w-0 md:col-span-2">
               <SearchDropdown
                 value={marketName}
                 onChange={setMarketName}
@@ -424,31 +424,30 @@ export default function MarkSold() {
               />
             </div>
 
-            {/* Row 3: Fee & Shipping */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-5 md:gap-6">
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-2 block text-sm">Fee (%)</label>
-                <input
-                  value={feesPct}
-                  onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
-                  placeholder="e.g. 9 or 9.5"
-                  disabled={feesLocked}
-                  className={`${inputBase} ${feesLocked ? disabledInput : ""}`}
-                />
-                {feesLocked && (
-                  <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
-                )}
-              </div>
+            {/* Fee */}
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-2 block text-sm">Fee (%)</label>
+              <input
+                value={feesPct}
+                onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
+                placeholder="e.g. 9 or 9.5"
+                disabled={feesLocked}
+                className={`${inputBase} ${feesLocked ? disabledInput : ""}`}
+              />
+              {feesLocked && (
+                <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
+              )}
+            </div>
 
-              <div className="min-w-0">
-                <label className="text-slate-300 mb-2 block text-sm">Shipping</label>
-                <input
-                  value={shipping}
-                  onChange={(e) => setShipping(e.target.value)}
-                  className={inputBase}
-                  placeholder="0"
-                />
-              </div>
+            {/* Shipping */}
+            <div className="min-w-0">
+              <label className="text-slate-300 mb-2 block text-sm">Shipping</label>
+              <input
+                value={shipping}
+                onChange={(e) => setShipping(e.target.value)}
+                className={inputBase}
+                placeholder="0"
+              />
             </div>
           </div>
 

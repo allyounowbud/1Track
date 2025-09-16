@@ -7,7 +7,7 @@ import { card } from "../utils/ui.js";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 
 const tile =
-  "group rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 transition p-5 flex items-start gap-4";
+  "group rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 transition p-4 sm:p-5 flex items-start gap-4";
 
 export default function Hub() {
   const userInfo = useAuth();
@@ -1094,7 +1094,7 @@ export default function Hub() {
         <div className={`${card} mb-6`}>
           <h2 className="text-lg font-semibold mb-4">Choose a workspace</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <Link to="/orders" className={tile}>
               <div className="h-12 w-12 rounded-xl bg-slate-500/20 grid place-items-center text-slate-300">
                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

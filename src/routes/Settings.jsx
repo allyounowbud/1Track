@@ -7,43 +7,25 @@ import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
 import { CategoryItemRow, NewCategoryRowComponent, SimpleItemRow, NewSimpleRowComponent } from "../components/CategoryComponents.jsx";
+import UnifiedProductsCard from "../components/UnifiedProductsCard.jsx";
 import { moneyToCents, centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm, headerIconBtn, headerGhostBtn, iconSave, iconSaveBusy, iconDelete } from "../utils/ui.js";
 import { getBatchMarketData, getMarketValueInCents, getMarketValueFormatted } from "../services/marketDataService.js";
 
 /* ---------- queries ---------- */
+async function getProducts() {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, category, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name, search_terms")
+    .order("category, name", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
 async function getItems() {
   const { data, error } = await supabase
     .from("items")
     .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override")
-    .order("name", { ascending: true });
-  if (error) throw error;
-  return data;
-}
-
-// Category-specific queries
-async function getTCGSealed() {
-  const { data, error } = await supabase
-    .from("tcg_sealed")
-    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name, game_type")
-    .order("name", { ascending: true });
-  if (error) throw error;
-  return data;
-}
-
-async function getTCGSingles() {
-  const { data, error } = await supabase
-    .from("tcg_singles")
-    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name, game_type")
-    .order("name", { ascending: true });
-  if (error) throw error;
-  return data;
-}
-
-async function getVideoGames() {
-  const { data, error } = await supabase
-    .from("video_games")
-    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name")
     .order("name", { ascending: true });
   if (error) throw error;
   return data;
@@ -73,23 +55,19 @@ export default function Settings() {
   const activeTab = location.pathname.split('/')[2] || 'products';
   const [productsView, setProductsView] = useState('sealed'); // 'sealed' or 'singles'
 
-  // Category-specific queries
-  const { data: tcgSealed = [], refetch: refetchTCGSealed } = useQuery({
-    queryKey: ["tcg_sealed"],
-    queryFn: getTCGSealed,
-  });
-  
-  const { data: tcgSingles = [], refetch: refetchTCGSingles } = useQuery({
-    queryKey: ["tcg_singles"],
-    queryFn: getTCGSingles,
-  });
-  
-  const { data: videoGames = [], refetch: refetchVideoGames } = useQuery({
-    queryKey: ["video_games"],
-    queryFn: getVideoGames,
+  // Unified products query
+  const { data: allProducts = [], refetch: refetchProducts } = useQuery({
+    queryKey: ["products"],
+    queryFn: getProducts,
   });
 
-  // Keep the old items query for backward compatibility during transition
+  // Helper functions to filter products by category
+  const tcgSealed = allProducts.filter(p => p.category === 'tcg_sealed');
+  const tcgSingles = allProducts.filter(p => p.category === 'tcg_singles');
+  const videoGames = allProducts.filter(p => p.category === 'video_games');
+  const otherItems = allProducts.filter(p => p.category === 'other_items');
+
+  // Legacy queries for backward compatibility (will be removed after migration)
   const { data: items = [], refetch: refetchItems } = useQuery({
     queryKey: ["items"],
     queryFn: getItems,
@@ -132,7 +110,12 @@ export default function Settings() {
     queryFn: getMarkets,
   });
 
-  // Category-specific states
+  // Unified products state
+  const [selectedProducts, setSelectedProducts] = useState(new Set());
+  const [newProductRows, setNewProductRows] = useState([]);
+  const [expandedCategories, setExpandedCategories] = useState(new Set(['tcg_sealed'])); // Default to TCG Sealed expanded
+  
+  // Legacy states for backward compatibility
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [selectedTCGSealed, setSelectedTCGSealed] = useState(new Set());
   const [selectedTCGSingles, setSelectedTCGSingles] = useState(new Set());
@@ -140,7 +123,7 @@ export default function Settings() {
   const [selectedRetailers, setSelectedRetailers] = useState(new Set());
   const [selectedMarkets, setSelectedMarkets] = useState(new Set());
   
-  // Category-specific new row states
+  // Legacy new row states
   const [newItemRows, setNewItemRows] = useState([]);
   const [newTCGSealedRows, setNewTCGSealedRows] = useState([]);
   const [newTCGSinglesRows, setNewTCGSinglesRows] = useState([]);
@@ -151,7 +134,7 @@ export default function Settings() {
   const [nextNewRowId, setNextNewRowId] = useState(-1);
   
   // Single card expansion state
-  const [expandedCard, setExpandedCard] = useState(null); // 'items', 'retailers', 'markets', 'tcg_sealed', 'tcg_singles', 'video_games', or null
+  const [expandedCard, setExpandedCard] = useState(null);
 
   // Function to clear all unsaved changes
   const clearAllUnsavedChanges = () => {
@@ -483,16 +466,133 @@ export default function Settings() {
     
     try {
       const { error } = await supabase
-        .from('tcg_sealed')
+        .from('products')
         .delete()
         .in('id', selectedIds);
       
       if (error) throw error;
-      await refetchTCGSealed();
+      await refetchProducts();
       setSelectedTCGSealed(new Set());
     } catch (e) {
       alert(`Failed to delete: ${e.message}`);
     }
+  }
+
+  /* ----- Unified Products Operations ----- */
+  
+  // Unified Products Operations
+  function toggleProductSelection(rowId) {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(rowId)) {
+      const isNewRow = rowId < 0;
+      if (isNewRow) return;
+      newSelected.delete(rowId);
+    } else {
+      if (newProductRows.length > 0) {
+        setSelectedProducts(new Set([rowId]));
+        return;
+      }
+      newSelected.add(rowId);
+    }
+    setSelectedProducts(newSelected);
+  }
+
+  function addNewProductRow(category = 'tcg_sealed') {
+    if (newProductRows.length > 0) return; // Only allow one new row at a time
+    
+    const newId = nextNewRowId;
+    setNextNewRowId(newId - 1);
+    setNewProductRows(prev => [...prev, { 
+      id: newId, 
+      category, 
+      isNew: true,
+      name: '',
+      market_value_cents: 0
+    }]);
+    setSelectedProducts(new Set([newId]));
+    setExpandedCategories(prev => new Set([...prev, category])); // Auto-expand the category
+  }
+
+  // Unified Products Bulk Operations
+  function toggleAllProductsSelection(category) {
+    if (category === 'all') {
+      // Handle select all for all products
+      if (selectedProducts.size === allProducts.length) {
+        if (newProductRows.length > 0) return;
+        setSelectedProducts(new Set());
+      } else {
+        const newSelected = new Set(selectedProducts);
+        allProducts.forEach(product => newSelected.add(product.id));
+        setSelectedProducts(newSelected);
+      }
+    } else {
+      // Handle select all for specific category
+      const categoryProducts = allProducts.filter(p => p.category === category);
+      const categorySelected = Array.from(selectedProducts).filter(id => {
+        const product = allProducts.find(p => p.id === id);
+        return product && product.category === category;
+      });
+      
+      if (categorySelected.length === categoryProducts.length) {
+        if (newProductRows.length > 0) return;
+        // Remove all selections for this category
+        const newSelected = new Set(selectedProducts);
+        categorySelected.forEach(id => newSelected.delete(id));
+        setSelectedProducts(newSelected);
+      } else {
+        // Select all products in this category
+        const newSelected = new Set(selectedProducts);
+        categoryProducts.forEach(product => newSelected.add(product.id));
+        setSelectedProducts(newSelected);
+      }
+    }
+  }
+
+  async function bulkSaveProducts() {
+    setSelectedProducts(new Set());
+  }
+
+  async function bulkDeleteProducts() {
+    const selectedIds = Array.from(selectedProducts).filter(id => id > 0);
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.length} product(s)? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      await refetchProducts();
+      setSelectedProducts(new Set());
+    } catch (e) {
+      alert(`Failed to delete: ${e.message}`);
+    }
+  }
+
+  // Category toggle functions
+  function toggleCategoryExpansion(category) {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
+  }
+
+  // Remove new row function
+  function removeNewRow(rowId) {
+    setNewProductRows(prev => prev.filter(row => row.id !== rowId));
+    setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(rowId);
+      return newSet;
+    });
   }
 
   /* ----- Other Items Operations ----- */
@@ -520,18 +620,18 @@ export default function Settings() {
     
     const newId = nextNewRowId;
     setNextNewRowId(newId - 1);
-    setNewItemRows(prev => [...prev, { id: newId, type: 'item', isNew: true }]);
+    setNewItemRows(prev => [...prev, { id: newId, category: 'other_items', isNew: true }]);
     setSelectedItems(new Set([newId]));
     setExpandedCard('items'); // Auto-expand the card when adding a new row
   }
 
   // Other Items Bulk Operations
   function toggleAllItemsSelection() {
-    if (selectedItems.size === items.length) {
+    if (selectedItems.size === otherItems.length) {
       if (hasNewItemRows) return;
       setSelectedItems(new Set());
     } else {
-      const allIds = items.map(item => item.id);
+      const allIds = otherItems.map(item => item.id);
       setSelectedItems(new Set(allIds));
     }
   }
@@ -548,12 +648,12 @@ export default function Settings() {
     
     try {
       const { error } = await supabase
-        .from('items')
+        .from('products')
         .delete()
         .in('id', selectedIds);
       
       if (error) throw error;
-      await refetchItems();
+      await refetchProducts();
       setSelectedItems(new Set());
     } catch (e) {
       alert(`Failed to delete: ${e.message}`);
@@ -618,12 +718,12 @@ export default function Settings() {
     
     try {
       const { error } = await supabase
-        .from('video_games')
+        .from('products')
         .delete()
         .in('id', selectedIds);
       
       if (error) throw error;
-      await refetchVideoGames();
+      await refetchProducts();
       setSelectedVideoGames(new Set());
     } catch (e) {
       alert(`Failed to delete: ${e.message}`);
@@ -950,189 +1050,24 @@ function SettingsCard({
           </button>
       </div>
 
-          {/* Sealed View */}
+          {/* Unified Products View */}
           {productsView === 'sealed' && (
-            <>
-              {/* TCG Sealed Card */}
-              {(!hasAnyNewRows || hasNewTCGSealedRows) && (
-                <SettingsCard
-                  title="TCG Sealed"
-                  totalCount={tcgSealed.length}
-                  selectedRows={selectedTCGSealed}
-                  newRows={newTCGSealedRows}
-                  hasNewRows={hasNewTCGSealedRows}
-                  toggleAllSelection={toggleAllTCGSealedSelection}
-                  bulkSave={bulkSaveTCGSealed}
-                  bulkDelete={bulkDeleteTCGSealed}
-                  cancelNewRows={() => {
-                    setNewTCGSealedRows([]);
-                    setSelectedTCGSealed(new Set());
-                  }}
-                  addNewRow={addNewTCGSealedRow}
-                  clearSelection={() => setSelectedTCGSealed(new Set())}
-                  data={tcgSealed}
-                  newRowsData={newTCGSealedRows}
-                  onRowToggle={toggleTCGSealedSelection}
-                  renderRow={(item) => (
-                    <CategoryItemRow
-                      key={item.id}
-                      item={item}
-                      isSelected={selectedTCGSealed.has(item.id)}
-                      onToggleSelection={() => toggleTCGSealedSelection(item.id)}
-                      onSave={() => refetchTCGSealed()}
-                      disabled={hasNewTCGSealedRows}
-                      category="tcg_sealed"
-                      isCheckboxDisabled={hasNewTCGSealedRows}
-                      gameType={item.game_type}
-                      marketData={marketData}
-                      marketDataLoading={marketDataLoading}
-                    />
-                  )}
-                  renderNewRow={(newRow) => (
-                    <NewCategoryRowComponent
-                      key={newRow.id}
-                      row={newRow}
-                      isSelected={selectedTCGSealed.has(newRow.id)}
-                      onToggleSelection={() => toggleTCGSealedSelection(newRow.id)}
-                      onSave={(data) => {
-                        setNewTCGSealedRows(prev => prev.filter(row => row.id !== newRow.id));
-                        setSelectedTCGSealed(new Set());
-                        refetchTCGSealed();
-                      }}
-                      onCancel={() => {
-                        setNewTCGSealedRows(prev => prev.filter(row => row.id !== newRow.id));
-                        setSelectedTCGSealed(new Set());
-                      }}
-                    />
-                  )}
-                  cardType="tcg_sealed"
-              isExpanded={expandedCard === 'tcg_sealed' || hasNewTCGSealedRows}
-              onToggleExpansion={() => {
-                if (hasNewTCGSealedRows) return; // Prevent collapse when this card has new rows
-                setExpandedCard(expandedCard === 'tcg_sealed' ? null : 'tcg_sealed');
-              }}
-                />
-              )}
-
-              {/* Video Games Card */}
-              {(!hasAnyNewRows || hasNewVideoGameRows) && (
-                <SettingsCard
-                  title="Video Games"
-                  totalCount={videoGames.length}
-                  selectedRows={selectedVideoGames}
-                  newRows={newVideoGameRows}
-                  hasNewRows={hasNewVideoGameRows}
-                  toggleAllSelection={toggleAllVideoGamesSelection}
-                  bulkSave={bulkSaveVideoGames}
-                  bulkDelete={bulkDeleteVideoGames}
-                  cancelNewRows={() => {
-                    setNewVideoGameRows([]);
-                    setSelectedVideoGames(new Set());
-                  }}
-                  addNewRow={addNewVideoGameRow}
-                  clearSelection={() => setSelectedVideoGames(new Set())}
-                  data={videoGames}
-                  newRowsData={newVideoGameRows}
-                  onRowToggle={toggleVideoGameSelection}
-                  renderRow={(game) => (
-                    <CategoryItemRow
-                      key={game.id}
-                      item={game}
-                      isSelected={selectedVideoGames.has(game.id)}
-                      onToggleSelection={() => toggleVideoGameSelection(game.id)}
-                      onSave={() => refetchVideoGames()}
-                      disabled={hasNewVideoGameRows}
-                      category="video_games"
-                      isCheckboxDisabled={hasNewVideoGameRows}
-                      marketData={marketData}
-                      marketDataLoading={marketDataLoading}
-                    />
-                  )}
-                  renderNewRow={(newRow) => (
-                    <NewCategoryRowComponent
-                      key={newRow.id}
-                      row={newRow}
-                      isSelected={selectedVideoGames.has(newRow.id)}
-                      onToggleSelection={() => toggleVideoGameSelection(newRow.id)}
-                      onSave={(data) => {
-                        setNewVideoGameRows(prev => prev.filter(row => row.id !== newRow.id));
-                        setSelectedVideoGames(new Set());
-                        refetchVideoGames();
-                      }}
-                      onCancel={() => {
-                        setNewVideoGameRows(prev => prev.filter(row => row.id !== newRow.id));
-                        setSelectedVideoGames(new Set());
-                      }}
-                    />
-                  )}
-                  cardType="video_games"
-              isExpanded={expandedCard === 'video_games' || hasNewVideoGameRows}
-              onToggleExpansion={() => {
-                if (hasNewVideoGameRows) return; // Prevent collapse when this card has new rows
-                setExpandedCard(expandedCard === 'video_games' ? null : 'video_games');
-              }}
-                />
-              )}
-
-              {/* Other Items Card */}
-              {(!hasAnyNewRows || hasNewItemRows) && (
-                <SettingsCard
-                  title="Other Items"
-                  totalCount={items.length}
-                  selectedRows={selectedItems}
-                  newRows={newItemRows}
-                  hasNewRows={hasNewItemRows}
-                  toggleAllSelection={toggleAllItemsSelection}
-                  bulkSave={bulkSaveItems}
-                  bulkDelete={bulkDeleteItems}
-                  cancelNewRows={() => {
-                    setNewItemRows([]);
-                    setSelectedItems(new Set());
-                  }}
-                  addNewRow={addNewItemRow}
-                  clearSelection={() => setSelectedItems(new Set())}
-                  data={items}
-                  newRowsData={newItemRows}
-                  onRowToggle={toggleItemsSelection}
-                  renderRow={(item) => (
-                    <CategoryItemRow
-                      key={item.id}
-                      item={item}
-                      isSelected={selectedItems.has(item.id)}
-                      onToggleSelection={() => toggleItemsSelection(item.id)}
-                      onSave={() => refetchItems()}
-                      disabled={hasNewItemRows}
-                      category="items"
-                      isCheckboxDisabled={hasNewItemRows}
-                    />
-                  )}
-                  renderNewRow={(newRow) => (
-                    <NewCategoryRowComponent
-                      key={newRow.id}
-                      row={newRow}
-                      isSelected={selectedItems.has(newRow.id)}
-                      onToggleSelection={() => toggleItemsSelection(newRow.id)}
-                      onSave={(data) => {
-                        setNewItemRows(prev => prev.filter(row => row.id !== newRow.id));
-                        setSelectedItems(new Set());
-                        refetchItems();
-                      }}
-                      onCancel={() => {
-                        setNewItemRows(prev => prev.filter(row => row.id !== newRow.id));
-                        setSelectedItems(new Set());
-                      }}
-                    />
-                  )}
-                  cardType="items"
-              isExpanded={expandedCard === 'items' || hasNewItemRows}
-              onToggleExpansion={() => {
-                if (hasNewItemRows) return; // Prevent collapse when this card has new rows
-                setExpandedCard(expandedCard === 'items' ? null : 'items');
-              }}
-                />
-              )}
-
-            </>
+            <UnifiedProductsCard
+              products={allProducts}
+              selectedProducts={selectedProducts}
+              newProductRows={newProductRows}
+              expandedCategories={expandedCategories}
+              onToggleProductSelection={toggleProductSelection}
+              onToggleAllProductsSelection={toggleAllProductsSelection}
+              onAddNewProductRow={addNewProductRow}
+              onBulkSave={bulkSaveProducts}
+              onBulkDelete={bulkDeleteProducts}
+              onToggleCategoryExpansion={toggleCategoryExpansion}
+              onRefetch={refetchProducts}
+              onRemoveNewRow={removeNewRow}
+              marketData={marketData}
+              marketDataLoading={marketDataLoading}
+            />
           )}
 
           {/* Singles View */}

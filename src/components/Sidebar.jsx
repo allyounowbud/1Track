@@ -24,6 +24,14 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     }
     return false;
   });
+  const [isLargeScreen, setIsLargeScreen] = useState(() => {
+    // Initialize with immediate check to prevent flash
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+      return width >= 1024; // lg breakpoint
+    }
+    return false;
+  });
 
   useEffect(() => {
     async function loadUser() {
@@ -63,9 +71,17 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     const checkScreenSize = () => {
       const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
       const small = width < 650; // Custom breakpoint for mobile bottom bar
+      const large = width >= 1024; // lg breakpoint
       setIsSmallScreen(small);
+      setIsLargeScreen(large);
       // Force collapse on small screens
       if (small && !isCollapsed) {
+        setIsCollapsed(true);
+        localStorage.setItem('sidebar-collapsed', JSON.stringify(true));
+        onCollapseChange?.(true);
+      }
+      // Force collapse on mid-size screens (not large screens)
+      if (!small && !large && !isCollapsed) {
         setIsCollapsed(true);
         localStorage.setItem('sidebar-collapsed', JSON.stringify(true));
         onCollapseChange?.(true);
@@ -203,29 +219,31 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
               <span className="text-xs text-slate-500 font-medium mb-1 -ml-1">BETA</span>
             </div>
           )}
-          {/* Show expand/collapse button on large screens */}
-          <button
-            onClick={() => {
-              const newCollapsed = !isCollapsed;
-              setIsCollapsed(newCollapsed);
-              // Save to localStorage to persist across page navigation
-              localStorage.setItem('sidebar-collapsed', JSON.stringify(newCollapsed));
-              onCollapseChange?.(newCollapsed);
-            }}
-            className={`${isCollapsed 
-              ? "flex items-center justify-center w-10 h-10 rounded-lg transition-colors" 
-              : "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
-            } text-slate-300 hover:text-slate-100 hover:bg-slate-800/50`}
-          >
-            <svg 
-              className={`h-5 w-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
+          {/* Show expand/collapse button only on large screens */}
+          {isLargeScreen && (
+            <button
+              onClick={() => {
+                const newCollapsed = !isCollapsed;
+                setIsCollapsed(newCollapsed);
+                // Save to localStorage to persist across page navigation
+                localStorage.setItem('sidebar-collapsed', JSON.stringify(newCollapsed));
+                onCollapseChange?.(newCollapsed);
+              }}
+              className={`${isCollapsed 
+                ? "flex items-center justify-center w-10 h-10 rounded-lg transition-colors" 
+                : "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
+              } text-slate-300 hover:text-slate-100 hover:bg-slate-800/50`}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+              <svg 
+                className={`h-5 w-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

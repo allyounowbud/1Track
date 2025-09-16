@@ -293,23 +293,6 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
             isCheckboxDisabled ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         />
-          {/* Pricing source indicator */}
-          <div 
-            className={`w-2 h-2 rounded-full flex-shrink-0 ${
-              item?.price_source === 'api' || item?.api_product_id 
-                ? 'bg-blue-400' 
-                : item?.price_source === 'manual' || item?.manual_override
-                  ? 'bg-slate-400'
-                  : 'bg-slate-500'
-            }`}
-            title={
-              item?.price_source === 'api' || item?.api_product_id 
-                ? 'API Connected - Automatic Pricing' 
-                : item?.price_source === 'manual' || item?.manual_override
-                  ? 'Manual Entry - User Set Pricing'
-                  : 'Unknown Pricing Source'
-            }
-          />
         </div>
         
         <div onClick={(e) => e.stopPropagation()}>
