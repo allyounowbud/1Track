@@ -342,6 +342,9 @@ export default function OrderBook() {
 
         if (insertError) {
           console.error("Insert error:", insertError);
+          if (insertError.code === '23505') {
+            throw new Error("Database constraint violation. Please try again or contact support if this persists.");
+          }
           throw insertError;
         }
         
@@ -375,6 +378,9 @@ export default function OrderBook() {
 
           if (updateError) {
             console.error(`Update error for order ${row.id}:`, updateError);
+            if (updateError.code === '23505') {
+              throw new Error(`Database constraint violation. Please try again or contact support if this persists.`);
+            }
             throw updateError;
           }
           
@@ -1493,7 +1499,12 @@ function OrderRow({ order, items, retailers, markets, marketData, marketDataLoad
         status: statusValue,
       };
       const { error } = await supabase.from("orders").update(payload).eq("id", order.id);
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error("Database constraint violation. Please try again or contact support if this persists.");
+        }
+        throw error;
+      }
       setMsg("Saved ✓");
       onSaved && onSaved();
       setTimeout(() => setMsg(""), 1500);
