@@ -20,3 +20,15 @@ All notable changes to this project will be documented in this file.
 - Images are now pulled from PriceCharting API and displayed in the collection page
 - Added proper image optimization with lazy loading
 - Improved accessibility with proper alt text and tooltips
+
+## [Unreleased] - Database Bulk Delete Debug
+
+### Debug
+- Added comprehensive debug logging to bulk delete functions in database/products page
+- Added logging to button visibility logic to help diagnose bulk delete button issues
+- Enhanced error handling and user feedback for bulk delete operations
+
+### Fixed
+- Fixed bulk delete functionality for all database cards (Video Games, Products, Retailers, Marketplaces)
+- Ensured all bulk delete functions have consistent debug logging and error handling
+- All bulk delete functions now work consistently like the TCG Sealed card

@@ -287,21 +287,38 @@ export default function Settings() {
   }
 
   async function bulkDeleteItems() {
+    console.log('bulkDeleteItems called');
+    console.log('selectedItems:', selectedItems);
     const selectedIds = Array.from(selectedItems).filter(id => id > 0);
-    if (selectedIds.length === 0) return;
+    console.log('selectedIds after filtering:', selectedIds);
     
-    if (!confirm(`Delete ${selectedIds.length} item(s)? This action cannot be undone.`)) return;
+    if (selectedIds.length === 0) {
+      console.log('No valid IDs to delete');
+      return;
+    }
+    
+    if (!confirm(`Delete ${selectedIds.length} item(s)? This action cannot be undone.`)) {
+      console.log('User cancelled deletion');
+      return;
+    }
     
     try {
+      console.log('Attempting to delete IDs:', selectedIds);
       const { error } = await supabase
         .from('items')
         .delete()
         .in('id', selectedIds);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
+      }
+      
+      console.log('Successfully deleted items');
       await refetchItems();
-    setSelectedItems(new Set());
+      setSelectedItems(new Set());
     } catch (e) {
+      console.error('Delete operation failed:', e);
       alert(`Failed to delete: ${e.message}`);
     }
   }
@@ -352,21 +369,38 @@ export default function Settings() {
   }
 
   async function bulkDeleteRetailers() {
+    console.log('bulkDeleteRetailers called');
+    console.log('selectedRetailers:', selectedRetailers);
     const selectedIds = Array.from(selectedRetailers).filter(id => id > 0);
-    if (selectedIds.length === 0) return;
+    console.log('selectedIds after filtering:', selectedIds);
     
-    if (!confirm(`Delete ${selectedIds.length} retailer(s)? This action cannot be undone.`)) return;
+    if (selectedIds.length === 0) {
+      console.log('No valid IDs to delete');
+      return;
+    }
+    
+    if (!confirm(`Delete ${selectedIds.length} retailer(s)? This action cannot be undone.`)) {
+      console.log('User cancelled deletion');
+      return;
+    }
     
     try {
+      console.log('Attempting to delete IDs:', selectedIds);
       const { error } = await supabase
         .from('retailers')
         .delete()
         .in('id', selectedIds);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
+      }
+      
+      console.log('Successfully deleted retailers');
       await refetchRetailers();
-    setSelectedRetailers(new Set());
+      setSelectedRetailers(new Set());
     } catch (e) {
+      console.error('Delete operation failed:', e);
       alert(`Failed to delete: ${e.message}`);
     }
   }
@@ -417,21 +451,38 @@ export default function Settings() {
   }
 
   async function bulkDeleteMarkets() {
+    console.log('bulkDeleteMarkets called');
+    console.log('selectedMarkets:', selectedMarkets);
     const selectedIds = Array.from(selectedMarkets).filter(id => id > 0);
-    if (selectedIds.length === 0) return;
+    console.log('selectedIds after filtering:', selectedIds);
     
-    if (!confirm(`Delete ${selectedIds.length} marketplace(s)? This action cannot be undone.`)) return;
+    if (selectedIds.length === 0) {
+      console.log('No valid IDs to delete');
+      return;
+    }
+    
+    if (!confirm(`Delete ${selectedIds.length} marketplace(s)? This action cannot be undone.`)) {
+      console.log('User cancelled deletion');
+      return;
+    }
     
     try {
-    const { error } = await supabase
+      console.log('Attempting to delete IDs:', selectedIds);
+      const { error } = await supabase
         .from('marketplaces')
-      .delete()
+        .delete()
         .in('id', selectedIds);
-    
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
+      }
+      
+      console.log('Successfully deleted marketplaces');
       await refetchMarkets();
       setSelectedMarkets(new Set());
     } catch (e) {
+      console.error('Delete operation failed:', e);
       alert(`Failed to delete: ${e.message}`);
     }
   }
@@ -540,21 +591,38 @@ export default function Settings() {
   }
 
   async function bulkDeleteTCGSealed() {
+    console.log('bulkDeleteTCGSealed called');
+    console.log('selectedTCGSealed:', selectedTCGSealed);
     const selectedIds = Array.from(selectedTCGSealed).filter(id => id > 0);
-    if (selectedIds.length === 0) return;
+    console.log('selectedIds after filtering:', selectedIds);
     
-    if (!confirm(`Delete ${selectedIds.length} TCG sealed item(s)? This action cannot be undone.`)) return;
+    if (selectedIds.length === 0) {
+      console.log('No valid IDs to delete');
+      return;
+    }
+    
+    if (!confirm(`Delete ${selectedIds.length} TCG sealed item(s)? This action cannot be undone.`)) {
+      console.log('User cancelled deletion');
+      return;
+    }
     
     try {
+      console.log('Attempting to delete IDs:', selectedIds);
       const { error } = await supabase
         .from('tcg_sealed')
         .delete()
         .in('id', selectedIds);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
+      }
+      
+      console.log('Successfully deleted items');
       await refetchTCGSealed();
       setSelectedTCGSealed(new Set());
     } catch (e) {
+      console.error('Delete operation failed:', e);
       alert(`Failed to delete: ${e.message}`);
     }
   }
@@ -575,21 +643,38 @@ export default function Settings() {
   }
 
   async function bulkDeleteTCGSingles() {
+    console.log('bulkDeleteTCGSingles called');
+    console.log('selectedTCGSingles:', selectedTCGSingles);
     const selectedIds = Array.from(selectedTCGSingles).filter(id => id > 0);
-    if (selectedIds.length === 0) return;
+    console.log('selectedIds after filtering:', selectedIds);
     
-    if (!confirm(`Delete ${selectedIds.length} TCG singles item(s)? This action cannot be undone.`)) return;
+    if (selectedIds.length === 0) {
+      console.log('No valid IDs to delete');
+      return;
+    }
+    
+    if (!confirm(`Delete ${selectedIds.length} TCG singles item(s)? This action cannot be undone.`)) {
+      console.log('User cancelled deletion');
+      return;
+    }
     
     try {
+      console.log('Attempting to delete IDs:', selectedIds);
       const { error } = await supabase
         .from('tcg_singles')
         .delete()
         .in('id', selectedIds);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
+      }
+      
+      console.log('Successfully deleted items');
       await refetchTCGSingles();
       setSelectedTCGSingles(new Set());
     } catch (e) {
+      console.error('Delete operation failed:', e);
       alert(`Failed to delete: ${e.message}`);
     }
   }
@@ -610,21 +695,38 @@ export default function Settings() {
   }
 
   async function bulkDeleteVideoGames() {
+    console.log('bulkDeleteVideoGames called');
+    console.log('selectedVideoGames:', selectedVideoGames);
     const selectedIds = Array.from(selectedVideoGames).filter(id => id > 0);
-    if (selectedIds.length === 0) return;
+    console.log('selectedIds after filtering:', selectedIds);
     
-    if (!confirm(`Delete ${selectedIds.length} video game(s)? This action cannot be undone.`)) return;
+    if (selectedIds.length === 0) {
+      console.log('No valid IDs to delete');
+      return;
+    }
+    
+    if (!confirm(`Delete ${selectedIds.length} video game(s)? This action cannot be undone.`)) {
+      console.log('User cancelled deletion');
+      return;
+    }
     
     try {
+      console.log('Attempting to delete IDs:', selectedIds);
       const { error } = await supabase
         .from('video_games')
         .delete()
         .in('id', selectedIds);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
+      }
+      
+      console.log('Successfully deleted items');
       await refetchVideoGames();
       setSelectedVideoGames(new Set());
     } catch (e) {
+      console.error('Delete operation failed:', e);
       alert(`Failed to delete: ${e.message}`);
     }
   }
@@ -768,6 +870,15 @@ function SettingsCard({
                 const selectedItems = Array.from(selectedRows);
                 const hasNewRowsInSelection = selectedItems.some(id => id < 0);
                 const hasExistingRows = selectedItems.some(id => id > 0);
+                
+                // Debug logging for button visibility
+                console.log(`Button visibility for ${title}:`, {
+                  hasSelection,
+                  selectedItems,
+                  hasNewRowsInSelection,
+                  hasExistingRows,
+                  selectedRowsSize: selectedRows.size
+                });
                 
                     // Default state: no selection - show add button
                 if (!hasSelection) {
