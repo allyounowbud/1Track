@@ -27,6 +27,86 @@ export default function Hub() {
   // Changelog data with version numbers
   const changelogData = [
     {
+      title: "Simplified Retailers and Marketplaces - Name-Only Interface",
+      description: "Created dedicated SimpleItemRow and NewSimpleRowComponent for retailers and marketplaces that only display the name field, removing unnecessary product-related columns like market value, UPC codes, and console names. The retailers and marketplaces sections now have a clean, focused interface with just the name column and action buttons. Updated column headers to be conditional based on card type, showing only 'Name' for retailers/marketplaces while maintaining the full product layout for other categories. This provides a more appropriate and streamlined interface for managing simple name-based data.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "08:15",
+      author: "Development Team"
+    },
+    {
+      title: "Enhanced Retailers and Marketplaces - Full SettingsCard Functionality",
+      description: "Upgraded the Retailers and Marketplaces sections to use the same SettingsCard component as products, providing full bulk actions, selection management, and add functionality. Both sections now include bulk save/delete operations, row selection with checkboxes, focused editing mode, and proper empty state messages with clickable 'add new' links. The empty state messages are contextually appropriate: 'No retailers yet. Click + add new retailer.' and 'No marketplaces yet. Click + add new marketplace.' This creates a consistent user experience across all database sections with the same professional styling and functionality.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "08:10",
+      author: "Development Team"
+    },
+    {
+      title: "Removed Database Tab from Order Book Navigation - Cleaner Sidebar",
+      description: "Removed the Database tab from the Order Book section's navigation sidebar to reduce clutter and improve focus. The Database functionality remains fully accessible from the main homepage navigation, but no longer appears in the Order Book section's sidebar. This creates a cleaner, more focused navigation experience for users working within the Order Book section, while maintaining easy access to the Database section when needed from the main workspace navigation.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "08:00",
+      author: "Development Team"
+    },
+    {
+      title: "Standardized Empty State Messages - Consistent UX Across Product Categories",
+      description: "Standardized the empty state messages for all product categories (Other Items, TCG Sealed, TCG Singles, and Video Games) to use a consistent format. All product categories now display 'No items yet. Click (+ add new) order.' with a clickable '(+ add new)' link that directly triggers the add new row functionality. This creates a uniform user experience across all product categories while maintaining the specific messaging for retailers and marketplaces. The consistent format makes it easier for users to understand how to add items regardless of which category they're working with.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "07:50",
+      author: "Development Team"
+    },
+    {
+      title: "Improved Empty State UI - Cleaner Interface for New Categories",
+      description: "Enhanced the empty state experience for database categories with no items. When a category has no items, the bulk action selector row and column headers are now hidden, creating a cleaner interface. The empty state message now includes a clickable '+ add [category]' link that directly triggers the add new row functionality, making it more intuitive for users to start adding items. This provides a better user experience by removing unnecessary UI elements when there's no data to manage and providing a clear call-to-action for new users.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "07:45",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed + Add Button Reference Error - Resolved Item Undefined Issue",
+      description: "Fixed critical ReferenceError when clicking the + Add button in the database products page. The issue was in the NewCategoryRowComponent where pricing source indicators were trying to reference an undefined 'item' variable. The NewCategoryRowComponent is for creating new items and doesn't have an existing item to reference. Removed the pricing source indicators from new row components since they don't have pricing source information yet. The + Add button now works correctly for all categories without throwing JavaScript errors, allowing users to successfully add new items to their database.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "07:40",
+      author: "Development Team"
+    },
+    {
+      title: "Fixed + Add Button Error - Corrected Database Table Mapping",
+      description: "Fixed critical error when clicking the + Add button in the database products page. The issue was in the NewCategoryRowComponent's getTableName function which was missing the 'item' type mapping, causing new items to be inserted into the wrong table. Added proper table mapping for all item types: 'item' → 'items', 'tcg_sealed' → 'tcg_sealed', 'tcg_singles' → 'tcg_singles', and 'video_game' → 'video_games'. Also changed the default case from 'tcg_sealed' to 'items' for better fallback behavior. Users can now successfully add new items to all categories without encountering database errors.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "07:35",
+      author: "Development Team"
+    },
+    {
+      title: "Added Pricing Source Indicators - Visual API/Manual Entry Status",
+      description: "Added small color-coded indicators to all database rows showing the pricing source status. Green dots indicate items connected to API/CSV with automatic pricing updates, blue dots show manually entered items with user-set pricing, and gray dots indicate unknown pricing sources. The indicators appear next to checkboxes on desktop and next to item names on mobile, with helpful tooltips explaining each status. This provides immediate visual feedback about which items are automatically updated versus manually managed, helping users understand their data sources at a glance.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "07:30",
+      author: "Development Team"
+    },
+    {
+      title: "Added Other Items Card - Restored Missing Products with Full Functionality",
+      description: "Added back the 'Other Items' card (formerly 'Products') to the database products page, which contains the existing 50+ items from the items table. Restored all proper SettingsCard styling and bulk operations functionality including expandable cards, selection management, bulk save/delete operations, and focused editing mode. The Other Items card now appears in the Sealed view alongside TCG Sealed and Video Games cards, maintaining the same professional styling and functionality as the rest of the application. Users can now manage their existing product inventory alongside the new consolidated TCG categories.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "07:25",
+      author: "Development Team"
+    },
+    {
+      title: "TCG Category Consolidation - Successfully Restructured Database",
+      description: "Successfully consolidated Pokemon, Magic, and Yu-Gi-Oh categories into unified TCG Sealed and TCG Singles categories. Migrated all existing data from separate tables to new consolidated tcg_sealed and tcg_singles tables with game_type field for filtering. Updated all UI components, state management, and operations to work with the new consolidated structure. Fixed critical JSX structure issues that were causing 500 errors. The products page now displays clean, consolidated TCG categories with proper sealed/singles view toggles, making product management much more efficient while maintaining the ability to filter by game type when needed.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "07:15",
+      author: "Development Team"
+    },
+    {
       title: "Fixed Database Page Organization - Removed Retailers and Marketplaces from Products Tab",
       description: "Fixed database page organization by removing retailers and marketplaces sections from the products tab, ensuring they only appear on their respective dedicated tabs. Also fixed critical table errors that were causing add button failures for retailers and marketplaces by replacing undefined NewRetailerRowComponent and NewMarketRowComponent with the proper NewRowComponent. Fixed database table name reference from 'markets' to 'marketplaces' to match the actual database schema. The database page now properly displays only products-related content in the products tab, with retailers and marketplaces accessible through their dedicated tabs via the sidebar navigation.",
       color: "bg-blue-500/70",
