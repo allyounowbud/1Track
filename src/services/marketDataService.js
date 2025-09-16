@@ -94,64 +94,91 @@ export async function getBatchMarketData(productNames) {
     try {
       console.log(`Fetching market data for ${uncachedNames.length} uncached products:`, uncachedNames);
       
-      // Temporarily use search endpoint to test if the issue is with portfolio-data specifically
-      console.log('Testing with search endpoint instead of portfolio-data...');
+      // Use search endpoint for each product since portfolio-data endpoint has issues
+      console.log(`Fetching market data for ${uncachedNames.length} products using search endpoint...`);
       
-      // For now, let's just fetch the first product to test
-      const testProduct = uncachedNames[0];
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(testProduct)}`, {
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        }
-      });
+      let foundCount = 0;
+      let notFoundCount = 0;
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Search endpoint response:', data);
-      
-      if (data.success && data.data) {
-        // Handle search endpoint response format
-        let products = [];
-        
-        if (data.data.products && Array.isArray(data.data.products)) {
-          products = data.data.products;
-        } else if (Array.isArray(data.data)) {
-          products = data.data;
-        } else if (data.data.product) {
-          products = [data.data.product];
-        }
-        
-        if (products.length > 0) {
-          const product = products[0];
-          const formattedData = {
-            product_id: product.id || product['product-id'] || product.product_id || '',
-            product_name: product['product-name'] || product.product_name || product.name || product.title || 'Unknown Product',
-            console_name: product['console-name'] || product.console_name || product.console || product.platform || '',
-            loose_price: product['loose-price'] ? (parseFloat(product['loose-price']) / 100).toFixed(2) : '',
-            cib_price: product['cib-price'] ? (parseFloat(product['cib-price']) / 100).toFixed(2) : '',
-            new_price: product['new-price'] ? (parseFloat(product['new-price']) / 100).toFixed(2) : '',
-            image_url: product['image-url'] || product.image_url || product.image || product.thumbnail || '',
-          };
+      // Process each product individually using the search endpoint
+      for (const productName of uncachedNames) {
+        try {
+          console.log(`Searching for: ${productName}`);
           
-          results[testProduct] = formattedData;
-          
-          // Cache the result
-          const cacheKey = testProduct.toLowerCase().trim();
-          marketDataCache.set(cacheKey, {
-            data: formattedData,
-            timestamp: Date.now()
+          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(productName)}`, {
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+            }
           });
           
-          console.log(`Market data found for test product: ${testProduct}`);
-        } else {
-          console.log(`No market data found for test product: ${testProduct}`);
+          if (!response.ok) {
+            console.error(`HTTP error for ${productName}: ${response.status}`);
+            notFoundCount++;
+            continue;
+          }
+          
+          const data = await response.json();
+          
+          if (data.success && data.data) {
+            // Handle search endpoint response format
+            let products = [];
+            
+            if (data.data.products && Array.isArray(data.data.products)) {
+              products = data.data.products;
+            } else if (Array.isArray(data.data)) {
+              products = data.data;
+            } else if (data.data.product) {
+              products = [data.data.product];
+            }
+            
+            if (products.length > 0) {
+              const product = products[0];
+              const formattedData = {
+                product_id: product.id || product['product-id'] || product.product_id || '',
+                product_name: product['product-name'] || product.product_name || product.name || product.title || 'Unknown Product',
+                console_name: product['console-name'] || product.console_name || product.console || product.platform || '',
+                loose_price: product['loose-price'] ? (parseFloat(product['loose-price']) / 100).toFixed(2) : '',
+                cib_price: product['cib-price'] ? (parseFloat(product['cib-price']) / 100).toFixed(2) : '',
+                new_price: product['new-price'] ? (parseFloat(product['new-price']) / 100).toFixed(2) : '',
+                image_url: product['image-url'] || product.image_url || product.image || product.thumbnail || '',
+              };
+              
+              results[productName] = formattedData;
+              foundCount++;
+              
+              // Cache the result
+              const cacheKey = productName.toLowerCase().trim();
+              marketDataCache.set(cacheKey, {
+                data: formattedData,
+                timestamp: Date.now()
+              });
+              
+              console.log(`✅ Market data found for: ${productName}`);
+            } else {
+              console.log(`❌ No products found for: ${productName}`);
+              notFoundCount++;
+            }
+          } else {
+            console.log(`❌ No data returned for: ${productName}`);
+            notFoundCount++;
+          }
+          
+          // Small delay to respect rate limits
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+        } catch (error) {
+          console.error(`Error fetching data for ${productName}:`, error);
+          notFoundCount++;
         }
-      } else {
-        console.warn('No market data returned from search API:', data);
+      }
+      
+      console.log(`Market data fetch complete: ${foundCount} found, ${notFoundCount} not found`);
+      
+      // Log products that weren't found for debugging
+      if (notFoundCount > 0) {
+        const notFoundProducts = uncachedNames.filter(name => !results[name]);
+        console.log('Products without market data:', notFoundProducts);
       }
     } catch (error) {
       console.error('Error fetching batch market data:', error);
