@@ -239,7 +239,16 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
     let itemsWithoutMarketData = 0;
     
     portfolioItems.forEach(item => {
-      const marketInfo = marketData[item.item];
+      // Try to find market data by exact match first
+      let marketInfo = marketData[item.item];
+      
+      // If no exact match, try to find by extracting the base product name
+      if (!marketInfo) {
+        // Extract the base product name (before the " - " separator)
+        const baseProductName = item.item.split(' - ')[0];
+        marketInfo = marketData[baseProductName];
+      }
+      
       if (marketInfo && marketInfo.loose_price) {
         // Use loose price as market value (convert to cents)
         estimatedMarketValue += Math.round(parseFloat(marketInfo.loose_price) * 100);
@@ -556,12 +565,22 @@ function CollectionTab({ portfolioItems, marketData }) {
       if (!itemName) return;
       
       if (!groups[itemName]) {
+        // Try to find market data by exact match first
+        let marketInfo = marketData[itemName];
+        
+        // If no exact match, try to find by extracting the base product name
+        if (!marketInfo) {
+          // Extract the base product name (before the " - " separator)
+          const baseProductName = itemName.split(' - ')[0];
+          marketInfo = marketData[baseProductName];
+        }
+        
         groups[itemName] = {
           name: itemName,
           quantity: 0,
           totalCost: 0,
           orderDates: [],
-          marketInfo: marketData[itemName] || null
+          marketInfo: marketInfo || null
         };
       }
       
@@ -854,16 +873,33 @@ export default function Portfolio() {
   // Create stable dependency for market data fetching
   const uniqueProductNames = useMemo(() => {
     if (portfolioItems.length === 0) return [];
-    return [...new Set(portfolioItems.map(item => item.item).filter(Boolean))];
+    const names = new Set();
+    
+    portfolioItems.forEach(item => {
+      if (item.item) {
+        // Add the full display name
+        names.add(item.item);
+        
+        // Also add the base product name (before " - ")
+        const baseProductName = item.item.split(' - ')[0];
+        if (baseProductName !== item.item) {
+          names.add(baseProductName);
+        }
+      }
+    });
+    
+    return Array.from(names);
   }, [portfolioItems]);
 
   // Fetch market data when portfolio items change
   useEffect(() => {
     if (uniqueProductNames.length > 0) {
+      console.log('Portfolio: Fetching market data for product names:', uniqueProductNames);
       setIsLoadingMarketData(true);
       
       getBatchMarketData(uniqueProductNames)
         .then(data => {
+          console.log('Portfolio: Received market data:', data);
           setMarketData(data);
           setIsLoadingMarketData(false);
         })
