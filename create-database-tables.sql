@@ -277,3 +277,4 @@ DROP POLICY IF EXISTS "Users can delete their own video games" ON video_games;
 CREATE POLICY "Users can delete their own video games" ON video_games
   FOR DELETE USING (auth.uid() IS NOT NULL);
 
+

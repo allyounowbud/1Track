@@ -61,6 +61,9 @@ async function getPortfolioItems() {
 async function getProductMarketData(productName) {
   try {
     const response = await fetch(`/.netlify/functions/search-products-api?q=${encodeURIComponent(productName)}&category=pokemon_cards`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     const data = await response.json();
     
     if (data.success && data.results && data.results.length > 0) {
@@ -78,7 +81,7 @@ async function getProductMarketData(productName) {
     }
     return null;
   } catch (error) {
-    console.error('Error fetching market data:', error);
+    console.error('Error fetching market data for', productName, ':', error);
     return null;
   }
 }
@@ -87,13 +90,18 @@ async function getProductMarketData(productName) {
 async function getBatchMarketData(productNames) {
   const results = {};
   
-  // Process in batches to avoid overwhelming the API
-  const batchSize = 5;
+  // Process in smaller batches to avoid overwhelming the API
+  const batchSize = 3;
   for (let i = 0; i < productNames.length; i += batchSize) {
     const batch = productNames.slice(i, i + batchSize);
     const promises = batch.map(async (name) => {
-      const data = await getProductMarketData(name);
-      return { name, data };
+      try {
+        const data = await getProductMarketData(name);
+        return { name, data };
+      } catch (error) {
+        console.error(`Failed to fetch data for ${name}:`, error);
+        return { name, data: null };
+      }
     });
     
     const batchResults = await Promise.all(promises);
@@ -101,9 +109,9 @@ async function getBatchMarketData(productNames) {
       results[name] = data;
     });
     
-    // Small delay between batches
+    // Longer delay between batches to avoid rate limiting
     if (i + batchSize < productNames.length) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
   
@@ -115,24 +123,32 @@ function PortfolioChart({ data }) {
   const svgRef = useRef(null);
 
   useEffect(() => {
-    if (!svgRef.current || data.length === 0) return;
+    if (!svgRef.current || !data || data.length === 0) return;
 
-    const svg = svgRef.current;
-    const width = svg.clientWidth;
-    const height = svg.clientHeight;
-    const padding = { top: 20, right: 20, bottom: 40, left: 60 };
+    try {
+      const svg = svgRef.current;
+      const width = svg.clientWidth || 800;
+      const height = svg.clientHeight || 256;
+      const padding = { top: 20, right: 20, bottom: 40, left: 60 };
 
-    // Clear previous content
-    svg.innerHTML = '';
+      // Clear previous content
+      svg.innerHTML = '';
 
-    // Calculate scales
-    const xMin = Math.min(...data.map(d => d.x));
-    const xMax = Math.max(...data.map(d => d.x));
-    const yMin = Math.min(...data.map(d => d.y));
-    const yMax = Math.max(...data.map(d => d.y));
+      // Validate data
+      if (data.length === 0) return;
 
-    const xScale = (x - xMin) / (xMax - xMin) * (width - padding.left - padding.right) + padding.left;
-    const yScale = (y) => height - padding.bottom - ((y - yMin) / (yMax - yMin)) * (height - padding.top - padding.bottom);
+      // Calculate scales
+      const xMin = Math.min(...data.map(d => d.x));
+      const xMax = Math.max(...data.map(d => d.x));
+      const yMin = Math.min(...data.map(d => d.y));
+      const yMax = Math.max(...data.map(d => d.y));
+      
+      // Handle edge case where all values are the same
+      const xRange = xMax - xMin || 1;
+      const yRange = yMax - yMin || 1;
+
+      const xScale = (x) => (x - xMin) / xRange * (width - padding.left - padding.right) + padding.left;
+      const yScale = (y) => height - padding.bottom - ((y - yMin) / yRange) * (height - padding.top - padding.bottom);
 
     // Create gradient for the area under the line
     const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -217,7 +233,7 @@ function PortfolioChart({ data }) {
     // Add X-axis labels (dates)
     const xTicks = Math.min(5, data.length);
     for (let i = 0; i < xTicks; i++) {
-      const index = Math.floor((data.length - 1) * (i / (xTicks - 1)));
+      const index = data.length === 1 ? 0 : Math.floor((data.length - 1) * (i / (xTicks - 1)));
       const point = data[index];
       const x = xScale(point.x);
       
@@ -231,13 +247,17 @@ function PortfolioChart({ data }) {
       svg.appendChild(text);
     }
 
+    } catch (error) {
+      console.error('Error rendering chart:', error);
+    }
+
   }, [data]);
 
   return (
     <svg
       ref={svgRef}
       className="w-full h-full"
-      viewBox="0 0 100% 100%"
+      viewBox="0 0 800 256"
       preserveAspectRatio="none"
     />
   );
@@ -424,19 +444,22 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
         
-        {/* Chart Area */}
-        <div className="h-64 w-full">
-          {chartData.length > 0 ? (
-            <PortfolioChart data={chartData} />
-          ) : (
-            <div className="h-full flex items-center justify-center text-slate-400">
-              <div className="text-center">
-                <ChartIcon />
-                <p className="mt-2">No data available for selected period</p>
-              </div>
-            </div>
-          )}
-        </div>
+               {/* Chart Area */}
+               <div className="h-64 w-full">
+                 {chartData && chartData.length > 0 ? (
+                   <PortfolioChart data={chartData} />
+                 ) : (
+                   <div className="h-full flex items-center justify-center text-slate-400">
+                     <div className="text-center">
+                       <ChartIcon />
+                       <p className="mt-2">No data available for selected period</p>
+                       <p className="text-xs text-slate-500 mt-1">
+                         {portfolioItems.length === 0 ? 'No portfolio items found' : 'Loading market data...'}
+                       </p>
+                     </div>
+                   </div>
+                 )}
+               </div>
       </div>
 
       {/* Portfolio Summary Cards */}
@@ -771,7 +794,12 @@ export default function Portfolio() {
   useEffect(() => {
     if (portfolioItems.length > 0) {
       setIsLoadingMarketData(true);
-      const uniqueProductNames = [...new Set(portfolioItems.map(item => item.item))];
+      const uniqueProductNames = [...new Set(portfolioItems.map(item => item.item).filter(Boolean))];
+      
+      if (uniqueProductNames.length === 0) {
+        setIsLoadingMarketData(false);
+        return;
+      }
       
       getBatchMarketData(uniqueProductNames)
         .then(data => {
@@ -780,8 +808,12 @@ export default function Portfolio() {
         })
         .catch(error => {
           console.error('Error fetching market data:', error);
+          setMarketData({});
           setIsLoadingMarketData(false);
         });
+    } else {
+      setMarketData({});
+      setIsLoadingMarketData(false);
     }
   }, [portfolioItems]);
 
