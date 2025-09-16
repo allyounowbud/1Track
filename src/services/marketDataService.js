@@ -1,5 +1,6 @@
 // Centralized service for market data fetching and caching
 import { supabase } from '../lib/supabaseClient.js';
+import { getBackgroundMarketData, isBackgroundLoadingComplete } from './backgroundMarketDataService.js';
 
 // Cache for market data to avoid repeated API calls
 const marketDataCache = new Map();
@@ -78,98 +79,129 @@ export async function getBatchMarketData(productNames) {
   const results = {};
   const uncachedNames = [];
   
-  // Check cache for each product
+  // First, try to get data from background cache (24-hour cache)
+  const backgroundData = getBackgroundMarketData(productNames);
+  Object.assign(results, backgroundData);
+  
+  // Check which products we still need to fetch
   productNames.forEach(name => {
-    const cacheKey = name.toLowerCase().trim();
-    const cached = marketDataCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      results[name] = cached.data;
-    } else {
-      uncachedNames.push(name);
+    if (!results[name]) {
+      // Check local cache (5-minute cache) as fallback
+      const cacheKey = name.toLowerCase().trim();
+      const cached = marketDataCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        results[name] = cached.data;
+      } else {
+        uncachedNames.push(name);
+      }
     }
   });
+  
+  // If we have all data from background cache, return immediately
+  if (uncachedNames.length === 0) {
+    console.log(`✅ All market data loaded from background cache: ${Object.keys(results).length} products`);
+    return results;
+  }
   
   // Fetch uncached products
   if (uncachedNames.length > 0) {
     try {
       console.log(`Fetching market data for ${uncachedNames.length} uncached products:`, uncachedNames);
       
-      // Use search endpoint for each product since portfolio-data endpoint has issues
-      console.log(`Fetching market data for ${uncachedNames.length} products using search endpoint...`);
+      // Use search endpoint with parallel processing for better performance
+      console.log(`Fetching market data for ${uncachedNames.length} products using parallel search...`);
+      
+      const BATCH_SIZE = 5; // Process 5 products at a time
+      const BATCH_DELAY = 200; // 200ms delay between batches
       
       let foundCount = 0;
       let notFoundCount = 0;
       
-      // Process each product individually using the search endpoint
-      for (const productName of uncachedNames) {
-        try {
-          console.log(`Searching for: ${productName}`);
-          
-          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(productName)}`, {
-            headers: {
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-              'Content-Type': 'application/json',
-            }
-          });
-          
-          if (!response.ok) {
-            console.error(`HTTP error for ${productName}: ${response.status}`);
-            notFoundCount++;
-            continue;
-          }
-          
-          const data = await response.json();
-          
-          if (data.success && data.data) {
-            // Handle search endpoint response format
-            let products = [];
+      // Process products in parallel batches
+      for (let i = 0; i < uncachedNames.length; i += BATCH_SIZE) {
+        const batch = uncachedNames.slice(i, i + BATCH_SIZE);
+        console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(uncachedNames.length / BATCH_SIZE)}: ${batch.length} products`);
+        
+        // Process batch in parallel
+        const batchPromises = batch.map(async (productName) => {
+          try {
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(productName)}`, {
+              headers: {
+                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+              }
+            });
             
-            if (data.data.products && Array.isArray(data.data.products)) {
-              products = data.data.products;
-            } else if (Array.isArray(data.data)) {
-              products = data.data;
-            } else if (data.data.product) {
-              products = [data.data.product];
+            if (!response.ok) {
+              console.error(`HTTP error for ${productName}: ${response.status}`);
+              return { productName, success: false };
             }
             
-            if (products.length > 0) {
-              const product = products[0];
-              const formattedData = {
-                product_id: product.id || product['product-id'] || product.product_id || '',
-                product_name: product['product-name'] || product.product_name || product.name || product.title || 'Unknown Product',
-                console_name: product['console-name'] || product.console_name || product.console || product.platform || '',
-                loose_price: product['loose-price'] ? (parseFloat(product['loose-price']) / 100).toFixed(2) : '',
-                cib_price: product['cib-price'] ? (parseFloat(product['cib-price']) / 100).toFixed(2) : '',
-                new_price: product['new-price'] ? (parseFloat(product['new-price']) / 100).toFixed(2) : '',
-                image_url: product['image-url'] || product.image_url || product.image || product.thumbnail || '',
-              };
+            const data = await response.json();
+            
+            if (data.success && data.data) {
+              // Handle search endpoint response format
+              let products = [];
               
-              results[productName] = formattedData;
-              foundCount++;
+              if (data.data.products && Array.isArray(data.data.products)) {
+                products = data.data.products;
+              } else if (Array.isArray(data.data)) {
+                products = data.data;
+              } else if (data.data.product) {
+                products = [data.data.product];
+              }
               
-              // Cache the result
-              const cacheKey = productName.toLowerCase().trim();
-              marketDataCache.set(cacheKey, {
-                data: formattedData,
-                timestamp: Date.now()
-              });
-              
-              console.log(`✅ Market data found for: ${productName}`);
+              if (products.length > 0) {
+                const product = products[0];
+                const formattedData = {
+                  product_id: product.id || product['product-id'] || product.product_id || '',
+                  product_name: product['product-name'] || product.product_name || product.name || product.title || 'Unknown Product',
+                  console_name: product['console-name'] || product.console_name || product.console || product.platform || '',
+                  loose_price: product['loose-price'] ? (parseFloat(product['loose-price']) / 100).toFixed(2) : '',
+                  cib_price: product['cib-price'] ? (parseFloat(product['cib-price']) / 100).toFixed(2) : '',
+                  new_price: product['new-price'] ? (parseFloat(product['new-price']) / 100).toFixed(2) : '',
+                  image_url: product['image-url'] || product.image_url || product.image || product.thumbnail || '',
+                };
+                
+                return { productName, success: true, data: formattedData };
+              } else {
+                return { productName, success: false };
+              }
             } else {
-              console.log(`❌ No products found for: ${productName}`);
-              notFoundCount++;
+              return { productName, success: false };
             }
+          } catch (error) {
+            console.error(`Error fetching data for ${productName}:`, error);
+            return { productName, success: false };
+          }
+        });
+        
+        // Wait for batch to complete
+        const batchResults = await Promise.all(batchPromises);
+        
+        // Process batch results
+        batchResults.forEach(({ productName, success, data }) => {
+          if (success && data) {
+            results[productName] = data;
+            foundCount++;
+            
+            // Cache the result
+            const cacheKey = productName.toLowerCase().trim();
+            marketDataCache.set(cacheKey, {
+              data: data,
+              timestamp: Date.now()
+            });
+            
+            console.log(`✅ Market data found for: ${productName}`);
           } else {
-            console.log(`❌ No data returned for: ${productName}`);
+            console.log(`❌ No market data for: ${productName}`);
             notFoundCount++;
           }
-          
-          // Small delay to respect rate limits
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-        } catch (error) {
-          console.error(`Error fetching data for ${productName}:`, error);
-          notFoundCount++;
+        });
+        
+        // Small delay between batches to respect rate limits
+        if (i + BATCH_SIZE < uncachedNames.length) {
+          await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
         }
       }
       

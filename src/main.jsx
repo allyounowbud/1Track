@@ -6,6 +6,7 @@ import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import App from "./App.jsx";
 import Hub from "./routes/Hub.jsx";                 // Main hub (dashboard)
 import Login from "./routes/Login.jsx";
 import QuickAdd from "./routes/QuickAdd.jsx";       // Renamed from Dashboard.jsx
@@ -132,7 +133,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={qc}>
-        <RouterProvider router={router} />
+        <App>
+          <RouterProvider router={router} />
+        </App>
       </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>

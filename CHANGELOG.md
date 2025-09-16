@@ -29,6 +29,7 @@ All notable changes to this project will be documented in this file.
 - **Portfolio API Integration Enhancement**: Improved market data coverage tracking and visualization in Portfolio page with detailed indicators for items with/without API data, enhanced error handling and logging in market data service, and added market data coverage metrics to help users identify items needing better product name matching
 - **Portfolio Market Data Matching Fix**: Fixed issue where items added via ProductSearchDropdown weren't getting market data due to display name vs. product name mismatch. Now properly matches both display names (e.g., "Charizard - Pokemon Base Set") and base product names (e.g., "Charizard") to API data
 - **API Endpoint Fix**: Fixed 404 error by updating market data service and ProductSearchDropdown to use Netlify functions instead of Supabase edge functions for price-charting API calls
+- **Background Market Data Loading**: Implemented background market data service that pre-loads portfolio data while users navigate other pages, with 24-hour caching and localStorage persistence for instant Portfolio page loading
 
 ### Added
 - Enhanced image display in Portfolio collection page with improved loading states and error handling
