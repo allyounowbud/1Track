@@ -163,7 +163,7 @@ async function searchProducts(query, category = 'pokemon_cards') {
       if (b.similarity_score === 1.0 && a.similarity_score !== 1.0) return 1;
       return b.similarity_score - a.similarity_score;
     })
-    .slice(0, 20); // Limit to top 20 results
+    .slice(0, 100); // Increased limit to show more results like Price Charting
 }
 
 // Search with specific strategy
@@ -171,7 +171,7 @@ async function searchWithStrategy(searchTerm, strategy) {
   let query = supabase
     .from('price_charting_products')
     .select('*')
-    .limit(15); // Reduced limit for faster queries
+    .limit(50); // Increased limit for more comprehensive results
   
   switch (strategy) {
     case 'exact':
@@ -198,7 +198,7 @@ async function searchWithConsoleStrategy(searchTerm, strategy) {
     .from('price_charting_products')
     .select('*')
     .not('console_name', 'is', null) // Only search products that have console_name
-    .limit(15);
+    .limit(50);
   
   switch (strategy) {
     case 'exact':
@@ -225,7 +225,7 @@ async function searchWithCombinedStrategy(searchTerm) {
     .from('price_charting_products')
     .select('*')
     .or(`product_name.ilike.%${searchTerm}%,console_name.ilike.%${searchTerm}%`)
-    .limit(15);
+    .limit(50);
   
   if (error) {
     console.error(`Combined search error for "${searchTerm}":`, error);
@@ -244,7 +244,7 @@ async function searchWithFullText(searchTerm) {
       type: 'websearch',
       config: 'english'
     })
-    .limit(15);
+    .limit(50);
   
   if (error) {
     console.error(`Full-text search error for "${searchTerm}":`, error);

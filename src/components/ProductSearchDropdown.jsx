@@ -16,6 +16,7 @@ export default function ProductSearchDropdown({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [error, setError] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [showAllResults, setShowAllResults] = useState(false);
   
   const searchTimeoutRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -98,6 +99,7 @@ export default function ProductSearchDropdown({
     setIsOpen(false);
     setSelectedIndex(-1);
     setSearchResults([]);
+    setShowAllResults(false);
   };
 
   // Handle keyboard navigation
@@ -169,6 +171,22 @@ export default function ProductSearchDropdown({
     return `$${parseFloat(price).toFixed(2)}`;
   };
 
+  // Check if a product is sealed (not an individual card)
+  const isSealedProduct = (productName) => {
+    if (!productName) return false;
+    
+    const sealedKeywords = [
+      'booster', 'bundle', 'box', 'collection', 'pack', 'tin', 'case', 'display',
+      'booster box', 'booster bundle', 'booster pack', 'theme deck', 'starter deck',
+      'elite trainer box', 'etb', 'premium collection', 'v box', 'vmax box',
+      'mini tin', 'pin collection', 'build & battle box', 'champions path',
+      'hidden fates', 'shining fates', 'celebrations', 'pokemon go', 'go'
+    ];
+    
+    const name = productName.toLowerCase();
+    return sealedKeywords.some(keyword => name.includes(keyword));
+  };
+
   return (
     <div ref={dropdownRef} className={`relative z-[99999] ${className}`}>
       {/* Input Field */}
@@ -233,7 +251,7 @@ export default function ProductSearchDropdown({
             </div>
           )}
           
-          {searchResults.map((product, index) => (
+          {(showAllResults ? searchResults : searchResults.slice(0, 20)).map((product, index) => (
             <div
               key={product.product_id}
               onClick={() => handleProductSelect(product)}
@@ -247,20 +265,15 @@ export default function ProductSearchDropdown({
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">
                     {product.product_name}
-                    {product.match_type === 'console_name' && (
-                      <span className="ml-1 text-xs bg-blue-600/20 text-blue-300 px-1 rounded">
-                        Set
+                    {isSealedProduct(product.product_name) && (
+                      <span className="ml-1 text-xs bg-green-600/20 text-green-300 px-1 rounded">
+                        Sealed
                       </span>
                     )}
                   </div>
                   {product.console_name && (
                     <div className="text-xs text-slate-400 truncate">
                       {product.console_name}
-                    </div>
-                  )}
-                  {product.similarity_score && (
-                    <div className="text-xs text-slate-500">
-                      Match: {Math.round(product.similarity_score * 100)}%
                     </div>
                   )}
                 </div>
@@ -277,6 +290,30 @@ export default function ProductSearchDropdown({
               </div>
             </div>
           ))}
+          
+          {/* Show More button when there are more than 20 results */}
+          {searchResults.length > 20 && !showAllResults && (
+            <div className="px-3 py-2 border-t border-slate-700">
+              <button
+                onClick={() => setShowAllResults(true)}
+                className="w-full text-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+              >
+                Show {searchResults.length - 20} more results ({searchResults.length} total)
+              </button>
+            </div>
+          )}
+          
+          {/* Show Less button when showing all results */}
+          {searchResults.length > 20 && showAllResults && (
+            <div className="px-3 py-2 border-t border-slate-700">
+              <button
+                onClick={() => setShowAllResults(false)}
+                className="w-full text-center text-sm text-slate-400 hover:text-slate-300 transition-colors"
+              >
+                Show less (top 20 results)
+              </button>
+            </div>
+          )}
         </div>,
         document.body
       )}

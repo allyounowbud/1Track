@@ -27,6 +27,22 @@ export default function Hub() {
   // Changelog data with version numbers (showing most recent 25 entries)
   const allChangelogData = [
     {
+      title: "Expanded Product Search Results - Increased Limits to Match Price Charting",
+      description: "Significantly expanded the product search functionality to show comprehensive results like the actual Price Charting website. Increased search result limits from 20 to 100 items, with individual strategy limits raised from 15 to 50 results each. Added 'Show More' functionality that displays the first 20 results initially with an option to expand and see all results (up to 100). This addresses the limitation where searching for complete sets like 'Pokemon Prismatic Evolutions' (which has 493 items) would only show a small fraction of available products. Now users can access the full range of products including all cards and sealed items from any set, matching the comprehensive results available on Price Charting.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:30",
+      author: "Development Team"
+    },
+    {
+      title: "Improved Product Search UI - Added Sealed Product Indicators",
+      description: "Enhanced the product search dropdown interface by removing unnecessary match percentage displays and replacing them with more useful 'Sealed' indicators. Products like booster bundles, boxes, collections, tins, and other sealed items now display a green 'Sealed' pill to help users quickly identify non-individual card products. The sealed detection algorithm recognizes common sealed product keywords including booster, bundle, box, collection, pack, tin, case, display, and many specific Pokemon product types. This makes it much easier to distinguish between individual cards and sealed products during search.",
+      color: "bg-blue-500/70",
+      date: "2024-12-20",
+      time: "06:25",
+      author: "Development Team"
+    },
+    {
       title: "Optimized Changelog Display - Reduced to Most Recent 25 Entries",
       description: "Streamlined the changelog display to show only the most recent 25 entries instead of all historical entries, significantly reducing the amount of code and improving page load performance. The changelog now focuses on the most relevant recent changes while maintaining all functionality including pagination, search, and navigation. This creates a cleaner, more focused user experience while keeping the changelog manageable and up-to-date with the latest developments.",
       color: "bg-blue-500/70",
