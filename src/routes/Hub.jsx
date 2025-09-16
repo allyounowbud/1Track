@@ -27,6 +27,14 @@ export default function Hub() {
   // Changelog data with version numbers (showing most recent 25 entries)
   const allChangelogData = [
     {
+      title: "Added Collectr-Style Portfolio with Collection Tracking and Market Data Integration",
+      description: "Implemented a comprehensive Portfolio section that provides Collectr-style collection tracking and portfolio management. The new Portfolio feature includes three main tabs: Overview (portfolio metrics and recent activity), Collection (visual grid of owned items with real product images and market data), and Trends (monthly trends and top performing items). Integrated with the existing Price Charting API to fetch real-time market prices, product images, and set information for all portfolio items. The system automatically calculates portfolio value, profit/loss, and performance metrics using live market data. Added Portfolio card to the Hub page and navigation links in the sidebar. The Portfolio provides a complete view of collection value, individual item performance, and market trends, making it easy to track investment performance and collection growth over time.",
+      color: "bg-yellow-500/70",
+      date: "2024-12-20",
+      time: "08:00",
+      author: "Development Team"
+    },
+    {
       title: "Fixed Set Name Not Saving in OrderBook Product Selection",
       description: "Fixed an issue where selecting products from the search dropdown in the OrderBook was only saving the base product name (e.g., 'Elite Trainer Box') instead of the full name with set information (e.g., 'Elite Trainer Box - Pokemon Journey Together'). Updated the handleProductSelect function in OrderBook.jsx to match the logic used in QuickAdd.jsx, ensuring that when a product is selected, it creates a display name that includes set information if available. This ensures consistency across both QuickAdd and OrderBook components, so users get the complete product name with set details when selecting items from the search dropdown.",
       color: "bg-blue-500/70",
@@ -1106,6 +1114,22 @@ export default function Hub() {
                   and track your stats from anywhere!
                 </div>
                 <div className="mt-3 inline-flex items-center text-indigo-300 group-hover:text-indigo-200">
+                  Open →
+                </div>
+              </div>
+            </Link>
+
+            <Link to="/portfolio" className={tile}>
+              <div className="h-12 w-12 rounded-xl bg-yellow-500/20 grid place-items-center text-yellow-300">
+                📊
+              </div>
+              <div className="flex-1">
+                <div className="text-xl font-semibold">Portfolio</div>
+                <div className="text-slate-400 text-sm">
+                  Track your collection value, view trends, and monitor performance. 
+                  Collectr-style portfolio with market data integration.
+                </div>
+                <div className="mt-3 inline-flex items-center text-yellow-300 group-hover:text-yellow-200">
                   Open →
                 </div>
               </div>
