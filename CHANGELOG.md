@@ -15,6 +15,9 @@ All notable changes to this project will be documented in this file.
 - **Mobile Theme Toggle**: Added a theme toggle tab in the mobile bottom navigation bar, allowing users to switch between light and dark modes on mobile screens. The theme toggle appears as a dedicated tab alongside other navigation items with proper icon and label styling
 - **Instant Theme Switching**: Removed transition animations from theme changes to prevent jarring visual effects where light and dark elements appear simultaneously. Theme changes now switch instantly for a cleaner, more professional experience
 - **Navigation Bar Flicker Fix**: Eliminated flicker in the navigation bar during theme changes by removing transition animations from the ThemeToggle component and navigation items, ensuring smooth and instant theme switching
+- **Order Book Light Mode Fix**: Completely updated the Order Book page to have consistent light mode styling, fixing the dark action buttons, dark expanded order details card, and all input fields to use proper light/dark theme-aware colors
+- **Portfolio Chart Mobile Responsiveness**: Fixed chart filter buttons on mobile to prevent horizontal scroll by making them more responsive with smaller spacing, flexible sizing, and proper overflow handling
+- **Portfolio Summary Cards Mobile Optimization**: Made value text sizes responsive (text-lg on mobile, text-2xl on larger screens) and reduced card padding on mobile for better fit and readability on small screens
 
 ### Added
 - **Complete Light/Dark Mode Theme System**: Implemented a comprehensive theme system with light and dark mode support across the entire application. Features include:

@@ -751,7 +751,7 @@ function UnifiedOrderView({
           <div className="ml-2">
             <button
               onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-700 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
               title={`Switch to ${viewMode === 'grid' ? 'List' : 'Grid'} View`}
             >
               {viewMode === 'grid' ? (
@@ -1512,10 +1512,10 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
   return (
     <div 
-      className={`lg:rounded-lg lg:bg-slate-900/30 lg:py-3 lg:px-3 lg:overflow-visible lg:transition lg:cursor-pointer lg:relative lg:hover:bg-slate-800/30 rounded-xl border bg-slate-900/60 p-4 space-y-3 ${
+      className={`lg:rounded-lg lg:bg-gray-100 dark:lg:bg-slate-900/30 lg:py-3 lg:px-3 lg:overflow-visible lg:transition lg:cursor-pointer lg:relative lg:hover:bg-gray-200 dark:lg:hover:bg-slate-800/30 rounded-xl border bg-white dark:bg-slate-900/60 p-4 space-y-3 ${
         isSelected || order.isNew
           ? 'bg-indigo-500/10 border-indigo-500 lg:border-indigo-500' 
-          : 'border-slate-800 lg:border-b lg:border-slate-700/50'
+          : 'border-gray-200 dark:border-slate-800 lg:border-b lg:border-gray-200 dark:lg:border-slate-700/50'
       }`}
       onClick={onToggleSelection}
     >
@@ -1547,7 +1547,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none"
+          className="w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
         />
 
         {/* Item Name - Most Important */}
@@ -1567,7 +1567,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setProfile(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Profile"
-          className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400 ${formState.profile_name ? 'text-slate-100' : 'text-slate-500'}`}
+          className={`w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none placeholder-gray-500 dark:placeholder-slate-400 ${formState.profile_name ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-500'}`}
         />
 
         {/* Retailer */}
@@ -1575,11 +1575,11 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.retailer || ""}
           onChange={(e) => setRetailer(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className={`new-order-select w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 focus:border-indigo-500 outline-none cursor-pointer ${formState.retailer && formState.retailer !== "" ? 'text-slate-100' : 'text-slate-500'}`}
+          className={`new-order-select w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none cursor-pointer ${formState.retailer && formState.retailer !== "" ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-500'}`}
         >
-          <option value="" className="bg-slate-800 text-slate-100">Retailer</option>
+          <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100">Retailer</option>
           {retailers.map((r) => (
-            <option key={r.name} value={r.name} className="bg-slate-800 text-slate-100">
+            <option key={r.name} value={r.name} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100">
               {r.name}
             </option>
           ))}
@@ -1591,7 +1591,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setBuyPrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Buy"
-          className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400"
+          className="w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none placeholder-gray-500 dark:placeholder-slate-400"
         />
 
         {/* Sale Date - Responsive */}
@@ -1601,7 +1601,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setSaleDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="mm/dd/yy"
-          className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none ${formState.sale_date ? 'text-slate-100' : 'text-slate-500'}`}
+          className={`w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none ${formState.sale_date ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-500'}`}
         />
 
         {/* Sale Price */}
@@ -1610,7 +1610,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setSalePrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="0.00"
-          className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
+          className={`w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none placeholder-gray-500 dark:placeholder-slate-400 ${formState.salePrice && formState.salePrice !== "0" ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-500'}`}
         />
 
         {/* Marketplace */}
@@ -1618,11 +1618,11 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.marketplace || ""}
           onChange={handleMarketplaceChange}
           onClick={(e) => e.stopPropagation()}
-          className={`new-order-select w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 focus:border-indigo-500 outline-none cursor-pointer ${formState.marketplace && formState.marketplace !== "" ? 'text-slate-100' : 'text-slate-500'}`}
+          className={`new-order-select w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none cursor-pointer ${formState.marketplace && formState.marketplace !== "" ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-500'}`}
         >
-          <option value="" className="bg-slate-800 text-slate-100">Marketplace</option>
+          <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100">Marketplace</option>
           {markets.map((m) => (
-            <option key={m.name} value={m.name} className="bg-slate-800 text-slate-100">
+            <option key={m.name} value={m.name} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100">
               {m.name}
             </option>
           ))}
@@ -1634,7 +1634,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setShipping(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="0.00"
-          className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 outline-none placeholder-slate-400 ${formState.shipping && formState.shipping !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
+          className={`w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none placeholder-gray-500 dark:placeholder-slate-400 ${formState.shipping && formState.shipping !== "0" ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-500'}`}
         />
 
       </div>
@@ -1646,7 +1646,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         <div className="grid grid-cols-1 gap-6 sm:gap-4 md:gap-6">
           {/* Order Date */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Order Date</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Order Date</label>
             <input
               type="date"
               value={formState.order_date || ""}
@@ -1658,7 +1658,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Item */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Item</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Item</label>
             <div onClick={(e) => e.stopPropagation()}>
               <ProductSearchDropdown
                 value={formState.item || ""}
@@ -1672,7 +1672,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Profile */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Profile</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Profile</label>
             <input
               value={formState.profile_name}
               onChange={(e) => setProfile(e.target.value)}
@@ -1684,12 +1684,12 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Retailer */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Retailer</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Retailer</label>
             <select
               value={formState.retailer || ""}
               onChange={(e) => setRetailer(e.target.value)}
               onClick={(e) => e.stopPropagation()}
-              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:border-indigo-500 outline-none [&>option]:bg-slate-800 [&>option]:text-slate-100 ${formState.retailer && formState.retailer !== "" ? 'text-slate-100' : 'text-slate-500'}`}
+              className={`w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm focus:border-indigo-500 outline-none [&>option]:bg-white [&>option]:dark:bg-slate-800 [&>option]:text-gray-900 [&>option]:dark:text-slate-100 ${formState.retailer && formState.retailer !== "" ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-500'}`}
             >
               <option value="">Retailer</option>
               {retailers.map((r) => (
@@ -1702,7 +1702,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Buy Price */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Buy Price</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Buy Price</label>
             <input
               value={formState.buyPrice}
               onChange={(e) => setBuyPrice(e.target.value)}
@@ -1714,7 +1714,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Sale Date */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Sale Date</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Sale Date</label>
             <input
               type="date"
               value={formState.sale_date || ""}
@@ -1727,7 +1727,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Sale Price */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Sale Price</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Sale Price</label>
             <input
               value={formState.salePrice}
               onChange={(e) => setSalePrice(e.target.value)}
@@ -1739,12 +1739,12 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Marketplace */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Marketplace</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Marketplace</label>
             <select
               value={formState.marketplace || ""}
               onChange={handleMarketplaceChange}
               onClick={(e) => e.stopPropagation()}
-              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:border-indigo-500 outline-none [&>option]:bg-slate-800 [&>option]:text-slate-100 ${formState.marketplace && formState.marketplace !== "" ? 'text-slate-100' : 'text-slate-500'}`}
+              className={`w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm focus:border-indigo-500 outline-none [&>option]:bg-white [&>option]:dark:bg-slate-800 [&>option]:text-gray-900 [&>option]:dark:text-slate-100 ${formState.marketplace && formState.marketplace !== "" ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-500'}`}
             >
               <option value="">Marketplace</option>
               {markets.map((m) => (
@@ -1757,13 +1757,13 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Shipping */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Shipping</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Shipping</label>
             <input
               value={formState.shipping}
               onChange={(e) => setShipping(e.target.value)}
               onClick={(e) => e.stopPropagation()}
               placeholder={formState.shipping && formState.shipping !== "0" ? "" : "0.00"}
-              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.shipping && formState.shipping !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
+              className={`w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-gray-500 dark:placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.shipping && formState.shipping !== "0" ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-500'}`}
             />
           </div>
         </div>
