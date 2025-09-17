@@ -846,61 +846,48 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
         </div>
         
         {/* Filter and Sort Controls */}
-        <div className="flex items-center gap-4 flex-wrap">
-          {/* Item Type Filter */}
-          <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
-            <button
-              onClick={() => setItemType("all")}
-              className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                itemType === "all" 
-                  ? "bg-indigo-500 text-white shadow-sm" 
-                  : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setItemType("sealed")}
-              className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                itemType === "sealed" 
-                  ? "bg-indigo-500 text-white shadow-sm" 
-                  : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
-              }`}
-            >
-              Sealed
-            </button>
-            <button
-              onClick={() => setItemType("singles")}
-              className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                itemType === "singles" 
-                  ? "bg-indigo-500 text-white shadow-sm" 
-                  : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
-              }`}
-            >
-              Singles
-            </button>
-          </div>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          {/* Left side: Item Type Filter + Sort Order Toggle */}
+          <div className="flex items-center gap-3">
+            {/* Item Type Filter */}
+            <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1 h-10">
+              <button
+                onClick={() => setItemType("all")}
+                className={`px-3 py-1 text-xs rounded-md transition-colors h-8 ${
+                  itemType === "all" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setItemType("sealed")}
+                className={`px-3 py-1 text-xs rounded-md transition-colors h-8 ${
+                  itemType === "sealed" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
+                }`}
+              >
+                Sealed
+              </button>
+              <button
+                onClick={() => setItemType("singles")}
+                className={`px-3 py-1 text-xs rounded-md transition-colors h-8 ${
+                  itemType === "singles" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
+                }`}
+              >
+                Singles
+              </button>
+            </div>
 
-          {/* Sort Controls */}
-          <div className="flex items-center gap-2">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className={`${inputBase} text-sm w-32`}
-            >
-              <option value="name">Name</option>
-              <option value="marketValue">Market Value</option>
-              <option value="totalCost">Total Cost</option>
-              <option value="profit">Profit/Loss</option>
-              <option value="quantity">Quantity</option>
-              <option value="dateAdded">Date Added</option>
-              <option value="set">Set</option>
-            </select>
-            
-            <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
+            {/* Sort Order Toggle */}
+            <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1 h-10">
               <button
                 onClick={() => setSortOrder("asc")}
-                className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs rounded-md transition-colors h-8 ${
                   sortOrder === "asc" 
                     ? "bg-indigo-500 text-white shadow-sm" 
                     : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
@@ -910,7 +897,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               </button>
               <button
                 onClick={() => setSortOrder("desc")}
-                className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs rounded-md transition-colors h-8 ${
                   sortOrder === "desc" 
                     ? "bg-indigo-500 text-white shadow-sm" 
                     : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
@@ -919,6 +906,23 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                 ↓
               </button>
             </div>
+          </div>
+
+          {/* Right side: Sort By Dropdown */}
+          <div className="flex items-center">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-gray-100 dark:bg-slate-800 text-xs text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 px-2 py-1 h-12 w-32 rounded-lg transition-colors focus:outline-none focus:bg-gray-200 dark:focus:bg-slate-700/50 border-0 cursor-pointer"
+            >
+              <option value="name">Name</option>
+              <option value="marketValue">Market Value</option>
+              <option value="totalCost">Total Cost</option>
+              <option value="profit">Profit/Loss</option>
+              <option value="quantity">Quantity</option>
+              <option value="dateAdded">Date Added</option>
+              <option value="set">Set</option>
+            </select>
           </div>
         </div>
       </div>
@@ -1084,62 +1088,19 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             className="fixed inset-0 lg:left-auto lg:right-0 lg:w-1/2 xl:w-2/5 bg-white dark:bg-slate-900 z-[60] shadow-2xl lg:shadow-none"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="h-full flex flex-col">
-              {/* Panel Header */}
-              <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-slate-800 flex-shrink-0">
-                <div className="flex items-center gap-3 lg:gap-4 min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {(() => {
-                      const marketInfo = expandedItem.marketInfo;
-                      const manualValue = expandedItem.manualValue;
-                      let dataSource;
-                      
-                      if (marketInfo && marketInfo.loose_price) {
-                        dataSource = 'api';
-                      } else if (manualValue && manualValue > 0) {
-                        dataSource = 'manual';
-                      } else {
-                        dataSource = 'cost';
-                      }
-                      
-                      return (
-                        <>
-                          {dataSource === 'api' && (
-                            <div className="w-3 h-3 bg-green-400 rounded-full" title="API market data"></div>
-                          )}
-                          {dataSource === 'manual' && (
-                            <div className="w-3 h-3 bg-blue-400 rounded-full" title="Manual database value"></div>
-                          )}
-                          {dataSource === 'cost' && (
-                            <div className="w-3 h-3 bg-yellow-400 rounded-full" title="Using cost price"></div>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-base lg:text-xl xl:text-2xl font-bold text-gray-900 dark:text-slate-100 leading-tight">
-                      {expandedItem.name.replace(/\s*-\s*Pokemon\s+.*$/i, '')}
-                    </h2>
-                    {expandedItem.marketInfo && expandedItem.marketInfo.console_name && (
-                      <p className="text-gray-600 dark:text-slate-400 text-xs lg:text-sm xl:text-base mt-1 leading-tight">
-                        {expandedItem.marketInfo.console_name}
-                      </p>
-                    )}
-                  </div>
+            <div className="h-full overflow-y-auto p-4 lg:p-6">
+                {/* Close button */}
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={() => setExpandedItem(null)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  >
+                    <svg className="w-5 h-5 lg:w-6 lg:h-6 text-gray-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
-                <button
-                  onClick={() => setExpandedItem(null)}
-                  className="p-2 hover:bg-gray-100 dark:bg-slate-800 rounded-lg transition-colors flex-shrink-0 ml-2"
-                >
-                  <svg className="w-5 h-5 lg:w-6 lg:h-6 text-gray-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Panel Content */}
-              <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+                
                 <div className="space-y-6 lg:space-y-8">
                   {/* Stats Section */}
                   <div className={`${card} p-4 lg:p-6`}>
@@ -1354,7 +1315,6 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               </div>
             </div>
           </div>
-        </div>
         </>
       )}
     </div>

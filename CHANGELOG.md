@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
   - **Full Page Coverage**: Updated all application pages (OrderBook, Portfolio, Emails, Profiles, Database/Settings, Stats, Inventory, QuickAdd, MarkSold, Shipments) and components (SearchPage, UnifiedProductsCard, CategoryComponents, UnifiedNewProductRow, ProductSearchDropdown, TableSearchDropdown, SearchDropdown, Select) to use consistent light theme styling
   - **SearchPage Redesign**: Completely redesigned SearchPage to use expandable cards with slide-out panels instead of static sidebar, matching the Portfolio page design pattern for better space utilization and user experience
   - **SearchPage UI Improvements**: Removed color circle indicators, fixed button text colors for light mode, made expand preview use full container without header, and updated + add buttons to be smaller and theme-colored
+  - **Portfolio UI Consistency**: Updated Portfolio expandable cards to match SearchPage design pattern - full height usage without header, maximizing content space with subtle close button
+  - **Portfolio Filters Redesign**: Improved collections page filters row with consistent height across all elements, reordered layout (All/Sealed/Singles → Sort Toggle → Sort Dropdown), and professional alignment
   - **Mobile-Optimized**: Theme toggle is hidden on mobile to avoid interference with the bottom navigation bar
   - **UI Utilities Update**: Updated all shared UI components (cards, inputs, buttons, tabs) to be fully theme-aware
   - **Smooth Transitions**: All theme changes include smooth 300ms transitions for a polished user experience

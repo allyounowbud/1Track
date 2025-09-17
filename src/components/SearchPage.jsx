@@ -25,11 +25,6 @@ const PlusIcon = () => (
   </svg>
 );
 
-const ChevronDownIcon = () => (
-  <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-  </svg>
-);
 
 const StarIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -883,14 +878,15 @@ export default function SearchPage() {
   };
   
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
-      {/* Header */}
-      <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 p-3 md:p-4">
-        <div className="w-full">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">Find a Product</h1>
+    <>
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 p-6">
+        <div className="max-w-full mx-auto space-y-6">
+        {/* Header Card */}
+        <div className={`${card} p-6 mb-6`}>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4">Find a Product</h1>
           
           {/* Search Bar */}
-          <div className="flex gap-2 md:gap-4 items-center">
+          <div className="flex gap-2 md:gap-4 items-center mb-4">
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <SearchIcon />
@@ -920,17 +916,15 @@ export default function SearchPage() {
             </button>
           </div>
           
-        </div>
-        
-        {/* Filter Row */}
-        <div className="flex gap-2 mt-3 min-w-0">
+          {/* Filter Row */}
+          <div className="flex gap-2 min-w-0">
           {/* Category Dropdown */}
           <div className="flex-1">
             <div className="relative">
               <select 
                 value={filters.tcgType || 'all'}
                 onChange={(e) => setFilters({ ...filters, tcgType: e.target.value })}
-                className="w-full h-12 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 pr-6 cursor-pointer"
+                className="w-full h-12 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 cursor-pointer"
               >
                 <option value="all">Category</option>
                 <option value="pokemon">Pokemon</option>
@@ -938,9 +932,6 @@ export default function SearchPage() {
                 <option value="yugioh">Yu-Gi-Oh!</option>
                 <option value="video_games">Video Games</option>
               </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <ChevronDownIcon className="w-3 h-3 text-gray-600 dark:text-slate-400" />
-              </div>
             </div>
           </div>
           
@@ -950,15 +941,12 @@ export default function SearchPage() {
               <select 
                 value={filters.productType || 'all'}
                 onChange={(e) => setFilters({ ...filters, productType: e.target.value })}
-                className="w-full h-12 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 pr-6 cursor-pointer"
+                className="w-full h-12 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 cursor-pointer"
               >
                 <option value="all">Product Type</option>
                 <option value="singles">Cards Only</option>
                 <option value="sealed">Sealed Only</option>
               </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <ChevronDownIcon className="w-3 h-3 text-gray-600 dark:text-slate-400" />
-              </div>
             </div>
           </div>
           
@@ -977,7 +965,7 @@ export default function SearchPage() {
               <select 
                 value={filters.sortBy || 'best_match'}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                className="w-full h-12 appearance-none bg-transparent border-0 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-0 pr-6 cursor-pointer"
+                className="w-full h-12 bg-transparent border-0 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-0 cursor-pointer"
               >
                 <option value="best_match">Sort Results</option>
                 <option value="price_low_high">Price: Low to High</option>
@@ -993,18 +981,12 @@ export default function SearchPage() {
                 <option value="percent_change_low_high">Percent Change: Low to High</option>
                 <option value="percent_change_high_low">Percent Change: High to Low</option>
               </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <ChevronDownIcon className="w-3 h-3 text-gray-600 dark:text-slate-400" />
-              </div>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Main Content */}
-      <div className="w-full p-2 md:p-4">
         
-        {/* Main Content Area */}
+        {/* Main Content */}
         <div className="w-full">
           {/* Search Results */}
           <div className="w-full">
@@ -1175,5 +1157,6 @@ export default function SearchPage() {
         </>
       )}
     </div>
+    </>
   );
 }

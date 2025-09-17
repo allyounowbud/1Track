@@ -17,7 +17,6 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     return saved !== null ? JSON.parse(saved) : true;
   });
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
-  const [apiStatus, setApiStatus] = useState("connecting"); // "connected", "connecting", "disconnected"
   const [isSmallScreen, setIsSmallScreen] = useState(() => {
     // Initialize with immediate check to prevent flash
     if (typeof window !== 'undefined') {
@@ -68,38 +67,6 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // Check API status
-  useEffect(() => {
-    const checkApiStatus = async () => {
-      try {
-        setApiStatus("connecting");
-        // Test the Price Charting API endpoint
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({ query: 'test' })
-        });
-        
-        if (response.ok) {
-          setApiStatus("connected");
-        } else {
-          setApiStatus("disconnected");
-        }
-      } catch (error) {
-        console.error('API status check failed:', error);
-        setApiStatus("disconnected");
-      }
-    };
-
-    // Check immediately and then every 30 seconds
-    checkApiStatus();
-    const interval = setInterval(checkApiStatus, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Handle responsive behavior
   useEffect(() => {
@@ -253,10 +220,9 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
               <span className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1 -ml-1">BETA</span>
             </div>
           )}
-          {/* Show expand/collapse button and theme toggle only on large screens */}
+          {/* Show expand/collapse button only on large screens */}
           {isLargeScreen && (
             <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'gap-2'}`}>
-              <ThemeToggle />
               <button
                 onClick={() => {
                   const newCollapsed = !isCollapsed;
@@ -303,31 +269,9 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
         ))}
       </nav>
 
-      {/* API Status Indicator */}
-      <div className={`flex-shrink-0 ${isCollapsed ? 'flex justify-center py-2' : 'flex justify-center py-2'}`}>
-        {isCollapsed ? (
-          <div className="flex items-center justify-center">
-            <div 
-              className={`w-3 h-3 rounded-full ${
-                apiStatus === 'connected' ? 'bg-green-500 animate-pulse' :
-                apiStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-                'bg-red-500 animate-pulse'
-              }`}
-              title={`API Status: ${apiStatus}`}
-            />
-          </div>
-        ) : (
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-slate-400">
-            <div 
-              className={`w-2 h-2 rounded-full ${
-                apiStatus === 'connected' ? 'bg-green-500 animate-pulse' :
-                apiStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-                'bg-red-500 animate-pulse'
-              }`}
-            />
-            <span className="capitalize">API {apiStatus}</span>
-          </div>
-        )}
+      {/* Theme Toggle */}
+      <div className={`flex-shrink-0 ${isCollapsed ? 'flex justify-center py-2' : 'p-4'}`}>
+        <ThemeToggle isCollapsed={isCollapsed} />
       </div>
 
       {/* User Section */}
