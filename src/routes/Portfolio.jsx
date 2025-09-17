@@ -1081,7 +1081,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
           
           {/* Preview Panel */}
           <div 
-            className="fixed inset-0 lg:inset-y-0 lg:right-0 lg:w-1/2 xl:w-2/5 bg-slate-900 z-[60] shadow-2xl lg:shadow-none"
+            className="fixed inset-0 lg:inset-y-0 lg:left-auto lg:right-0 lg:w-1/2 xl:w-2/5 bg-slate-900 z-[60] shadow-2xl lg:shadow-none"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="h-full flex flex-col">
