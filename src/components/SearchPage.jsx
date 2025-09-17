@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient.js';
 import { centsToStr } from '../utils/money.js';
 import { card, inputBase } from '../utils/ui.js';
+import { getProductImages, getBatchProductImages } from '../services/imageService.js';
 
 // Icons
 const SearchIcon = () => (
@@ -140,6 +141,8 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
   const [isAdding, setIsAdding] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [inventoryCount, setInventoryCount] = useState(0);
+  const [productImages, setProductImages] = useState([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
   
   const productName = product['product-name'] || product.product_name || product.name || 'Unknown Product';
   
@@ -165,6 +168,25 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
     
     fetchInventoryCount();
   }, [productName]);
+
+  // Fetch product images
+  useEffect(() => {
+    const fetchProductImages = async () => {
+      setIsLoadingImages(true);
+      try {
+        const consoleName = product['console-name'] || product.console_name || product.console || '';
+        const images = await getProductImages(productName, consoleName);
+        setProductImages(images);
+      } catch (error) {
+        console.error('Error fetching product images:', error);
+        setProductImages([]);
+      } finally {
+        setIsLoadingImages(false);
+      }
+    };
+    
+    fetchProductImages();
+  }, [productName, product]);
   const consoleName = product['console-name'] || product.console_name || product.console || '';
   const loosePrice = product['loose-price'] ? parseFloat(product['loose-price']) / 100 : 0;
   const cibPrice = product['cib-price'] ? parseFloat(product['cib-price']) / 100 : 0;
@@ -222,8 +244,27 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
             {isSealed ? 'Sealed' : 'Single'}
           </div>
           
-          {/* Product type icon */}
-          <div className="text-6xl text-slate-500">
+          {/* Product Image or Loading/Fallback */}
+          {isLoadingImages ? (
+            <div className="flex flex-col items-center justify-center text-slate-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400 mb-2"></div>
+              <div className="text-xs">Loading image...</div>
+            </div>
+          ) : productImages.length > 0 ? (
+            <img
+              src={productImages[0]}
+              alt={productName}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback to icon if image fails to load
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          
+          {/* Fallback icon (shown when no image or image fails) */}
+          <div className={`text-6xl text-slate-500 ${productImages.length > 0 ? 'hidden' : 'flex'} items-center justify-center`}>
             {isSealed ? (
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7L12 12L22 7L12 2Z" />
@@ -307,6 +348,8 @@ function ProductPreview({ product, onAddToCollection, onClose }) {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [isHighlighted, setIsHighlighted] = useState(false);
+  const [productImages, setProductImages] = useState([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
   const addToCollectionRef = useRef(null);
   
   // Set the full product name when component mounts or product changes
@@ -326,6 +369,26 @@ function ProductPreview({ product, onAddToCollection, onClose }) {
     }, 3000);
     
     return () => clearTimeout(timer);
+  }, [product]);
+
+  // Fetch product images for preview
+  useEffect(() => {
+    const fetchProductImages = async () => {
+      setIsLoadingImages(true);
+      try {
+        const productName = product['product-name'] || product.product_name || product.name || '';
+        const consoleName = product['console-name'] || product.console_name || product.console || '';
+        const images = await getProductImages(productName, consoleName);
+        setProductImages(images);
+      } catch (error) {
+        console.error('Error fetching product images:', error);
+        setProductImages([]);
+      } finally {
+        setIsLoadingImages(false);
+      }
+    };
+    
+    fetchProductImages();
   }, [product]);
   
   const productName = product['product-name'] || product.product_name || product.name || 'Unknown Product';
@@ -413,7 +476,27 @@ function ProductPreview({ product, onAddToCollection, onClose }) {
             {isSealed ? 'Sealed' : 'Single'}
           </div>
           
-          <div className="text-6xl text-slate-500">
+          {/* Product Image or Loading/Fallback */}
+          {isLoadingImages ? (
+            <div className="flex flex-col items-center justify-center text-slate-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400 mb-2"></div>
+              <div className="text-xs">Loading image...</div>
+            </div>
+          ) : productImages.length > 0 ? (
+            <img
+              src={productImages[0]}
+              alt={productName}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback to icon if image fails to load
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          
+          {/* Fallback icon (shown when no image or image fails) */}
+          <div className={`text-6xl text-slate-500 ${productImages.length > 0 ? 'hidden' : 'flex'} items-center justify-center`}>
             {isSealed ? (
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7L12 12L22 7L12 2Z" />
