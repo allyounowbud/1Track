@@ -1081,7 +1081,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
           
           {/* Preview Panel */}
           <div 
-            className="fixed inset-0 lg:inset-y-0 lg:left-auto lg:right-0 lg:w-1/2 xl:w-2/5 bg-slate-900 z-[60] shadow-2xl lg:shadow-none"
+            className="fixed inset-0 lg:left-auto lg:right-0 lg:w-1/2 xl:w-2/5 bg-slate-900 z-[60] shadow-2xl lg:shadow-none"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="h-full flex flex-col">
@@ -1118,11 +1118,11 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     })()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-lg lg:text-2xl font-bold text-slate-100 truncate">
+                    <h2 className="text-base lg:text-xl xl:text-2xl font-bold text-slate-100 leading-tight">
                       {expandedItem.name.replace(/\s*-\s*Pokemon\s+.*$/i, '')}
                     </h2>
                     {expandedItem.marketInfo && expandedItem.marketInfo.console_name && (
-                      <p className="text-slate-400 text-sm lg:text-lg mt-1 truncate">
+                      <p className="text-slate-400 text-xs lg:text-sm xl:text-base mt-1 leading-tight">
                         {expandedItem.marketInfo.console_name}
                       </p>
                     )}
@@ -1144,50 +1144,50 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                   {/* Stats Section */}
                   <div className={`${card} p-4 lg:p-6`}>
                     <h3 className="text-lg lg:text-xl font-bold text-slate-100 mb-4 lg:mb-6">Stats</h3>
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 lg:gap-3">
                     {/* Total Bought */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-2 lg:p-3 text-center">
                       <div className="text-xs text-slate-400">Total Bought</div>
-                      <div className="text-xl font-semibold text-slate-100">{expandedItem.quantity}</div>
+                      <div className="text-lg lg:text-xl font-semibold text-slate-100">{expandedItem.quantity}</div>
                       <div className="text-[11px] text-slate-400/60">items purchased</div>
                     </div>
 
                     {/* Total Sold */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-2 lg:p-3 text-center">
                       <div className="text-xs text-slate-400">Total Sold</div>
-                      <div className="text-xl font-semibold text-slate-100">
+                      <div className="text-lg lg:text-xl font-semibold text-slate-100">
                         {getItemOrders(expandedItem.name).filter(order => order.sale_date).length}
                       </div>
                       <div className="text-[11px] text-slate-400/60">items sold</div>
                     </div>
 
                     {/* On Hand */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-2 lg:p-3 text-center">
                       <div className="text-xs text-slate-400">On Hand</div>
-                      <div className="text-xl font-semibold text-slate-100">
+                      <div className="text-lg lg:text-xl font-semibold text-slate-100">
                         {expandedItem.quantity - getItemOrders(expandedItem.name).filter(order => order.sale_date).length}
                       </div>
                       <div className="text-[11px] text-slate-400/60">in inventory</div>
                     </div>
 
                     {/* Total Cost */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-2 lg:p-3 text-center">
                       <div className="text-xs text-slate-400">Total Cost</div>
-                      <div className="text-xl font-semibold text-slate-100">{centsToStr(expandedItem.totalCost)}</div>
+                      <div className="text-lg lg:text-xl font-semibold text-slate-100">{centsToStr(expandedItem.totalCost)}</div>
                       <div className="text-[11px] text-slate-400/60">total spent</div>
                     </div>
 
                     {/* Per Item Cost */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-2 lg:p-3 text-center">
                       <div className="text-xs text-slate-400">Per Item</div>
-                      <div className="text-xl font-semibold text-slate-100">{centsToStr(Math.round(expandedItem.totalCost / expandedItem.quantity))}</div>
+                      <div className="text-lg lg:text-xl font-semibold text-slate-100">{centsToStr(Math.round(expandedItem.totalCost / expandedItem.quantity))}</div>
                       <div className="text-[11px] text-slate-400/60">average cost</div>
                     </div>
 
                     {/* Market Value */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-2 lg:p-3 text-center">
                       <div className="text-xs text-slate-400">Market Value</div>
-                      <div className="text-xl font-semibold text-blue-300">
+                      <div className="text-lg lg:text-xl font-semibold text-blue-300">
                         {(() => {
                           const marketInfo = expandedItem.marketInfo;
                           const manualValue = expandedItem.manualValue;
@@ -1208,9 +1208,9 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     </div>
 
                     {/* Per Item Market Value */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-2 lg:p-3 text-center">
                       <div className="text-xs text-slate-400">Per Item Value</div>
-                      <div className="text-xl font-semibold text-blue-300">
+                      <div className="text-lg lg:text-xl font-semibold text-blue-300">
                         {(() => {
                           const marketInfo = expandedItem.marketInfo;
                           const manualValue = expandedItem.manualValue;
@@ -1231,9 +1231,9 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     </div>
 
                     {/* Profit/Loss */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-2 lg:p-3 text-center">
                       <div className="text-xs text-slate-400">Profit/Loss</div>
-                      <div className={`text-xl font-semibold ${
+                      <div className={`text-lg lg:text-xl font-semibold ${
                         (() => {
                           const marketInfo = expandedItem.marketInfo;
                           const manualValue = expandedItem.manualValue;
