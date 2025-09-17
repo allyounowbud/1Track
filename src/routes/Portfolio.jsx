@@ -926,147 +926,148 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                 {/* PILLS Section */}
                 <div className={`${card} p-6`}>
                   <h3 className="text-xl font-bold text-slate-100 mb-6">PILLS</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Quantity Pills */}
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-semibold text-slate-200 mb-3">Quantity</h4>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-700 rounded-full border border-slate-600/50 shadow-lg">
-                          <span className="text-slate-300 text-sm font-medium">Total Bought</span>
-                          <span className="text-slate-100 font-bold text-lg">{expandedItem.quantity}</span>
-                        </div>
-                        <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-700 rounded-full border border-slate-600/50 shadow-lg">
-                          <span className="text-slate-300 text-sm font-medium">Total Sold</span>
-                          <span className="text-slate-100 font-bold text-lg">
-                            {getItemOrders(expandedItem.name).filter(order => order.sale_date).length}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-700 rounded-full border border-slate-600/50 shadow-lg">
-                          <span className="text-slate-300 text-sm font-medium">On Hand</span>
-                          <span className="text-slate-100 font-bold text-lg">
-                            {expandedItem.quantity - getItemOrders(expandedItem.name).filter(order => order.sale_date).length}
-                          </span>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Total Bought */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                      <div className="text-xs text-slate-400">Total Bought</div>
+                      <div className="text-xl font-semibold text-slate-100">{expandedItem.quantity}</div>
+                      <div className="text-[11px] text-slate-400/60">items purchased</div>
                     </div>
 
-                    {/* Cost Pills */}
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-semibold text-slate-200 mb-3">Cost</h4>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-700 rounded-full border border-slate-600/50 shadow-lg">
-                          <span className="text-slate-300 text-sm font-medium">Total Cost</span>
-                          <span className="text-slate-100 font-bold text-lg">{centsToStr(expandedItem.totalCost)}</span>
-                        </div>
-                        <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-700 rounded-full border border-slate-600/50 shadow-lg">
-                          <span className="text-slate-300 text-sm font-medium">Per item</span>
-                          <span className="text-slate-100 font-bold text-lg">{centsToStr(Math.round(expandedItem.totalCost / expandedItem.quantity))}</span>
-                        </div>
+                    {/* Total Sold */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                      <div className="text-xs text-slate-400">Total Sold</div>
+                      <div className="text-xl font-semibold text-slate-100">
+                        {getItemOrders(expandedItem.name).filter(order => order.sale_date).length}
                       </div>
+                      <div className="text-[11px] text-slate-400/60">items sold</div>
                     </div>
 
-                    {/* Value & Profit Pills */}
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-semibold text-slate-200 mb-3">Value & Profit</h4>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-green-900/30 to-green-800/20 rounded-full border border-green-600/50 shadow-lg">
-                          <span className="text-slate-300 text-sm font-medium">Market Value</span>
-                          <span className="text-green-400 font-bold text-lg">
-                            {(() => {
-                              const marketInfo = expandedItem.marketInfo;
-                              const manualValue = expandedItem.manualValue;
-                              let currentMarketValue;
-                              
-                              if (marketInfo && marketInfo.loose_price) {
-                                currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                              } else if (manualValue && manualValue > 0) {
-                                currentMarketValue = manualValue;
-                              } else {
-                                currentMarketValue = expandedItem.totalCost;
-                              }
-                              
-                              return centsToStr(currentMarketValue * expandedItem.quantity);
-                            })()}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-green-900/30 to-green-800/20 rounded-full border border-green-600/50 shadow-lg">
-                          <span className="text-slate-300 text-sm font-medium">Per item</span>
-                          <span className="text-green-400 font-bold text-lg">
-                            {(() => {
-                              const marketInfo = expandedItem.marketInfo;
-                              const manualValue = expandedItem.manualValue;
-                              let currentMarketValue;
-                              
-                              if (marketInfo && marketInfo.loose_price) {
-                                currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                              } else if (manualValue && manualValue > 0) {
-                                currentMarketValue = manualValue;
-                              } else {
-                                currentMarketValue = expandedItem.totalCost;
-                              }
-                              
-                              return centsToStr(currentMarketValue);
-                            })()}
-                          </span>
-                        </div>
-                        <div className={`flex justify-between items-center px-4 py-3 rounded-full border shadow-lg ${
-                          (() => {
-                            const marketInfo = expandedItem.marketInfo;
-                            const manualValue = expandedItem.manualValue;
-                            let currentMarketValue;
-                            
-                            if (marketInfo && marketInfo.loose_price) {
-                              currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                            } else if (manualValue && manualValue > 0) {
-                              currentMarketValue = manualValue;
-                            } else {
-                              currentMarketValue = expandedItem.totalCost;
-                            }
-                            
-                            const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
-                            return profit >= 0 
-                              ? 'bg-gradient-to-r from-green-900/30 to-green-800/20 border-green-600/50' 
-                              : 'bg-gradient-to-r from-red-900/30 to-red-800/20 border-red-600/50';
-                          })()
-                        }`}>
-                          <span className="text-slate-300 text-sm font-medium">Profit/Loss</span>
-                          <span className={`font-bold text-lg ${
-                            (() => {
-                              const marketInfo = expandedItem.marketInfo;
-                              const manualValue = expandedItem.manualValue;
-                              let currentMarketValue;
-                              
-                              if (marketInfo && marketInfo.loose_price) {
-                                currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                              } else if (manualValue && manualValue > 0) {
-                                currentMarketValue = manualValue;
-                              } else {
-                                currentMarketValue = expandedItem.totalCost;
-                              }
-                              
-                              const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
-                              return profit >= 0 ? 'text-green-400' : 'text-red-400';
-                            })()
-                          }`}>
-                            {(() => {
-                              const marketInfo = expandedItem.marketInfo;
-                              const manualValue = expandedItem.manualValue;
-                              let currentMarketValue;
-                              
-                              if (marketInfo && marketInfo.loose_price) {
-                                currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                              } else if (manualValue && manualValue > 0) {
-                                currentMarketValue = manualValue;
-                              } else {
-                                currentMarketValue = expandedItem.totalCost;
-                              }
-                              
-                              const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
-                              const profitPercentage = expandedItem.totalCost > 0 ? (profit / expandedItem.totalCost) * 100 : 0;
-                              return `${profit >= 0 ? '+' : ''}${centsToStr(profit)} (${profit >= 0 ? '+' : ''}${profitPercentage.toFixed(1)}%)`;
-                            })()}
-                          </span>
-                        </div>
+                    {/* On Hand */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                      <div className="text-xs text-slate-400">On Hand</div>
+                      <div className="text-xl font-semibold text-slate-100">
+                        {expandedItem.quantity - getItemOrders(expandedItem.name).filter(order => order.sale_date).length}
+                      </div>
+                      <div className="text-[11px] text-slate-400/60">in inventory</div>
+                    </div>
+
+                    {/* Total Cost */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                      <div className="text-xs text-slate-400">Total Cost</div>
+                      <div className="text-xl font-semibold text-slate-100">{centsToStr(expandedItem.totalCost)}</div>
+                      <div className="text-[11px] text-slate-400/60">total spent</div>
+                    </div>
+
+                    {/* Per Item Cost */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                      <div className="text-xs text-slate-400">Per Item</div>
+                      <div className="text-xl font-semibold text-slate-100">{centsToStr(Math.round(expandedItem.totalCost / expandedItem.quantity))}</div>
+                      <div className="text-[11px] text-slate-400/60">average cost</div>
+                    </div>
+
+                    {/* Market Value */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                      <div className="text-xs text-slate-400">Market Value</div>
+                      <div className="text-xl font-semibold text-emerald-300">
+                        {(() => {
+                          const marketInfo = expandedItem.marketInfo;
+                          const manualValue = expandedItem.manualValue;
+                          let currentMarketValue;
+                          
+                          if (marketInfo && marketInfo.loose_price) {
+                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                          } else if (manualValue && manualValue > 0) {
+                            currentMarketValue = manualValue;
+                          } else {
+                            currentMarketValue = expandedItem.totalCost;
+                          }
+                          
+                          return centsToStr(currentMarketValue * expandedItem.quantity);
+                        })()}
+                      </div>
+                      <div className="text-[11px] text-slate-400/60">current value</div>
+                    </div>
+
+                    {/* Per Item Market Value */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                      <div className="text-xs text-slate-400">Per Item Value</div>
+                      <div className="text-xl font-semibold text-emerald-300">
+                        {(() => {
+                          const marketInfo = expandedItem.marketInfo;
+                          const manualValue = expandedItem.manualValue;
+                          let currentMarketValue;
+                          
+                          if (marketInfo && marketInfo.loose_price) {
+                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                          } else if (manualValue && manualValue > 0) {
+                            currentMarketValue = manualValue;
+                          } else {
+                            currentMarketValue = expandedItem.totalCost;
+                          }
+                          
+                          return centsToStr(currentMarketValue);
+                        })()}
+                      </div>
+                      <div className="text-[11px] text-slate-400/60">per item</div>
+                    </div>
+
+                    {/* Profit/Loss */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
+                      <div className="text-xs text-slate-400">Profit/Loss</div>
+                      <div className={`text-xl font-semibold ${
+                        (() => {
+                          const marketInfo = expandedItem.marketInfo;
+                          const manualValue = expandedItem.manualValue;
+                          let currentMarketValue;
+                          
+                          if (marketInfo && marketInfo.loose_price) {
+                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                          } else if (manualValue && manualValue > 0) {
+                            currentMarketValue = manualValue;
+                          } else {
+                            currentMarketValue = expandedItem.totalCost;
+                          }
+                          
+                          const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
+                          return profit >= 0 ? 'text-emerald-300' : 'text-rose-300';
+                        })()
+                      }`}>
+                        {(() => {
+                          const marketInfo = expandedItem.marketInfo;
+                          const manualValue = expandedItem.manualValue;
+                          let currentMarketValue;
+                          
+                          if (marketInfo && marketInfo.loose_price) {
+                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                          } else if (manualValue && manualValue > 0) {
+                            currentMarketValue = manualValue;
+                          } else {
+                            currentMarketValue = expandedItem.totalCost;
+                          }
+                          
+                          const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
+                          const profitPercentage = expandedItem.totalCost > 0 ? (profit / expandedItem.totalCost) * 100 : 0;
+                          return `${profit >= 0 ? '+' : ''}${centsToStr(profit)} (${profit >= 0 ? '+' : ''}${profitPercentage.toFixed(1)}%)`;
+                        })()}
+                      </div>
+                      <div className="text-[11px] text-slate-400/60">
+                        {(() => {
+                          const marketInfo = expandedItem.marketInfo;
+                          const manualValue = expandedItem.manualValue;
+                          let currentMarketValue;
+                          
+                          if (marketInfo && marketInfo.loose_price) {
+                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                          } else if (manualValue && manualValue > 0) {
+                            currentMarketValue = manualValue;
+                          } else {
+                            currentMarketValue = expandedItem.totalCost;
+                          }
+                          
+                          const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
+                          return profit >= 0 ? 'unrealized profit' : 'unrealized loss';
+                        })()}
                       </div>
                     </div>
                   </div>
