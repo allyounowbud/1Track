@@ -1350,7 +1350,6 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                       </div>
                     ))}
                   </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1403,12 +1402,12 @@ export default function Portfolio() {
     queryFn: getAllOrders,
   });
 
-  // Fetch manual database values for fallback
+  // Fetch manual database values for fallback from products table
   const { data: manualItems = [] } = useQuery({
     queryKey: ["manual-items"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("items")
+        .from("products")
         .select("name, market_value_cents")
         .order("name", { ascending: true });
       if (error) throw error;

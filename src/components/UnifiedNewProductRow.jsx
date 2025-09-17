@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabaseClient";
 import { moneyToCents, centsToStr } from "../utils/money.js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSave, onCancel }) {
   const [name, setName] = useState("");
