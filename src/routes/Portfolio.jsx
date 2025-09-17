@@ -573,6 +573,8 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
   const [itemType, setItemType] = useState("all"); // "all", "sealed", "singles"
   const [expandedItem, setExpandedItem] = useState(null); // null or item object
   const [productImages, setProductImages] = useState({});
+  const [sortBy, setSortBy] = useState("name"); // "name", "marketValue", "totalCost", "profit", "quantity", "dateAdded", "set"
+  const [sortOrder, setSortOrder] = useState("asc"); // "asc", "desc"
 
   // Get order details for a specific item from all orders
   const getItemOrders = (itemName) => {
@@ -695,11 +697,131 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
   }, [portfolioItems, marketData, manualItems, itemType]);
 
   const filteredItems = useMemo(() => {
-    if (!searchTerm) return groupedItems;
-    return groupedItems.filter(item => 
-      item.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [groupedItems, searchTerm]);
+    let items = groupedItems;
+    
+    // Apply search filter
+    if (searchTerm) {
+      items = items.filter(item => 
+        item.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Apply sorting
+    items = [...items].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case "name":
+          aValue = a.name?.toLowerCase() || "";
+          bValue = b.name?.toLowerCase() || "";
+          break;
+          
+        case "marketValue":
+          // Calculate current market value
+          const aMarketInfo = a.marketInfo;
+          const aManualValue = a.manualValue;
+          let aCurrentMarketValue;
+          
+          if (aMarketInfo && aMarketInfo.loose_price) {
+            aCurrentMarketValue = Math.round(parseFloat(aMarketInfo.loose_price) * 100);
+          } else if (aManualValue && aManualValue > 0) {
+            aCurrentMarketValue = aManualValue;
+          } else {
+            aCurrentMarketValue = a.totalCost;
+          }
+          
+          const bMarketInfo = b.marketInfo;
+          const bManualValue = b.manualValue;
+          let bCurrentMarketValue;
+          
+          if (bMarketInfo && bMarketInfo.loose_price) {
+            bCurrentMarketValue = Math.round(parseFloat(bMarketInfo.loose_price) * 100);
+          } else if (bManualValue && bManualValue > 0) {
+            bCurrentMarketValue = bManualValue;
+          } else {
+            bCurrentMarketValue = b.totalCost;
+          }
+          
+          aValue = aCurrentMarketValue * a.quantity;
+          bValue = bCurrentMarketValue * b.quantity;
+          break;
+          
+        case "totalCost":
+          aValue = a.totalCost;
+          bValue = b.totalCost;
+          break;
+          
+        case "profit":
+          // Calculate profit/loss
+          const aMarketInfo2 = a.marketInfo;
+          const aManualValue2 = a.manualValue;
+          let aCurrentMarketValue2;
+          
+          if (aMarketInfo2 && aMarketInfo2.loose_price) {
+            aCurrentMarketValue2 = Math.round(parseFloat(aMarketInfo2.loose_price) * 100);
+          } else if (aManualValue2 && aManualValue2 > 0) {
+            aCurrentMarketValue2 = aManualValue2;
+          } else {
+            aCurrentMarketValue2 = a.totalCost;
+          }
+          
+          const bMarketInfo2 = b.marketInfo;
+          const bManualValue2 = b.manualValue;
+          let bCurrentMarketValue2;
+          
+          if (bMarketInfo2 && bMarketInfo2.loose_price) {
+            bCurrentMarketValue2 = Math.round(parseFloat(bMarketInfo2.loose_price) * 100);
+          } else if (bManualValue2 && bManualValue2 > 0) {
+            bCurrentMarketValue2 = bManualValue2;
+          } else {
+            bCurrentMarketValue2 = b.totalCost;
+          }
+          
+          aValue = (aCurrentMarketValue2 * a.quantity) - a.totalCost;
+          bValue = (bCurrentMarketValue2 * b.quantity) - b.totalCost;
+          break;
+          
+        case "quantity":
+          aValue = a.quantity;
+          bValue = b.quantity;
+          break;
+          
+        case "dateAdded":
+          // Use the earliest order date for each item
+          const aEarliestDate = a.orderDates.length > 0 ? new Date(Math.min(...a.orderDates.map(d => new Date(d)))) : new Date(0);
+          const bEarliestDate = b.orderDates.length > 0 ? new Date(Math.min(...b.orderDates.map(d => new Date(d)))) : new Date(0);
+          aValue = aEarliestDate.getTime();
+          bValue = bEarliestDate.getTime();
+          break;
+          
+        case "set":
+          // Extract set name from item name (after " - ")
+          const aSetName = a.name?.split(' - ')[1]?.toLowerCase() || "";
+          const bSetName = b.name?.split(' - ')[1]?.toLowerCase() || "";
+          aValue = aSetName;
+          bValue = bSetName;
+          break;
+          
+        default:
+          aValue = a.name?.toLowerCase() || "";
+          bValue = b.name?.toLowerCase() || "";
+      }
+      
+      // Handle string comparison
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortOrder === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+      }
+      
+      // Handle numeric comparison
+      if (sortOrder === "asc") {
+        return aValue - bValue;
+      } else {
+        return bValue - aValue;
+      }
+    });
+    
+    return items;
+  }, [groupedItems, searchTerm, sortBy, sortOrder]);
 
   return (
     <div className="space-y-6">
@@ -720,40 +842,80 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
           </div>
         </div>
         
-        {/* Item Type Toggle */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-400">Filter:</span>
+        {/* Filter and Sort Controls */}
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* Item Type Filter */}
           <div className="flex bg-slate-800 rounded-lg p-1">
             <button
               onClick={() => setItemType("all")}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+              className={`px-2 py-1 text-xs rounded-md transition-colors ${
                 itemType === "all" 
-                  ? "bg-indigo-500 text-white" 
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-indigo-500 text-white shadow-sm" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
               }`}
             >
-              All Items
+              All
             </button>
             <button
               onClick={() => setItemType("sealed")}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+              className={`px-2 py-1 text-xs rounded-md transition-colors ${
                 itemType === "sealed" 
-                  ? "bg-indigo-500 text-white" 
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-indigo-500 text-white shadow-sm" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
               }`}
             >
               Sealed
             </button>
             <button
               onClick={() => setItemType("singles")}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+              className={`px-2 py-1 text-xs rounded-md transition-colors ${
                 itemType === "singles" 
-                  ? "bg-indigo-500 text-white" 
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-indigo-500 text-white shadow-sm" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
               }`}
             >
               Singles
             </button>
+          </div>
+
+          {/* Sort Controls */}
+          <div className="flex items-center gap-2">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className={`${inputBase} text-sm w-32`}
+            >
+              <option value="name">Name</option>
+              <option value="marketValue">Market Value</option>
+              <option value="totalCost">Total Cost</option>
+              <option value="profit">Profit/Loss</option>
+              <option value="quantity">Quantity</option>
+              <option value="dateAdded">Date Added</option>
+              <option value="set">Set</option>
+            </select>
+            
+            <div className="flex bg-slate-800 rounded-lg p-1">
+              <button
+                onClick={() => setSortOrder("asc")}
+                className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                  sortOrder === "asc" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
+                }`}
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => setSortOrder("desc")}
+                className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                  sortOrder === "desc" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
+                }`}
+              >
+                ↓
+              </button>
+            </div>
           </div>
         </div>
       </div>
