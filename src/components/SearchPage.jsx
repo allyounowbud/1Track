@@ -879,8 +879,7 @@ export default function SearchPage() {
   
   return (
     <>
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 p-6">
-        <div className="max-w-full mx-auto space-y-6">
+      <div className="space-y-6">
         {/* Header Card */}
         <div className={`${card} p-6 mb-6`}>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4">Find a Product</h1>
@@ -917,14 +916,14 @@ export default function SearchPage() {
           </div>
           
           {/* Filter Row */}
-          <div className="flex gap-2 min-w-0">
+          <div className="flex gap-1 sm:gap-2 min-w-0">
           {/* Category Dropdown */}
           <div className="flex-1">
             <div className="relative">
               <select 
                 value={filters.tcgType || 'all'}
                 onChange={(e) => setFilters({ ...filters, tcgType: e.target.value })}
-                className="w-full h-12 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 cursor-pointer"
+                className="w-full h-10 sm:h-12 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-1 sm:px-2 md:px-3 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 cursor-pointer"
               >
                 <option value="all">Category</option>
                 <option value="pokemon">Pokemon</option>
@@ -941,7 +940,7 @@ export default function SearchPage() {
               <select 
                 value={filters.productType || 'all'}
                 onChange={(e) => setFilters({ ...filters, productType: e.target.value })}
-                className="w-full h-12 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 cursor-pointer"
+                className="w-full h-10 sm:h-12 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-1 sm:px-2 md:px-3 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 cursor-pointer"
               >
                 <option value="all">Product Type</option>
                 <option value="singles">Cards Only</option>
@@ -965,7 +964,7 @@ export default function SearchPage() {
               <select 
                 value={filters.sortBy || 'best_match'}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                className="w-full h-12 bg-transparent border-0 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-0 cursor-pointer"
+                className="w-full h-10 sm:h-12 bg-transparent border-0 rounded-lg px-1 sm:px-2 md:px-3 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-0 cursor-pointer"
               >
                 <option value="best_match">Sort Results</option>
                 <option value="price_low_high">Price: Low to High</option>
@@ -1033,8 +1032,17 @@ export default function SearchPage() {
                     className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('pokemon')}
                   >
-                    <div className="aspect-square bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <div className="text-4xl">⚡</div>
+                    <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
+                      <img 
+                        src="https://public.getcollectr.com/public-assets/catalog-categories/3_v2_2.png" 
+                        alt="Pokemon" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="text-4xl hidden">⚡</div>
                     </div>
                     <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Pokemon</h3>
                     <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Trading Cards</p>
@@ -1045,8 +1053,17 @@ export default function SearchPage() {
                     className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('magic')}
                   >
-                    <div className="aspect-square bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <div className="text-4xl font-bold text-white">M</div>
+                    <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
+                      <img 
+                        src="https://public.getcollectr.com/public-assets/catalog-categories/1_v2_2.png" 
+                        alt="Magic: The Gathering" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="text-4xl font-bold text-white hidden">M</div>
                     </div>
                     <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Magic</h3>
                     <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">The Gathering</p>
@@ -1057,8 +1074,17 @@ export default function SearchPage() {
                     className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('yugioh')}
                   >
-                    <div className="aspect-square bg-gradient-to-br from-purple-600 to-purple-800 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <div className="text-4xl">👹</div>
+                    <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
+                      <img 
+                        src="https://public.getcollectr.com/public-assets/catalog-categories/2_v2_2.png" 
+                        alt="Yu-Gi-Oh!" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="text-4xl hidden">👹</div>
                     </div>
                     <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Yu-Gi-Oh!</h3>
                     <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Trading Cards</p>
@@ -1069,60 +1095,22 @@ export default function SearchPage() {
                     className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('nintendo')}
                   >
-                    <div className="aspect-square bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <div className="text-4xl">🎮</div>
+                    <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
+                      <img 
+                        src="https://public.getcollectr.com/public-assets/catalog-categories/68_v2_2.png" 
+                        alt="Video Games" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="text-4xl hidden">🎮</div>
                     </div>
                     <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Video Games</h3>
                     <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Nintendo, PlayStation</p>
                   </div>
 
-                  {/* Sports Cards Category */}
-                  <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
-                    onClick={() => setSearchQuery('baseball')}
-                  >
-                    <div className="aspect-square bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <div className="text-4xl">⚾</div>
-                    </div>
-                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Sports Cards</h3>
-                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Baseball, Football</p>
-                  </div>
-
-                  {/* Dragon Ball Category */}
-                  <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
-                    onClick={() => setSearchQuery('dragon ball')}
-                  >
-                    <div className="aspect-square bg-gradient-to-br from-orange-500 to-orange-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <div className="text-4xl">🐉</div>
-                    </div>
-                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Dragon Ball</h3>
-                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Super Card Game</p>
-                  </div>
-
-                  {/* One Piece Category */}
-                  <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
-                    onClick={() => setSearchQuery('one piece')}
-                  >
-                    <div className="aspect-square bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <div className="text-4xl">🏴‍☠️</div>
-                    </div>
-                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">One Piece</h3>
-                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Card Game</p>
-                  </div>
-
-                  {/* Digimon Category */}
-                  <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
-                    onClick={() => setSearchQuery('digimon')}
-                  >
-                    <div className="aspect-square bg-gradient-to-br from-cyan-500 to-cyan-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <div className="text-4xl">🤖</div>
-                    </div>
-                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Digimon</h3>
-                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Card Game</p>
-                  </div>
                 </div>
               </div>
             )}
@@ -1156,7 +1144,6 @@ export default function SearchPage() {
           </div>
         </>
       )}
-    </div>
     </>
   );
 }

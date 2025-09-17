@@ -404,7 +404,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-900 dark:text-slate-100">Portfolio Value</h3>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
+            <div className="flex items-center gap-4 mt-2">
               <div className="text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">
                 ${chartData.length > 0 ? chartData[chartData.length - 1].y.toFixed(2) : '0.00'}
               </div>
@@ -817,9 +817,87 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
         </div>
         
         {/* Filter and Sort Controls */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          {/* Left side: Item Type Filter + Sort Order Toggle */}
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          {/* Mobile: First row with All/Sealed/Singles on left and Sort Order Toggle on right */}
+          <div className="flex sm:hidden items-center justify-between gap-2">
+            {/* Item Type Filter */}
+            <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1 h-10">
+              <button
+                onClick={() => setItemType("all")}
+                className={`px-2 py-1 text-xs rounded-md transition-colors h-8 ${
+                  itemType === "all" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setItemType("sealed")}
+                className={`px-2 py-1 text-xs rounded-md transition-colors h-8 ${
+                  itemType === "sealed" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
+                }`}
+              >
+                Sealed
+              </button>
+              <button
+                onClick={() => setItemType("singles")}
+                className={`px-2 py-1 text-xs rounded-md transition-colors h-8 ${
+                  itemType === "singles" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
+                }`}
+              >
+                Singles
+              </button>
+            </div>
+
+            {/* Sort Order Toggle */}
+            <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1 h-10">
+              <button
+                onClick={() => setSortOrder("asc")}
+                className={`px-4 py-1 text-xs rounded-md transition-colors h-8 ${
+                  sortOrder === "asc" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
+                }`}
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => setSortOrder("desc")}
+                className={`px-4 py-1 text-xs rounded-md transition-colors h-8 ${
+                  sortOrder === "desc" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
+                }`}
+              >
+                ↓
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile: Second row with full-width Sort By Dropdown */}
+          <div className="flex sm:hidden items-center">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-gray-100 dark:bg-slate-800 text-xs text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 px-2 py-1 h-12 w-full rounded-lg transition-colors focus:outline-none focus:bg-gray-200 dark:focus:bg-slate-700/50 border-0 cursor-pointer"
+            >
+              <option value="name">Name</option>
+              <option value="marketValue">Market Value</option>
+              <option value="totalCost">Total Cost</option>
+              <option value="profit">Profit/Loss</option>
+              <option value="quantity">Quantity</option>
+              <option value="dateAdded">Date Added</option>
+              <option value="set">Set</option>
+            </select>
+          </div>
+
+          {/* Desktop: Original layout */}
+          <div className="hidden sm:flex items-center gap-3">
             {/* Item Type Filter */}
             <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1 h-10">
               <button
@@ -858,7 +936,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1 h-10">
               <button
                 onClick={() => setSortOrder("asc")}
-                className={`px-3 py-1 text-xs rounded-md transition-colors h-8 ${
+                className={`px-5 py-1 text-xs rounded-md transition-colors h-8 ${
                   sortOrder === "asc" 
                     ? "bg-indigo-500 text-white shadow-sm" 
                     : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
@@ -868,7 +946,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               </button>
               <button
                 onClick={() => setSortOrder("desc")}
-                className={`px-3 py-1 text-xs rounded-md transition-colors h-8 ${
+                className={`px-5 py-1 text-xs rounded-md transition-colors h-8 ${
                   sortOrder === "desc" 
                     ? "bg-indigo-500 text-white shadow-sm" 
                     : "text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/50"
@@ -879,12 +957,12 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             </div>
           </div>
 
-          {/* Right side: Sort By Dropdown */}
-          <div className="flex items-center">
+          {/* Desktop: Sort By Dropdown */}
+          <div className="hidden sm:flex items-center">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-gray-100 dark:bg-slate-800 text-xs text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 px-2 py-1 h-12 w-32 rounded-lg transition-colors focus:outline-none focus:bg-gray-200 dark:focus:bg-slate-700/50 border-0 cursor-pointer"
+              className="bg-gray-100 dark:bg-slate-800 text-xs text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 px-2 py-1 h-10 w-32 rounded-lg transition-colors focus:outline-none focus:bg-gray-200 dark:focus:bg-slate-700/50 border-0 cursor-pointer"
             >
               <option value="name">Name</option>
               <option value="marketValue">Market Value</option>
