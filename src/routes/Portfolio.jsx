@@ -581,10 +581,13 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
     return allOrders.filter(order => order.item === itemName);
   };
 
-  // Prevent background scroll when modal is open
+  // Prevent background scroll when modal is open (mobile only)
   useEffect(() => {
     if (expandedItem) {
-      document.body.style.overflow = 'hidden';
+      // Only prevent scroll on mobile/small screens
+      if (window.innerWidth < 1024) {
+        document.body.style.overflow = 'hidden';
+      }
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -1067,84 +1070,81 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
         </div>
       )}
 
-      {/* Expanded Item Modal */}
+      {/* Expanded Item Preview - Side Panel on Large Screens, Full Screen on Mobile */}
       {expandedItem && (
-        <div 
-          className="fixed inset-0 bg-slate-900 z-50 overflow-hidden"
-          onClick={(e) => {
-            // Only close if clicking the backdrop, not the content
-            if (e.target === e.currentTarget) {
-              setExpandedItem(null);
-            }
-          }}
-        >
-          <div className="h-full overflow-hidden">
-            {/* Modal Header */}
-            <div 
-              className="flex items-center justify-between p-6 border-b border-slate-800"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  {(() => {
-                    const marketInfo = expandedItem.marketInfo;
-                    const manualValue = expandedItem.manualValue;
-                    let dataSource;
-                    
-                    if (marketInfo && marketInfo.loose_price) {
-                      dataSource = 'api';
-                    } else if (manualValue && manualValue > 0) {
-                      dataSource = 'manual';
-                    } else {
-                      dataSource = 'cost';
-                    }
-                    
-                    return (
-                      <>
-                        {dataSource === 'api' && (
-                          <div className="w-3 h-3 bg-green-400 rounded-full" title="API market data"></div>
-                        )}
-                        {dataSource === 'manual' && (
-                          <div className="w-3 h-3 bg-blue-400 rounded-full" title="Manual database value"></div>
-                        )}
-                        {dataSource === 'cost' && (
-                          <div className="w-3 h-3 bg-yellow-400 rounded-full" title="Using cost price"></div>
-                        )}
-                      </>
-                    );
-                  })()}
+        <>
+          {/* Backdrop for mobile/small screens */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setExpandedItem(null)}
+          />
+          
+          {/* Preview Panel */}
+          <div 
+            className="fixed inset-0 lg:inset-y-0 lg:right-0 lg:w-1/2 xl:w-2/5 bg-slate-900 z-50 shadow-2xl lg:shadow-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="h-full flex flex-col">
+              {/* Panel Header */}
+              <div className="flex items-center justify-between p-4 lg:p-6 border-b border-slate-800 flex-shrink-0">
+                <div className="flex items-center gap-3 lg:gap-4 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {(() => {
+                      const marketInfo = expandedItem.marketInfo;
+                      const manualValue = expandedItem.manualValue;
+                      let dataSource;
+                      
+                      if (marketInfo && marketInfo.loose_price) {
+                        dataSource = 'api';
+                      } else if (manualValue && manualValue > 0) {
+                        dataSource = 'manual';
+                      } else {
+                        dataSource = 'cost';
+                      }
+                      
+                      return (
+                        <>
+                          {dataSource === 'api' && (
+                            <div className="w-3 h-3 bg-green-400 rounded-full" title="API market data"></div>
+                          )}
+                          {dataSource === 'manual' && (
+                            <div className="w-3 h-3 bg-blue-400 rounded-full" title="Manual database value"></div>
+                          )}
+                          {dataSource === 'cost' && (
+                            <div className="w-3 h-3 bg-yellow-400 rounded-full" title="Using cost price"></div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg lg:text-2xl font-bold text-slate-100 truncate">
+                      {expandedItem.name.replace(/\s*-\s*Pokemon\s+.*$/i, '')}
+                    </h2>
+                    {expandedItem.marketInfo && expandedItem.marketInfo.console_name && (
+                      <p className="text-slate-400 text-sm lg:text-lg mt-1 truncate">
+                        {expandedItem.marketInfo.console_name}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-100">
-                    {expandedItem.name.replace(/\s*-\s*Pokemon\s+.*$/i, '')}
-                  </h2>
-                  {expandedItem.marketInfo && expandedItem.marketInfo.console_name && (
-                    <p className="text-slate-400 text-lg mt-1">
-                      {expandedItem.marketInfo.console_name}
-                    </p>
-                  )}
-                </div>
+                <button
+                  onClick={() => setExpandedItem(null)}
+                  className="p-2 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0 ml-2"
+                >
+                  <svg className="w-5 h-5 lg:w-6 lg:h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <button
-                onClick={() => setExpandedItem(null)}
-                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
 
-            {/* Modal Content */}
-            <div 
-              className="p-6 overflow-y-auto h-[calc(100vh-120px)]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="space-y-8">
-                {/* Stats Section */}
-                <div className={`${card} p-6`}>
-                  <h3 className="text-xl font-bold text-slate-100 mb-6">Stats</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {/* Panel Content */}
+              <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+                <div className="space-y-6 lg:space-y-8">
+                  {/* Stats Section */}
+                  <div className={`${card} p-4 lg:p-6`}>
+                    <h3 className="text-lg lg:text-xl font-bold text-slate-100 mb-4 lg:mb-6">Stats</h3>
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
                     {/* Total Bought */}
                     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
                       <div className="text-xs text-slate-400">Total Bought</div>
@@ -1291,9 +1291,9 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                   </div>
                 </div>
 
-                {/* Order History */}
-                <div className={`${card} p-6`}>
-                  <h3 className="text-xl font-bold text-slate-100 mb-6">Order History</h3>
+                  {/* Order History */}
+                  <div className={`${card} p-4 lg:p-6`}>
+                    <h3 className="text-lg lg:text-xl font-bold text-slate-100 mb-4 lg:mb-6">Order History</h3>
                   
                   {/* Desktop Table View */}
                   <div className="hidden lg:block overflow-x-auto">
@@ -1350,11 +1350,12 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                       </div>
                     ))}
                   </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
