@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file.
   - **Clean Line Design**: Removed circle data points for a cleaner, more professional line chart appearance
   - **Blue Color Scheme**: Changed chart line and highlight colors from yellow to blue (rgb(59, 130, 246)) for better visual consistency
   - **Proper ViewBox**: Chart now uses dynamic viewBox based on actual container dimensions instead of fixed dimensions
+- **Mobile Theme Toggle**: Added a theme toggle tab in the mobile bottom navigation bar, allowing users to switch between light and dark modes on mobile screens. The theme toggle appears as a dedicated tab alongside other navigation items with proper icon and label styling
+- **Instant Theme Switching**: Removed transition animations from theme changes to prevent jarring visual effects where light and dark elements appear simultaneously. Theme changes now switch instantly for a cleaner, more professional experience
+- **Navigation Bar Flicker Fix**: Eliminated flicker in the navigation bar during theme changes by removing transition animations from the ThemeToggle component and navigation items, ensuring smooth and instant theme switching
 
 ### Added
 - **Complete Light/Dark Mode Theme System**: Implemented a comprehensive theme system with light and dark mode support across the entire application. Features include:

@@ -425,7 +425,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
                 onClick={() => setSelectedTimeframe(period)}
                 className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                   selectedTimeframe === period
-                    ? 'bg-yellow-500/20 text-yellow-300'
+                    ? 'bg-blue-500/20 text-blue-300'
                     : 'text-gray-600 dark:text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-gray-200 dark:hover:bg-slate-700/50'
                 }`}
               >

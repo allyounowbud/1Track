@@ -61,7 +61,7 @@ export default function LayoutWithSidebar({ children, active, section }) {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100">
       {/* Sidebar */}
       <Sidebar active={active} section={section} onCollapseChange={setSidebarCollapsed} />
       
@@ -71,6 +71,7 @@ export default function LayoutWithSidebar({ children, active, section }) {
           ? 'main-content min-h-screen' // Use CSS class for bottom bar isolation
           : `transition-all duration-300 ${(sidebarCollapsed || !isLargeScreen) ? 'ml-16' : 'ml-64'}`
       }`}>
+        
         <div ref={contentRef} className="flex-1 w-full p-4 sm:p-6">
           {children}
         </div>

@@ -101,8 +101,8 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
 
   // Base + variants for sidebar items
   const itemBase = isCollapsed 
-    ? "flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-    : "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors";
+    ? "flex items-center justify-center w-10 h-10 rounded-lg"
+    : "flex items-center gap-3 px-3 py-2 rounded-lg";
   const itemIdle = "text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-800/50";
   const itemActive = "text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 shadow-sm";
 
@@ -174,7 +174,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   // Mobile bottom bar layout
   if (isSmallScreen) {
     return (
-      <div className="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 h-16 pb-safe transition-colors duration-300">
+      <div className="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 h-16 pb-safe">
         {/* Navigation - horizontal layout for mobile */}
         <nav className="flex items-center justify-around px-2 py-2 h-full">
           {navigationItems.map((item) => {
@@ -184,7 +184,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                 key={item.key}
                 to={item.to}
                 end
-                className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-0 flex-1 h-full ${
+                className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-0 flex-1 h-full ${
                   isActive 
                     ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 shadow-sm' 
                     : 'text-gray-600 dark:text-slate-300'
@@ -199,6 +199,14 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
               </NavLink>
             );
           })}
+          
+          {/* Theme Toggle - Mobile */}
+          <div className="flex flex-col items-center justify-center p-2 rounded-lg min-w-0 flex-1 h-full">
+            <ThemeToggle isCollapsed={true} />
+            <span className="text-xs font-medium truncate text-center leading-tight hidden xs:block text-gray-600 dark:text-slate-300 mt-1">
+              Theme
+            </span>
+          </div>
         </nav>
       </div>
     );
@@ -207,7 +215,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   // Desktop sidebar layout
   return (
     <div 
-      className={`sidebar-fixed bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 transition-all duration-300 ${
+      className={`sidebar-fixed bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
@@ -232,8 +240,8 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                   onCollapseChange?.(newCollapsed);
                 }}
                 className={`${isCollapsed 
-                  ? "flex items-center justify-center w-10 h-10 rounded-lg transition-colors" 
-                  : "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
+                  ? "flex items-center justify-center w-10 h-10 rounded-lg" 
+                  : "flex items-center gap-3 px-3 py-2 rounded-lg"
                 } text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-800/50`}
               >
                 <svg 
@@ -280,7 +288,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
           // Collapsed: Profile image fills entire button
           <Link
             to="/"
-            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-800/50"
+            className="flex items-center justify-center w-10 h-10 rounded-lg text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-800/50"
           >
             {userInfo.avatar_url ? (
               <img
@@ -298,7 +306,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
           // Expanded: Profile image + text
           <Link
             to="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800/50 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800/50"
           >
             {userInfo.avatar_url ? (
               <img

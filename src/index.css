@@ -56,7 +56,6 @@ html, body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Ensure root element covers full viewport */
@@ -64,7 +63,6 @@ html, body {
   background-color: rgb(var(--bg-primary)) !important;
   color: rgb(var(--text-primary)) !important;
   width: 100%;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Simple, reliable sidebar positioning */
