@@ -66,3 +66,4 @@ Once the function is working:
 ---
 
 **Need Help?** Check the browser console and Supabase function logs for detailed error messages.
+

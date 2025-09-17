@@ -16,6 +16,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     return saved !== null ? JSON.parse(saved) : true;
   });
   const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
+  const [apiStatus, setApiStatus] = useState("connecting"); // "connected", "connecting", "disconnected"
   const [isSmallScreen, setIsSmallScreen] = useState(() => {
     // Initialize with immediate check to prevent flash
     if (typeof window !== 'undefined') {
@@ -64,6 +65,39 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
       setUserInfo({ avatar_url, username });
     });
     return () => sub.subscription.unsubscribe();
+  }, []);
+
+  // Check API status
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      try {
+        setApiStatus("connecting");
+        // Test the Price Charting API endpoint
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ query: 'test' })
+        });
+        
+        if (response.ok) {
+          setApiStatus("connected");
+        } else {
+          setApiStatus("disconnected");
+        }
+      } catch (error) {
+        console.error('API status check failed:', error);
+        setApiStatus("disconnected");
+      }
+    };
+
+    // Check immediately and then every 30 seconds
+    checkApiStatus();
+    const interval = setInterval(checkApiStatus, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Handle responsive behavior
@@ -160,8 +194,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
           { key: "portfolio-overview", label: "Overview", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", to: "/portfolio" },
           { key: "portfolio-collection", label: "Collection", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z", to: "/portfolio/collection" },
           { key: "portfolio-search", label: "Search", icon: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z", to: "/portfolio/search" },
-          { key: "portfolio-stats", label: "Stats", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", to: "/portfolio/stats" },
-          { key: "portfolio-inventory", label: "Inventory", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4", to: "/portfolio/inventory" }
+          { key: "portfolio-stats", label: "Stats", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", to: "/portfolio/stats" }
         ];
       default:
         return [homeItem];
@@ -265,6 +298,33 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
           </NavLink>
         ))}
       </nav>
+
+      {/* API Status Indicator */}
+      <div className={`flex-shrink-0 ${isCollapsed ? 'flex justify-center py-2' : 'flex justify-center py-2'}`}>
+        {isCollapsed ? (
+          <div className="flex items-center justify-center">
+            <div 
+              className={`w-3 h-3 rounded-full ${
+                apiStatus === 'connected' ? 'bg-green-500 animate-pulse' :
+                apiStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                'bg-red-500 animate-pulse'
+              }`}
+              title={`API Status: ${apiStatus}`}
+            />
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+            <div 
+              className={`w-2 h-2 rounded-full ${
+                apiStatus === 'connected' ? 'bg-green-500 animate-pulse' :
+                apiStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                'bg-red-500 animate-pulse'
+              }`}
+            />
+            <span className="capitalize">API {apiStatus}</span>
+          </div>
+        )}
+      </div>
 
       {/* User Section */}
       <div className={`border-t border-slate-800 bg-slate-900 flex-shrink-0 ${isCollapsed ? 'flex justify-center py-4' : 'p-4'}`}>

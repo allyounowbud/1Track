@@ -11,7 +11,6 @@ import { getBatchMarketData, getMarketValueInCents } from "../services/marketDat
 import { getBackgroundMarketData, isBackgroundLoadingComplete } from "../services/backgroundMarketDataService.js";
 import SearchPage from "../components/SearchPage.jsx";
 import Stats from "./Stats.jsx";
-import Inventory from "./Inventory.jsx";
 
 // Icons
 const TrendingUpIcon = () => (
@@ -210,16 +209,14 @@ function PortfolioChart({ data }) {
 }
 
 /* ----------------------------- Portfolio Content Router ---------------------------- */
-function PortfolioContent({ orders, portfolioItems, marketData, currentTab }) {
+function PortfolioContent({ orders, portfolioItems, marketData, manualItems, currentTab }) {
   switch (currentTab) {
     case 'collection':
-      return <CollectionTab portfolioItems={portfolioItems} marketData={marketData} />;
+      return <CollectionTab portfolioItems={portfolioItems} marketData={marketData} manualItems={manualItems} />;
     case 'search':
       return <SearchPage />;
     case 'stats':
       return <StatsTab orders={orders} />;
-    case 'inventory':
-      return <InventoryTab orders={orders} />;
     case 'overview':
     default:
       return <OverviewTab orders={orders} portfolioItems={portfolioItems} marketData={marketData} />;
@@ -555,8 +552,9 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
 }
 
 /* ----------------------------- Collection Tab ---------------------------- */
-function CollectionTab({ portfolioItems, marketData }) {
+function CollectionTab({ portfolioItems, marketData, manualItems }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [itemType, setItemType] = useState("all"); // "all", "sealed", "singles"
 
   // Group items by name and calculate totals
   const groupedItems = useMemo(() => {
@@ -566,15 +564,51 @@ function CollectionTab({ portfolioItems, marketData }) {
       const itemName = item.item;
       if (!itemName) return;
       
+      // Filter by item type
+      if (itemType === "sealed") {
+        // Sealed products typically contain keywords like: box, bundle, pack, case, booster, elite, premium
+        const sealedKeywords = ['box', 'bundle', 'pack', 'case', 'booster', 'elite', 'premium', 'collection', 'tin', 'display'];
+        const isSealed = sealedKeywords.some(keyword => itemName.toLowerCase().includes(keyword));
+        if (!isSealed) return;
+      } else if (itemType === "singles") {
+        // Singles are typically individual cards or items without sealed keywords
+        const sealedKeywords = ['box', 'bundle', 'pack', 'case', 'booster', 'elite', 'premium', 'collection', 'tin', 'display'];
+        const isSealed = sealedKeywords.some(keyword => itemName.toLowerCase().includes(keyword));
+        if (isSealed) return;
+      }
+      
       if (!groups[itemName]) {
-        // Try to find market data by exact match first
+        // Try to find market data by exact match first (API data)
         let marketInfo = marketData[itemName];
+        let manualValue = null;
         
-        // If no exact match, try to find by extracting the base product name
+        // If no exact API match, try to find by extracting the base product name
         if (!marketInfo) {
           // Extract the base product name (before the " - " separator)
           const baseProductName = itemName.split(' - ')[0];
           marketInfo = marketData[baseProductName];
+        }
+        
+        // If still no API data, look for manual database value
+        if (!marketInfo) {
+          // Try exact match first
+          const exactMatch = manualItems.find(item => 
+            item.name && item.name.toLowerCase() === itemName.toLowerCase()
+          );
+          
+          if (exactMatch && exactMatch.market_value_cents > 0) {
+            manualValue = exactMatch.market_value_cents;
+          } else {
+            // Try base product name match
+            const baseProductName = itemName.split(' - ')[0];
+            const baseMatch = manualItems.find(item => 
+              item.name && item.name.toLowerCase() === baseProductName.toLowerCase()
+            );
+            
+            if (baseMatch && baseMatch.market_value_cents > 0) {
+              manualValue = baseMatch.market_value_cents;
+            }
+          }
         }
         
         groups[itemName] = {
@@ -582,7 +616,8 @@ function CollectionTab({ portfolioItems, marketData }) {
           quantity: 0,
           totalCost: 0,
           orderDates: [],
-          marketInfo: marketInfo || null
+          marketInfo: marketInfo || null,
+          manualValue: manualValue
         };
       }
       
@@ -592,7 +627,7 @@ function CollectionTab({ portfolioItems, marketData }) {
     });
     
     return Object.values(groups);
-  }, [portfolioItems, marketData]);
+  }, [portfolioItems, marketData, manualItems, itemType]);
 
   const filteredItems = useMemo(() => {
     if (!searchTerm) return groupedItems;
@@ -603,9 +638,9 @@ function CollectionTab({ portfolioItems, marketData }) {
 
   return (
     <div className="space-y-6">
-      {/* Search */}
+      {/* Search and Filters */}
       <div className={`${card} p-6`}>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-4">
           <div className="flex-1">
             <input
               type="text"
@@ -620,19 +655,56 @@ function CollectionTab({ portfolioItems, marketData }) {
           </div>
         </div>
         
+        {/* Item Type Toggle */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-400">Filter:</span>
+          <div className="flex bg-slate-800 rounded-lg p-1">
+            <button
+              onClick={() => setItemType("all")}
+              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                itemType === "all" 
+                  ? "bg-indigo-500 text-white" 
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              All Items
+            </button>
+            <button
+              onClick={() => setItemType("sealed")}
+              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                itemType === "sealed" 
+                  ? "bg-indigo-500 text-white" 
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Sealed
+            </button>
+            <button
+              onClick={() => setItemType("singles")}
+              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                itemType === "singles" 
+                  ? "bg-indigo-500 text-white" 
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Singles
+            </button>
+          </div>
+        </div>
+        
         {/* Legend */}
         <div className="mt-4 flex items-center gap-6 text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span>Market data available</span>
+            <span>API market data</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+            <span>Manual database value</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
             <span>Using cost price</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
-            <span>Product placeholder</span>
           </div>
         </div>
       </div>
@@ -641,9 +713,23 @@ function CollectionTab({ portfolioItems, marketData }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredItems.map((item, index) => {
           const marketInfo = item.marketInfo;
-          const currentMarketValue = marketInfo && marketInfo.loose_price 
-            ? Math.round(parseFloat(marketInfo.loose_price) * 100)
-            : item.totalCost;
+          const manualValue = item.manualValue;
+          
+          // Prioritize API data, then manual database value, then cost price
+          let currentMarketValue;
+          let dataSource;
+          
+          if (marketInfo && marketInfo.loose_price) {
+            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+            dataSource = 'api';
+          } else if (manualValue && manualValue > 0) {
+            currentMarketValue = manualValue;
+            dataSource = 'manual';
+          } else {
+            currentMarketValue = item.totalCost;
+            dataSource = 'cost';
+          }
+          
           const totalMarketValue = currentMarketValue * item.quantity;
           const profit = totalMarketValue - item.totalCost;
           const profitPercentage = item.totalCost > 0 ? (profit / item.totalCost) * 100 : 0;
@@ -658,11 +744,14 @@ function CollectionTab({ portfolioItems, marketData }) {
                   <div className="flex items-center gap-2">
                     <h4 className="text-slate-200 font-medium truncate">{cleanTitle}</h4>
                     <div className="flex items-center gap-1">
-                      {marketInfo && marketInfo.loose_price && (
-                        <div className="flex-shrink-0 w-2 h-2 bg-green-400 rounded-full" title="Market data available from PriceCharting API"></div>
+                      {dataSource === 'api' && (
+                        <div className="flex-shrink-0 w-2 h-2 bg-green-400 rounded-full" title="API market data"></div>
                       )}
-                      {!marketInfo && (
-                        <div className="flex-shrink-0 w-2 h-2 bg-yellow-400 rounded-full" title="No market data found - using cost price"></div>
+                      {dataSource === 'manual' && (
+                        <div className="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full" title="Manual database value"></div>
+                      )}
+                      {dataSource === 'cost' && (
+                        <div className="flex-shrink-0 w-2 h-2 bg-yellow-400 rounded-full" title="Using cost price"></div>
                       )}
                     </div>
                   </div>
@@ -765,7 +854,6 @@ export default function Portfolio() {
     if (path.includes('/collection')) return 'collection';
     if (path.includes('/search')) return 'search';
     if (path.includes('/stats')) return 'stats';
-    if (path.includes('/inventory')) return 'inventory';
     return 'overview';
   }, [location.pathname]);
 
@@ -775,7 +863,6 @@ export default function Portfolio() {
       case 'collection': return 'portfolio-collection';
       case 'search': return 'portfolio-search';
       case 'stats': return 'portfolio-stats';
-      case 'inventory': return 'portfolio-inventory';
       default: return 'portfolio-overview';
     }
   }, [currentTab]);
@@ -788,6 +875,19 @@ export default function Portfolio() {
   const { data: portfolioItems = [], isLoading: itemsLoading } = useQuery({
     queryKey: ["portfolio-items"],
     queryFn: getPortfolioItems,
+  });
+
+  // Fetch manual database values for fallback
+  const { data: manualItems = [] } = useQuery({
+    queryKey: ["manual-items"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("items")
+        .select("name, market_value_cents")
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   // Create stable dependency for market data fetching
@@ -888,12 +988,13 @@ export default function Portfolio() {
         </div>
       )}
 
-      <PortfolioContent 
-        orders={orders} 
-        portfolioItems={portfolioItems} 
-        marketData={marketData}
-        currentTab={currentTab}
-      />
+        <PortfolioContent 
+          orders={orders} 
+          portfolioItems={portfolioItems} 
+          marketData={marketData} 
+          manualItems={manualItems}
+          currentTab={currentTab} 
+        />
     </LayoutWithSidebar>
   );
 }
@@ -901,9 +1002,4 @@ export default function Portfolio() {
 /* ----------------------------- Stats Tab ---------------------------- */
 function StatsTab({ orders }) {
   return <Stats noLayout={true} />;
-}
-
-/* ----------------------------- Inventory Tab ---------------------------- */
-function InventoryTab({ orders }) {
-  return <Inventory noLayout={true} />;
 }
