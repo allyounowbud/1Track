@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Complete Light/Dark Mode Theme System**: Implemented a comprehensive theme system with light and dark mode support across the entire application. Features include:
+  - **Theme Context & Provider**: Created React context for theme state management with localStorage persistence and system preference detection
+  - **Theme Toggle Component**: Added elegant theme toggle button with sun/moon icons, positioned in the sidebar header for easy access
+  - **CSS Custom Properties**: Implemented CSS variables for all theme colors (backgrounds, text, borders, accents) with smooth transitions
+  - **Comprehensive Theme Coverage**: Updated all components including sidebar, layout, error pages, workspace cards, and form elements to support both themes
+  - **Professional Light Mode**: Light mode features clean white cards, soft gray backgrounds, and professional color scheme that's easy on the eyes
+  - **Full Page Coverage**: Updated all application pages (OrderBook, Portfolio, Emails, Profiles, Database/Settings, Stats, Inventory, QuickAdd, MarkSold, Shipments) and components (SearchPage, UnifiedProductsCard, CategoryComponents, UnifiedNewProductRow, ProductSearchDropdown, TableSearchDropdown, SearchDropdown, Select) to use consistent light theme styling
+  - **SearchPage Redesign**: Completely redesigned SearchPage to use expandable cards with slide-out panels instead of static sidebar, matching the Portfolio page design pattern for better space utilization and user experience
+  - **SearchPage UI Improvements**: Removed color circle indicators, fixed button text colors for light mode, made expand preview use full container without header, and updated + add buttons to be smaller and theme-colored
+  - **Mobile-Optimized**: Theme toggle is hidden on mobile to avoid interference with the bottom navigation bar
+  - **UI Utilities Update**: Updated all shared UI components (cards, inputs, buttons, tabs) to be fully theme-aware
+  - **Smooth Transitions**: All theme changes include smooth 300ms transitions for a polished user experience
+  - **System Integration**: Automatically detects and respects user's system theme preference on first visit
+
 ### Enhanced
 - **Search Page Dropdown Visibility**: Significantly increased the height and text size of the three filter dropdowns (Category, Product Type, Sort Results) on the search page to ensure full text visibility. Changed from h-8 to h-12, text-xs to text-base, and increased padding (px-4 py-3) for optimal readability.
 - **Search Page Filter Layout**: Reorganized the filter dropdown layout to ensure all dropdowns stay on a single line and fill the entire row width. All three dropdowns now use `flex-1` to equally distribute the available space, with smaller text size (text-xs) across all screen sizes for better visibility on small screens. The "items found" count is positioned inline with the dropdowns, and the Sort Results dropdown maintains its transparent background and no border for a cleaner appearance.

@@ -78,7 +78,7 @@ function Combo({
 
   return (
     <div className="min-w-0">
-      {label && <label htmlFor={inputId} className="text-slate-300 mb-1 block text-sm">{label}</label>}
+      {label && <label htmlFor={inputId} className="text-gray-700 dark:text-slate-300 mb-1 block text-sm">{label}</label>}
       <div ref={containerRef} className="relative min-w-0">
         <div className="relative">
           <input
@@ -108,7 +108,7 @@ function Combo({
                 inputRef.current?.focus();
               }}
               aria-label="Clear"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200"
             >
               ×
             </button>
@@ -117,7 +117,7 @@ function Combo({
 
         {/* dropdown menu - native style inside container */}
         {open && (
-          <div className="absolute left-0 right-0 top-full z-50 max-h-64 overflow-y-auto overscroll-contain rounded-b-xl border border-slate-800 border-t-0 bg-slate-900 shadow-xl">
+          <div className="absolute left-0 right-0 top-full z-50 max-h-64 overflow-y-auto overscroll-contain rounded-b-xl border border-gray-200 dark:border-slate-800 border-t-0 bg-white dark:bg-slate-900 shadow-xl">
             {/* Clear row */}
             {value && (
               <button
@@ -129,7 +129,7 @@ function Combo({
                   setQuery("");
                   inputRef.current?.focus();
                 }}
-                className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-800/70"
+                className="w-full text-left px-3 py-2 text-gray-800 dark:text-slate-200 hover:bg-gray-100 dark:bg-slate-800/70"
               >
                 Clear selection
               </button>
@@ -150,7 +150,7 @@ function Combo({
                     setOpen(false);
                   }
                 }}
-                className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-slate-800/70"
+                className="w-full text-left px-3 py-2 text-indigo-300 hover:bg-gray-100 dark:bg-slate-800/70"
               >
                 + Add "{text.trim()}"
               </button>
@@ -158,7 +158,7 @@ function Combo({
 
             {/* Options */}
             {filtered.length === 0 && (
-              <div className="px-3 py-2 text-slate-400 text-sm">No matches.</div>
+              <div className="px-3 py-2 text-gray-600 dark:text-slate-400 text-sm">No matches.</div>
             )}
             {filtered.map((opt) => (
               <button
@@ -171,7 +171,7 @@ function Combo({
                   setQuery("");
                   setOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
+                className="w-full text-left px-3 py-2 text-gray-900 dark:text-slate-100 hover:bg-gray-100 dark:bg-slate-800/70"
               >
                 {opt}
               </button>
@@ -356,13 +356,13 @@ export default function MarkSold() {
         {/* Card (mobile-friendly: overflow-hidden, min-w-0, responsive gaps) */}
         <form
           onSubmit={markSold}
-          className="relative z-0 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] space-y-7"
+          className="relative z-0 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] space-y-7"
         >
           {/* SALE DETAILS TITLE */}
           <div>
             <h2 className="text-lg font-semibold">Sale details</h2>
-            <p className="text-slate-400 text-sm -mt-1">Mark an existing order as sold</p>
-            <div className="border-b border-slate-800 mt-4"></div>
+            <p className="text-gray-600 dark:text-slate-400 text-sm -mt-1">Mark an existing order as sold</p>
+            <div className="border-b border-gray-200 dark:border-slate-800 mt-4"></div>
           </div>
           {/* Grid of inputs (stacks on mobile) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -389,7 +389,7 @@ export default function MarkSold() {
             </div>
             {/* Sell Price */}
             <div className="min-w-0">
-              <label className="text-slate-300 mb-2 block text-sm">Sell Price</label>
+              <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Sell Price</label>
               <input
                 value={salePrice}
                 onChange={(e) => setSalePrice(e.target.value)}
@@ -400,7 +400,7 @@ export default function MarkSold() {
 
             {/* Sale Date */}
             <div className="min-w-0">
-              <label className="text-slate-300 mb-2 block text-sm">Sale Date</label>
+              <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Sale Date</label>
               <input
                 type="date"
                 value={saleDate}
@@ -426,7 +426,7 @@ export default function MarkSold() {
 
             {/* Fee */}
             <div className="min-w-0">
-              <label className="text-slate-300 mb-2 block text-sm">Fee (%)</label>
+              <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Fee (%)</label>
               <input
                 value={feesPct}
                 onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
@@ -441,7 +441,7 @@ export default function MarkSold() {
 
             {/* Shipping */}
             <div className="min-w-0">
-              <label className="text-slate-300 mb-2 block text-sm">Shipping</label>
+              <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Shipping</label>
               <input
                 value={shipping}
                 onChange={(e) => setShipping(e.target.value)}

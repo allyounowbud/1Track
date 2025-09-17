@@ -58,10 +58,10 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
 
   return (
     <div 
-      className={`rounded-xl border bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
+      className={`rounded-xl border bg-white dark:bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
         isSelected
           ? 'border-indigo-500 bg-indigo-500/10' 
-          : 'border-slate-800 hover:bg-slate-800/50'
+          : 'border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:bg-slate-800/50'
       }`}
       onClick={onToggleSelection}
     >
@@ -74,7 +74,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Enter product name..."
-            className="w-full min-w-[150px] h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 focus:border-indigo-500 outline-none"
+            className="w-full min-w-[150px] h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
           />
         </div>
         
@@ -82,11 +82,11 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="new-product-select w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 focus:border-indigo-500 outline-none cursor-pointer"
+            className="new-product-select w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           >
             {categories.map(cat => (
-              <option key={cat.value} value={cat.value} className="bg-slate-800 text-slate-100">
+              <option key={cat.value} value={cat.value} className="bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-slate-100">
                 {cat.label}
               </option>
             ))}
@@ -95,7 +95,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
         
         <div onClick={(e) => e.stopPropagation()} className="min-w-0 overflow-hidden">
           <input
-            className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 focus:border-indigo-500 outline-none"
+            className="w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
             value={marketValue}
             onChange={(e) => {
               e.stopPropagation();
@@ -113,7 +113,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
               handleSave();
             }}
             disabled={busy || !name.trim()}
-            className="w-10 h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-10 h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
             title="Save Changes"
           >
             <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,7 +125,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
               e.stopPropagation();
               onCancel();
             }}
-            className="w-10 h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+            className="w-10 h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
             title="Cancel"
           >
             <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,7 +139,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
       <div className="sm:hidden space-y-3">
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs text-slate-400">Item Name</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400">Item Name</label>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
             <input
@@ -147,21 +147,21 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter product name..."
-              className="w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 focus:border-indigo-500 outline-none"
+              className="w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
             />
           </div>
         </div>
         
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Category</label>
+          <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Category</label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="new-product-select w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-pointer"
+            className="new-product-select w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           >
             {categories.map(cat => (
-              <option key={cat.value} value={cat.value} className="bg-slate-800 text-slate-100">
+              <option key={cat.value} value={cat.value} className="bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-slate-100">
                 {cat.label}
               </option>
             ))}
@@ -169,10 +169,10 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
         </div>
         
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Market Value</label>
+          <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Market Value</label>
           <div className="flex items-center gap-2">
             <input
-              className="flex-1 h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+              className="flex-1 h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
               value={marketValue}
               onChange={(e) => {
                 e.stopPropagation();
@@ -189,7 +189,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
                   handleSave();
                 }}
                 disabled={busy || !name.trim()}
-                className="w-10 h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-10 h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Save Changes"
               >
                 <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,7 +201,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
                   e.stopPropagation();
                   onCancel();
                 }}
-                className="w-10 h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                className="w-10 h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                 title="Cancel"
               >
                 <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +214,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
       </div>
 
       {status && (
-        <div className="mt-2 text-sm text-slate-400">
+        <div className="mt-2 text-sm text-gray-600 dark:text-slate-400">
           {status}
         </div>
       )}

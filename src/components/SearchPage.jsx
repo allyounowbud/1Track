@@ -38,7 +38,7 @@ const StarIcon = () => (
 );
 
 const LoadingSpinner = () => (
-  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400"></div>
+  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500 dark:border-slate-400"></div>
 );
 
 // Search API function
@@ -205,7 +205,7 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
   const isVideoGame = productName.toLowerCase().includes('nintendo') || productName.toLowerCase().includes('playstation') || productName.toLowerCase().includes('xbox') || productName.toLowerCase().includes('game');
   
   // Get category color
-  let categoryColor = 'bg-slate-500';
+  let categoryColor = 'bg-gray-500 dark:bg-slate-500';
   if (isPokemon) categoryColor = 'bg-yellow-500';
   else if (isMagic) categoryColor = 'bg-blue-500';
   else if (isYugioh) categoryColor = 'bg-purple-500';
@@ -231,14 +231,14 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
   
   return (
     <div 
-      className={`${card} p-4 hover:bg-slate-800/80 transition-all duration-200 cursor-pointer flex flex-col h-full`}
+      className={`${card} p-4 hover:bg-gray-100 dark:hover:bg-slate-800/80 transition-all duration-200 cursor-pointer flex flex-col h-full`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onSelectProduct && onSelectProduct(product, false)}
     >
       {/* Product Image - Fixed height */}
       <div className="relative mb-3 flex-shrink-0">
-        <div className="w-full h-48 bg-slate-700 rounded-lg flex items-center justify-center relative overflow-hidden">
+        <div className="w-full h-48 bg-gray-200 dark:bg-slate-700 rounded-lg flex items-center justify-center relative overflow-hidden">
           {/* Category indicator */}
           <div className={`absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium text-white ${categoryColor}`}>
             {isSealed ? 'Sealed' : 'Single'}
@@ -246,8 +246,8 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
           
           {/* Product Image or Loading/Fallback */}
           {isLoadingImages ? (
-            <div className="flex flex-col items-center justify-center text-slate-400">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400 mb-2"></div>
+            <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-600 dark:text-slate-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 dark:border-slate-400 mb-2"></div>
               <div className="text-xs">Loading image...</div>
             </div>
           ) : productImages.length > 0 ? (
@@ -264,7 +264,7 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
           ) : null}
           
           {/* Fallback icon (shown when no image or image fails) */}
-          <div className={`text-6xl text-slate-500 ${productImages.length > 0 ? 'hidden' : 'flex'} items-center justify-center`}>
+          <div className={`text-6xl text-gray-500 dark:text-slate-500 ${productImages.length > 0 ? 'hidden' : 'flex'} items-center justify-center`}>
             {isSealed ? (
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7L12 12L22 7L12 2Z" />
@@ -297,11 +297,11 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
       <div className="flex flex-col flex-1">
         {/* Product Name and Set Name - Grouped together */}
         <div className="mb-4">
-          <h3 className="text-slate-200 font-medium text-xs md:text-sm leading-tight line-clamp-2 mb-1">
+          <h3 className="text-gray-800 dark:text-gray-800 dark:text-slate-200 font-medium text-xs md:text-sm leading-tight line-clamp-2 mb-1">
             {productName}
           </h3>
           {consoleName && (
-            <p className="text-slate-400 text-xs hidden md:block">
+            <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-xs hidden md:block">
               {consoleName}
             </p>
           )}
@@ -313,10 +313,10 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
         {/* Price and Button - Fixed at bottom */}
         <div className="flex items-end justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-slate-100 font-semibold text-sm md:text-lg">
+            <p className="text-gray-900 dark:text-slate-100 font-semibold text-sm md:text-lg">
               ${bestPrice.toFixed(2)}
             </p>
-            <p className="text-slate-400 text-xs">
+            <p className="text-gray-600 dark:text-slate-400 text-xs">
               Qty: {inventoryCount}
             </p>
           </div>
@@ -327,7 +327,7 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
               e.stopPropagation();
               onSelectProduct(product, true);
             }}
-            className="flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 rounded-lg text-slate-100 transition-colors flex-shrink-0 ml-2"
+            className="flex items-center justify-center w-6 h-6 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg text-gray-700 dark:text-slate-200 transition-colors flex-shrink-0 ml-2"
           >
             <PlusIcon />
           </button>
@@ -415,7 +415,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
   const isVideoGame = productName.toLowerCase().includes('nintendo') || productName.toLowerCase().includes('playstation') || productName.toLowerCase().includes('xbox') || productName.toLowerCase().includes('game');
   
   // Get category color
-  let categoryColor = 'bg-slate-500';
+  let categoryColor = 'bg-gray-500 dark:bg-slate-500';
   if (isPokemon) categoryColor = 'bg-yellow-500';
   else if (isMagic) categoryColor = 'bg-blue-500';
   else if (isYugioh) categoryColor = 'bg-purple-500';
@@ -467,10 +467,10 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
     <div className={`${card} p-3 md:p-4 h-full overflow-y-auto`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-3 md:mb-4">
-        <h3 className="text-base md:text-lg font-semibold text-slate-100">Product Details</h3>
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-slate-100">Product Details</h3>
         <button
           onClick={onClose}
-          className="text-slate-400 hover:text-slate-200 transition-colors"
+          className="text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 transition-colors"
         >
           <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -480,15 +480,15 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
       
       {/* Product Image */}
       <div className="relative mb-4">
-        <div className="w-full h-48 bg-slate-700 rounded-lg flex items-center justify-center relative overflow-hidden">
+        <div className="w-full h-48 bg-gray-200 dark:bg-slate-700 rounded-lg flex items-center justify-center relative overflow-hidden">
           <div className={`absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium text-white ${categoryColor}`}>
             {isSealed ? 'Sealed' : 'Single'}
           </div>
           
           {/* Product Image or Loading/Fallback */}
           {isLoadingImages ? (
-            <div className="flex flex-col items-center justify-center text-slate-400">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400 mb-2"></div>
+            <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-600 dark:text-slate-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 dark:border-slate-400 mb-2"></div>
               <div className="text-xs">Loading image...</div>
             </div>
           ) : productImages.length > 0 ? (
@@ -505,7 +505,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
           ) : null}
           
           {/* Fallback icon (shown when no image or image fails) */}
-          <div className={`text-6xl text-slate-500 ${productImages.length > 0 ? 'hidden' : 'flex'} items-center justify-center`}>
+          <div className={`text-6xl text-gray-500 dark:text-slate-500 ${productImages.length > 0 ? 'hidden' : 'flex'} items-center justify-center`}>
             {isSealed ? (
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7L12 12L22 7L12 2Z" />
@@ -527,11 +527,11 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
       {/* Product Info */}
       <div className="space-y-4">
         <div>
-          <h4 className="text-slate-200 font-medium text-lg leading-tight mb-1">
+          <h4 className="text-gray-800 dark:text-slate-200 font-medium text-lg leading-tight mb-1">
             {productName}
           </h4>
           {consoleName && (
-            <p className="text-slate-400 text-sm">
+            <p className="text-gray-600 dark:text-slate-400 text-sm">
               {consoleName}
             </p>
           )}
@@ -539,24 +539,24 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
         
         {/* Price Breakdown */}
         <div>
-          <h5 className="text-slate-200 font-medium mb-2">Price Breakdown</h5>
+          <h5 className="text-gray-800 dark:text-slate-200 font-medium mb-2">Price Breakdown</h5>
           <div className="space-y-2">
             {loosePrice > 0 && (
-              <div className="flex justify-between items-center p-2 bg-slate-800/50 rounded">
-                <span className="text-slate-300">Loose</span>
-                <span className="text-slate-100 font-medium">${loosePrice.toFixed(2)}</span>
+              <div className="flex justify-between items-center p-2 bg-gray-100 dark:bg-slate-800/50 rounded">
+                <span className="text-gray-700 dark:text-slate-300">Loose</span>
+                <span className="text-gray-900 dark:text-slate-100 font-medium">${loosePrice.toFixed(2)}</span>
               </div>
             )}
             {cibPrice > 0 && (
-              <div className="flex justify-between items-center p-2 bg-slate-800/50 rounded">
-                <span className="text-slate-300">CIB</span>
-                <span className="text-slate-100 font-medium">${cibPrice.toFixed(2)}</span>
+              <div className="flex justify-between items-center p-2 bg-gray-100 dark:bg-slate-800/50 rounded">
+                <span className="text-gray-700 dark:text-slate-300">CIB</span>
+                <span className="text-gray-900 dark:text-slate-100 font-medium">${cibPrice.toFixed(2)}</span>
               </div>
             )}
             {newPrice > 0 && (
-              <div className="flex justify-between items-center p-2 bg-slate-800/50 rounded">
-                <span className="text-slate-300">New</span>
-                <span className="text-slate-100 font-medium">${newPrice.toFixed(2)}</span>
+              <div className="flex justify-between items-center p-2 bg-gray-100 dark:bg-slate-800/50 rounded">
+                <span className="text-gray-700 dark:text-slate-300">New</span>
+                <span className="text-gray-900 dark:text-slate-100 font-medium">${newPrice.toFixed(2)}</span>
               </div>
             )}
           </div>
@@ -565,19 +565,19 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
         {/* Graded Values (Mock data for now) */}
         {!isSealed && (
           <div>
-            <h5 className="text-slate-200 font-medium mb-2">Graded Values</h5>
+            <h5 className="text-gray-800 dark:text-slate-200 font-medium mb-2">Graded Values</h5>
             <div className="space-y-2">
-              <div className="flex justify-between items-center p-2 bg-slate-800/50 rounded">
-                <span className="text-slate-300">PSA 10</span>
-                <span className="text-slate-100 font-medium">${(newPrice * 2.5).toFixed(2)}</span>
+              <div className="flex justify-between items-center p-2 bg-gray-100 dark:bg-slate-800/50 rounded">
+                <span className="text-gray-700 dark:text-slate-300">PSA 10</span>
+                <span className="text-gray-900 dark:text-slate-100 font-medium">${(newPrice * 2.5).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center p-2 bg-slate-800/50 rounded">
-                <span className="text-slate-300">PSA 9</span>
-                <span className="text-slate-100 font-medium">${(newPrice * 1.8).toFixed(2)}</span>
+              <div className="flex justify-between items-center p-2 bg-gray-100 dark:bg-slate-800/50 rounded">
+                <span className="text-gray-700 dark:text-slate-300">PSA 9</span>
+                <span className="text-gray-900 dark:text-slate-100 font-medium">${(newPrice * 1.8).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center p-2 bg-slate-800/50 rounded">
-                <span className="text-slate-300">PSA 8</span>
-                <span className="text-slate-100 font-medium">${(newPrice * 1.2).toFixed(2)}</span>
+              <div className="flex justify-between items-center p-2 bg-gray-100 dark:bg-slate-800/50 rounded">
+                <span className="text-gray-700 dark:text-slate-300">PSA 8</span>
+                <span className="text-gray-900 dark:text-slate-100 font-medium">${(newPrice * 1.2).toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -585,9 +585,9 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
         
         {/* Price History Chart Placeholder */}
         <div>
-          <h5 className="text-slate-200 font-medium mb-2">Price History</h5>
-          <div className="h-32 bg-slate-800/50 rounded flex items-center justify-center">
-            <div className="text-center text-slate-400">
+          <h5 className="text-gray-800 dark:text-slate-200 font-medium mb-2">Price History</h5>
+          <div className="h-32 bg-gray-100 dark:bg-slate-800/50 rounded flex items-center justify-center">
+            <div className="text-center text-gray-600 dark:text-slate-400">
               <svg className="w-8 h-8 mx-auto mb-2" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
               </svg>
@@ -601,10 +601,10 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
           ref={addToCollectionRef}
           className={`transition-all duration-1000 ${isHighlighted ? 'bg-blue-500/10 border border-blue-500/30 rounded-lg p-4' : ''}`}
         >
-          <h5 className="text-slate-200 font-medium mb-2">Add to Collection</h5>
+          <h5 className="text-gray-800 dark:text-slate-200 font-medium mb-2">Add to Collection</h5>
           <form onSubmit={handleSubmit} className="space-y-2 md:space-y-3">
             <div>
-              <label className="block text-slate-300 text-xs md:text-sm mb-1">Order Date</label>
+              <label className="block text-gray-700 dark:text-slate-300 text-xs md:text-sm mb-1">Order Date</label>
               <input
                 type="date"
                 value={orderDate}
@@ -613,7 +613,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
               />
             </div>
             <div>
-              <label className="block text-slate-300 text-xs md:text-sm mb-1">Product Name</label>
+              <label className="block text-gray-700 dark:text-slate-300 text-xs md:text-sm mb-1">Product Name</label>
               <input
                 type="text"
                 value={itemName}
@@ -622,7 +622,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
               />
             </div>
             <div>
-              <label className="block text-slate-300 text-xs md:text-sm mb-1">Retailer</label>
+              <label className="block text-gray-700 dark:text-slate-300 text-xs md:text-sm mb-1">Retailer</label>
               <input
                 type="text"
                 value={retailerName}
@@ -632,7 +632,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
               />
             </div>
             <div>
-              <label className="block text-slate-300 text-xs md:text-sm mb-1">Quantity</label>
+              <label className="block text-gray-700 dark:text-slate-300 text-xs md:text-sm mb-1">Quantity</label>
               <input
                 type="number"
                 value={qtyStr}
@@ -642,7 +642,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
               />
             </div>
             <div>
-              <label className="block text-slate-300 text-xs md:text-sm mb-1">Buy Price (total)</label>
+              <label className="block text-gray-700 dark:text-slate-300 text-xs md:text-sm mb-1">Buy Price (total)</label>
               <input
                 type="number"
                 step="0.01"
@@ -655,7 +655,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
             <button
               type="submit"
               disabled={saving}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed rounded-lg text-slate-100 text-sm md:text-base font-medium transition-colors"
+              className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed rounded-lg text-white text-sm md:text-base font-medium transition-colors"
             >
               {saving ? 'Adding...' : 'Add to Collection'}
             </button>
@@ -683,8 +683,24 @@ export default function SearchPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [expandedProduct, setExpandedProduct] = useState(null);
   const [shouldHighlightAddToCollection, setShouldHighlightAddToCollection] = useState(false);
+  
+  // Prevent background scroll when modal is open (mobile only)
+  useEffect(() => {
+    if (expandedProduct) {
+      // Only prevent scroll on mobile/small screens
+      if (window.innerWidth < 1024) {
+        document.body.style.overflow = 'hidden';
+      }
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [expandedProduct]);
   
   // Sort results
   const sortedResults = useMemo(() => {
@@ -862,16 +878,16 @@ export default function SearchPage() {
 
   // Handle product selection with optional highlighting
   const handleSelectProduct = (product, highlightAddToCollection = false) => {
-    setSelectedProduct(product);
+    setExpandedProduct(product);
     setShouldHighlightAddToCollection(highlightAddToCollection);
   };
   
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
       {/* Header */}
-      <div className="bg-slate-900 border-b border-slate-800 p-3 md:p-4">
+      <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 p-3 md:p-4">
         <div className="w-full">
-          <h1 className="text-xl md:text-2xl font-bold text-slate-100 mb-2">Find a Product</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">Find a Product</h1>
           
           {/* Search Bar */}
           <div className="flex gap-2 md:gap-4 items-center">
@@ -884,7 +900,7 @@ export default function SearchPage() {
                 placeholder="Search for Pokemon cards, Magic sets..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full min-w-0 h-10 sm:h-11 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl pl-10 pr-4 py-2 sm:py-3 text-sm sm:text-base text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+                className="w-full min-w-0 h-10 sm:h-11 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2 sm:py-3 text-sm sm:text-base text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500"
               />
               {isSearching && (
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -893,12 +909,12 @@ export default function SearchPage() {
               )}
             </div>
             
-            <button className="px-3 md:px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 text-sm md:text-base font-medium transition-colors">
+            <button className="px-3 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg text-white dark:text-slate-200 text-sm md:text-base font-medium transition-colors">
               Search
             </button>
             <button 
               onClick={() => setSearchQuery('')}
-              className="px-3 md:px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 text-sm md:text-base font-medium transition-colors"
+              className="px-3 md:px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg text-gray-800 dark:text-slate-200 text-sm md:text-base font-medium transition-colors"
             >
               Clear
             </button>
@@ -914,7 +930,7 @@ export default function SearchPage() {
               <select 
                 value={filters.tcgType || 'all'}
                 onChange={(e) => setFilters({ ...filters, tcgType: e.target.value })}
-                className="w-full h-12 appearance-none bg-slate-900/60 border border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 pr-6 cursor-pointer"
+                className="w-full h-12 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 pr-6 cursor-pointer"
               >
                 <option value="all">Category</option>
                 <option value="pokemon">Pokemon</option>
@@ -923,7 +939,7 @@ export default function SearchPage() {
                 <option value="video_games">Video Games</option>
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <ChevronDownIcon className="w-3 h-3 text-slate-400" />
+                <ChevronDownIcon className="w-3 h-3 text-gray-600 dark:text-slate-400" />
               </div>
             </div>
           </div>
@@ -934,14 +950,14 @@ export default function SearchPage() {
               <select 
                 value={filters.productType || 'all'}
                 onChange={(e) => setFilters({ ...filters, productType: e.target.value })}
-                className="w-full h-12 appearance-none bg-slate-900/60 border border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 pr-6 cursor-pointer"
+                className="w-full h-12 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 pr-6 cursor-pointer"
               >
                 <option value="all">Product Type</option>
                 <option value="singles">Cards Only</option>
                 <option value="sealed">Sealed Only</option>
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <ChevronDownIcon className="w-3 h-3 text-slate-400" />
+                <ChevronDownIcon className="w-3 h-3 text-gray-600 dark:text-slate-400" />
               </div>
             </div>
           </div>
@@ -949,7 +965,7 @@ export default function SearchPage() {
           {/* Results Count */}
           {hasSearched && (
             <div className="flex items-center flex-shrink-0">
-              <span className="text-slate-400 text-xs ml-1 sm:ml-2">
+              <span className="text-gray-600 dark:text-slate-400 text-xs ml-1 sm:ml-2">
                 {sortedResults.length} items found
               </span>
             </div>
@@ -961,7 +977,7 @@ export default function SearchPage() {
               <select 
                 value={filters.sortBy || 'best_match'}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                className="w-full h-12 appearance-none bg-transparent border-0 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-slate-100 placeholder-slate-400 outline-none focus:border-0 pr-6 cursor-pointer"
+                className="w-full h-12 appearance-none bg-transparent border-0 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-0 pr-6 cursor-pointer"
               >
                 <option value="best_match">Sort Results</option>
                 <option value="price_low_high">Price: Low to High</option>
@@ -978,7 +994,7 @@ export default function SearchPage() {
                 <option value="percent_change_high_low">Percent Change: High to Low</option>
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <ChevronDownIcon className="w-3 h-3 text-slate-400" />
+                <ChevronDownIcon className="w-3 h-3 text-gray-600 dark:text-slate-400" />
               </div>
             </div>
           </div>
@@ -989,23 +1005,23 @@ export default function SearchPage() {
       <div className="w-full p-2 md:p-4">
         
         {/* Main Content Area */}
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="w-full">
           {/* Search Results */}
-          <div className="flex-1">
+          <div className="w-full">
             {hasSearched ? (
               searchError ? (
                 <div className={`${card} p-6 text-center`}>
                   <p className="text-red-400 mb-4">{searchError}</p>
                   <button
                     onClick={() => window.location.reload()}
-                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors"
+                    className="px-4 py-2 bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 rounded-lg text-gray-800 dark:text-slate-200 transition-colors"
                   >
                     Try Again
                   </button>
                 </div>
               ) : sortedResults.length === 0 ? (
                 <div className={`${card} p-6 text-center`}>
-                  <p className="text-slate-400">
+                  <p className="text-gray-600 dark:text-slate-400">
                     No items found for "{searchQuery}". Try adjusting your search terms or filters.
                   </p>
                 </div>
@@ -1025,140 +1041,139 @@ export default function SearchPage() {
               /* Category Cards - Show when no search has been performed */
               <div className="space-y-6">
                 <div className="text-center">
-                  <h2 className="text-2xl font-bold text-slate-100 mb-2">Browse by Category</h2>
-                  <p className="text-slate-400">Select a category to explore popular items</p>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">Browse by Category</h2>
+                  <p className="text-gray-600 dark:text-slate-400">Select a category to explore popular items</p>
                 </div>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {/* Pokemon Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('pokemon')}
                   >
                     <div className="aspect-square bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <div className="text-4xl">⚡</div>
                     </div>
-                    <h3 className="text-slate-200 font-semibold text-sm text-center">Pokemon</h3>
-                    <p className="text-slate-400 text-xs text-center mt-1">Trading Cards</p>
+                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Pokemon</h3>
+                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Trading Cards</p>
                   </div>
 
                   {/* Magic: The Gathering Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('magic')}
                   >
                     <div className="aspect-square bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <div className="text-4xl font-bold text-white">M</div>
                     </div>
-                    <h3 className="text-slate-200 font-semibold text-sm text-center">Magic</h3>
-                    <p className="text-slate-400 text-xs text-center mt-1">The Gathering</p>
+                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Magic</h3>
+                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">The Gathering</p>
                   </div>
 
                   {/* Yu-Gi-Oh Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('yugioh')}
                   >
                     <div className="aspect-square bg-gradient-to-br from-purple-600 to-purple-800 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <div className="text-4xl">👹</div>
                     </div>
-                    <h3 className="text-slate-200 font-semibold text-sm text-center">Yu-Gi-Oh!</h3>
-                    <p className="text-slate-400 text-xs text-center mt-1">Trading Cards</p>
+                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Yu-Gi-Oh!</h3>
+                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Trading Cards</p>
                   </div>
 
                   {/* Video Games Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('nintendo')}
                   >
                     <div className="aspect-square bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <div className="text-4xl">🎮</div>
                     </div>
-                    <h3 className="text-slate-200 font-semibold text-sm text-center">Video Games</h3>
-                    <p className="text-slate-400 text-xs text-center mt-1">Nintendo, PlayStation</p>
+                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Video Games</h3>
+                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Nintendo, PlayStation</p>
                   </div>
 
                   {/* Sports Cards Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('baseball')}
                   >
                     <div className="aspect-square bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <div className="text-4xl">⚾</div>
                     </div>
-                    <h3 className="text-slate-200 font-semibold text-sm text-center">Sports Cards</h3>
-                    <p className="text-slate-400 text-xs text-center mt-1">Baseball, Football</p>
+                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Sports Cards</h3>
+                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Baseball, Football</p>
                   </div>
 
                   {/* Dragon Ball Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('dragon ball')}
                   >
                     <div className="aspect-square bg-gradient-to-br from-orange-500 to-orange-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <div className="text-4xl">🐉</div>
                     </div>
-                    <h3 className="text-slate-200 font-semibold text-sm text-center">Dragon Ball</h3>
-                    <p className="text-slate-400 text-xs text-center mt-1">Super Card Game</p>
+                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Dragon Ball</h3>
+                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Super Card Game</p>
                   </div>
 
                   {/* One Piece Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('one piece')}
                   >
                     <div className="aspect-square bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <div className="text-4xl">🏴‍☠️</div>
                     </div>
-                    <h3 className="text-slate-200 font-semibold text-sm text-center">One Piece</h3>
-                    <p className="text-slate-400 text-xs text-center mt-1">Card Game</p>
+                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">One Piece</h3>
+                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Card Game</p>
                   </div>
 
                   {/* Digimon Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
                     onClick={() => setSearchQuery('digimon')}
                   >
                     <div className="aspect-square bg-gradient-to-br from-cyan-500 to-cyan-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <div className="text-4xl">🤖</div>
                     </div>
-                    <h3 className="text-slate-200 font-semibold text-sm text-center">Digimon</h3>
-                    <p className="text-slate-400 text-xs text-center mt-1">Card Game</p>
+                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Digimon</h3>
+                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Card Game</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
           
-          {/* Right Sidebar - Product Preview */}
-          <div className="w-full lg:w-80 flex-shrink-0">
-            {selectedProduct ? (
-              <ProductPreview 
-                product={selectedProduct} 
-                onAddToCollection={handleAddToCollection}
-                onClose={() => setSelectedProduct(null)}
-                shouldHighlightAddToCollection={shouldHighlightAddToCollection}
-              />
-            ) : hasSearched && sortedResults.length > 0 ? (
-              <div className={`${card} p-4 hidden lg:block`}>
-                <h3 className="text-lg font-semibold text-slate-100 mb-4">Product Details</h3>
-                <div className="space-y-3 text-slate-400 text-sm">
-                  <p>Click on any product card to view detailed information including:</p>
-                  <ul className="space-y-2 ml-4">
-                    <li>• Price breakdown (Loose, CIB, New)</li>
-                    <li>• Graded card values (PSA 8/9/10)</li>
-                    <li>• Price history charts</li>
-                    <li>• Quick-add to collection</li>
-                  </ul>
-                  <p className="text-slate-500 text-xs mt-4">
-                    Select a product to see its full details and add it to your collection.
-                  </p>
-                </div>
-              </div>
-            ) : null}
-          </div>
         </div>
       </div>
+
+      {/* Expanded Product Preview - Side Panel on Large Screens, Full Screen on Mobile */}
+      {expandedProduct && (
+        <>
+          {/* Backdrop for mobile/small screens */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setExpandedProduct(null)}
+          />
+          
+          {/* Preview Panel */}
+          <div 
+            className="fixed inset-0 lg:left-auto lg:right-0 lg:w-1/2 xl:w-2/5 bg-white dark:bg-slate-900 z-[60] shadow-2xl lg:shadow-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="h-full overflow-y-auto">
+              <ProductPreview 
+                product={expandedProduct} 
+                onAddToCollection={handleAddToCollection}
+                onClose={() => setExpandedProduct(null)}
+                shouldHighlightAddToCollection={shouldHighlightAddToCollection}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

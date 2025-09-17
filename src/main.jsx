@@ -22,6 +22,7 @@ import Portfolio from "./routes/Portfolio.jsx";     // <-- NEW PORTFOLIO ROUTE
 import AuthGuard from "./routes/AuthGuard.jsx";     // <-- RENAMED
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import ErrorElement from "./components/ErrorElement.jsx";
+import { ThemeProvider } from "./contexts/ThemeContext.jsx";
 
 const router = createBrowserRouter([
   { 
@@ -126,11 +127,13 @@ const qc = new QueryClient();
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <QueryClientProvider client={qc}>
-        <App>
-          <RouterProvider router={router} />
-        </App>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={qc}>
+          <App>
+            <RouterProvider router={router} />
+          </App>
+        </QueryClientProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

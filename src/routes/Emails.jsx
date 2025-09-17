@@ -136,40 +136,40 @@ export default function Emails() {
         {/* Stats Cards */}
         {connected && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+            <div className="bg-gray-100 dark:bg-slate-800/60 border border-gray-300 dark:border-slate-700 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
-                  <MailIcon className="h-5 w-5 text-slate-300" />
+                  <MailIcon className="h-5 w-5 text-gray-700 dark:text-slate-300" />
             </div>
                 <div>
-                  <div className="text-2xl font-bold text-slate-100">{connected ? gmailAccounts.length : 0}</div>
-                  <div className="text-sm text-slate-400">Connected Accounts</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-slate-100">{connected ? gmailAccounts.length : 0}</div>
+                  <div className="text-sm text-gray-600 dark:text-slate-400">Connected Accounts</div>
             </div>
           </div>
         </div>
 
-            <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+            <div className="bg-gray-100 dark:bg-slate-800/60 border border-gray-300 dark:border-slate-700 rounded-xl p-4">
                   <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
-                  <SyncIcon className="h-5 w-5 text-slate-300" />
+                  <SyncIcon className="h-5 w-5 text-gray-700 dark:text-slate-300" />
                     </div>
                 <div>
-                  <div className="text-2xl font-bold text-slate-100">{totalProcessed}</div>
-                  <div className="text-sm text-slate-400">Emails Processed</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-slate-100">{totalProcessed}</div>
+                  <div className="text-sm text-gray-600 dark:text-slate-400">Emails Processed</div>
                       </div>
                     </div>
                   </div>
 
-            <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+            <div className="bg-gray-100 dark:bg-slate-800/60 border border-gray-300 dark:border-slate-700 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
-                  <svg className="h-5 w-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-gray-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                       </div>
                           <div>
-                  <div className="text-2xl font-bold text-slate-100">{todayProcessed}</div>
-                  <div className="text-sm text-slate-400">Today</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-slate-100">{todayProcessed}</div>
+                  <div className="text-sm text-gray-600 dark:text-slate-400">Today</div>
                             </div>
                           </div>
                         </div>
@@ -184,7 +184,7 @@ export default function Emails() {
                 <MailIcon className="h-5 w-5" />
                 Gmail Account Management
               </div>
-              <p className="text-slate-400 text-sm mt-1">
+              <p className="text-gray-600 dark:text-slate-400 text-sm mt-1">
                 Connect multiple Gmail accounts to automatically import order confirmations and shipping updates.
               </p>
             </div>
@@ -209,7 +209,7 @@ export default function Emails() {
           <div className={`${card} mb-6`}>
             {/* Accounts List */}
             {gmailAccounts.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
+              <div className="text-center py-8 text-gray-600 dark:text-slate-400">
                 No Gmail accounts connected.
               </div>
             ) : (
@@ -217,14 +217,14 @@ export default function Emails() {
                 {gmailAccounts.map((account) => (
                   <div
                     key={account.id}
-                    className="flex items-center gap-4 p-4 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-800/50 transition-colors"
+                    className="flex items-center gap-4 p-4 rounded-xl border border-gray-300 dark:border-slate-700 hover:border-slate-600 bg-gray-100 dark:bg-slate-800/50 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
-                        <div className="text-slate-200 font-medium truncate">{account.email_address}</div>
+                        <div className="text-gray-800 dark:text-slate-200 font-medium truncate">{account.email_address}</div>
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-xs text-gray-600 dark:text-slate-400 mt-1">
                         Connected {new Date(account.updated_at).toLocaleDateString()}
           </div>
         </div>
@@ -251,7 +251,7 @@ export default function Emails() {
         ) : (
           <div className={`${card} mb-6`}>
             <div className="text-center py-12">
-              <div className="text-slate-400 mb-4">
+              <div className="text-gray-600 dark:text-slate-400 mb-4">
                 <MailIcon className="h-16 w-16 mx-auto mb-4 opacity-50" />
                 <p className="text-xl font-medium">No Gmail Accounts Connected</p>
                 <p className="text-sm mt-2">Connect your Gmail accounts to start automatically importing order confirmations and shipping updates.</p>

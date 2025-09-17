@@ -452,14 +452,14 @@ export default function Inventory({ noLayout = false }) {
         </div>
 
         {/* Table */}
-        {isLoading && <div className="text-slate-400">Loading…</div>}
+        {isLoading && <div className="text-gray-600 dark:text-slate-400">Loading…</div>}
         {error && (
           <div className="text-rose-400">{String(error.message || error)}</div>
         )}
 
         <div className={`${pageCard} overflow-hidden`}>
           {/* Search Bar */}
-          <div className="px-4 py-4 border-b border-slate-800">
+          <div className="px-4 py-4 border-b border-gray-200 dark:border-slate-800">
             <div className="relative min-w-0" data-dropdown-container>
               <input
                 type="text"
@@ -473,7 +473,7 @@ export default function Inventory({ noLayout = false }) {
                   }
                 }}
                 placeholder="Search inventory by item name…"
-                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl pl-3 pr-10 py-2 sm:pl-4 sm:pr-12 sm:py-3 text-sm sm:text-base text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-text"
+                className="w-full min-w-0 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl pl-3 pr-10 py-2 sm:pl-4 sm:pr-12 sm:py-3 text-sm sm:text-base text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-text"
               />
               
               {/* Clear button */}
@@ -481,7 +481,7 @@ export default function Inventory({ noLayout = false }) {
                 <button
                   type="button"
                   onClick={() => setItemFilter("")}
-                  className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                  className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 transition-colors"
                   title="Clear search"
                 >
                   ×
@@ -490,10 +490,10 @@ export default function Inventory({ noLayout = false }) {
               
               {/* Dropdown list */}
               {isDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto">
                   {filteredDropdownItems.length > 0 ? (
                     <>
-                      <div className="px-3 py-2 text-xs text-slate-400 border-b border-slate-800">
+                      <div className="px-3 py-2 text-xs text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-800">
                         {itemFilter.trim() 
                           ? `${filteredDropdownItems.length} of ${onHandNames.length} items`
                           : `${onHandNames.length} total items`
@@ -507,20 +507,20 @@ export default function Inventory({ noLayout = false }) {
                             setItemFilter(item);
                             setIsDropdownOpen(false);
                           }}
-                          className="w-full text-left px-3 py-2 text-sm text-slate-100 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors duration-150"
+                          className="w-full text-left px-3 py-2 text-sm text-gray-900 dark:text-slate-100 hover:bg-gray-200 dark:hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors duration-150"
                         >
                           {item}
                         </button>
                       ))}
                     </>
                   ) : (
-                    <div className="px-3 py-2 text-sm text-slate-400">No items found</div>
+                    <div className="px-3 py-2 text-sm text-gray-600 dark:text-slate-400">No items found</div>
                   )}
                 </div>
               )}
             </div>
             {itemFilter && (
-              <div className="mt-2 text-xs text-slate-400">
+              <div className="mt-2 text-xs text-gray-600 dark:text-slate-400">
                 {filteredRows.length === 0 
                   ? "No items found" 
                   : `${filteredRows.length} item${filteredRows.length === 1 ? '' : 's'} found`
@@ -530,10 +530,10 @@ export default function Inventory({ noLayout = false }) {
           </div>
 
           {/* Header */}
-          <div className="grid grid-cols-[4fr_1fr_1fr] lg:grid-cols-[4fr_0.8fr_0.8fr_0.8fr_0.8fr] gap-2 px-3 py-2 border-b border-slate-800 text-xs text-slate-400 font-medium">
+          <div className="grid grid-cols-[4fr_1fr_1fr] lg:grid-cols-[4fr_0.8fr_0.8fr_0.8fr_0.8fr] gap-2 px-3 py-2 border-b border-gray-200 dark:border-slate-800 text-xs text-gray-600 dark:text-slate-400 font-medium">
             <button
               onClick={() => toggleSort("name")}
-              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors text-xs"
+              className="flex items-center gap-1 text-left hover:text-gray-800 dark:text-slate-200 transition-colors text-xs"
             >
               Item
               {sortKey === "name" && (
@@ -548,7 +548,7 @@ export default function Inventory({ noLayout = false }) {
             </button>
             <button
               onClick={() => toggleSort("onHandQty")}
-              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors text-xs"
+              className="flex items-center gap-1 text-left hover:text-gray-800 dark:text-slate-200 transition-colors text-xs"
             >
               On hand
               {sortKey === "onHandQty" && (
@@ -563,7 +563,7 @@ export default function Inventory({ noLayout = false }) {
             </button>
             <button
               onClick={() => toggleSort("onHandAvgCostCents")}
-              className="flex items-center gap-1 text-left hover:text-slate-200 transition-colors text-xs"
+              className="flex items-center gap-1 text-left hover:text-gray-800 dark:text-slate-200 transition-colors text-xs"
             >
               Avg cost
               {sortKey === "onHandAvgCostCents" && (
@@ -578,7 +578,7 @@ export default function Inventory({ noLayout = false }) {
             </button>
             <button
               onClick={() => toggleSort("onHandCostCents")}
-              className="hidden lg:flex items-center gap-1 text-left hover:text-slate-200 transition-colors text-xs"
+              className="hidden lg:flex items-center gap-1 text-left hover:text-gray-800 dark:text-slate-200 transition-colors text-xs"
             >
               Total cost
               {sortKey === "onHandCostCents" && (
@@ -593,7 +593,7 @@ export default function Inventory({ noLayout = false }) {
             </button>
             <button
               onClick={() => toggleSort("estValueCents")}
-              className="hidden lg:flex items-center gap-1 text-left hover:text-slate-200 transition-colors text-xs"
+              className="hidden lg:flex items-center gap-1 text-left hover:text-gray-800 dark:text-slate-200 transition-colors text-xs"
             >
               Est. value
               {sortKey === "estValueCents" && (
@@ -613,20 +613,20 @@ export default function Inventory({ noLayout = false }) {
             {sortedRows.map((r, index) => (
               <div
                 key={r.name}
-                className={`grid grid-cols-[4fr_1fr_1fr] lg:grid-cols-[4fr_0.8fr_0.8fr_0.8fr_0.8fr] gap-2 px-3 py-2 border-b border-slate-800/30 hover:bg-slate-900/20 transition-colors ${
-                  index % 2 === 0 ? "bg-slate-900/10" : "bg-slate-900/5"
+                className={`grid grid-cols-[4fr_1fr_1fr] lg:grid-cols-[4fr_0.8fr_0.8fr_0.8fr_0.8fr] gap-2 px-3 py-2 border-b border-gray-200 dark:border-slate-800/30 hover:bg-white dark:bg-slate-900/20 transition-colors ${
+                  index % 2 === 0 ? "bg-white dark:bg-slate-900/10" : "bg-white dark:bg-slate-900/5"
                 }`}
               >
-                <div className="text-slate-100 font-medium truncate pr-1 text-sm">{r.name}</div>
-                <div className="text-slate-200 text-xs">{formatNumber(r.onHandQty)}</div>
-                <div className="text-slate-200 text-xs">${centsToStr(r.onHandAvgCostCents)}</div>
-                <div className="hidden lg:block text-slate-200 text-xs">${centsToStr(r.onHandCostCents)}</div>
-                <div className="hidden lg:block text-slate-100 font-semibold text-xs">${centsToStr(r.estValueCents)}</div>
+                <div className="text-gray-900 dark:text-slate-100 font-medium truncate pr-1 text-sm">{r.name}</div>
+                <div className="text-gray-800 dark:text-slate-200 text-xs">{formatNumber(r.onHandQty)}</div>
+                <div className="text-gray-800 dark:text-slate-200 text-xs">${centsToStr(r.onHandAvgCostCents)}</div>
+                <div className="hidden lg:block text-gray-800 dark:text-slate-200 text-xs">${centsToStr(r.onHandCostCents)}</div>
+                <div className="hidden lg:block text-gray-900 dark:text-slate-100 font-semibold text-xs">${centsToStr(r.estValueCents)}</div>
               </div>
             ))}
 
             {!isLoading && sortedRows.length === 0 && (
-              <div className="px-4 py-8 text-center text-slate-400">
+              <div className="px-4 py-8 text-center text-gray-600 dark:text-slate-400">
                 No matching items.
               </div>
             )}
@@ -655,12 +655,12 @@ function Kpi({ label, value, sub, tone = "neutral", className = "" }) {
       ? "text-rose-300"
       : tone === "blue"
       ? "text-blue-300"
-      : "text-slate-100";
+      : "text-gray-900 dark:text-slate-100";
   return (
-    <div className={`rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center ${className}`}>
-      <div className="text-xs text-slate-400">{label}</div>
+    <div className={`rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3 text-center ${className}`}>
+      <div className="text-xs text-gray-600 dark:text-slate-400">{label}</div>
       <div className={`text-xl font-semibold ${toneCls}`}>{value}</div>
-      <div className="text-[11px] text-slate-400/60 truncate">{sub || " "}</div>
+      <div className="text-[11px] text-gray-600 dark:text-slate-400/60 truncate">{sub || " "}</div>
     </div>
   );
 }

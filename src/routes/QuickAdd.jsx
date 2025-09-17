@@ -490,14 +490,14 @@ export default function QuickAdd() {
           {/* ORDER */}
           <div>
             <h2 className="text-lg font-semibold">Order details</h2>
-            <p className="text-slate-400 text-sm -mt-1">Add a new or existing order</p>
-            <div className="border-b border-slate-800 mt-4"></div>
+            <p className="text-gray-600 dark:text-slate-400 text-sm -mt-1">Add a new or existing order</p>
+            <div className="border-b border-gray-200 dark:border-slate-800 mt-4"></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Order Date */}
             <div className="min-w-0">
-              <label htmlFor="order-date" className="text-slate-300 mb-2 block text-sm">Order Date</label>
+              <label htmlFor="order-date" className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Order Date</label>
               <input
                 id="order-date"
                 name="order-date"
@@ -510,7 +510,7 @@ export default function QuickAdd() {
 
             {/* Item */}
             <div className="min-w-0">
-              <label htmlFor="item" className="text-slate-300 mb-2 block text-sm">Item</label>
+              <label htmlFor="item" className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Item</label>
               <ProductSearchDropdown
                 value={itemName}
                 onChange={setItemName}
@@ -548,7 +548,7 @@ export default function QuickAdd() {
 
             {/* Profile */}
             <div className="min-w-0">
-              <label htmlFor="profile" className="text-slate-300 mb-2 block text-sm">Profile (optional)</label>
+              <label htmlFor="profile" className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Profile (optional)</label>
               <input
                 id="profile"
                 name="profile"
@@ -576,7 +576,7 @@ export default function QuickAdd() {
 
             {/* Quantity */}
             <div className="min-w-0">
-              <label htmlFor="quantity" className="text-slate-300 mb-2 block text-sm">Quantity</label>
+              <label htmlFor="quantity" className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Quantity</label>
               <input
                 id="quantity"
                 name="quantity"
@@ -599,7 +599,7 @@ export default function QuickAdd() {
 
             {/* Buy Price */}
             <div className="min-w-0">
-              <label htmlFor="buy-price" className="text-slate-300 mb-2 block text-sm">Buy Price (total)</label>
+              <label htmlFor="buy-price" className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Buy Price (total)</label>
               <input
                 id="buy-price"
                 name="buy-price"
@@ -613,8 +613,8 @@ export default function QuickAdd() {
                 <p className="text-xs text-slate-500 mt-1">Loading market data...</p>
               )}
               {selectedProductMarketData && !marketDataLoading && (
-                <div className="mt-2 p-2 bg-slate-800/50 rounded-lg border border-slate-700">
-                  <p className="text-xs text-slate-400 mb-1">Market Price Suggestion:</p>
+                <div className="mt-2 p-2 bg-gray-100 dark:bg-slate-800/50 rounded-lg border border-slate-700">
+                  <p className="text-xs text-gray-600 dark:text-slate-400 mb-1">Market Price Suggestion:</p>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-green-400">
                       {getMarketValueFormatted(selectedProductMarketData)}
@@ -643,11 +643,11 @@ export default function QuickAdd() {
               <div>
                 <h2 className="text-lg font-semibold">
                   Sale details</h2>
-                <p className="text-slate-400 text-sm -mt-1">If an order has already sold</p>
+                <p className="text-gray-600 dark:text-slate-400 text-sm -mt-1">If an order has already sold</p>
               </div>
               <Toggle value={sold} onChange={setSold} label="Sold" />
             </div>
-            <div className="border-b border-slate-800 mt-4"></div>
+            <div className="border-b border-gray-200 dark:border-slate-800 mt-4"></div>
           </div>
 
           {/* Smoothly collapsing sale fields */}
@@ -655,7 +655,7 @@ export default function QuickAdd() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Sale Date */}
               <div className="min-w-0">
-                <label className="text-slate-300 mb-2 block text-sm">Sale Date</label>
+                <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Sale Date</label>
                 <input
                   type="date"
                   value={saleDate}
@@ -666,7 +666,7 @@ export default function QuickAdd() {
 
               {/* Sell Price */}
               <div className="min-w-0">
-                <label className="text-slate-300 mb-2 block text-sm">Sell Price (total)</label>
+                <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Sell Price (total)</label>
                 <input
                   value={salePrice}
                   onChange={(e) => setSalePrice(e.target.value)}
@@ -695,7 +695,7 @@ export default function QuickAdd() {
 
               {/* Fees */}
               <div className="min-w-0">
-                <label className="text-slate-300 mb-2 block text-sm">Fees (%)</label>
+                <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Fees (%)</label>
                 <input
                   value={feesPct}
                   onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
@@ -713,7 +713,7 @@ export default function QuickAdd() {
 
               {/* Shipping */}
               <div className="min-w-0">
-                <label className="text-slate-300 mb-2 block text-sm">Shipping (total)</label>
+                <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Shipping (total)</label>
                 <input
                   value={shipping}
                   onChange={(e) => setShipping(e.target.value)}
@@ -771,7 +771,7 @@ function Toggle({ value, onChange, label }) {
           }`}
         />
       </span>
-      <span className="text-slate-200 text-sm">{label}</span>
+      <span className="text-gray-800 dark:text-slate-200 text-sm">{label}</span>
     </button>
   );
 }

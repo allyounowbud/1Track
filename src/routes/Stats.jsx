@@ -235,7 +235,7 @@ export default function Stats({ noLayout = false }) {
         <div className={`${card} relative z-[60]`}>
           <div className="mb-6">
             <div className="text-lg font-semibold">Performance Analytics</div>
-            <div className="text-slate-400 text-xs -mt-0.5">Monthly trends and insights</div>
+            <div className="text-gray-600 dark:text-slate-400 text-xs -mt-0.5">Monthly trends and insights</div>
           </div>
 
           {/* Filters */}
@@ -292,7 +292,7 @@ export default function Stats({ noLayout = false }) {
                   }
                 }}
                 placeholder="All products"
-                className="w-full min-w-0 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl pl-10 pr-3 py-2 sm:pl-12 sm:pr-4 sm:py-3 text-sm sm:text-base text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-text"
+                className="w-full min-w-0 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl pl-10 pr-3 py-2 sm:pl-12 sm:pr-4 sm:py-3 text-sm sm:text-base text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-text"
               />
               
               {/* Clear button */}
@@ -300,7 +300,7 @@ export default function Stats({ noLayout = false }) {
                 <button
                   type="button"
                   onClick={() => setItemSearchQuery("")}
-                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 transition-colors"
                   title="Clear search"
                 >
                   ×
@@ -309,10 +309,10 @@ export default function Stats({ noLayout = false }) {
               
               {/* Dropdown list */}
               {isDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto">
                   {filteredDropdownItems.length > 0 ? (
                     <>
-                      <div className="px-3 py-2 text-xs text-slate-400 border-b border-slate-800">
+                      <div className="px-3 py-2 text-xs text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-800">
                         {itemSearchQuery.trim() 
                           ? `${filteredDropdownItems.length} of ${itemOptions.length} products`
                           : `${itemOptions.length} total products`
@@ -326,14 +326,14 @@ export default function Stats({ noLayout = false }) {
                             setItemSearchQuery(item);
                             setIsDropdownOpen(false);
                           }}
-                          className="w-full text-left px-3 py-2 text-sm text-slate-100 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors duration-150"
+                          className="w-full text-left px-3 py-2 text-sm text-gray-900 dark:text-slate-100 hover:bg-gray-200 dark:hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors duration-150"
                         >
                           {item}
                         </button>
                       ))}
                     </>
                   ) : (
-                    <div className="px-3 py-2 text-sm text-slate-400">No products found</div>
+                    <div className="px-3 py-2 text-sm text-gray-600 dark:text-slate-400">No products found</div>
                   )}
                 </div>
               )}
@@ -358,8 +358,8 @@ export default function Stats({ noLayout = false }) {
           {/* Analytics Dashboard */}
           <div className="mb-6">
             <div className="mb-4">
-              <h3 className="text-md font-medium text-slate-200 mb-1">Analytics Dashboard</h3>
-              <p className="text-sm text-slate-400">Comprehensive insights and performance metrics</p>
+              <h3 className="text-md font-medium text-gray-800 dark:text-slate-200 mb-1">Analytics Dashboard</h3>
+              <p className="text-sm text-gray-600 dark:text-slate-400">Comprehensive insights and performance metrics</p>
             </div>
             <DynamicCharts itemGroups={itemGroups} filteredOrders={filtered} />
         </div>
@@ -367,42 +367,42 @@ export default function Stats({ noLayout = false }) {
           {/* Summary Cards - Hide for single item */}
           {itemGroups.length !== 1 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-              <h4 className="text-sm font-medium text-slate-300 mb-3">Top Performing Items</h4>
+            <div className="bg-white dark:bg-slate-900/40 rounded-xl p-4 border border-gray-200 dark:border-slate-800">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">Top Performing Items</h4>
               <div className="space-y-2">
                 {itemGroups.slice(0, 3).map((item, idx) => (
                   <div key={item.item} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                      <span className="text-sm text-slate-300 truncate">{item.item}</span>
+                      <span className="text-sm text-gray-700 dark:text-slate-300 truncate">{item.item}</span>
             </div>
                     <div className="text-right">
-                      <div className="text-sm font-medium text-slate-100">${centsToStr(item.revenueC)}</div>
-                      <div className="text-xs text-slate-400">{formatNumber(item.sold)} sold</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-slate-100">${centsToStr(item.revenueC)}</div>
+                      <div className="text-xs text-gray-600 dark:text-slate-400">{formatNumber(item.sold)} sold</div>
                     </div>
                   </div>
                 ))}
               </div>
           </div>
 
-            <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-              <h4 className="text-sm font-medium text-slate-300 mb-3">Quick Stats</h4>
+            <div className="bg-white dark:bg-slate-900/40 rounded-xl p-4 border border-gray-200 dark:border-slate-800">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">Quick Stats</h4>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-400">Total Items</span>
-                  <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.length)}</span>
+                  <span className="text-sm text-gray-600 dark:text-slate-400">Total Items</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{formatNumber(itemGroups.length)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-400">Items Bought</span>
-                  <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.bought, 0))}</span>
+                  <span className="text-sm text-gray-600 dark:text-slate-400">Items Bought</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.bought, 0))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-400">Items Sold</span>
-                  <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.sold, 0))}</span>
+                  <span className="text-sm text-gray-600 dark:text-slate-400">Items Sold</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.sold, 0))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-400">Items On Hand</span>
-                  <span className="text-sm font-medium text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.onHand, 0))}</span>
+                  <span className="text-sm text-gray-600 dark:text-slate-400">Items On Hand</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{formatNumber(itemGroups.reduce((sum, item) => sum + item.onHand, 0))}</span>
                 </div>
               </div>
             </div>
@@ -414,7 +414,7 @@ export default function Stats({ noLayout = false }) {
         <div className={`${card} mt-6`}>
           <div className="flex items-center justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold">Results</h2>
-            <div className="text-slate-400 text-sm">{itemGroups.length} items</div>
+            <div className="text-gray-600 dark:text-slate-400 text-sm">{itemGroups.length} items</div>
           </div>
 
           <div className="space-y-2">
@@ -438,26 +438,26 @@ export default function Stats({ noLayout = false }) {
                 : "—";
 
             return (
-                <div key={g.item} className="border border-slate-800 rounded-xl bg-slate-900/60">
+                <div key={g.item} className="border border-gray-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/60">
                   <div 
                     className="flex items-center justify-between gap-3 p-4 cursor-pointer transition"
                     onClick={() => toggleItem(g.item)}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="text-lg font-semibold truncate">{g.item}</div>
-                      <div className="text-sm text-slate-400 mt-1">
+                      <div className="text-sm text-gray-600 dark:text-slate-400 mt-1">
                         Last purchase: {lastPurchaseText} • Last sold: {lastSaleText}
                       </div>
                     </div>
                     {!open && (
                       <div className="text-right">
-                        <div className={`text-lg font-semibold ${g.realizedPlC > 0 ? 'text-emerald-400' : g.realizedPlC < 0 ? 'text-red-400' : 'text-slate-100'}`}>
+                        <div className={`text-lg font-semibold ${g.realizedPlC > 0 ? 'text-emerald-400' : g.realizedPlC < 0 ? 'text-red-400' : 'text-gray-900 dark:text-slate-100'}`}>
                           ${centsToStr(g.realizedPlC)}
                         </div>
-                        <div className="text-sm text-slate-400">Realized P/L</div>
+                        <div className="text-sm text-gray-600 dark:text-slate-400">Realized P/L</div>
                       </div>
                     )}
-                    <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+                    <ChevronDown className={`h-5 w-5 text-gray-600 dark:text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
                 </div>
 
                   <div className={`transition-all duration-300 ease-in-out overflow-hidden`} style={{ maxHeight: open ? 'none' : 0 }}>
@@ -486,7 +486,7 @@ export default function Stats({ noLayout = false }) {
           </div>
 
           {itemGroups.length === 0 && (
-            <div className="text-slate-400 text-center py-8">No items in this view.</div>
+            <div className="text-gray-600 dark:text-slate-400 text-center py-8">No items in this view.</div>
           )}
         </div>
     </>
@@ -515,9 +515,9 @@ function DynamicCharts({ itemGroups = [], filteredOrders = [] }) {
   
   if (itemCount === 0) {
     return (
-      <div className="bg-slate-900/40 rounded-xl p-8 border border-slate-800 text-center">
-        <div className="text-slate-400 text-lg mb-2">📊</div>
-        <div className="text-slate-400">No data available for the selected filters</div>
+      <div className="bg-white dark:bg-slate-900/40 rounded-xl p-8 border border-gray-200 dark:border-slate-800 text-center">
+        <div className="text-gray-600 dark:text-slate-400 text-lg mb-2">📊</div>
+        <div className="text-gray-600 dark:text-slate-400">No data available for the selected filters</div>
     </div>
   );
 }
@@ -525,8 +525,8 @@ function DynamicCharts({ itemGroups = [], filteredOrders = [] }) {
   if (itemCount === 1) {
     // Single item - Show comprehensive single chart
   return (
-      <div className="bg-slate-900/40 rounded-xl p-6 border border-slate-800">
-        <h4 className="text-sm font-medium text-slate-300 mb-6 flex items-center gap-2">
+      <div className="bg-white dark:bg-slate-900/40 rounded-xl p-6 border border-gray-200 dark:border-slate-800">
+        <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-6 flex items-center gap-2">
           <span className="text-indigo-400">📊</span>
           change{itemGroups[0].item}
         </h4>
@@ -539,8 +539,8 @@ function DynamicCharts({ itemGroups = [], filteredOrders = [] }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Revenue Chart */}
-      <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-        <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+      <div className="bg-white dark:bg-slate-900/40 rounded-xl p-4 border border-gray-200 dark:border-slate-800">
+        <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-4 flex items-center gap-2">
           <span className="text-emerald-400">💰</span>
           Top Revenue Items
         </h4>
@@ -550,8 +550,8 @@ function DynamicCharts({ itemGroups = [], filteredOrders = [] }) {
       </div>
 
       {/* Profit Chart */}
-      <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-        <h4 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+      <div className="bg-white dark:bg-slate-900/40 rounded-xl p-4 border border-gray-200 dark:border-slate-800">
+        <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-4 flex items-center gap-2">
           <span className="text-blue-400">📈</span>
           Most Profitable Items
         </h4>
@@ -588,38 +588,38 @@ function SingleItemChart({ item, filteredOrders }) {
     <div className="space-y-6">
       {/* KPI Pills */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-          <div className="text-sm text-slate-400 mb-1">Total Revenue</div>
+        <div className="bg-gray-100 dark:bg-slate-800/50 rounded-xl p-4 text-center">
+          <div className="text-sm text-gray-600 dark:text-slate-400 mb-1">Total Revenue</div>
           <div className="text-2xl font-bold text-white mb-1">${centsToStr(totalRevenue)}</div>
-          <div className="text-sm text-slate-400">{totalSold} sales</div>
+          <div className="text-sm text-gray-600 dark:text-slate-400">{totalSold} sales</div>
         </div>
         
-        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-          <div className="text-sm text-slate-400 mb-1">Total COGS</div>
+        <div className="bg-gray-100 dark:bg-slate-800/50 rounded-xl p-4 text-center">
+          <div className="text-sm text-gray-600 dark:text-slate-400 mb-1">Total COGS</div>
           <div className="text-2xl font-bold text-white mb-1">${centsToStr(totalCogs)}</div>
-          <div className="text-sm text-slate-400">{totalBought} bought</div>
+          <div className="text-sm text-gray-600 dark:text-slate-400">{totalBought} bought</div>
         </div>
         
-        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-          <div className="text-sm text-slate-400 mb-1">On Hand</div>
+        <div className="bg-gray-100 dark:bg-slate-800/50 rounded-xl p-4 text-center">
+          <div className="text-sm text-gray-600 dark:text-slate-400 mb-1">On Hand</div>
           <div className="text-2xl font-bold text-white mb-1">{onHand}</div>
-          <div className="text-sm text-slate-400">${centsToStr(totalMarketValue)} market value</div>
+          <div className="text-sm text-gray-600 dark:text-slate-400">${centsToStr(totalMarketValue)} market value</div>
         </div>
         
-        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-          <div className="text-sm text-slate-400 mb-1">Realized P/L</div>
+        <div className="bg-gray-100 dark:bg-slate-800/50 rounded-xl p-4 text-center">
+          <div className="text-sm text-gray-600 dark:text-slate-400 mb-1">Realized P/L</div>
           <div className="text-2xl font-bold text-green-400 mb-1">${centsToStr(realizedPl)}</div>
-          <div className="text-sm text-slate-400">${centsToStr(unrealizedPl)} unrealized</div>
+          <div className="text-sm text-gray-600 dark:text-slate-400">${centsToStr(unrealizedPl)} unrealized</div>
         </div>
       </div>
       
       {/* Combined Performance Metrics */}
-      <div className="bg-slate-800/50 rounded-xl p-6">
-        <h5 className="text-lg font-medium text-slate-300 mb-6 text-center">Performance Overview</h5>
+      <div className="bg-gray-100 dark:bg-slate-800/50 rounded-xl p-6">
+        <h5 className="text-lg font-medium text-gray-700 dark:text-slate-300 mb-6 text-center">Performance Overview</h5>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* ROI Section */}
           <div className="text-center">
-            <div className="text-sm text-slate-400 mb-2">Return on Investment</div>
+            <div className="text-sm text-gray-600 dark:text-slate-400 mb-2">Return on Investment</div>
             <div className="text-4xl font-bold mb-4">
               <span className={item.roi > 0 ? 'text-emerald-400' : 'text-red-400'}>
                 {pctStr(item.roi)}
@@ -633,14 +633,14 @@ function SingleItemChart({ item, filteredOrders }) {
                 style={{ width: `${Math.min(Math.abs(item.roi) * 2 + 20, 100)}%` }}
               />
             </div>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-gray-600 dark:text-slate-400">
               {item.roi > 0 ? 'Profitable' : 'Loss'}
             </div>
           </div>
           
           {/* Margin Section */}
           <div className="text-center">
-            <div className="text-sm text-slate-400 mb-2">Profit Margin</div>
+            <div className="text-sm text-gray-600 dark:text-slate-400 mb-2">Profit Margin</div>
             <div className="text-4xl font-bold mb-4">
               <span className={item.margin > 0 ? 'text-emerald-400' : 'text-red-400'}>
                 {pctStr(item.margin)}
@@ -654,7 +654,7 @@ function SingleItemChart({ item, filteredOrders }) {
                 style={{ width: `${Math.min(Math.abs(item.margin) * 2 + 20, 100)}%` }}
               />
             </div>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-gray-600 dark:text-slate-400">
               {item.margin > 0 ? 'Positive margin' : 'Negative margin'}
             </div>
           </div>
@@ -674,8 +674,8 @@ function RevenueChart({ itemGroups = [] }) {
           return (
       <div className="w-full h-full flex items-center justify-center">
         <div className="text-center">
-          <div className="text-slate-400 text-lg mb-2">💰</div>
-          <div className="text-slate-400 text-sm">No revenue data</div>
+          <div className="text-gray-600 dark:text-slate-400 text-lg mb-2">💰</div>
+          <div className="text-gray-600 dark:text-slate-400 text-sm">No revenue data</div>
         </div>
       </div>
     );
@@ -691,14 +691,14 @@ function RevenueChart({ itemGroups = [] }) {
         return (
           <div key={index} className="space-y-1">
             <div className="flex justify-between items-center">
-              <div className="text-xs text-slate-300 truncate flex-1 mr-2" title={item.item}>
+              <div className="text-xs text-gray-700 dark:text-slate-300 truncate flex-1 mr-2" title={item.item}>
                 {item.item}
               </div>
               <div className="text-xs font-medium text-emerald-400">
                 ${centsToStr(item.revenueC)}
               </div>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-2">
+            <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2">
               <div 
                 className="h-2 bg-emerald-500 rounded-full transition-all duration-500"
                 style={{ width: `${width}%` }}
@@ -717,8 +717,8 @@ function ProfitChart({ itemGroups = [] }) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <div className="text-center">
-          <div className="text-slate-400 text-lg mb-2">📈</div>
-          <div className="text-slate-400 text-sm">No profit data</div>
+          <div className="text-gray-600 dark:text-slate-400 text-lg mb-2">📈</div>
+          <div className="text-gray-600 dark:text-slate-400 text-sm">No profit data</div>
         </div>
       </div>
     );
@@ -735,14 +735,14 @@ function ProfitChart({ itemGroups = [] }) {
         return (
           <div key={index} className="space-y-1">
             <div className="flex justify-between items-center">
-              <div className="text-xs text-slate-300 truncate flex-1 mr-2" title={item.item}>
+              <div className="text-xs text-gray-700 dark:text-slate-300 truncate flex-1 mr-2" title={item.item}>
                 {item.item}
               </div>
               <div className={`text-xs font-medium ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isPositive ? '+' : ''}${centsToStr(item.realizedPlC)}
               </div>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-2">
+            <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2">
               <div 
                 className={`h-2 rounded-full transition-all duration-500 ${
                   isPositive ? 'bg-emerald-500' : 'bg-red-500'
@@ -763,8 +763,8 @@ function SalesActivityChart({ itemGroups = [] }) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <div className="text-center">
-          <div className="text-slate-400 text-lg mb-2">🛒</div>
-          <div className="text-slate-400 text-sm">No sales data</div>
+          <div className="text-gray-600 dark:text-slate-400 text-lg mb-2">🛒</div>
+          <div className="text-gray-600 dark:text-slate-400 text-sm">No sales data</div>
         </div>
       </div>
     );
@@ -779,12 +779,12 @@ function SalesActivityChart({ itemGroups = [] }) {
         
         return (
           <div key={index} className="flex flex-col items-center gap-2 flex-1">
-            <div className="text-xs text-slate-300 font-medium">{item.sold}</div>
+            <div className="text-xs text-gray-700 dark:text-slate-300 font-medium">{item.sold}</div>
             <div 
               className="w-full bg-purple-500 rounded-t transition-all duration-500"
               style={{ height: `${height}%`, minHeight: '4px' }}
             />
-            <div className="text-xs text-slate-400 text-center leading-tight" title={item.item}>
+            <div className="text-xs text-gray-600 dark:text-slate-400 text-center leading-tight" title={item.item}>
               {item.item.length > 8 ? item.item.substring(0, 8) + "..." : item.item}
             </div>
           </div>
@@ -800,12 +800,12 @@ function Kpi({ title, value, hint, tone }) {
   const toneClass =
     tone === "green" ? "text-emerald-400"
       : tone === "blue" ? "text-indigo-400"
-      : "text-slate-100";
+      : "text-gray-900 dark:text-slate-100";
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-center">
-      <div className="text-slate-400 text-sm">{title}</div>
+    <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 text-center">
+      <div className="text-gray-600 dark:text-slate-400 text-sm">{title}</div>
       <div className={`text-xl font-semibold mt-1 ${toneClass}`}>{value}</div>
-      {hint && <div className="text-slate-400 text-xs mt-1 truncate">{hint}</div>}
+      {hint && <div className="text-gray-600 dark:text-slate-400 text-xs mt-1 truncate">{hint}</div>}
     </div>
   );
 }
@@ -940,16 +940,16 @@ function MiniPill({ title, value, sub, tone = "neutral", num = null }) {
   const n = Number.isFinite(num) ? num : 0;
   const isZero = n === 0;
 
-  let color = "text-slate-100";
-  if (tone === "unrealized") color = isZero ? "text-slate-400" : "text-indigo-400";
-  if (tone === "realized") color = n > 0 ? "text-emerald-400" : isZero ? "text-slate-400" : "text-slate-100";
-  if (tone === "neutral") color = isZero ? "text-slate-400" : "text-slate-100";
+  let color = "text-gray-900 dark:text-slate-100";
+  if (tone === "unrealized") color = isZero ? "text-gray-600 dark:text-slate-400" : "text-indigo-400";
+  if (tone === "realized") color = n > 0 ? "text-emerald-400" : isZero ? "text-gray-600 dark:text-slate-400" : "text-gray-900 dark:text-slate-100";
+  if (tone === "neutral") color = isZero ? "text-gray-600 dark:text-slate-400" : "text-gray-900 dark:text-slate-100";
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3 text-center">
-      <div className="text-slate-400 text-xs">{title}</div>
+    <div className="rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 px-3 py-3 text-center">
+      <div className="text-gray-600 dark:text-slate-400 text-xs">{title}</div>
       <div className={`text-base font-semibold mt-0.5 ${color}`}>{value}</div>
-      {sub && <div className="text-[10px] leading-4 text-slate-400 mt-0.5">{sub}</div>}
+      {sub && <div className="text-[10px] leading-4 text-gray-600 dark:text-slate-400 mt-0.5">{sub}</div>}
     </div>
   );
 }

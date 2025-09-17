@@ -7,7 +7,7 @@ import { card } from "../utils/ui.js";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 
 const tile =
-  "group rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 transition p-4 sm:p-5 flex items-start gap-4";
+  "group rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-gray-50 dark:hover:bg-slate-900 transition p-4 sm:p-5 flex items-start gap-4";
 
 export default function Hub() {
   const userInfo = useAuth();
@@ -1015,9 +1015,9 @@ export default function Hub() {
       <div className="flex items-start gap-3">
         <div className={`h-2 w-2 rounded-full ${color} mt-2 flex-shrink-0`}></div>
         <div className="flex-1">
-          <div className="text-sm font-medium text-slate-200 mb-2">{title}</div>
-          <div className="text-xs text-slate-400 mb-3 leading-relaxed">{description}</div>
-          <div className="flex items-center gap-4 text-xs text-slate-500">
+          <div className="text-sm font-medium text-gray-900 dark:text-slate-200 mb-2">{title}</div>
+          <div className="text-xs text-gray-600 dark:text-slate-400 mb-3 leading-relaxed">{description}</div>
+          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-slate-500">
             <div className="flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1064,22 +1064,22 @@ export default function Hub() {
                 className="h-12 w-12 rounded-full border border-slate-800 object-cover"
               />
             ) : (
-              <div className="h-12 w-12 rounded-full bg-slate-800 grid place-items-center text-slate-300">
+              <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-slate-800 grid place-items-center text-gray-600 dark:text-slate-300">
                 {(userInfo.username || "U").slice(0, 1).toUpperCase()}
               </div>
             )}
             <div className="flex-1">
-              <div className="text-lg font-semibold">Welcome, {userInfo.username}</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">Welcome, {userInfo.username}</div>
               {userInfo.email && (
-                <div className="text-slate-400 text-sm">{userInfo.email}</div>
+                <div className="text-gray-500 dark:text-slate-400 text-sm">{userInfo.email}</div>
               )}
-              <div className="text-slate-400 text-xs">Beta User</div>
+              <div className="text-gray-500 dark:text-slate-400 text-xs">Beta User</div>
             </div>
 
             <button
   type="button"
   onClick={signOut}
-              className="h-10 w-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+              className="h-10 w-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-700 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
               title="Sign out"
             >
               <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1096,18 +1096,18 @@ export default function Hub() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <Link to="/orders" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-slate-500/20 grid place-items-center text-slate-300">
+              <div className="h-12 w-12 rounded-xl bg-gray-200 dark:bg-slate-500/20 grid place-items-center text-gray-600 dark:text-slate-300">
                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="text-xl font-semibold">Order Book</div>
-                <div className="text-slate-400 text-sm">
+                <div className="text-xl font-semibold text-gray-900 dark:text-white">Order Book</div>
+                <div className="text-gray-600 dark:text-slate-400 text-sm">
                   Track purchases, sales, and inventory. Quickly add new orders, mark existing orders as sold, 
                   and track your stats from anywhere!
                 </div>
-                <div className="mt-3 inline-flex items-center text-slate-300 group-hover:text-slate-200">
+                <div className="mt-3 inline-flex items-center text-gray-700 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-slate-200">
                   Open →
                 </div>
               </div>
@@ -1120,12 +1120,12 @@ export default function Hub() {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="text-xl font-semibold">Portfolio</div>
-                <div className="text-slate-400 text-sm">
+                <div className="text-xl font-semibold text-gray-900 dark:text-white">Portfolio</div>
+                <div className="text-gray-600 dark:text-slate-400 text-sm">
                   Track your collection value, view trends, monitor performance, and analyze detailed statistics. 
                   Includes inventory management and comprehensive analytics with market data integration.
                 </div>
-                <div className="mt-3 inline-flex items-center text-emerald-300 group-hover:text-emerald-200">
+                <div className="mt-3 inline-flex items-center text-emerald-600 dark:text-emerald-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-200">
                   Open →
                 </div>
               </div>
@@ -1139,12 +1139,12 @@ export default function Hub() {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="text-xl font-semibold">Emails</div>
-                <div className="text-slate-400 text-sm">
+                <div className="text-xl font-semibold text-gray-900 dark:text-white">Emails</div>
+                <div className="text-gray-600 dark:text-slate-400 text-sm">
                   Auto-import orders & shipping updates. Connect your Gmail to automatically sync order confirmations, 
                   track shipments, and add orders to your order book.
                 </div>
-                <div className="mt-3 inline-flex items-center text-red-300 group-hover:text-red-200">
+                <div className="mt-3 inline-flex items-center text-red-600 dark:text-red-300 group-hover:text-red-700 dark:group-hover:text-red-200">
                   Open →
                 </div>
               </div>
@@ -1157,12 +1157,12 @@ export default function Hub() {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="text-xl font-semibold">Profiles</div>
-                <div className="text-slate-400 text-sm">
+                <div className="text-xl font-semibold text-gray-900 dark:text-white">Profiles</div>
+                <div className="text-gray-600 dark:text-slate-400 text-sm">
                   Manage customer profiles and contact information. Track customer order history, 
                   manage contact details, and build better relationships with your customers.
                 </div>
-                <div className="mt-3 inline-flex items-center text-purple-300 group-hover:text-purple-200">
+                <div className="mt-3 inline-flex items-center text-purple-600 dark:text-purple-300 group-hover:text-purple-700 dark:group-hover:text-purple-200">
                   Open →
                 </div>
               </div>
@@ -1175,12 +1175,12 @@ export default function Hub() {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="text-xl font-semibold">Database</div>
-                <div className="text-slate-400 text-sm">
+                <div className="text-xl font-semibold text-gray-900 dark:text-white">Database</div>
+                <div className="text-gray-600 dark:text-slate-400 text-sm">
                   Manage your product database, retailers, and marketplaces. Organize Pokemon cards, 
                   Magic cards, Yu-Gi-Oh cards, video games, and more with singles/sealed separation.
                 </div>
-                <div className="mt-3 inline-flex items-center text-cyan-300 group-hover:text-cyan-200">
+                <div className="mt-3 inline-flex items-center text-cyan-600 dark:text-cyan-300 group-hover:text-cyan-700 dark:group-hover:text-cyan-200">
                   Open →
                 </div>
               </div>
@@ -1191,8 +1191,8 @@ export default function Hub() {
         {/* Changelog */}
         <div className={`${card}`}>
           <div className="mb-4">
-            <h2 className="text-lg font-semibold">Changelog</h2>
-            <div className="text-xs text-slate-400/60">v0.1.6</div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Changelog</h2>
+            <div className="text-xs text-gray-500 dark:text-slate-400/60">v0.1.6</div>
           </div>
           
         <div className="space-y-3">
@@ -1213,15 +1213,15 @@ export default function Hub() {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-800">
-            <div className="text-sm text-slate-400">
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-slate-800">
+            <div className="text-sm text-gray-500 dark:text-slate-400">
               Showing {startIndex + 1}-{Math.min(endIndex, changelogData.length)} of {changelogData.length} entries
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
@@ -1251,7 +1251,7 @@ export default function Hub() {
                   
                   return pages.map((page, index) => (
                     page === '...' ? (
-                      <span key={`ellipsis-${index}`} className="px-2 text-slate-400">
+                      <span key={`ellipsis-${index}`} className="px-2 text-gray-500 dark:text-slate-400">
                         ...
                       </span>
                     ) : (
@@ -1260,8 +1260,8 @@ export default function Hub() {
                         onClick={() => setCurrentPage(page)}
                         className={`px-3 py-1 text-sm rounded-lg border transition-colors ${
                           currentPage === page
-                            ? 'border-indigo-600 bg-indigo-600 text-white'
-                            : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700'
+                            ? 'border-blue-600 dark:border-indigo-600 bg-blue-600 dark:bg-indigo-600 text-white'
+                            : 'border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         {page}
@@ -1273,7 +1273,7 @@ export default function Hub() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>

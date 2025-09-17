@@ -108,11 +108,11 @@ export const TableSearchDropdown = ({
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
               {icon && (
-                <div className="text-slate-400 flex-shrink-0">
+                <div className="text-gray-600 dark:text-slate-400 flex-shrink-0">
                   {icon}
                 </div>
               )}
-              <span className={displayValue ? "text-slate-100" : "text-slate-400 truncate"}>
+              <span className={displayValue ? "text-gray-900 dark:text-slate-100" : "text-gray-600 dark:text-slate-400 truncate"}>
                 {displayValue || placeholder}
               </span>
             </div>
@@ -121,7 +121,7 @@ export const TableSearchDropdown = ({
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="text-slate-400 hover:text-slate-200 transition-colors"
+                  className="text-gray-600 dark:text-slate-400 hover:text-slate-200 transition-colors"
                 >
                   ×
                 </button>
@@ -136,7 +136,7 @@ export const TableSearchDropdown = ({
         {isOpen && createPortal(
           <div 
             data-dropdown-portal
-            className="fixed z-[999999] max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-slate-800 bg-slate-900 shadow-xl"
+            className="fixed z-[999999] max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl"
             style={{ 
               position: 'fixed',
               top: `${dropdownPosition.top}px`,
@@ -146,7 +146,7 @@ export const TableSearchDropdown = ({
             }}
           >
             {options.length === 0 ? (
-              <div className="px-3 py-2 text-slate-400 text-sm">
+              <div className="px-3 py-2 text-gray-600 dark:text-slate-400 text-sm">
                 No options available. ({options.length} items)
               </div>
             ) : (
@@ -155,7 +155,7 @@ export const TableSearchDropdown = ({
                   key={getOptionValue(option)}
                   type="button"
                   onClick={() => handleSelectOption(option)}
-                  className="w-full text-left px-3 py-2 text-slate-100 hover:bg-slate-800/70"
+                  className="w-full text-left px-3 py-2 text-gray-900 dark:text-slate-100 hover:bg-gray-100 dark:bg-slate-800/70"
                 >
                   {getOptionLabel(option)}
                 </button>

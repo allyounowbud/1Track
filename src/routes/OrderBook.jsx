@@ -527,7 +527,7 @@ export default function OrderBook() {
       <PageHeader title="Order Book" />
 
         {/* Day cards */}
-        {isLoading && <div className="text-slate-400">Loading…</div>}
+        {isLoading && <div className="text-gray-500 dark:text-slate-400">Loading…</div>}
         {error && <div className="text-rose-400">{String(error.message || error)}</div>}
 
         <UnifiedOrderView
@@ -592,7 +592,7 @@ function UnifiedOrderView({
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg
-              className="h-4 w-4 text-slate-400"
+              className="h-4 w-4 text-gray-500 dark:text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -611,12 +611,12 @@ function UnifiedOrderView({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={newRows.length > 0 ? "Complete new orders to search" : "Search for orders"}
             disabled={newRows.length > 0}
-            className={`h-8 sm:h-9 md:h-10 text-xs sm:text-sm w-full min-w-0 bg-slate-900/60 border border-slate-800 rounded-xl pl-10 pr-3 py-1 sm:py-2 text-slate-100 placeholder-slate-400 focus:border-indigo-500 ${newRows.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`h-8 sm:h-9 md:h-10 text-xs sm:text-sm w-full min-w-0 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl pl-10 pr-3 py-1 sm:py-2 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-blue-500 dark:focus:border-indigo-500 ${newRows.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
           {searchQuery && newRows.length === 0 && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 transition-colors"
             >
               <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -627,7 +627,7 @@ function UnifiedOrderView({
             </div>
 
       {/* Page break line */}
-      <div className="border-b border-slate-700 mb-2"></div>
+      <div className="border-b border-gray-200 dark:border-slate-700 mb-2"></div>
 
       {/* Header with Selection Count and Actions - Card-like structure without background */}
       {filtered.length > 0 && (
@@ -639,10 +639,10 @@ function UnifiedOrderView({
                 type="checkbox"
                 checked={selectedRows.size === filtered.length && filtered.length > 0}
                 onChange={toggleAllSelection}
-                className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
+                className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-500 dark:text-indigo-500 focus:ring-blue-500 dark:focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-blue-500 dark:accent-indigo-500"
               />
               <div>
-                <div className="text-sm text-slate-400 whitespace-nowrap">
+                <div className="text-sm text-gray-500 dark:text-slate-400 whitespace-nowrap">
                   {selectedRows.size}/{filtered.length} Selected
                 </div>
               </div>
@@ -669,7 +669,7 @@ function UnifiedOrderView({
               return (
                 <button
                   onClick={addNewRow}
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-700 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                   title="Add New Order"
                 >
                   <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -685,7 +685,7 @@ function UnifiedOrderView({
                 <>
                   <button
                     onClick={cancelNewRows}
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-700 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Cancel Changes"
                   >
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -694,7 +694,7 @@ function UnifiedOrderView({
                   </button>
                   <button
                     onClick={bulkSaveSelected}
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-700 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Save Changes"
                   >
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -711,7 +711,7 @@ function UnifiedOrderView({
                 <>
                   <button
                     onClick={cancelNewRows}
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-700 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Cancel Changes"
                   >
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -720,7 +720,7 @@ function UnifiedOrderView({
                   </button>
                   <button
                     onClick={bulkSaveSelected}
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-700 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Save Selected Orders"
                   >
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -731,7 +731,7 @@ function UnifiedOrderView({
                   {!hasNewRowsInSystem && (
                     <button
                       onClick={bulkDeleteSelected}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-700 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                       title="Delete Selected Orders"
                     >
                       <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -47,14 +47,14 @@ export default function UnifiedProductsCard({
       <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap rounded-xl p-2 -m-2">
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold leading-[2.25rem]">Products</h2>
-          <p className="text-xs text-slate-400 -mt-1">Total: {totalProducts}</p>
+          <p className="text-xs text-gray-600 dark:text-slate-400 -mt-1">Total: {totalProducts}</p>
           
           {/* Empty state preview */}
           {totalProducts === 0 && !hasNewRows && (
             <div className="mt-3">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-400/60"></div>
-                <p className="text-sm text-slate-300">
+                <p className="text-sm text-gray-700 dark:text-slate-300">
                   Product database with categories and market values for items not tracked by the API.
                 </p>
               </div>
@@ -69,7 +69,7 @@ export default function UnifiedProductsCard({
 
       {/* Expanded Content - Only show when there are products or new rows */}
       {(totalProducts > 0 || hasNewRows) && (
-        <div className="pt-5 border-t border-slate-800 mt-4 overflow-visible">
+        <div className="pt-5 border-t border-gray-200 dark:border-slate-800 mt-4 overflow-visible">
           {/* Header with Selection Count and Actions - Match SettingsCard exactly */}
           {!hasNewRows && totalProducts > 0 && (
             <div className="flex items-center py-1 px-4 mb-2">
@@ -80,10 +80,10 @@ export default function UnifiedProductsCard({
                     type="checkbox"
                     checked={selectedProducts.size === totalProducts && totalProducts > 0}
                     onChange={() => onToggleAllProductsSelection('all')}
-                    className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
+                    className="h-4 w-4 rounded border-slate-600 bg-gray-100 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
                   />
                   <div>
-                    <div className="text-sm sm:text-lg text-slate-400 whitespace-nowrap">
+                    <div className="text-sm sm:text-lg text-gray-600 dark:text-slate-400 whitespace-nowrap">
                       {selectedProducts.size}/{totalProducts} Selected
                     </div>
                   </div>
@@ -95,7 +95,7 @@ export default function UnifiedProductsCard({
                 {!hasAnySelection && (
                   <button
                     onClick={() => onAddNewProductRow('tcg_sealed')}
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                     title="Add New Item"
                   >
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,7 +108,7 @@ export default function UnifiedProductsCard({
                   <>
                     <button
                       onClick={onBulkSave}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                       title="Save Changes"
                     >
                       <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,20 +139,20 @@ export default function UnifiedProductsCard({
               if (categoryProducts.length === 0) return null;
 
               return (
-                <div key={category.key} className="border border-slate-700 rounded-lg bg-slate-800/30">
+                <div key={category.key} className="border border-slate-700 rounded-lg bg-gray-100 dark:bg-slate-800/30">
                   {/* Category Header */}
                   <div 
-                    className="flex items-center justify-between p-3 cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-slate-700"
+                    className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-700"
                     onClick={() => onToggleCategoryExpansion(category.key)}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                       <h3 className="text-lg font-medium text-white">{category.label}</h3>
-                      <span className="text-sm text-slate-400">
+                      <span className="text-sm text-gray-600 dark:text-slate-400">
                         ({categoryProducts.length} items)
                       </span>
                     </div>
-                    <div className="text-slate-400 text-sm">
+                    <div className="text-gray-600 dark:text-slate-400 text-sm">
                       {isExpanded ? '▼' : '▶'}
                     </div>
                   </div>
@@ -204,9 +204,9 @@ export default function UnifiedProductsCard({
 
       {/* Empty State - Show when no products and no new rows */}
       {totalProducts === 0 && !hasNewRows && (
-        <div className="pt-5 border-t border-slate-800 mt-4">
+        <div className="pt-5 border-t border-gray-200 dark:border-slate-800 mt-4">
           <div className="text-center py-12">
-            <div className="text-slate-400 text-lg mb-4">No products yet</div>
+            <div className="text-gray-600 dark:text-slate-400 text-lg mb-4">No products yet</div>
             <div className="text-slate-500 text-sm">
               Start building your product database by{" "}
               <button

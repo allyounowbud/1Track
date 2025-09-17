@@ -147,7 +147,7 @@ export const SearchDropdown = ({
       <div ref={containerRef} className="relative">
         <div className="relative">
           {icon && (
-            <div className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+            <div className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-slate-400 pointer-events-none">
               {icon}
             </div>
           )}
@@ -162,7 +162,7 @@ export const SearchDropdown = ({
             <button
               type="button"
               onClick={handleClear}
-              className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+              className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-slate-400 hover:text-slate-200 transition-colors"
             >
               ×
             </button>
@@ -172,7 +172,7 @@ export const SearchDropdown = ({
         {isOpen && createPortal(
           <div 
             data-dropdown-portal
-            className="fixed z-[999999] max-h-48 sm:max-h-64 overflow-y-auto overscroll-contain rounded-lg border border-slate-800 bg-slate-900 shadow-2xl min-w-[180px] sm:min-w-[200px]"
+            className="fixed z-[999999] max-h-48 sm:max-h-64 overflow-y-auto overscroll-contain rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl min-w-[180px] sm:min-w-[200px]"
             style={{ 
               position: 'fixed',
               top: `${dropdownPosition.top}px`,
@@ -185,20 +185,20 @@ export const SearchDropdown = ({
               <button
                 type="button"
                 onClick={handleCreateNew}
-                className="w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base text-slate-100 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors duration-150 rounded-t-lg border-b border-slate-700"
+                className="w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base text-gray-900 dark:text-slate-100 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors duration-150 rounded-t-lg border-b border-slate-700"
               >
-                <span className="text-slate-400">+</span> {createNewLabel} "{searchText}"
+                <span className="text-gray-600 dark:text-slate-400">+</span> {createNewLabel} "{searchText}"
               </button>
             )}
             {filteredOptions.length === 0 && !shouldShowCreateNew ? (
-              <div className="px-2 sm:px-3 py-1.5 sm:py-2 text-slate-400 text-xs sm:text-sm">No matches found.</div>
+              <div className="px-2 sm:px-3 py-1.5 sm:py-2 text-gray-600 dark:text-slate-400 text-xs sm:text-sm">No matches found.</div>
             ) : (
               filteredOptions.map((option, index) => (
                 <button
                   key={getOptionValue(option)}
                   type="button"
                   onClick={() => handleSelectOption(option)}
-                  className={`w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base text-slate-100 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors duration-150 ${
+                  className={`w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base text-gray-900 dark:text-slate-100 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors duration-150 ${
                     shouldShowCreateNew && index === 0 ? '' : 
                     !shouldShowCreateNew && index === 0 ? 'rounded-t-lg' : ''
                   } ${

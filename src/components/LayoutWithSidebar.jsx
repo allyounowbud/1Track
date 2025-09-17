@@ -61,7 +61,7 @@ export default function LayoutWithSidebar({ children, active, section }) {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors duration-300">
       {/* Sidebar */}
       <Sidebar active={active} section={section} onCollapseChange={setSidebarCollapsed} />
       

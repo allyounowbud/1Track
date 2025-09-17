@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import ThemeToggle from "./ThemeToggle";
 
 /**
  * Props:
@@ -135,8 +136,8 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   const itemBase = isCollapsed 
     ? "flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
     : "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors";
-  const itemIdle = "text-slate-300 hover:text-slate-100 hover:bg-slate-800/50";
-  const itemActive = "text-white bg-slate-800 shadow-sm";
+  const itemIdle = "text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-800/50";
+  const itemActive = "text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 shadow-sm";
 
   const getItemClass = (key) => {
     const isActive = active === key;
@@ -206,7 +207,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   // Mobile bottom bar layout
   if (isSmallScreen) {
     return (
-      <div className="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 h-16 pb-safe">
+      <div className="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 h-16 pb-safe transition-colors duration-300">
         {/* Navigation - horizontal layout for mobile */}
         <nav className="flex items-center justify-around px-2 py-2 h-full">
           {navigationItems.map((item) => {
@@ -218,8 +219,8 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                 end
                 className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-0 flex-1 h-full ${
                   isActive 
-                    ? 'text-white bg-slate-800 shadow-sm' 
-                    : 'text-slate-300'
+                    ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 shadow-sm' 
+                    : 'text-gray-600 dark:text-slate-300'
                 }`}
               >
                 <svg className="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,43 +240,46 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   // Desktop sidebar layout
   return (
     <div 
-      className={`sidebar-fixed bg-slate-900 border-r border-slate-800 transition-all duration-300 ${
+      className={`sidebar-fixed bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Header */}
-      <div className={`${isCollapsed ? 'flex justify-center py-3' : 'p-4'} border-b border-slate-800`}>
+      <div className={`${isCollapsed ? 'flex justify-center py-3' : 'p-4'} border-b border-gray-200 dark:border-slate-800`}>
         <div className={`${isCollapsed ? 'flex items-center justify-center' : 'flex items-center justify-between'}`}>
           {!isCollapsed && (
             <div className="flex items-end gap-2">
-              <h1 className="text-xl font-bold">OneTrack</h1>
-              <span className="text-xs text-slate-500 font-medium mb-1 -ml-1">BETA</span>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">OneTrack</h1>
+              <span className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1 -ml-1">BETA</span>
             </div>
           )}
-          {/* Show expand/collapse button only on large screens */}
+          {/* Show expand/collapse button and theme toggle only on large screens */}
           {isLargeScreen && (
-            <button
-              onClick={() => {
-                const newCollapsed = !isCollapsed;
-                setIsCollapsed(newCollapsed);
-                // Save to localStorage to persist across page navigation
-                localStorage.setItem('sidebar-collapsed', JSON.stringify(newCollapsed));
-                onCollapseChange?.(newCollapsed);
-              }}
-              className={`${isCollapsed 
-                ? "flex items-center justify-center w-10 h-10 rounded-lg transition-colors" 
-                : "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
-              } text-slate-300 hover:text-slate-100 hover:bg-slate-800/50`}
-            >
-              <svg 
-                className={`h-5 w-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
+            <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'gap-2'}`}>
+              <ThemeToggle />
+              <button
+                onClick={() => {
+                  const newCollapsed = !isCollapsed;
+                  setIsCollapsed(newCollapsed);
+                  // Save to localStorage to persist across page navigation
+                  localStorage.setItem('sidebar-collapsed', JSON.stringify(newCollapsed));
+                  onCollapseChange?.(newCollapsed);
+                }}
+                className={`${isCollapsed 
+                  ? "flex items-center justify-center w-10 h-10 rounded-lg transition-colors" 
+                  : "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
+                } text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-800/50`}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+                <svg 
+                  className={`h-5 w-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -313,7 +317,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
             />
           </div>
         ) : (
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-slate-400">
             <div 
               className={`w-2 h-2 rounded-full ${
                 apiStatus === 'connected' ? 'bg-green-500 animate-pulse' :
@@ -327,12 +331,12 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
       </div>
 
       {/* User Section */}
-      <div className={`border-t border-slate-800 bg-slate-900 flex-shrink-0 ${isCollapsed ? 'flex justify-center py-4' : 'p-4'}`}>
+      <div className={`border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0 ${isCollapsed ? 'flex justify-center py-4' : 'p-4'}`}>
         {isCollapsed ? (
           // Collapsed: Profile image fills entire button
           <Link
             to="/"
-            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+            className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-800/50"
           >
             {userInfo.avatar_url ? (
               <img
@@ -341,7 +345,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                 className="w-full h-full rounded-lg object-cover"
               />
             ) : (
-              <div className="w-full h-full rounded-lg bg-slate-800 flex items-center justify-center text-slate-300 text-base font-semibold">
+              <div className="w-full h-full rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-600 dark:text-slate-300 text-base font-semibold">
                 {(userInfo.username || "U").slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -350,7 +354,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
           // Expanded: Profile image + text
           <Link
             to="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800/50 transition-colors"
           >
             {userInfo.avatar_url ? (
               <img
@@ -359,15 +363,15 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                 className="h-8 w-8 rounded-lg object-cover flex-shrink-0"
               />
             ) : (
-              <div className="h-8 w-8 rounded-lg bg-slate-800 grid place-items-center text-slate-300 text-sm flex-shrink-0">
+              <div className="h-8 w-8 rounded-lg bg-gray-100 dark:bg-slate-800 grid place-items-center text-gray-600 dark:text-slate-300 text-sm flex-shrink-0">
                 {(userInfo.username || "U").slice(0, 1).toUpperCase()}
               </div>
             )}
             <div className="min-w-0">
-              <div className="text-sm font-medium text-slate-100 truncate">
+              <div className="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">
                 {userInfo.username}
               </div>
-              <div className="text-xs text-slate-400 truncate">
+              <div className="text-xs text-gray-500 dark:text-slate-400 truncate">
                 Beta User
               </div>
             </div>

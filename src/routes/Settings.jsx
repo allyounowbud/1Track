@@ -692,7 +692,7 @@ function SettingsCard({
 
   return (
     <section 
-      className={`${pageCard} mb-6 cursor-pointer hover:bg-slate-800/20 transition-colors`}
+      className={`${pageCard} mb-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800/20 transition-colors`}
       onClick={onToggleExpansion}
     >
       {/* Card Header */}
@@ -701,7 +701,7 @@ function SettingsCard({
       >
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold leading-[2.25rem]">{title}</h2>
-          <p className="text-xs text-slate-400 -mt-1">Total: {totalCount}</p>
+          <p className="text-xs text-gray-500 dark:text-slate-400 -mt-1">Total: {totalCount}</p>
           
           {/* Collapsed preview content */}
           {!isExpanded && (
@@ -709,7 +709,7 @@ function SettingsCard({
               {/* Clean purpose description */}
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-400/60"></div>
-                <p className="text-sm text-slate-300">
+                <p className="text-sm text-gray-700 dark:text-slate-300">
                     {cardType === 'items' && "Other products collection with names and market values"}
                     {cardType === 'tcg_sealed' && "TCG sealed products collection with names and market values"}
                   {cardType === 'retailers' && "Retailers where you purchase items"}
@@ -721,11 +721,11 @@ function SettingsCard({
               {/* Clean sample preview */}
               {data.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <div className="w-1 h-1 rounded-full bg-slate-500"></div>
-                  <p className="text-xs text-slate-500">
+                  <div className="w-1 h-1 rounded-full bg-gray-400 dark:bg-slate-500"></div>
+                  <p className="text-xs text-gray-500 dark:text-slate-500">
                     {data.length === 1 ? "1 item" : `${data.length} items`}
                     {data.length > 0 && (
-                      <span className="ml-1 text-slate-600">
+                      <span className="ml-1 text-gray-600 dark:text-slate-600">
                         • {data[0]?.name}
                         {data.length > 1 && " and others"}
                       </span>
@@ -738,7 +738,7 @@ function SettingsCard({
               {data.length === 0 && (
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-1 rounded-full bg-slate-600"></div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-gray-500 dark:text-slate-500">
                     {cardType === 'items' && "No items yet"}
                     {cardType === 'tcg_sealed' && "No items yet"}
                     {cardType === 'retailers' && "No retailers yet"}

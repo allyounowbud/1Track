@@ -55,10 +55,10 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
 
   return (
     <div 
-      className={`rounded-xl border bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
+      className={`rounded-xl border bg-white dark:bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
         isSelected
           ? 'border-indigo-500 bg-indigo-500/10' 
-          : 'border-slate-800 hover:bg-slate-800/50'
+          : 'border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:bg-slate-800/50'
       }`}
       onClick={onToggleSelection}
     >
@@ -73,7 +73,7 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
               e.stopPropagation();
               onToggleSelection();
             }}
-            className={`h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500 ${
+            className={`h-4 w-4 rounded border-slate-500 bg-gray-100 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500 ${
               isCheckboxDisabled ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           />
@@ -81,7 +81,7 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
         
         <div onClick={(e) => e.stopPropagation()}>
           <input
-            className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onClick={(e) => e.stopPropagation()}
@@ -104,7 +104,7 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
               updateItem();
             }}
             disabled={busy}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
             title="Save Changes"
           >
             <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,7 +116,7 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
               e.stopPropagation();
               deleteItem();
             }}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
             title="Delete Item"
           >
             <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,11 +138,11 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
                 e.stopPropagation();
                 onToggleSelection();
               }}
-              className={`h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500 ${
+              className={`h-4 w-4 rounded border-slate-500 bg-gray-100 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500 ${
                 isCheckboxDisabled ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             />
-            <span className="text-sm text-slate-400">Name</span>
+            <span className="text-sm text-gray-600 dark:text-slate-400">Name</span>
           </div>
           <div className="flex items-center gap-2">
             {status && (
@@ -156,7 +156,7 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
                 updateItem();
               }}
               disabled={busy}
-              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
               title="Save Changes"
             >
               <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,7 +168,7 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
                 e.stopPropagation();
                 deleteItem();
               }}
-              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+              className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
               title="Delete Item"
             >
               <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +179,7 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
         </div>
         <div onClick={(e) => e.stopPropagation()}>
           <input
-            className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onClick={(e) => e.stopPropagation()}
@@ -271,10 +271,10 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
 
   return (
     <div 
-      className={`rounded-xl border bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
+      className={`rounded-xl border bg-white dark:bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
         isSelected
           ? 'border-indigo-500 bg-indigo-500/10' 
-          : 'border-slate-800 hover:bg-slate-800/50'
+          : 'border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:bg-slate-800/50'
       }`}
       onClick={onToggleSelection}
     >
@@ -289,7 +289,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
             e.stopPropagation();
             onToggleSelection();
           }}
-          className={`h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500 ${
+          className={`h-4 w-4 rounded border-slate-500 bg-gray-100 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500 ${
             isCheckboxDisabled ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         />
@@ -306,7 +306,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
         </div>
         
         <input
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
           value={mv}
           onChange={(e) => {
             e.stopPropagation();
@@ -323,7 +323,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
               updateItem();
             }}
             disabled={busy}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
             title="Save Changes"
           >
             <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -337,7 +337,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
                 deleteItem(item.id);
               }
             }}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
             title="Delete Item"
           >
             <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -351,7 +351,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
       <div className="sm:hidden space-y-3">
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs text-slate-400">Item Name</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400">Item Name</label>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
             <ProductSearchDropdown
@@ -365,10 +365,10 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
         </div>
         
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Market Value</label>
+          <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Market Value</label>
           <div className="flex items-center gap-2">
             <input
-              className="flex-1 h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+              className="flex-1 h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
               value={mv}
               onChange={(e) => {
                 e.stopPropagation();
@@ -385,7 +385,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
                   updateItem();
                 }}
                 disabled={busy}
-                className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Save Changes"
               >
                 <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -399,7 +399,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
                     deleteItem(item.id);
                   }
                 }}
-                className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                 title="Delete Item"
               >
                 <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -470,14 +470,14 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
       className={`rounded-xl border p-3 overflow-visible transition cursor-pointer ${
         isSelected 
           ? 'border-indigo-500 bg-indigo-500/10' 
-          : 'border-slate-800 bg-slate-900/60 hover:bg-slate-800/50'
+          : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-gray-100 dark:bg-slate-800/50'
       }`}
     >
       {/* Desktop: Grid layout without checkbox - full width input */}
       <div className="hidden sm:grid grid-cols-[1fr_auto] gap-4 items-center min-w-0">
         <div onClick={(e) => e.stopPropagation()}>
           <input
-            className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onClick={(e) => e.stopPropagation()}
@@ -497,7 +497,7 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
               handleSave();
             }}
             disabled={busy}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
             title="Save Changes"
           >
             <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -510,7 +510,7 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
               onCancel();
             }}
             disabled={busy}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
             title="Cancel"
           >
             <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -523,7 +523,7 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
       {/* Mobile: Stacked layout without checkbox - full width input */}
       <div className="sm:hidden space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-400">Name</span>
+          <span className="text-sm text-gray-600 dark:text-slate-400">Name</span>
           <div className="flex items-center gap-2">
             {status && (
               <span className={`text-xs ${status.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>
@@ -536,7 +536,7 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
                 handleSave();
               }}
               disabled={busy}
-              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
               title="Save Changes"
             >
               <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -549,7 +549,7 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
                 onCancel();
               }}
               disabled={busy}
-              className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+              className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
               title="Cancel"
             >
               <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -560,7 +560,7 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
         </div>
         <div onClick={(e) => e.stopPropagation()}>
           <input
-            className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onClick={(e) => e.stopPropagation()}
@@ -653,10 +653,10 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
 
   return (
     <div 
-      className={`rounded-xl border bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
+      className={`rounded-xl border bg-white dark:bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
         isSelected
           ? 'border-indigo-500 bg-indigo-500/10' 
-          : 'border-slate-800 hover:bg-slate-800/50'
+          : 'border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:bg-slate-800/50'
       }`}
       onClick={onToggleSelection}
     >
@@ -673,7 +673,7 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
         </div>
         
         <input
-          className="bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
           value={details}
           onChange={(e) => {
             e.stopPropagation();
@@ -690,7 +690,7 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
               handleSave();
             }}
             disabled={busy}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
             title="Save New Item"
           >
             <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -702,7 +702,7 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
               e.stopPropagation();
               onCancel();
             }}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
             title="Cancel New Row"
           >
             <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -716,7 +716,7 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
       <div className="sm:hidden space-y-3">
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs text-slate-400">Item Name</label>
+            <label className="block text-xs text-gray-600 dark:text-slate-400">Item Name</label>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
             <ProductSearchDropdown
@@ -730,10 +730,10 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
         </div>
         
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Market Value</label>
+          <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Market Value</label>
           <div className="flex items-center gap-2">
             <input
-              className="flex-1 h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+              className="flex-1 h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
               value={details}
               onChange={(e) => {
                 e.stopPropagation();
@@ -750,7 +750,7 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
                   handleSave();
                 }}
                 disabled={busy}
-                className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Save New Item"
               >
                 <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -762,7 +762,7 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
                   e.stopPropagation();
                   onCancel();
                 }}
-                className="w-8 h-8 rounded-lg border border-slate-600 bg-slate-800/60 hover:bg-slate-700 hover:border-slate-500 text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                 title="Cancel New Row"
               >
                 <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
