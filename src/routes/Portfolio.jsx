@@ -9,6 +9,7 @@ import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, rowCard } from "../utils/ui.js";
 import { getBatchMarketData, getMarketValueInCents } from "../services/marketDataService.js";
 import { getBackgroundMarketData, isBackgroundLoadingComplete } from "../services/backgroundMarketDataService.js";
+import { getProductImages } from "../services/imageService.js";
 import SearchPage from "../components/SearchPage.jsx";
 import Stats from "./Stats.jsx";
 
@@ -571,6 +572,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [itemType, setItemType] = useState("all"); // "all", "sealed", "singles"
   const [expandedItem, setExpandedItem] = useState(null); // null or item object
+  const [productImages, setProductImages] = useState({});
 
   // Get order details for a specific item from all orders
   const getItemOrders = (itemName) => {
@@ -590,6 +592,34 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
       document.body.style.overflow = 'unset';
     };
   }, [expandedItem]);
+
+  // Fetch product images for portfolio items
+  useEffect(() => {
+    const fetchImages = async () => {
+      if (portfolioItems.length === 0) return;
+      
+      const uniqueItems = [...new Set(portfolioItems.map(item => item.item).filter(Boolean))];
+      const imagePromises = uniqueItems.map(async (itemName) => {
+        try {
+          const images = await getProductImages(itemName);
+          return { itemName, images };
+        } catch (error) {
+          console.error(`Error fetching images for ${itemName}:`, error);
+          return { itemName, images: [] };
+        }
+      });
+      
+      const results = await Promise.all(imagePromises);
+      const imageMap = {};
+      results.forEach(({ itemName, images }) => {
+        imageMap[itemName] = images;
+      });
+      
+      setProductImages(imageMap);
+    };
+    
+    fetchImages();
+  }, [portfolioItems]);
 
   // Group items by name and calculate totals
   const groupedItems = useMemo(() => {
@@ -726,22 +756,6 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             </button>
           </div>
         </div>
-        
-        {/* Legend */}
-        <div className="mt-4 flex items-center gap-6 text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span>API market data</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-            <span>Manual database value</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-            <span>Using cost price</span>
-          </div>
-        </div>
       </div>
 
       {/* Collection Grid */}
@@ -782,9 +796,6 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                 <div className="flex-1 min-w-0">
                   <h4 className="text-slate-200 font-medium truncate mb-1">{cleanTitle}</h4>
                   <div className="flex items-center gap-2">
-                    {marketInfo && marketInfo.console_name && (
-                      <p className="text-slate-400 text-xs truncate">{marketInfo.console_name}</p>
-                    )}
                     <div className="flex items-center gap-1">
                       {dataSource === 'api' && (
                         <div className="flex-shrink-0 w-2 h-2 bg-green-400 rounded-full" title="API market data"></div>
@@ -796,46 +807,63 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                         <div className="flex-shrink-0 w-2 h-2 bg-yellow-400 rounded-full" title="Using cost price"></div>
                       )}
                     </div>
+                    {marketInfo && marketInfo.console_name && (
+                      <p className="text-slate-400 text-xs truncate">{marketInfo.console_name}</p>
+                    )}
                   </div>
                   <p className="text-slate-400 text-sm">
                     {item.quantity} item{item.quantity !== 1 ? 's' : ''}
-                    {item.quantity > 1 && ` (+${item.quantity - 1} more)`}
                   </p>
                 </div>
               </div>
               
-              {/* Product placeholder */}
-              <div className="w-full h-32 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg mb-3 flex flex-col items-center justify-center overflow-hidden relative group border border-slate-700">
-                {/* Pokemon card icon */}
-                <div className="flex items-center justify-center mb-2">
-                  <svg className="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                  </svg>
-                </div>
+              {/* Product Image */}
+              <div className="w-full h-32 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative group border border-slate-700">
+                {productImages[item.name] && productImages[item.name].length > 0 ? (
+                  <img 
+                    src={productImages[item.name][0]} 
+                    alt={cleanTitle}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
                 
-                {/* Product type indicator */}
-                <div className="text-center">
-                  <div className="text-xs font-medium text-slate-300 mb-1">
-                    {cleanTitle.includes('Elite Trainer Box') ? 'ETB' :
-                     cleanTitle.includes('Booster Box') ? 'Booster Box' :
-                     cleanTitle.includes('Booster Pack') ? 'Pack' :
-                     cleanTitle.includes('Collection') ? 'Collection' :
-                     cleanTitle.includes('Premium') ? 'Premium' :
-                     'Card'}
+                {/* Fallback placeholder */}
+                <div className={`w-full h-full flex flex-col items-center justify-center ${productImages[item.name] && productImages[item.name].length > 0 ? 'hidden' : 'flex'}`}>
+                  {/* Pokemon card icon */}
+                  <div className="flex items-center justify-center mb-2">
+                    <svg className="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
                   </div>
                   
-                  {/* Set name if available */}
-                  {marketInfo && marketInfo.console_name && (
-                    <div className="text-xs text-slate-400 truncate max-w-full px-2">
-                      {marketInfo.console_name}
+                  {/* Product type indicator */}
+                  <div className="text-center">
+                    <div className="text-xs font-medium text-slate-300 mb-1">
+                      {cleanTitle.includes('Elite Trainer Box') ? 'ETB' :
+                       cleanTitle.includes('Booster Box') ? 'Booster Box' :
+                       cleanTitle.includes('Booster Pack') ? 'Pack' :
+                       cleanTitle.includes('Collection') ? 'Collection' :
+                       cleanTitle.includes('Premium') ? 'Premium' :
+                       'Card'}
                     </div>
-                  )}
+                    
+                    {/* Set name if available */}
+                    {marketInfo && marketInfo.console_name && (
+                      <div className="text-xs text-slate-400 truncate max-w-full px-2">
+                        {marketInfo.console_name}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Decorative elements */}
+                  <div className="absolute top-2 right-2 w-2 h-2 bg-yellow-400 rounded-full opacity-60"></div>
+                  <div className="absolute bottom-2 left-2 w-1 h-1 bg-blue-400 rounded-full opacity-40"></div>
+                  <div className="absolute top-1/2 left-1 w-1 h-1 bg-red-400 rounded-full opacity-30"></div>
                 </div>
-                
-                {/* Decorative elements */}
-                <div className="absolute top-2 right-2 w-2 h-2 bg-yellow-400 rounded-full opacity-60"></div>
-                <div className="absolute bottom-2 left-2 w-1 h-1 bg-blue-400 rounded-full opacity-40"></div>
-                <div className="absolute top-1/2 left-1 w-1 h-1 bg-red-400 rounded-full opacity-30"></div>
               </div>
               
               {/* Market value and profit */}
@@ -879,10 +907,21 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
 
       {/* Expanded Item Modal */}
       {expandedItem && (
-        <div className="fixed inset-0 bg-slate-900 z-50 overflow-hidden">
+        <div 
+          className="fixed inset-0 bg-slate-900 z-50 overflow-hidden"
+          onClick={(e) => {
+            // Only close if clicking the backdrop, not the content
+            if (e.target === e.currentTarget) {
+              setExpandedItem(null);
+            }
+          }}
+        >
           <div className="h-full overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-800">
+            <div 
+              className="flex items-center justify-between p-6 border-b border-slate-800"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   {(() => {
@@ -935,7 +974,10 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto h-[calc(100vh-120px)]">
+            <div 
+              className="p-6 overflow-y-auto h-[calc(100vh-120px)]"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="space-y-8">
                 {/* Stats Section */}
                 <div className={`${card} p-6`}>
@@ -1291,7 +1333,6 @@ export default function Portfolio() {
   if (isLoading) {
     return (
       <LayoutWithSidebar active={activeSidebarItem} section="portfolio">
-        {currentTab !== 'search' && <PageHeader title="Portfolio" />}
         <div className="flex items-center justify-center h-64">
           <div className="text-slate-400">Loading portfolio...</div>
         </div>
@@ -1301,8 +1342,6 @@ export default function Portfolio() {
 
   return (
     <LayoutWithSidebar active={activeSidebarItem} section="portfolio">
-      {currentTab !== 'search' && <PageHeader title="Portfolio" />}
-      
       {isLoadingMarketData && (
         <div className={`${card} p-6 text-center mb-6`}>
           <div className="text-slate-400">Loading market data...</div>
