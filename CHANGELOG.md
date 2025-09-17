@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Portfolio Chart Improvements**: Fixed multiple issues with the portfolio value chart:
+  - **Responsive Design**: Chart now properly fills full screen on mobile and adapts to different screen sizes without distortion
+  - **No Horizontal Scroll**: Added overflow-hidden to chart container to prevent horizontal scrolling on small screens
+  - **Dynamic Sizing**: Implemented ResizeObserver to handle container size changes and window resizing
+  - **Clean Line Design**: Removed circle data points for a cleaner, more professional line chart appearance
+  - **Blue Color Scheme**: Changed chart line and highlight colors from yellow to blue (rgb(59, 130, 246)) for better visual consistency
+  - **Proper ViewBox**: Chart now uses dynamic viewBox based on actual container dimensions instead of fixed dimensions
+
 ### Added
 - **Complete Light/Dark Mode Theme System**: Implemented a comprehensive theme system with light and dark mode support across the entire application. Features include:
   - **Theme Context & Provider**: Created React context for theme state management with localStorage persistence and system preference detection

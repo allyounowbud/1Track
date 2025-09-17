@@ -83,13 +83,14 @@ async function getAllOrders() {
 function PortfolioChart({ data }) {
   const svgRef = useRef(null);
 
-  useEffect(() => {
+  const renderChart = () => {
     if (!svgRef.current || !data || data.length === 0) return;
 
     try {
       const svg = svgRef.current;
-      const width = svg.clientWidth || 800;
-      const height = svg.clientHeight || 256;
+      const containerRect = svg.getBoundingClientRect();
+      const width = containerRect.width;
+      const height = containerRect.height;
       const padding = { top: 20, right: 20, bottom: 40, left: 60 };
 
       // Clear previous content
@@ -111,115 +112,125 @@ function PortfolioChart({ data }) {
       const xScale = (x) => (x - xMin) / xRange * (width - padding.left - padding.right) + padding.left;
       const yScale = (y) => height - padding.bottom - ((y - yMin) / yRange) * (height - padding.top - padding.bottom);
 
-    // Create gradient for the area under the line
-    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-    const linearGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-    linearGradient.setAttribute('id', 'portfolio-gradient');
-    linearGradient.setAttribute('x1', '0%');
-    linearGradient.setAttribute('y1', '0%');
-    linearGradient.setAttribute('x2', '0%');
-    linearGradient.setAttribute('y2', '100%');
-    
-    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-    stop1.setAttribute('offset', '0%');
-    stop1.setAttribute('stop-color', 'rgb(234, 179, 8)');
-    stop1.setAttribute('stop-opacity', '0.3');
-    
-    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-    stop2.setAttribute('offset', '100%');
-    stop2.setAttribute('stop-color', 'rgb(234, 179, 8)');
-    stop2.setAttribute('stop-opacity', '0');
-    
-    linearGradient.appendChild(stop1);
-    linearGradient.appendChild(stop2);
-    gradient.appendChild(linearGradient);
-    svg.appendChild(gradient);
+      // Set SVG viewBox to match actual dimensions
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
-    // Create area path
-    const areaPath = data.map((point, index) => {
-      const x = xScale(point.x);
-      const y = yScale(point.y);
-      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
-
-    const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    area.setAttribute('d', `${areaPath} L ${xScale(data[data.length - 1].x)} ${height - padding.bottom} L ${xScale(data[0].x)} ${height - padding.bottom} Z`);
-    area.setAttribute('fill', 'url(#portfolio-gradient)');
-    svg.appendChild(area);
-
-    // Create line path
-    const linePath = data.map((point, index) => {
-      const x = xScale(point.x);
-      const y = yScale(point.y);
-      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
-
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    line.setAttribute('d', linePath);
-    line.setAttribute('fill', 'none');
-    line.setAttribute('stroke', 'rgb(234, 179, 8)');
-    line.setAttribute('stroke-width', '2');
-    line.setAttribute('stroke-linecap', 'round');
-    line.setAttribute('stroke-linejoin', 'round');
-    svg.appendChild(line);
-
-    // Add data points
-    data.forEach((point, index) => {
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', xScale(point.x));
-      circle.setAttribute('cy', yScale(point.y));
-      circle.setAttribute('r', '3');
-      circle.setAttribute('fill', 'rgb(234, 179, 8)');
-      circle.setAttribute('stroke', 'rgb(15, 23, 42)');
-      circle.setAttribute('stroke-width', '2');
-      svg.appendChild(circle);
-    });
-
-    // Add Y-axis labels
-    const yTicks = 5;
-    for (let i = 0; i <= yTicks; i++) {
-      const value = yMin + (yMax - yMin) * (i / yTicks);
-      const y = yScale(value);
+      // Create gradient for the area under the line
+      const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      const linearGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+      linearGradient.setAttribute('id', 'portfolio-gradient');
+      linearGradient.setAttribute('x1', '0%');
+      linearGradient.setAttribute('y1', '0%');
+      linearGradient.setAttribute('x2', '0%');
+      linearGradient.setAttribute('y2', '100%');
       
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', padding.left - 10);
-      text.setAttribute('y', y + 4);
-      text.setAttribute('text-anchor', 'end');
-      text.setAttribute('fill', 'rgb(148, 163, 184)');
-      text.setAttribute('font-size', '12');
-      text.textContent = `$${value.toFixed(0)}`;
-      svg.appendChild(text);
-    }
-
-    // Add X-axis labels (dates)
-    const xTicks = Math.min(5, data.length);
-    for (let i = 0; i < xTicks; i++) {
-      const index = data.length === 1 ? 0 : Math.floor((data.length - 1) * (i / (xTicks - 1)));
-      const point = data[index];
-      const x = xScale(point.x);
+      const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop1.setAttribute('offset', '0%');
+      stop1.setAttribute('stop-color', 'rgb(59, 130, 246)'); // Blue instead of yellow
+      stop1.setAttribute('stop-opacity', '0.3');
       
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', x);
-      text.setAttribute('y', height - padding.bottom + 20);
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('fill', 'rgb(148, 163, 184)');
-      text.setAttribute('font-size', '12');
-      text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      svg.appendChild(text);
-    }
+      const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop2.setAttribute('offset', '100%');
+      stop2.setAttribute('stop-color', 'rgb(59, 130, 246)'); // Blue instead of yellow
+      stop2.setAttribute('stop-opacity', '0');
+      
+      linearGradient.appendChild(stop1);
+      linearGradient.appendChild(stop2);
+      gradient.appendChild(linearGradient);
+      svg.appendChild(gradient);
+
+      // Create area path
+      const areaPath = data.map((point, index) => {
+        const x = xScale(point.x);
+        const y = yScale(point.y);
+        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+      }).join(' ');
+
+      const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      area.setAttribute('d', `${areaPath} L ${xScale(data[data.length - 1].x)} ${height - padding.bottom} L ${xScale(data[0].x)} ${height - padding.bottom} Z`);
+      area.setAttribute('fill', 'url(#portfolio-gradient)');
+      svg.appendChild(area);
+
+      // Create line path
+      const linePath = data.map((point, index) => {
+        const x = xScale(point.x);
+        const y = yScale(point.y);
+        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+      }).join(' ');
+
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      line.setAttribute('d', linePath);
+      line.setAttribute('fill', 'none');
+      line.setAttribute('stroke', 'rgb(59, 130, 246)'); // Blue instead of yellow
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('stroke-linecap', 'round');
+      line.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(line);
+
+      // Removed data points (circles) as requested
+
+      // Add Y-axis labels
+      const yTicks = 5;
+      for (let i = 0; i <= yTicks; i++) {
+        const value = yMin + (yMax - yMin) * (i / yTicks);
+        const y = yScale(value);
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', padding.left - 10);
+        text.setAttribute('y', y + 4);
+        text.setAttribute('text-anchor', 'end');
+        text.setAttribute('fill', 'rgb(148, 163, 184)');
+        text.setAttribute('font-size', '12');
+        text.textContent = `$${value.toFixed(0)}`;
+        svg.appendChild(text);
+      }
+
+      // Add X-axis labels (dates)
+      const xTicks = Math.min(5, data.length);
+      for (let i = 0; i < xTicks; i++) {
+        const index = data.length === 1 ? 0 : Math.floor((data.length - 1) * (i / (xTicks - 1)));
+        const point = data[index];
+        const x = xScale(point.x);
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', height - padding.bottom + 20);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('fill', 'rgb(148, 163, 184)');
+        text.setAttribute('font-size', '12');
+        text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        svg.appendChild(text);
+      }
 
     } catch (error) {
       console.error('Error rendering chart:', error);
     }
+  };
 
+  useEffect(() => {
+    renderChart();
+  }, [data]);
+
+  // Add resize observer to handle container size changes
+  useEffect(() => {
+    if (!svgRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      renderChart();
+    });
+
+    resizeObserver.observe(svgRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, [data]);
 
   return (
     <svg
       ref={svgRef}
       className="w-full h-full"
-      viewBox="0 0 800 256"
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMidYMid meet"
     />
   );
 }
@@ -408,7 +419,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           
           {/* Time Period Selector */}
           <div className="flex space-x-1 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 p-1 rounded-lg">
-            {['1D', '7D', '1M', '3M', '6M', 'All'].map((period) => (
+            {['1D', '7D', '1M', '3M', 'All'].map((period) => (
               <button
                 key={period}
                 onClick={() => setSelectedTimeframe(period)}
@@ -425,7 +436,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         </div>
         
                {/* Chart Area */}
-               <div className="h-64 w-full">
+               <div className="h-64 w-full overflow-hidden">
                  {chartData && chartData.length > 0 ? (
                    <PortfolioChart data={chartData} />
                  ) : (
@@ -443,7 +454,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       </div>
 
       {/* Portfolio Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className={`${card} p-6`}>
           <div className="flex items-center justify-between">
             <div>
