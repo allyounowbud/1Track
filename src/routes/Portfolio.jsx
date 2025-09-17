@@ -61,6 +61,21 @@ async function getPortfolioItems() {
   return data || [];
 }
 
+async function getAllOrders() {
+  // Get all orders for order history display
+  const { data, error } = await supabase
+    .from("orders")
+    .select(`
+      id, order_date, sale_date, item, profile_name, retailer, 
+      buy_price_cents, sale_price_cents, fees_pct, shipping_cents, 
+      marketplace, status
+    `)
+    .order("order_date", { ascending: false });
+  
+  if (error) throw error;
+  return data || [];
+}
+
 
 
 /* ----------------------------- Portfolio Chart Component ---------------------------- */
@@ -209,10 +224,10 @@ function PortfolioChart({ data }) {
 }
 
 /* ----------------------------- Portfolio Content Router ---------------------------- */
-function PortfolioContent({ orders, portfolioItems, marketData, manualItems, currentTab }) {
+function PortfolioContent({ orders, portfolioItems, marketData, manualItems, allOrders, currentTab }) {
   switch (currentTab) {
     case 'collection':
-      return <CollectionTab portfolioItems={portfolioItems} marketData={marketData} manualItems={manualItems} />;
+      return <CollectionTab portfolioItems={portfolioItems} marketData={marketData} manualItems={manualItems} allOrders={allOrders} />;
     case 'search':
       return <SearchPage />;
     case 'stats':
@@ -552,14 +567,14 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
 }
 
 /* ----------------------------- Collection Tab ---------------------------- */
-function CollectionTab({ portfolioItems, marketData, manualItems }) {
+function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [itemType, setItemType] = useState("all"); // "all", "sealed", "singles"
   const [expandedItem, setExpandedItem] = useState(null); // null or item object
 
-  // Get order details for a specific item
+  // Get order details for a specific item from all orders
   const getItemOrders = (itemName) => {
-    return portfolioItems.filter(item => item.item === itemName);
+    return allOrders.filter(order => order.item === itemName);
   };
 
   // Group items by name and calculate totals
@@ -885,13 +900,14 @@ function CollectionTab({ portfolioItems, marketData, manualItems }) {
                   })()}
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-100">
+                  <h2 className="text-2xl font-bold text-slate-100">
                     {expandedItem.name.replace(/\s*-\s*Pokemon\s+.*$/i, '')}
                   </h2>
-                  <p className="text-slate-400 text-sm">
-                    {expandedItem.quantity} item{expandedItem.quantity !== 1 ? 's' : ''} • 
-                    Total Cost: {centsToStr(expandedItem.totalCost)}
-                  </p>
+                  {expandedItem.marketInfo && expandedItem.marketInfo.console_name && (
+                    <p className="text-slate-400 text-lg mt-1">
+                      {expandedItem.marketInfo.console_name}
+                    </p>
+                  )}
                 </div>
               </div>
               <button
@@ -906,111 +922,258 @@ function CollectionTab({ portfolioItems, marketData, manualItems }) {
 
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <div className="space-y-6">
-                {/* Summary Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className={`${card} p-4`}>
-                    <div className="text-slate-400 text-sm">Total Cost</div>
-                    <div className="text-2xl font-bold text-slate-100">{centsToStr(expandedItem.totalCost)}</div>
-                  </div>
-                  <div className={`${card} p-4`}>
-                    <div className="text-slate-400 text-sm">Market Value</div>
-                    <div className="text-2xl font-bold text-green-400">
-                      {(() => {
-                        const marketInfo = expandedItem.marketInfo;
-                        const manualValue = expandedItem.manualValue;
-                        let currentMarketValue;
-                        
-                        if (marketInfo && marketInfo.loose_price) {
-                          currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                        } else if (manualValue && manualValue > 0) {
-                          currentMarketValue = manualValue;
-                        } else {
-                          currentMarketValue = expandedItem.totalCost;
-                        }
-                        
-                        return centsToStr(currentMarketValue * expandedItem.quantity);
-                      })()}
+              <div className="space-y-8">
+                {/* PILLS Section */}
+                <div className={`${card} p-6`}>
+                  <h3 className="text-xl font-bold text-slate-100 mb-6">PILLS</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Quantity Stats */}
+                    <div className="space-y-4">
+                      <div>
+                        <div className="text-slate-400 text-sm">Total Bought</div>
+                        <div className="text-2xl font-bold text-slate-100">{expandedItem.quantity}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-400 text-sm">Total Sold</div>
+                        <div className="text-2xl font-bold text-slate-100">
+                          {getItemOrders(expandedItem.name).filter(order => order.sale_date).length}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-slate-400 text-sm">On Hand</div>
+                        <div className="text-2xl font-bold text-slate-100">
+                          {expandedItem.quantity - getItemOrders(expandedItem.name).filter(order => order.sale_date).length}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className={`${card} p-4`}>
-                    <div className="text-slate-400 text-sm">Profit/Loss</div>
-                    <div className={`text-2xl font-bold ${
-                      (() => {
-                        const marketInfo = expandedItem.marketInfo;
-                        const manualValue = expandedItem.manualValue;
-                        let currentMarketValue;
-                        
-                        if (marketInfo && marketInfo.loose_price) {
-                          currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                        } else if (manualValue && manualValue > 0) {
-                          currentMarketValue = manualValue;
-                        } else {
-                          currentMarketValue = expandedItem.totalCost;
-                        }
-                        
-                        const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
-                        return profit >= 0 ? 'text-green-400' : 'text-red-400';
-                      })()
-                    }`}>
-                      {(() => {
-                        const marketInfo = expandedItem.marketInfo;
-                        const manualValue = expandedItem.manualValue;
-                        let currentMarketValue;
-                        
-                        if (marketInfo && marketInfo.loose_price) {
-                          currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                        } else if (manualValue && manualValue > 0) {
-                          currentMarketValue = manualValue;
-                        } else {
-                          currentMarketValue = expandedItem.totalCost;
-                        }
-                        
-                        const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
-                        const profitPercentage = expandedItem.totalCost > 0 ? (profit / expandedItem.totalCost) * 100 : 0;
-                        return `${profit >= 0 ? '+' : ''}${centsToStr(profit)} (${profit >= 0 ? '+' : ''}${profitPercentage.toFixed(1)}%)`;
-                      })()}
+
+                    {/* Cost Stats */}
+                    <div className="space-y-4">
+                      <div>
+                        <div className="text-slate-400 text-sm">Total Cost</div>
+                        <div className="text-2xl font-bold text-slate-100">{centsToStr(expandedItem.totalCost)}</div>
+                        <div className="text-slate-400 text-sm">
+                          Per item: {centsToStr(Math.round(expandedItem.totalCost / expandedItem.quantity))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Market Value & Profit Stats */}
+                    <div className="space-y-4">
+                      <div>
+                        <div className="text-slate-400 text-sm">Market Value</div>
+                        <div className="text-2xl font-bold text-green-400">
+                          {(() => {
+                            const marketInfo = expandedItem.marketInfo;
+                            const manualValue = expandedItem.manualValue;
+                            let currentMarketValue;
+                            
+                            if (marketInfo && marketInfo.loose_price) {
+                              currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                            } else if (manualValue && manualValue > 0) {
+                              currentMarketValue = manualValue;
+                            } else {
+                              currentMarketValue = expandedItem.totalCost;
+                            }
+                            
+                            return centsToStr(currentMarketValue * expandedItem.quantity);
+                          })()}
+                        </div>
+                        <div className="text-slate-400 text-sm">
+                          Per item: {(() => {
+                            const marketInfo = expandedItem.marketInfo;
+                            const manualValue = expandedItem.manualValue;
+                            let currentMarketValue;
+                            
+                            if (marketInfo && marketInfo.loose_price) {
+                              currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                            } else if (manualValue && manualValue > 0) {
+                              currentMarketValue = manualValue;
+                            } else {
+                              currentMarketValue = expandedItem.totalCost;
+                            }
+                            
+                            return centsToStr(currentMarketValue);
+                          })()}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-slate-400 text-sm">Profit/Loss</div>
+                        <div className={`text-2xl font-bold ${
+                          (() => {
+                            const marketInfo = expandedItem.marketInfo;
+                            const manualValue = expandedItem.manualValue;
+                            let currentMarketValue;
+                            
+                            if (marketInfo && marketInfo.loose_price) {
+                              currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                            } else if (manualValue && manualValue > 0) {
+                              currentMarketValue = manualValue;
+                            } else {
+                              currentMarketValue = expandedItem.totalCost;
+                            }
+                            
+                            const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
+                            return profit >= 0 ? 'text-green-400' : 'text-red-400';
+                          })()
+                        }`}>
+                          {(() => {
+                            const marketInfo = expandedItem.marketInfo;
+                            const manualValue = expandedItem.manualValue;
+                            let currentMarketValue;
+                            
+                            if (marketInfo && marketInfo.loose_price) {
+                              currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                            } else if (manualValue && manualValue > 0) {
+                              currentMarketValue = manualValue;
+                            } else {
+                              currentMarketValue = expandedItem.totalCost;
+                            }
+                            
+                            const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
+                            const profitPercentage = expandedItem.totalCost > 0 ? (profit / expandedItem.totalCost) * 100 : 0;
+                            return `${profit >= 0 ? '+' : ''}${centsToStr(profit)} (${profit >= 0 ? '+' : ''}${profitPercentage.toFixed(1)}%)`;
+                          })()}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Order Details */}
+                {/* Order History */}
                 <div className={`${card} p-6`}>
-                  <h3 className="text-lg font-semibold text-slate-100 mb-4">Order History</h3>
-                  <div className="space-y-3">
-                    {getItemOrders(expandedItem.name).map((order, index) => (
-                      <div key={order.id || index} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4">
+                  <h3 className="text-xl font-bold text-slate-100 mb-6">ORDER HISTORY</h3>
+                  
+                  {/* Desktop Table View */}
+                  <div className="hidden lg:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-700">
+                          <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Order Date</th>
+                          <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Item</th>
+                          <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Profile</th>
+                          <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Retailer</th>
+                          <th className="text-right py-3 px-2 text-xs font-medium text-slate-400">Buy $</th>
+                          <th className="text-right py-3 px-2 text-xs font-medium text-slate-400">Sale $</th>
+                          <th className="text-right py-3 px-2 text-xs font-medium text-slate-400">Market $</th>
+                          <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Sale Date</th>
+                          <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Marketplace</th>
+                          <th className="text-right py-3 px-2 text-xs font-medium text-slate-400">Ship $</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getItemOrders(expandedItem.name).map((order, index) => {
+                          // Calculate market value for this order
+                          const marketInfo = expandedItem.marketInfo;
+                          const manualValue = expandedItem.manualValue;
+                          let currentMarketValue;
+                          
+                          if (marketInfo && marketInfo.loose_price) {
+                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                          } else if (manualValue && manualValue > 0) {
+                            currentMarketValue = manualValue;
+                          } else {
+                            currentMarketValue = order.buy_price_cents;
+                          }
+
+                          return (
+                            <tr key={order.id || index} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+                              <td className="py-3 px-2 text-sm text-slate-200">
+                                {order.order_date ? new Date(order.order_date).toLocaleDateString() : '—'}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-slate-200 truncate max-w-xs">
+                                {order.item || '—'}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-slate-300">
+                                {order.profile_name || '—'}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-slate-300">
+                                {order.retailer || '—'}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-slate-200 text-right">
+                                {order.buy_price_cents ? centsToStr(order.buy_price_cents) : '—'}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-green-400 text-right">
+                                {order.sale_price_cents ? centsToStr(order.sale_price_cents) : '—'}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-blue-400 text-right">
+                                {centsToStr(currentMarketValue)}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-slate-300">
+                                {order.sale_date ? new Date(order.sale_date).toLocaleDateString() : '—'}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-slate-300">
+                                {order.marketplace || '—'}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-slate-300 text-right">
+                                {order.shipping_cents ? centsToStr(order.shipping_cents) : '—'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="lg:hidden space-y-3">
+                    {getItemOrders(expandedItem.name).map((order, index) => {
+                      // Calculate market value for this order
+                      const marketInfo = expandedItem.marketInfo;
+                      const manualValue = expandedItem.manualValue;
+                      let currentMarketValue;
+                      
+                      if (marketInfo && marketInfo.loose_price) {
+                        currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                      } else if (manualValue && manualValue > 0) {
+                        currentMarketValue = manualValue;
+                      } else {
+                        currentMarketValue = order.buy_price_cents;
+                      }
+
+                      return (
+                        <div key={order.id || index} className="bg-slate-800/50 rounded-lg p-4 space-y-2">
+                          <div className="flex justify-between items-start">
                             <div className="text-slate-200 font-medium">
-                              {new Date(order.order_date).toLocaleDateString()}
+                              {order.order_date ? new Date(order.order_date).toLocaleDateString() : 'No date'}
                             </div>
-                            <div className="text-slate-400 text-sm">
-                              {order.profile_name || 'No profile'}
+                            <div className="text-right">
+                              <div className="text-slate-200 font-medium">
+                                {order.buy_price_cents ? centsToStr(order.buy_price_cents) : '—'}
+                              </div>
+                              {order.sale_price_cents && (
+                                <div className="text-green-400 text-sm">
+                                  Sold: {centsToStr(order.sale_price_cents)}
+                                </div>
+                              )}
                             </div>
-                            <div className="text-slate-400 text-sm">
-                              {order.retailer || 'No retailer'}
+                          </div>
+                          <div className="text-slate-300 text-sm">
+                            {order.item || 'No item name'}
+                          </div>
+                          <div className="flex justify-between text-sm text-slate-400">
+                            <div>
+                              {order.profile_name && <span>Profile: {order.profile_name}</span>}
+                              {order.retailer && <span className="ml-2">Retailer: {order.retailer}</span>}
+                            </div>
+                            <div className="text-blue-400">
+                              Market: {centsToStr(currentMarketValue)}
                             </div>
                           </div>
                           {order.sale_date && (
-                            <div className="mt-1 text-sm text-green-400">
-                              Sold: {new Date(order.sale_date).toLocaleDateString()} • 
-                              {order.marketplace && ` ${order.marketplace}`}
+                            <div className="text-sm text-green-400">
+                              Sold: {new Date(order.sale_date).toLocaleDateString()}
+                              {order.marketplace && ` • ${order.marketplace}`}
+                            </div>
+                          )}
+                          {order.shipping_cents && (
+                            <div className="text-sm text-slate-400">
+                              Shipping: {centsToStr(order.shipping_cents)}
                             </div>
                           )}
                         </div>
-                        <div className="text-right">
-                          <div className="text-slate-200 font-medium">
-                            {centsToStr(order.buy_price_cents)}
-                          </div>
-                          {order.sale_price_cents && (
-                            <div className="text-green-400 text-sm">
-                              Sold: {centsToStr(order.sale_price_cents)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1056,6 +1219,12 @@ export default function Portfolio() {
   const { data: portfolioItems = [], isLoading: itemsLoading } = useQuery({
     queryKey: ["portfolio-items"],
     queryFn: getPortfolioItems,
+  });
+
+  // Get all orders for order history
+  const { data: allOrders = [] } = useQuery({
+    queryKey: ["all-orders"],
+    queryFn: getAllOrders,
   });
 
   // Fetch manual database values for fallback
@@ -1174,6 +1343,7 @@ export default function Portfolio() {
           portfolioItems={portfolioItems} 
           marketData={marketData} 
           manualItems={manualItems}
+          allOrders={allOrders}
           currentTab={currentTab} 
         />
     </LayoutWithSidebar>
@@ -1184,3 +1354,4 @@ export default function Portfolio() {
 function StatsTab({ orders }) {
   return <Stats noLayout={true} />;
 }
+
