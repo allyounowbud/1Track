@@ -512,46 +512,6 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         </div>
       </div>
 
-      {/* Market Data Coverage */}
-      {metrics.totalItems > 0 && (
-        <div className={`${card} p-6`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Market Data Coverage</h3>
-            <div className="text-sm text-gray-600 dark:text-slate-400">
-              {metrics.itemsWithMarketData} of {metrics.totalItems} items
-            </div>
-          </div>
-          
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-700 dark:text-slate-300">Items with market data</span>
-              <span className="text-green-400 font-medium">{metrics.itemsWithMarketData}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-700 dark:text-slate-300">Items without market data</span>
-              <span className="text-yellow-400 font-medium">{metrics.itemsWithoutMarketData}</span>
-            </div>
-            <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2">
-              <div 
-                className="bg-green-500 h-2 rounded-full transition-all duration-300" 
-                style={{ width: `${metrics.marketDataCoverage}%` }}
-              ></div>
-            </div>
-            <div className="text-center text-sm text-gray-600 dark:text-slate-400">
-              {metrics.marketDataCoverage.toFixed(1)}% coverage
-            </div>
-          </div>
-          
-          {metrics.itemsWithoutMarketData > 0 && (
-            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-              <p className="text-yellow-300 text-sm">
-                {metrics.itemsWithoutMarketData} item{metrics.itemsWithoutMarketData !== 1 ? 's' : ''} 
-                {' '}are using cost price as market value. Consider updating product names to match API data for more accurate valuations.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Recent Activity */}
       <div className={`${card} p-6`}>
