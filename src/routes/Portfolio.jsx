@@ -9,6 +9,7 @@ import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, rowCard } from "../utils/ui.js";
 import { getBatchMarketData, getMarketValueInCents } from "../services/marketDataService.js";
 import { getBackgroundMarketData, isBackgroundLoadingComplete } from "../services/backgroundMarketDataService.js";
+import SearchPage from "../components/SearchPage.jsx";
 import Stats from "./Stats.jsx";
 import Inventory from "./Inventory.jsx";
 
@@ -213,8 +214,8 @@ function PortfolioContent({ orders, portfolioItems, marketData, currentTab }) {
   switch (currentTab) {
     case 'collection':
       return <CollectionTab portfolioItems={portfolioItems} marketData={marketData} />;
-    case 'trends':
-      return <TrendsTab orders={orders} />;
+    case 'search':
+      return <SearchPage />;
     case 'stats':
       return <StatsTab orders={orders} />;
     case 'inventory':
@@ -751,70 +752,6 @@ function CollectionTab({ portfolioItems, marketData }) {
   );
 }
 
-/* ----------------------------- Trends Tab ---------------------------- */
-function TrendsTab({ orders }) {
-  // Calculate trends over time (placeholder data)
-  const trends = useMemo(() => {
-    const monthlyData = {};
-    
-    orders.forEach(order => {
-      const month = order.order_date?.substring(0, 7); // YYYY-MM
-      if (month) {
-        if (!monthlyData[month]) {
-          monthlyData[month] = { count: 0, value: 0 };
-        }
-        monthlyData[month].count++;
-        monthlyData[month].value += order.buy_price_cents || 0;
-      }
-    });
-
-    return Object.entries(monthlyData)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-6); // Last 6 months
-  }, [orders]);
-
-  return (
-    <div className="space-y-6">
-      {/* Trends Overview */}
-      <div className={`${card} p-6`}>
-        <h3 className="text-lg font-semibold text-slate-100 mb-4">Monthly Trends</h3>
-        <div className="space-y-4">
-          {trends.map(([month, data]) => (
-            <div key={month} className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-200 font-medium">{month}</p>
-                <p className="text-slate-400 text-sm">{data.count} items</p>
-              </div>
-              <div className="text-right">
-                <p className="text-slate-200 font-medium">{centsToStr(data.value)}</p>
-                <p className="text-slate-400 text-sm">Total value</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Top Performing Items */}
-      <div className={`${card} p-6`}>
-        <h3 className="text-lg font-semibold text-slate-100 mb-4">Top Performing Items</h3>
-        <div className="space-y-3">
-          {orders.slice(0, 5).map((order) => (
-            <div key={order.id} className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-200 text-sm">{order.item}</p>
-                <p className="text-slate-400 text-xs">{order.order_date}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-green-400 text-sm font-medium">+10%</p>
-                <p className="text-slate-400 text-xs">Appreciation</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ====================== MAIN COMPONENT ====================== */
 export default function Portfolio() {
@@ -826,7 +763,7 @@ export default function Portfolio() {
   const currentTab = useMemo(() => {
     const path = location.pathname;
     if (path.includes('/collection')) return 'collection';
-    if (path.includes('/trends')) return 'trends';
+    if (path.includes('/search')) return 'search';
     if (path.includes('/stats')) return 'stats';
     if (path.includes('/inventory')) return 'inventory';
     return 'overview';
@@ -836,7 +773,7 @@ export default function Portfolio() {
   const activeSidebarItem = useMemo(() => {
     switch (currentTab) {
       case 'collection': return 'portfolio-collection';
-      case 'trends': return 'portfolio-trends';
+      case 'search': return 'portfolio-search';
       case 'stats': return 'portfolio-stats';
       case 'inventory': return 'portfolio-inventory';
       default: return 'portfolio-overview';
@@ -871,8 +808,8 @@ export default function Portfolio() {
       }
     });
     
-    return Array.from(names);
-  }, [portfolioItems]);
+    return Array.from(names).sort(); // Sort to ensure consistent order
+  }, [portfolioItems.length, portfolioItems.map(item => item.item).join(',')]);
 
   // Fetch market data when portfolio items change
   useEffect(() => {
@@ -933,7 +870,7 @@ export default function Portfolio() {
   if (isLoading) {
     return (
       <LayoutWithSidebar active={activeSidebarItem} section="portfolio">
-        <PageHeader title="Portfolio" />
+        {currentTab !== 'search' && <PageHeader title="Portfolio" />}
         <div className="flex items-center justify-center h-64">
           <div className="text-slate-400">Loading portfolio...</div>
         </div>
@@ -943,7 +880,7 @@ export default function Portfolio() {
 
   return (
     <LayoutWithSidebar active={activeSidebarItem} section="portfolio">
-      <PageHeader title="Portfolio" />
+      {currentTab !== 'search' && <PageHeader title="Portfolio" />}
       
       {isLoadingMarketData && (
         <div className={`${card} p-6 text-center mb-6`}>
@@ -954,8 +891,8 @@ export default function Portfolio() {
       <PortfolioContent 
         orders={orders} 
         portfolioItems={portfolioItems} 
-        marketData={marketData} 
-        currentTab={currentTab} 
+        marketData={marketData}
+        currentTab={currentTab}
       />
     </LayoutWithSidebar>
   );

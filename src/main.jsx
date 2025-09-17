@@ -96,7 +96,7 @@ const router = createBrowserRouter([
     errorElement: <ErrorElement />
   },
   { 
-    path: "/portfolio/trends", 
+    path: "/portfolio/search", 
     element: <Portfolio />,
     errorElement: <ErrorElement />
   },
