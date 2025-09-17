@@ -234,7 +234,7 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
       className={`${card} p-4 hover:bg-slate-800/80 transition-all duration-200 cursor-pointer flex flex-col h-full`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => onSelectProduct && onSelectProduct(product)}
+      onClick={() => onSelectProduct && onSelectProduct(product, false)}
     >
       {/* Product Image - Fixed height */}
       <div className="relative mb-3 flex-shrink-0">
@@ -325,7 +325,7 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onSelectProduct(product);
+              onSelectProduct(product, true);
             }}
             className="flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 rounded-lg text-slate-100 transition-colors flex-shrink-0 ml-2"
           >
@@ -339,7 +339,7 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
 
 
 // Product Preview Component
-function ProductPreview({ product, onAddToCollection, onClose }) {
+function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAddToCollection = false }) {
   const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
   const [itemName, setItemName] = useState('');
   const [retailerName, setRetailerName] = useState('');
@@ -357,19 +357,28 @@ function ProductPreview({ product, onAddToCollection, onClose }) {
     const fullProductName = product['product-name'] || product.product_name || product.name || '';
     setItemName(fullProductName);
     
-    // Highlight the add to collection section when component first loads
-    setIsHighlighted(true);
-    if (addToCollectionRef.current) {
-      addToCollectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Highlight the add to collection section only if shouldHighlightAddToCollection is true
+    if (shouldHighlightAddToCollection) {
+      setIsHighlighted(true);
+      if (addToCollectionRef.current) {
+        addToCollectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      
+      // Remove highlight after 3 seconds
+      const timer = setTimeout(() => {
+        setIsHighlighted(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
     }
-    
-    // Remove highlight after 3 seconds
-    const timer = setTimeout(() => {
+  }, [product, shouldHighlightAddToCollection]);
+
+  // Reset highlight state when shouldHighlightAddToCollection changes
+  useEffect(() => {
+    if (!shouldHighlightAddToCollection) {
       setIsHighlighted(false);
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [product]);
+    }
+  }, [shouldHighlightAddToCollection]);
 
   // Fetch product images for preview
   useEffect(() => {
@@ -675,6 +684,7 @@ export default function SearchPage() {
   const [searchError, setSearchError] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [shouldHighlightAddToCollection, setShouldHighlightAddToCollection] = useState(false);
   
   // Sort results
   const sortedResults = useMemo(() => {
@@ -849,6 +859,12 @@ export default function SearchPage() {
       // Show error message (you could add a toast notification here)
     }
   };
+
+  // Handle product selection with optional highlighting
+  const handleSelectProduct = (product, highlightAddToCollection = false) => {
+    setSelectedProduct(product);
+    setShouldHighlightAddToCollection(highlightAddToCollection);
+  };
   
   return (
     <div className="min-h-screen bg-slate-950">
@@ -999,7 +1015,7 @@ export default function SearchPage() {
                       key={index}
                       product={product}
                       onAddToCollection={handleAddToCollection}
-                      onSelectProduct={setSelectedProduct}
+                      onSelectProduct={handleSelectProduct}
                     />
                   ))}
                 </div>
@@ -1014,6 +1030,7 @@ export default function SearchPage() {
                 product={selectedProduct} 
                 onAddToCollection={handleAddToCollection}
                 onClose={() => setSelectedProduct(null)}
+                shouldHighlightAddToCollection={shouldHighlightAddToCollection}
               />
             ) : hasSearched && sortedResults.length > 0 ? (
               <div className={`${card} p-4 hidden lg:block`}>
