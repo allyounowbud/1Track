@@ -577,6 +577,20 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
     return allOrders.filter(order => order.item === itemName);
   };
 
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (expandedItem) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [expandedItem]);
+
   // Group items by name and calculate totals
   const groupedItems = useMemo(() => {
     const groups = {};
@@ -764,10 +778,13 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               className={`${card} p-4 hover:bg-slate-800/60 transition-colors cursor-pointer`}
               onClick={() => setExpandedItem(item)}
             >
-              <div className="flex items-start justify-between mb-3">
+              <div className="mb-3">
                 <div className="flex-1 min-w-0">
+                  <h4 className="text-slate-200 font-medium truncate mb-1">{cleanTitle}</h4>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-slate-200 font-medium truncate">{cleanTitle}</h4>
+                    {marketInfo && marketInfo.console_name && (
+                      <p className="text-slate-400 text-xs truncate">{marketInfo.console_name}</p>
+                    )}
                     <div className="flex items-center gap-1">
                       {dataSource === 'api' && (
                         <div className="flex-shrink-0 w-2 h-2 bg-green-400 rounded-full" title="API market data"></div>
@@ -780,17 +797,10 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                       )}
                     </div>
                   </div>
-                  {marketInfo && marketInfo.console_name && (
-                    <p className="text-slate-400 text-xs truncate">{marketInfo.console_name}</p>
-                  )}
                   <p className="text-slate-400 text-sm">
-                    {item.quantity} item{item.quantity !== 1 ? 's' : ''} • Added {item.orderDates[0]}
+                    {item.quantity} item{item.quantity !== 1 ? 's' : ''}
                     {item.quantity > 1 && ` (+${item.quantity - 1} more)`}
                   </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-slate-200 font-medium">{centsToStr(item.totalCost)}</p>
-                  <p className="text-slate-400 text-xs">Total Cost</p>
                 </div>
               </div>
               
@@ -831,8 +841,14 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               {/* Market value and profit */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Total Cost:</span>
+                  <span className="text-red-400 text-sm font-medium">
+                    {centsToStr(item.totalCost)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
                   <span className="text-slate-400 text-sm">Market Value:</span>
-                  <span className="text-green-400 text-sm font-medium">
+                  <span className="text-blue-400 text-sm font-medium">
                     {centsToStr(totalMarketValue)}
                   </span>
                 </div>
@@ -842,14 +858,12 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     {profit >= 0 ? '+' : ''}{centsToStr(profit)} ({profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%)
                   </span>
                 </div>
-                {item.quantity > 1 && (
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Per item:</span>
-                    <span className="text-slate-400">
-                      {centsToStr(Math.round(item.totalCost / item.quantity))} cost • {centsToStr(currentMarketValue)} market
-                    </span>
-                  </div>
-                )}
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Per item:</span>
+                  <span className="text-slate-400">
+                    {centsToStr(Math.round(item.totalCost / item.quantity))} cost • {centsToStr(currentMarketValue)} market
+                  </span>
+                </div>
               </div>
             </div>
           );
@@ -865,8 +879,8 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
 
       {/* Expanded Item Modal */}
       {expandedItem && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 w-full max-w-6xl max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 bg-slate-900 z-50 overflow-hidden">
+          <div className="h-full overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-800">
               <div className="flex items-center gap-4">
@@ -921,12 +935,12 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+            <div className="p-6 overflow-y-auto h-[calc(100vh-120px)]">
               <div className="space-y-8">
-                {/* PILLS Section */}
+                {/* Stats Section */}
                 <div className={`${card} p-6`}>
-                  <h3 className="text-xl font-bold text-slate-100 mb-6">PILLS</h3>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  <h3 className="text-xl font-bold text-slate-100 mb-6">Stats</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {/* Total Bought */}
                     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
                       <div className="text-xs text-slate-400">Total Bought</div>
@@ -969,7 +983,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     {/* Market Value */}
                     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
                       <div className="text-xs text-slate-400">Market Value</div>
-                      <div className="text-xl font-semibold text-emerald-300">
+                      <div className="text-xl font-semibold text-blue-300">
                         {(() => {
                           const marketInfo = expandedItem.marketInfo;
                           const manualValue = expandedItem.manualValue;
@@ -992,7 +1006,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     {/* Per Item Market Value */}
                     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
                       <div className="text-xs text-slate-400">Per Item Value</div>
-                      <div className="text-xl font-semibold text-emerald-300">
+                      <div className="text-xl font-semibold text-blue-300">
                         {(() => {
                           const marketInfo = expandedItem.marketInfo;
                           const manualValue = expandedItem.manualValue;
@@ -1075,7 +1089,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
 
                 {/* Order History */}
                 <div className={`${card} p-6`}>
-                  <h3 className="text-xl font-bold text-slate-100 mb-6">ORDER HISTORY</h3>
+                  <h3 className="text-xl font-bold text-slate-100 mb-6">Order History</h3>
                   
                   {/* Desktop Table View */}
                   <div className="hidden lg:block overflow-x-auto">
@@ -1095,7 +1109,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                               {order.order_date ? new Date(order.order_date).toLocaleDateString() : '—'}
                             </td>
                             <td className="py-3 px-2 text-sm text-slate-200 truncate max-w-xs">
-                              {order.item || '—'}
+                              {order.item ? order.item.replace(/\s*-\s*Pokemon\s+.*$/i, '') : '—'}
                             </td>
                             <td className="py-3 px-2 text-sm text-slate-300">
                               {order.retailer || '—'}
@@ -1122,7 +1136,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                           </div>
                         </div>
                         <div className="text-slate-300 text-sm">
-                          {order.item || 'No item name'}
+                          {order.item ? order.item.replace(/\s*-\s*Pokemon\s+.*$/i, '') : 'No item name'}
                         </div>
                         {order.retailer && (
                           <div className="text-sm text-slate-400">
