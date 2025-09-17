@@ -18,24 +18,6 @@ export async function getProductImages(productName, consoleName = null, forceRef
   }
   
   try {
-    // For now, return placeholder images until the edge function is set up
-    // This will show that the system is working
-    const placeholderImages = [
-      'https://via.placeholder.com/300x300/1e293b/64748b?text=Product+Image',
-      'https://via.placeholder.com/300x300/1e293b/64748b?text=Loading...'
-    ];
-    
-    // Cache the placeholder result
-    imageCache.set(cacheKey, {
-      images: placeholderImages,
-      timestamp: Date.now()
-    });
-    
-    console.log(`Using placeholder images for: ${productName}`);
-    return placeholderImages;
-    
-    // TODO: Uncomment this when the edge function is deployed
-    /*
     // Call the image scraping edge function
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting-images?product=${encodeURIComponent(productName)}${consoleName ? `&console=${encodeURIComponent(consoleName)}` : ''}${forceRefresh ? '&refresh=true' : ''}`,
@@ -62,11 +44,12 @@ export async function getProductImages(productName, consoleName = null, forceRef
         timestamp: Date.now()
       });
       
+      console.log(`Found ${images.length} real images for: ${productName}`);
       return images;
     }
     
+    console.log(`No images found for: ${productName}`);
     return [];
-    */
   } catch (error) {
     console.error('Error fetching product images:', error);
     return [];

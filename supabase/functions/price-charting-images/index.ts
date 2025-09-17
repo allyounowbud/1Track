@@ -64,40 +64,39 @@ async function scrapeProductImages(productName: string, consoleName?: string): P
     // Parse HTML to extract image URLs
     const imageUrls: string[] = []
     
-    // Look for product images in various possible selectors
-    const imageSelectors = [
-      // Common PriceCharting selectors
-      'img[src*="pricecharting.com"]',
-      'img[src*="/images/"]',
-      '.product-image img',
-      '.item-image img',
-      '.search-result img',
-      '.product img',
-      'img[alt*="' + productName.toLowerCase() + '"]'
+    console.log(`HTML length: ${html.length} characters`)
+    
+    // Multiple regex patterns to catch different image formats
+    const imagePatterns = [
+      // Standard img tags with src
+      /<img[^>]+src=["']([^"']*\.(?:jpg|jpeg|png|gif|webp))["'][^>]*>/gi,
+      // Data attributes
+      /data-[^=]*image[^=]*=["']([^"']*\.(?:jpg|jpeg|png|gif|webp))["']/gi,
+      // Background images in style attributes
+      /background-image:\s*url\(["']?([^"')]*\.(?:jpg|jpeg|png|gif|webp))["']?\)/gi,
+      // Any URL containing image file extensions
+      /(https?:\/\/[^"'\s]*\.(?:jpg|jpeg|png|gif|webp))/gi
     ]
     
-    // Use regex to find image URLs in the HTML
-    const imageRegex = /<img[^>]+src=["']([^"']*pricecharting\.com[^"']*\.(?:jpg|jpeg|png|gif|webp))["'][^>]*>/gi
-    let match
-    
-    while ((match = imageRegex.exec(html)) !== null) {
-      const imageUrl = match[1]
-      if (imageUrl && !imageUrls.includes(imageUrl)) {
-        // Ensure it's a full URL
-        const fullUrl = imageUrl.startsWith('http') ? imageUrl : `https://www.pricecharting.com${imageUrl}`
-        imageUrls.push(fullUrl)
+    // Extract images using all patterns
+    for (const pattern of imagePatterns) {
+      let match
+      while ((match = pattern.exec(html)) !== null) {
+        const imageUrl = match[1]
+        if (imageUrl && !imageUrls.includes(imageUrl)) {
+          // Ensure it's a full URL
+          let fullUrl = imageUrl
+          if (!imageUrl.startsWith('http')) {
+            fullUrl = imageUrl.startsWith('/') 
+              ? `https://www.pricecharting.com${imageUrl}`
+              : `https://www.pricecharting.com/${imageUrl}`
+          }
+          imageUrls.push(fullUrl)
+        }
       }
     }
     
-    // Also look for data attributes that might contain image URLs
-    const dataImageRegex = /data-[^=]*image[^=]*=["']([^"']*\.(?:jpg|jpeg|png|gif|webp))["']/gi
-    while ((match = dataImageRegex.exec(html)) !== null) {
-      const imageUrl = match[1]
-      if (imageUrl && !imageUrls.includes(imageUrl)) {
-        const fullUrl = imageUrl.startsWith('http') ? imageUrl : `https://www.pricecharting.com${imageUrl}`
-        imageUrls.push(fullUrl)
-      }
-    }
+    console.log(`Found ${imageUrls.length} total image URLs before filtering`)
     
     // Filter and prioritize images
     const filteredImages = imageUrls
@@ -108,11 +107,32 @@ async function scrapeProductImages(productName: string, consoleName?: string): P
                !lowerUrl.includes('icon') && 
                !lowerUrl.includes('banner') &&
                !lowerUrl.includes('placeholder') &&
-               !lowerUrl.includes('no-image')
+               !lowerUrl.includes('no-image') &&
+               !lowerUrl.includes('spacer') &&
+               !lowerUrl.includes('pixel') &&
+               // Keep images that might be product images
+               (lowerUrl.includes('product') || 
+                lowerUrl.includes('item') || 
+                lowerUrl.includes('card') ||
+                lowerUrl.includes('game') ||
+                lowerUrl.includes('pokemon') ||
+                lowerUrl.includes('magic') ||
+                lowerUrl.includes('yugioh') ||
+                lowerUrl.includes('sports') ||
+                lowerUrl.includes('video') ||
+                lowerUrl.includes('sealed') ||
+                lowerUrl.includes('singles') ||
+                // Or just any image that's not obviously a UI element
+                (!lowerUrl.includes('ui') && !lowerUrl.includes('button') && !lowerUrl.includes('arrow')))
       })
       .slice(0, 5) // Limit to 5 images max
     
     console.log(`Found ${filteredImages.length} images for ${productName}`)
+    if (filteredImages.length > 0) {
+      console.log('Sample image URLs:', filteredImages.slice(0, 2))
+    } else {
+      console.log('No images found. Sample raw URLs:', imageUrls.slice(0, 5))
+    }
     return filteredImages
     
   } catch (error) {
@@ -122,14 +142,15 @@ async function scrapeProductImages(productName: string, consoleName?: string): P
 }
 
 // Cache image URLs in database
-async function cacheImageUrls(productName: string, imageUrls: string[]): Promise<void> {
+async function cacheImageUrls(productName: string, consoleName: string, imageUrls: string[]): Promise<void> {
   try {
     const { error } = await supabase
       .from('product_images')
       .upsert({
         product_name: productName,
+        console_name: consoleName || '',
         image_urls: imageUrls,
-        scraped_at: new Date().toISOString(),
+        last_scraped: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
     
@@ -142,12 +163,13 @@ async function cacheImageUrls(productName: string, imageUrls: string[]): Promise
 }
 
 // Get cached image URLs
-async function getCachedImageUrls(productName: string): Promise<string[]> {
+async function getCachedImageUrls(productName: string, consoleName: string): Promise<string[]> {
   try {
     const { data, error } = await supabase
       .from('product_images')
-      .select('image_urls, scraped_at')
+      .select('image_urls, last_scraped')
       .eq('product_name', productName)
+      .eq('console_name', consoleName || '')
       .single()
     
     if (error || !data) {
@@ -155,7 +177,7 @@ async function getCachedImageUrls(productName: string): Promise<string[]> {
     }
     
     // Check if cache is still valid (24 hours)
-    const scrapedAt = new Date(data.scraped_at)
+    const scrapedAt = new Date(data.last_scraped)
     const now = new Date()
     const hoursDiff = (now.getTime() - scrapedAt.getTime()) / (1000 * 60 * 60)
     
@@ -189,12 +211,13 @@ serve(async (req) => {
     
     // Check cache first (unless force refresh)
     if (!forceRefresh) {
-      const cachedImages = await getCachedImageUrls(productName)
+      const cachedImages = await getCachedImageUrls(productName, consoleName || '')
       if (cachedImages.length > 0) {
         return json({
           success: true,
           data: {
             product_name: productName,
+            console_name: consoleName,
             image_urls: cachedImages,
             cached: true
           }
@@ -207,7 +230,7 @@ serve(async (req) => {
     
     // Cache the results
     if (imageUrls.length > 0) {
-      await cacheImageUrls(productName, imageUrls)
+      await cacheImageUrls(productName, consoleName || '', imageUrls)
     }
     
     return json({

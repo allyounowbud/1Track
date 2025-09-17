@@ -904,25 +904,17 @@ export default function SearchPage() {
             </button>
           </div>
           
-          {/* Results Count */}
-          {hasSearched && (
-            <div className="mt-2">
-              <span className="text-slate-400 text-sm">
-                {sortedResults.length} items found
-              </span>
-            </div>
-          )}
         </div>
         
         {/* Filter Row */}
-        <div className="flex flex-col sm:flex-row gap-2 mt-3">
+        <div className="flex gap-2 mt-3 min-w-0">
           {/* Category Dropdown */}
           <div className="flex-1">
             <div className="relative">
               <select 
                 value={filters.tcgType || 'all'}
                 onChange={(e) => setFilters({ ...filters, tcgType: e.target.value })}
-                className="w-full h-8 appearance-none bg-slate-900/60 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 pr-6 cursor-pointer"
+                className="w-full h-12 appearance-none bg-slate-900/60 border border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 pr-6 cursor-pointer"
               >
                 <option value="all">Category</option>
                 <option value="pokemon">Pokemon</option>
@@ -942,7 +934,7 @@ export default function SearchPage() {
               <select 
                 value={filters.productType || 'all'}
                 onChange={(e) => setFilters({ ...filters, productType: e.target.value })}
-                className="w-full h-8 appearance-none bg-slate-900/60 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 pr-6 cursor-pointer"
+                className="w-full h-12 appearance-none bg-slate-900/60 border border-slate-800 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 pr-6 cursor-pointer"
               >
                 <option value="all">Product Type</option>
                 <option value="singles">Cards Only</option>
@@ -954,13 +946,22 @@ export default function SearchPage() {
             </div>
           </div>
           
+          {/* Results Count */}
+          {hasSearched && (
+            <div className="flex items-center flex-shrink-0">
+              <span className="text-slate-400 text-xs ml-1 sm:ml-2">
+                {sortedResults.length} items found
+              </span>
+            </div>
+          )}
+          
           {/* Sort Filter */}
           <div className="flex-1">
             <div className="relative">
               <select 
                 value={filters.sortBy || 'best_match'}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                className="w-full h-8 appearance-none bg-slate-900/60 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 pr-6 cursor-pointer"
+                className="w-full h-12 appearance-none bg-transparent border-0 rounded-lg px-2 sm:px-3 md:px-4 py-3 text-xs text-slate-100 placeholder-slate-400 outline-none focus:border-0 pr-6 cursor-pointer"
               >
                 <option value="best_match">Sort Results</option>
                 <option value="price_low_high">Price: Low to High</option>
@@ -1020,7 +1021,113 @@ export default function SearchPage() {
                   ))}
                 </div>
               )
-            ) : null}
+            ) : (
+              /* Category Cards - Show when no search has been performed */
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-slate-100 mb-2">Browse by Category</h2>
+                  <p className="text-slate-400">Select a category to explore popular items</p>
+                </div>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {/* Pokemon Category */}
+                  <div 
+                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    onClick={() => setSearchQuery('pokemon')}
+                  >
+                    <div className="aspect-square bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                      <div className="text-4xl">⚡</div>
+                    </div>
+                    <h3 className="text-slate-200 font-semibold text-sm text-center">Pokemon</h3>
+                    <p className="text-slate-400 text-xs text-center mt-1">Trading Cards</p>
+                  </div>
+
+                  {/* Magic: The Gathering Category */}
+                  <div 
+                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    onClick={() => setSearchQuery('magic')}
+                  >
+                    <div className="aspect-square bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                      <div className="text-4xl font-bold text-white">M</div>
+                    </div>
+                    <h3 className="text-slate-200 font-semibold text-sm text-center">Magic</h3>
+                    <p className="text-slate-400 text-xs text-center mt-1">The Gathering</p>
+                  </div>
+
+                  {/* Yu-Gi-Oh Category */}
+                  <div 
+                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    onClick={() => setSearchQuery('yugioh')}
+                  >
+                    <div className="aspect-square bg-gradient-to-br from-purple-600 to-purple-800 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                      <div className="text-4xl">👹</div>
+                    </div>
+                    <h3 className="text-slate-200 font-semibold text-sm text-center">Yu-Gi-Oh!</h3>
+                    <p className="text-slate-400 text-xs text-center mt-1">Trading Cards</p>
+                  </div>
+
+                  {/* Video Games Category */}
+                  <div 
+                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    onClick={() => setSearchQuery('nintendo')}
+                  >
+                    <div className="aspect-square bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                      <div className="text-4xl">🎮</div>
+                    </div>
+                    <h3 className="text-slate-200 font-semibold text-sm text-center">Video Games</h3>
+                    <p className="text-slate-400 text-xs text-center mt-1">Nintendo, PlayStation</p>
+                  </div>
+
+                  {/* Sports Cards Category */}
+                  <div 
+                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    onClick={() => setSearchQuery('baseball')}
+                  >
+                    <div className="aspect-square bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                      <div className="text-4xl">⚾</div>
+                    </div>
+                    <h3 className="text-slate-200 font-semibold text-sm text-center">Sports Cards</h3>
+                    <p className="text-slate-400 text-xs text-center mt-1">Baseball, Football</p>
+                  </div>
+
+                  {/* Dragon Ball Category */}
+                  <div 
+                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    onClick={() => setSearchQuery('dragon ball')}
+                  >
+                    <div className="aspect-square bg-gradient-to-br from-orange-500 to-orange-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                      <div className="text-4xl">🐉</div>
+                    </div>
+                    <h3 className="text-slate-200 font-semibold text-sm text-center">Dragon Ball</h3>
+                    <p className="text-slate-400 text-xs text-center mt-1">Super Card Game</p>
+                  </div>
+
+                  {/* One Piece Category */}
+                  <div 
+                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    onClick={() => setSearchQuery('one piece')}
+                  >
+                    <div className="aspect-square bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                      <div className="text-4xl">🏴‍☠️</div>
+                    </div>
+                    <h3 className="text-slate-200 font-semibold text-sm text-center">One Piece</h3>
+                    <p className="text-slate-400 text-xs text-center mt-1">Card Game</p>
+                  </div>
+
+                  {/* Digimon Category */}
+                  <div 
+                    className={`${card} p-4 cursor-pointer hover:bg-slate-800/80 transition-all duration-200 group`}
+                    onClick={() => setSearchQuery('digimon')}
+                  >
+                    <div className="aspect-square bg-gradient-to-br from-cyan-500 to-cyan-700 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                      <div className="text-4xl">🤖</div>
+                    </div>
+                    <h3 className="text-slate-200 font-semibold text-sm text-center">Digimon</h3>
+                    <p className="text-slate-400 text-xs text-center mt-1">Card Game</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Right Sidebar - Product Preview */}

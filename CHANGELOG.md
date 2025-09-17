@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Enhanced
+- **Search Page Dropdown Visibility**: Significantly increased the height and text size of the three filter dropdowns (Category, Product Type, Sort Results) on the search page to ensure full text visibility. Changed from h-8 to h-12, text-xs to text-base, and increased padding (px-4 py-3) for optimal readability.
+- **Search Page Filter Layout**: Reorganized the filter dropdown layout to ensure all dropdowns stay on a single line and fill the entire row width. All three dropdowns now use `flex-1` to equally distribute the available space, with smaller text size (text-xs) across all screen sizes for better visibility on small screens. The "items found" count is positioned inline with the dropdowns, and the Sort Results dropdown maintains its transparent background and no border for a cleaner appearance.
+
 ### Added
+- **Category Browse Cards**: Added interactive category cards that appear on the main search page before any search is performed. Features 8 popular categories (Pokemon, Magic: The Gathering, Yu-Gi-Oh!, Video Games, Sports Cards, Dragon Ball, One Piece, Digimon) with colorful gradient backgrounds, emoji icons, and hover effects. Clicking any category card automatically populates the search field and triggers a search for that category, providing an intuitive browsing experience similar to modern trading card platforms.
 - **Enhanced Card Grid Responsiveness**: Improved the product card grid with smarter responsive breakpoints to prevent cards from becoming too thin. Updated grid to use 2 columns on small screens, 3 on medium (sm), and 4 on large (lg) screens for optimal card proportions and better readability.
 - **Streamlined Add Button**: Simplified the add button to display only a plus icon without text, creating a cleaner and more consistent design. The button is now a fixed 8x8 size with centered icon for better visual balance.
 - **Real Inventory Tracking**: Replaced random quantity display with actual inventory count from the order book. Each product card now shows the real quantity of items in inventory (orders without 'sold' status) by querying the Supabase orders table, providing accurate inventory information for better collection management.
