@@ -555,6 +555,12 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
 function CollectionTab({ portfolioItems, marketData, manualItems }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [itemType, setItemType] = useState("all"); // "all", "sealed", "singles"
+  const [expandedItem, setExpandedItem] = useState(null); // null or item object
+
+  // Get order details for a specific item
+  const getItemOrders = (itemName) => {
+    return portfolioItems.filter(item => item.item === itemName);
+  };
 
   // Group items by name and calculate totals
   const groupedItems = useMemo(() => {
@@ -738,7 +744,11 @@ function CollectionTab({ portfolioItems, marketData, manualItems }) {
           const cleanTitle = item.name.replace(/\s*-\s*Pokemon\s+.*$/i, '');
           
           return (
-            <div key={index} className={`${card} p-4 hover:bg-slate-800/60 transition-colors`}>
+            <div 
+              key={index} 
+              className={`${card} p-4 hover:bg-slate-800/60 transition-colors cursor-pointer`}
+              onClick={() => setExpandedItem(item)}
+            >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -835,6 +845,177 @@ function CollectionTab({ portfolioItems, marketData, manualItems }) {
         <div className={`${card} p-8 text-center`}>
           <CollectionIcon />
           <p className="text-slate-400 mt-2">No items found in your collection</p>
+        </div>
+      )}
+
+      {/* Expanded Item Modal */}
+      {expandedItem && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 w-full max-w-6xl max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-800">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const marketInfo = expandedItem.marketInfo;
+                    const manualValue = expandedItem.manualValue;
+                    let dataSource;
+                    
+                    if (marketInfo && marketInfo.loose_price) {
+                      dataSource = 'api';
+                    } else if (manualValue && manualValue > 0) {
+                      dataSource = 'manual';
+                    } else {
+                      dataSource = 'cost';
+                    }
+                    
+                    return (
+                      <>
+                        {dataSource === 'api' && (
+                          <div className="w-3 h-3 bg-green-400 rounded-full" title="API market data"></div>
+                        )}
+                        {dataSource === 'manual' && (
+                          <div className="w-3 h-3 bg-blue-400 rounded-full" title="Manual database value"></div>
+                        )}
+                        {dataSource === 'cost' && (
+                          <div className="w-3 h-3 bg-yellow-400 rounded-full" title="Using cost price"></div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-100">
+                    {expandedItem.name.replace(/\s*-\s*Pokemon\s+.*$/i, '')}
+                  </h2>
+                  <p className="text-slate-400 text-sm">
+                    {expandedItem.quantity} item{expandedItem.quantity !== 1 ? 's' : ''} • 
+                    Total Cost: {centsToStr(expandedItem.totalCost)}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setExpandedItem(null)}
+                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="space-y-6">
+                {/* Summary Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className={`${card} p-4`}>
+                    <div className="text-slate-400 text-sm">Total Cost</div>
+                    <div className="text-2xl font-bold text-slate-100">{centsToStr(expandedItem.totalCost)}</div>
+                  </div>
+                  <div className={`${card} p-4`}>
+                    <div className="text-slate-400 text-sm">Market Value</div>
+                    <div className="text-2xl font-bold text-green-400">
+                      {(() => {
+                        const marketInfo = expandedItem.marketInfo;
+                        const manualValue = expandedItem.manualValue;
+                        let currentMarketValue;
+                        
+                        if (marketInfo && marketInfo.loose_price) {
+                          currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                        } else if (manualValue && manualValue > 0) {
+                          currentMarketValue = manualValue;
+                        } else {
+                          currentMarketValue = expandedItem.totalCost;
+                        }
+                        
+                        return centsToStr(currentMarketValue * expandedItem.quantity);
+                      })()}
+                    </div>
+                  </div>
+                  <div className={`${card} p-4`}>
+                    <div className="text-slate-400 text-sm">Profit/Loss</div>
+                    <div className={`text-2xl font-bold ${
+                      (() => {
+                        const marketInfo = expandedItem.marketInfo;
+                        const manualValue = expandedItem.manualValue;
+                        let currentMarketValue;
+                        
+                        if (marketInfo && marketInfo.loose_price) {
+                          currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                        } else if (manualValue && manualValue > 0) {
+                          currentMarketValue = manualValue;
+                        } else {
+                          currentMarketValue = expandedItem.totalCost;
+                        }
+                        
+                        const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
+                        return profit >= 0 ? 'text-green-400' : 'text-red-400';
+                      })()
+                    }`}>
+                      {(() => {
+                        const marketInfo = expandedItem.marketInfo;
+                        const manualValue = expandedItem.manualValue;
+                        let currentMarketValue;
+                        
+                        if (marketInfo && marketInfo.loose_price) {
+                          currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                        } else if (manualValue && manualValue > 0) {
+                          currentMarketValue = manualValue;
+                        } else {
+                          currentMarketValue = expandedItem.totalCost;
+                        }
+                        
+                        const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
+                        const profitPercentage = expandedItem.totalCost > 0 ? (profit / expandedItem.totalCost) * 100 : 0;
+                        return `${profit >= 0 ? '+' : ''}${centsToStr(profit)} (${profit >= 0 ? '+' : ''}${profitPercentage.toFixed(1)}%)`;
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Details */}
+                <div className={`${card} p-6`}>
+                  <h3 className="text-lg font-semibold text-slate-100 mb-4">Order History</h3>
+                  <div className="space-y-3">
+                    {getItemOrders(expandedItem.name).map((order, index) => (
+                      <div key={order.id || index} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4">
+                            <div className="text-slate-200 font-medium">
+                              {new Date(order.order_date).toLocaleDateString()}
+                            </div>
+                            <div className="text-slate-400 text-sm">
+                              {order.profile_name || 'No profile'}
+                            </div>
+                            <div className="text-slate-400 text-sm">
+                              {order.retailer || 'No retailer'}
+                            </div>
+                          </div>
+                          {order.sale_date && (
+                            <div className="mt-1 text-sm text-green-400">
+                              Sold: {new Date(order.sale_date).toLocaleDateString()} • 
+                              {order.marketplace && ` ${order.marketplace}`}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-slate-200 font-medium">
+                            {centsToStr(order.buy_price_cents)}
+                          </div>
+                          {order.sale_price_cents && (
+                            <div className="text-green-400 text-sm">
+                              Sold: {centsToStr(order.sale_price_cents)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
