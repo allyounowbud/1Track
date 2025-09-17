@@ -687,13 +687,19 @@ export default function SearchPage() {
       // Only prevent scroll on mobile/small screens
       if (window.innerWidth < 1024) {
         document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
       }
     } else {
       document.body.style.overflow = 'unset';
+      document.body.style.position = 'unset';
+      document.body.style.width = 'unset';
     }
     
     return () => {
       document.body.style.overflow = 'unset';
+      document.body.style.position = 'unset';
+      document.body.style.width = 'unset';
     };
   }, [expandedProduct]);
   
@@ -1130,10 +1136,10 @@ export default function SearchPage() {
           
           {/* Preview Panel */}
           <div 
-            className="fixed inset-0 lg:left-auto lg:right-0 lg:w-1/2 xl:w-2/5 bg-white dark:bg-slate-900 z-[60] shadow-2xl lg:shadow-none"
+            className="fixed inset-0 bottom-16 lg:bottom-0 lg:left-auto lg:right-0 lg:w-1/2 xl:w-2/5 bg-white dark:bg-slate-900 z-[60] shadow-2xl lg:shadow-none"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="h-full overflow-y-auto">
+            <div className="h-full overflow-y-auto pb-safe">
               <ProductPreview 
                 product={expandedProduct} 
                 onAddToCollection={handleAddToCollection}

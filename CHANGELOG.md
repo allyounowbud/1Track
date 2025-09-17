@@ -31,6 +31,8 @@ All notable changes to this project will be documented in this file.
 - **Search Page Category Cards Black Background**: Changed all category card backgrounds from colored gradients to black to match the black sections in the Collectr images, creating a seamless visual integration where the images appear to extend into the card background
 - **Search Page Category Cards Proper Aspect Ratio**: Changed category card containers from square (aspect-square) to 4:3 aspect ratio (aspect-[4/3]) to better match the natural proportions of the Collectr images, and switched back to object-cover for optimal image display
 - **Light Mode as Default Theme**: Changed the default theme from dark mode to light mode for new users, while preserving user theme preferences across sessions. Users who have previously set a theme will continue to see their chosen theme when they return to the app
+- **Mobile Preview Card Layout Fix**: Fixed preview cards in Search and Portfolio pages to properly respect the bottom navigation bar on mobile devices, preventing content from being cut off when fully scrolled down
+- **Mobile Preview Background Scroll Prevention**: Enhanced mobile preview experience by completely disabling background content scrolling when preview cards are active, preventing scroll conflicts and ensuring smooth interaction with preview content
 
 ### Added
 - **Complete Light/Dark Mode Theme System**: Implemented a comprehensive theme system with light and dark mode support across the entire application. Features include:
