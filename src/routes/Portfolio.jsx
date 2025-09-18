@@ -566,7 +566,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       </div>
       
       {/* Chart Area */}
-      <div className="h-64 w-full overflow-hidden max-w-full md:max-w-full -mx-4 md:mx-0">
+      <div className="h-64 w-full overflow-hidden max-w-full">
         {chartData && chartData.length > 0 ? (
           <PortfolioChart data={chartData} />
         ) : (

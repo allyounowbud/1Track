@@ -38,7 +38,6 @@ All notable changes to this project will be documented in this file.
   - **Full Width Chart**: Chart now extends to the very edges of the screen on mobile (no left/right padding)
   - **Hidden Axis Labels**: Both Y-axis and X-axis values are hidden on mobile to maximize chart space
   - **Responsive Padding**: Dynamic padding adjustment based on screen size (768px breakpoint)
-  - **Container Expansion**: Chart container expands beyond screen edges on mobile (-mx-4) for true edge-to-edge effect
   - **Edge-to-Edge Design**: Chart line now appears to run right off both sides of the screen on mobile
   - **Clean Mobile View**: No axis labels or text clutter on mobile, just the pure chart visualization
 - **Portfolio Chart Mobile Responsiveness**: Fixed chart filter buttons on mobile to prevent horizontal scroll by making them more responsive with smaller spacing, flexible sizing, and proper overflow handling
