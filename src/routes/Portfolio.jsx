@@ -192,23 +192,22 @@ function PortfolioChart({ data }) {
         }
       }
 
-      // Add X-axis labels (dates) - only on desktop
-      if (!isMobile) {
-        const xTicks = Math.min(5, data.length);
-        for (let i = 0; i < xTicks; i++) {
-          const index = data.length === 1 ? 0 : Math.floor((data.length - 1) * (i / (xTicks - 1)));
-          const point = data[index];
-          const x = xScale(point.x);
-          
-          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          text.setAttribute('x', x);
-          text.setAttribute('y', height - padding.bottom + 20);
-          text.setAttribute('text-anchor', 'middle');
-          text.setAttribute('fill', 'rgb(148, 163, 184)');
-          text.setAttribute('font-size', '12');
-          text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          svg.appendChild(text);
-        }
+      // Add X-axis labels (dates) - responsive sizing
+      const xTicks = isMobile ? Math.min(3, data.length) : Math.min(5, data.length); // Fewer ticks on mobile
+      for (let i = 0; i < xTicks; i++) {
+        const index = data.length === 1 ? 0 : Math.floor((data.length - 1) * (i / (xTicks - 1)));
+        const point = data[index];
+        const x = xScale(point.x);
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', height - padding.bottom + (isMobile ? 15 : 20));
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('fill', 'rgb(156, 163, 175)'); // Lighter gray color
+        text.setAttribute('font-size', isMobile ? '9' : '11'); // Smaller font
+        text.setAttribute('font-weight', '300'); // Light weight
+        text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        svg.appendChild(text);
       }
 
     } catch (error) {
