@@ -90,78 +90,6 @@ export default function UnifiedProductsCard({
 
   return (
     <div className="w-full">
-      {/* Header with Selection Count and Actions */}
-      {!hasNewRows && totalProducts > 0 && (
-         <div className="w-full rounded-xl p-4 mb-4 bg-gray-50 dark:bg-transparent">
-          <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-            {/* Left side - Selection Count */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={selectedProducts.size === totalProducts && totalProducts > 0}
-                  onChange={() => onToggleAllProductsSelection('all')}
-                  className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
-                />
-                <div className="text-sm sm:text-base font-medium text-gray-700 dark:text-slate-300">
-                  {selectedProducts.size}/{totalProducts} Selected
-                </div>
-              </div>
-            </div>
-
-            {/* Right side - Action Buttons */}
-            <div className="flex items-center gap-2">
-              {!hasAnySelection && (
-                <button
-                  onClick={() => onAddNewProductRow()}
-                  className="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center gap-2 text-sm font-medium"
-                  title="Add New Item"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span className="hidden sm:inline">Add Product</span>
-                </button>
-              )}
-              
-              {hasAnySelection && (
-                <>
-                  <button
-                    onClick={onBulkSave}
-                    className="px-3 py-2 rounded-lg border border-indigo-500 bg-indigo-500 hover:bg-indigo-600 text-white transition-all duration-200 flex items-center gap-2 text-sm font-medium"
-                    title="Save Changes"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="hidden sm:inline">Save</span>
-                  </button>
-                  <button
-                    onClick={() => onToggleAllProductsSelection(false)}
-                    className="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center gap-2 text-sm font-medium"
-                    title="Cancel Selection"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    <span className="hidden sm:inline">Cancel</span>
-                  </button>
-                  <button
-                    onClick={onBulkDelete}
-                    className="px-3 py-2 rounded-lg border border-rose-500 bg-rose-500 hover:bg-rose-600 text-white transition-all duration-200 flex items-center gap-2 text-sm font-medium"
-                    title="Delete Selected"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <span className="hidden sm:inline">Delete</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Add New Product Section - Show when adding new products */}
       {hasNewRows && (
@@ -197,6 +125,77 @@ export default function UnifiedProductsCard({
       {/* Categories - Show as expandable sections (hidden when adding new products) */}
       {!hasNewRows && totalProducts > 0 && (
         <div className="w-full">
+          {/* Bulk Actions Row - positioned like first category card */}
+          <div className="w-full rounded-xl p-4 mb-3 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+            <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+              {/* Left side - Selection Count */}
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedProducts.size === totalProducts && totalProducts > 0}
+                    onChange={() => onToggleAllProductsSelection('all')}
+                    className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
+                  />
+                  <div className="text-sm sm:text-base font-medium text-gray-700 dark:text-slate-300">
+                    {selectedProducts.size}/{totalProducts} Selected
+                  </div>
+                </div>
+              </div>
+
+              {/* Right side - Action Buttons */}
+              <div className="flex items-center gap-2">
+                {!hasAnySelection && (
+                  <button
+                    onClick={() => onAddNewProductRow()}
+                    className="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center gap-2 text-sm font-medium"
+                    title="Add New Item"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span className="hidden sm:inline">Add Product</span>
+                  </button>
+                )}
+                
+                {hasAnySelection && (
+                  <>
+                    <button
+                      onClick={onBulkSave}
+                      className="px-3 py-2 rounded-lg border border-indigo-500 bg-indigo-500 hover:bg-indigo-600 text-white transition-all duration-200 flex items-center gap-2 text-sm font-medium"
+                      title="Save Changes"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="hidden sm:inline">Save</span>
+                    </button>
+                    <button
+                      onClick={() => onToggleAllProductsSelection(false)}
+                      className="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center gap-2 text-sm font-medium"
+                      title="Cancel Selection"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="hidden sm:inline">Cancel</span>
+                    </button>
+                    <button
+                      onClick={onBulkDelete}
+                      className="px-3 py-2 rounded-lg border border-rose-500 bg-rose-500 hover:bg-rose-600 text-white transition-all duration-200 flex items-center gap-2 text-sm font-medium"
+                      title="Delete Selected"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span className="hidden sm:inline">Delete</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
           {categories.map(category => {
             const categoryProducts = getCategoryProducts(category.key);
             const isExpanded = expandedCategories.has(category.key);
@@ -207,7 +206,11 @@ export default function UnifiedProductsCard({
               <div key={category.key} className="w-full">
                 {/* Category Header */}
                 <div 
-                   className="flex items-center justify-between py-3 px-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors bg-gray-50 dark:bg-transparent"
+                   className={`flex items-center justify-between py-3 px-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors ${
+                     !isExpanded 
+                       ? 'border border-gray-200 dark:border-slate-700 rounded-xl mb-3 bg-white dark:bg-slate-800/50' 
+                       : 'bg-gray-50 dark:bg-transparent'
+                   }`}
                   onClick={() => onToggleCategoryExpansion(category.key)}
                 >
                   <div className="flex items-center gap-3">
@@ -217,6 +220,9 @@ export default function UnifiedProductsCard({
                       onChange={(e) => {
                         e.stopPropagation();
                         toggleCategorySelection(category.key);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
                       }}
                       className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all accent-indigo-500"
                     />
