@@ -398,7 +398,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
   }, [chartData]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Portfolio Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
         <div>
@@ -435,7 +435,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       </div>
       
       {/* Chart Area */}
-      <div className="h-64 w-full overflow-hidden">
+      <div className="h-64 w-full overflow-hidden max-w-full">
         {chartData && chartData.length > 0 ? (
           <PortfolioChart data={chartData} />
         ) : (
@@ -454,7 +454,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 p-8 -m-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 p-4 sm:p-8 -m-4 sm:-m-8">
         <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
           <div className="flex items-center justify-between">
             <div>
@@ -521,7 +521,10 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-6">Recent Activity</h2>
         <div className="space-y-3">
-          {orders.slice(0, 10).map((order) => {
+          {orders
+            .sort((a, b) => new Date(b.created_at || b.updated_at || b.id) - new Date(a.created_at || a.updated_at || a.id))
+            .slice(0, 10)
+            .map((order) => {
             // Parse item name and set
             const itemParts = order.item.split(' - ');
             const itemName = itemParts[0] || order.item;
@@ -544,37 +547,52 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
             const profitLoss = isSale && order.sell_price_cents ? order.sell_price_cents - order.buy_price_cents : 0;
             const profitLossPercent = order.buy_price_cents > 0 ? (profitLoss / order.buy_price_cents) * 100 : 0;
             
+            // Determine the appropriate date and price for display
+            let displayDate, displayPrice, priceColor;
+            if (isSale) {
+              displayDate = order.sell_date || order.order_date;
+              displayPrice = centsToStr(order.sell_price_cents || 0);
+              priceColor = 'text-green-600 dark:text-green-400';
+            } else if (order.status === 'added') {
+              displayDate = order.order_date;
+              displayPrice = centsToStr(order.market_value_cents || order.buy_price_cents || 0);
+              priceColor = 'text-blue-600 dark:text-blue-400';
+            } else {
+              displayDate = order.order_date;
+              displayPrice = centsToStr(order.buy_price_cents);
+              priceColor = 'text-red-600 dark:text-red-400';
+            }
+            
             return (
               <div key={order.id} className="py-3 border-b border-gray-200 dark:border-slate-800 last:border-b-0">
-                {/* Top Row: Title and Status */}
+                {/* Top Row: Title and Price */}
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-bold text-gray-900 dark:text-slate-100 text-base sm:text-lg">
                     {itemName}
                   </h3>
+                  <p className={`font-semibold text-sm sm:text-base ${priceColor}`}>
+                    {displayPrice}
+                  </p>
+                </div>
+                
+                {/* Second Row: Status and Set Name */}
+                <div className="flex items-center gap-2 mb-3">
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor}`}>
                     {statusText}
                   </span>
+                  {itemSet && (
+                    <p className="text-gray-600 dark:text-slate-400 text-sm">
+                      {itemSet}
+                    </p>
+                  )}
                 </div>
                 
-                {/* Set Name */}
-                {itemSet && (
-                  <p className="text-gray-600 dark:text-slate-400 text-sm mb-3">
-                    {itemSet}
-                  </p>
-                )}
-                
                 {/* Data Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-xs sm:text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 text-xs sm:text-sm">
                   {isSale ? (
                     <>
                       <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Revenue</p>
-                        <p className="font-semibold text-green-600 dark:text-green-400 text-sm sm:text-base">
-                          {centsToStr(order.sell_price_cents || 0)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Cost</p>
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Buy Price</p>
                         <p className="font-semibold text-red-600 dark:text-red-400 text-sm sm:text-base">
                           {centsToStr(order.buy_price_cents)}
                         </p>
@@ -586,37 +604,35 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Date</p>
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Sell Date</p>
                         <p className="font-medium text-gray-900 dark:text-slate-100 text-sm">
-                          {order.sell_date || order.order_date}
+                          {displayDate}
                         </p>
                       </div>
                     </>
                   ) : (
                     <>
                       <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Cost</p>
-                        <p className="font-semibold text-red-600 dark:text-red-400 text-sm sm:text-base">
-                          {centsToStr(order.buy_price_cents)}
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">
+                          {order.status === 'added' ? 'Market Value' : 'Cost'}
+                        </p>
+                        <p className={`font-semibold text-sm sm:text-base ${order.status === 'added' ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {centsToStr(order.status === 'added' ? (order.market_value_cents || order.buy_price_cents || 0) : order.buy_price_cents)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Retailer</p>
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">
+                          {order.status === 'added' ? 'Add Date' : 'Order Date'}
+                        </p>
                         <p className="font-medium text-gray-900 dark:text-slate-100 text-sm">
-                          {order.retailer_name || order.retailer || 'Unknown'}
+                          {displayDate}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Date</p>
-                        <p className="font-medium text-gray-900 dark:text-slate-100 text-sm">
-                          {order.order_date}
-                        </p>
-                      </div>
-                      {order.marketplace_name && (
+                      {order.status === 'added' && order.condition && (
                         <div>
-                          <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Marketplace</p>
-                          <p className="font-medium text-gray-900 dark:text-slate-100 text-sm">
-                            {order.marketplace_name}
+                          <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Condition</p>
+                          <p className="font-medium text-gray-900 dark:text-slate-100 text-sm capitalize">
+                            {order.condition}
                           </p>
                         </div>
                       )}
