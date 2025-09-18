@@ -5,15 +5,14 @@ import { moneyToCents, centsToStr } from "../utils/money.js";
 export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSave, onCancel }) {
   const [name, setName] = useState("");
   const [marketValue, setMarketValue] = useState("");
-  const [category, setCategory] = useState(row.category || 'tcg_sealed');
+  const [category, setCategory] = useState(row.category || 'Collectibles');
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
   const categories = [
-    { value: 'tcg_sealed', label: 'TCG Sealed' },
-    { value: 'tcg_singles', label: 'TCG Singles' },
-    { value: 'video_games', label: 'Video Games' },
-    { value: 'other_items', label: 'Other Items' }
+    { value: 'Collectibles', label: 'Collectibles' },
+    { value: 'Sports Cards', label: 'Sports Cards' },
+    { value: 'Other', label: 'Other' }
   ];
 
   useEffect(() => {
@@ -31,15 +30,14 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
     try {
       const market_value_cents = moneyToCents(marketValue);
       const productData = { 
-        user_id: (await supabase.auth.getUser()).data.user.id,
         name: name.trim(), 
-        category: category,
+        product_category: category,
         market_value_cents,
         price_source: 'manual' // Always manual for backup database
       };
       
       const { error } = await supabase
-        .from('products')
+        .from('items')
         .insert(productData);
       
       if (error) throw error;

@@ -1,13 +1,7 @@
 import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-import ProductSearchDropdown from "./ProductSearchDropdown.jsx";
+import { supabase } from "../lib/supabaseClient";
 import { moneyToCents, centsToStr } from "../utils/money.js";
 import { rowCard } from "../utils/ui.js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 // Simple row component for retailers and marketplaces (name only) - matches product styling exactly
 export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false, isCheckboxDisabled = false }) {
@@ -194,32 +188,8 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
 export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, disabled = false, category, isCheckboxDisabled = false, gameType = null }) {
   const [name, setName] = useState(item?.name ?? "");
   const [mv, setMv] = useState(centsToStr(item?.market_value_cents ?? 0));
-  const [upcCode, setUpcCode] = useState(item?.upc_code ?? "");
-  const [consoleName, setConsoleName] = useState(item?.console_name ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-
-  const handleProductSelect = (product) => {
-    setSelectedProduct(product);
-    
-    // Create a display name that includes set information if available
-    let displayName = product.product_name;
-    if (product.console_name && product.console_name !== product.product_name) {
-      displayName = `${product.product_name} - ${product.console_name}`;
-    }
-    setName(displayName);
-    
-    if (product.loose_price) {
-      setMv(product.loose_price.toString());
-    }
-    if (product.upc_code) {
-      setUpcCode(product.upc_code);
-    }
-    if (product.console_name) {
-      setConsoleName(product.console_name);
-    }
-  };
 
   async function updateItem() {
     if (busy || disabled) return;
@@ -230,21 +200,11 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
       const updateData = { 
         name: name.trim(), 
         market_value_cents,
-        upc_code: upcCode.trim() || null,
-        console_name: consoleName.trim() || null
+        price_source: 'manual' // Always manual for backup database
       };
       
-      if (selectedProduct) {
-        updateData.price_source = 'api';
-        updateData.api_product_id = selectedProduct.product_id;
-        updateData.api_price_cents = selectedProduct.loose_price ? Math.round(selectedProduct.loose_price * 100) : null;
-        updateData.api_last_updated = new Date().toISOString();
-      } else {
-        updateData.price_source = 'manual';
-      }
-      
       const { error } = await supabase
-        .from(category)
+        .from("items")
         .update(updateData)
         .eq("id", item.id);
       if (error) throw error;
@@ -261,7 +221,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
 
   async function deleteItem(id) {
     try {
-      const { error } = await supabase.from(category).delete().eq("id", id);
+      const { error } = await supabase.from("items").delete().eq("id", id);
       if (error) throw error;
       onSave();
     } catch (e) {
@@ -295,15 +255,16 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
         />
         </div>
         
-        <div onClick={(e) => e.stopPropagation()}>
-          <ProductSearchDropdown
-            value={name}
-            onChange={setName}
-            onProductSelect={handleProductSelect}
-            placeholder="Search products..."
-            className="w-full"
-          />
-        </div>
+        <input
+          className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          value={name}
+          onChange={(e) => {
+            e.stopPropagation();
+            setName(e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="Item name"
+        />
         
         <input
           className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
@@ -353,15 +314,16 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs text-gray-600 dark:text-slate-400">Item Name</label>
           </div>
-          <div onClick={(e) => e.stopPropagation()}>
-            <ProductSearchDropdown
-              value={name}
-              onChange={setName}
-              onProductSelect={handleProductSelect}
-              placeholder="Search products..."
-              className="w-full"
-            />
-          </div>
+          <input
+            className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            value={name}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Item name"
+          />
         </div>
         
         <div>
@@ -662,15 +624,16 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
     >
       {/* Desktop: Grid layout */}
       <div className="hidden sm:grid gap-4 items-center min-w-0 grid-cols-[2fr_1fr_auto]">
-        <div onClick={(e) => e.stopPropagation()}>
-          <ProductSearchDropdown
-            value={name}
-            onChange={setName}
-            onProductSelect={handleProductSelect}
-            placeholder="Search products..."
-            className="w-full"
-          />
-        </div>
+        <input
+          className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+          value={name}
+          onChange={(e) => {
+            e.stopPropagation();
+            setName(e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="Item name"
+        />
         
         <input
           className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
@@ -718,15 +681,16 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs text-gray-600 dark:text-slate-400">Item Name</label>
           </div>
-          <div onClick={(e) => e.stopPropagation()}>
-            <ProductSearchDropdown
-              value={name}
-              onChange={setName}
-              onProductSelect={handleProductSelect}
-              placeholder="Search products..."
-              className="w-full"
-            />
-          </div>
+          <input
+            className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            value={name}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Item name"
+          />
         </div>
         
         <div>

@@ -12,7 +12,6 @@ import UnifiedRetailersCard from "../components/UnifiedRetailersCard.jsx";
 import UnifiedMarketplacesCard from "../components/UnifiedMarketplacesCard.jsx";
 import { moneyToCents, centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm, headerIconBtn, headerGhostBtn, iconSave, iconSaveBusy, iconDelete } from "../utils/ui.js";
-import { getBatchMarketData, getMarketValueInCents, getMarketValueFormatted } from "../services/marketDataService.js";
 
 /* ---------- queries ---------- */
 async function getProducts() {
@@ -78,31 +77,6 @@ export default function Settings() {
     queryFn: getItems,
   });
 
-  // Market data state for all categories
-  const [marketData, setMarketData] = useState({});
-  const [marketDataLoading, setMarketDataLoading] = useState(false);
-
-  // Fetch market data for all products
-  useEffect(() => {
-    const allProductNames = [
-      ...collectibles.map(item => item.name),
-      ...sportsCards.map(item => item.name),
-      ...otherItems.map(item => item.name)
-    ].filter(Boolean);
-
-    if (allProductNames.length > 0) {
-      setMarketDataLoading(true);
-      getBatchMarketData(allProductNames)
-        .then(data => {
-          setMarketData(data);
-          setMarketDataLoading(false);
-        })
-        .catch(error => {
-          console.error('Error fetching market data:', error);
-          setMarketDataLoading(false);
-        });
-    }
-  }, [collectibles, sportsCards, otherItems]);
 
   const { data: retailers = [], refetch: refetchRetailers } = useQuery({
     queryKey: ["retailers"],
@@ -985,8 +959,6 @@ function SettingsCard({
             onToggleCategoryExpansion={toggleCategoryExpansion}
             onRefetch={refetchProducts}
             onRemoveNewRow={removeNewRow}
-            marketData={marketData}
-            marketDataLoading={marketDataLoading}
             isLoading={productsLoading}
             error={productsError}
           />

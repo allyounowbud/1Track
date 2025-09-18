@@ -16,8 +16,6 @@ export default function UnifiedProductsCard({
   onToggleCategoryExpansion,
   onRefetch,
   onRemoveNewRow,
-  marketData,
-  marketDataLoading,
   isLoading = false,
   error = null
 }) {
