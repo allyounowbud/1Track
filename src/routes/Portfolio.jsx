@@ -398,83 +398,81 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
   }, [chartData]);
 
   return (
-    <div className="space-y-6">
-      {/* Portfolio Value Chart */}
-      <div className={`${card} p-6`}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-900 dark:text-slate-100">Portfolio Value</h3>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">
-                ${chartData.length > 0 ? chartData[chartData.length - 1].y.toFixed(2) : '0.00'}
-              </div>
-              <div className={`flex items-center gap-1 text-sm font-medium ${
-                chartMetrics.change >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {chartMetrics.change >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
-                {chartMetrics.change >= 0 ? '+' : ''}${chartMetrics.change.toFixed(2)} ({chartMetrics.changePercent >= 0 ? '+' : ''}{chartMetrics.changePercent.toFixed(1)}%)
-              </div>
+    <div className="space-y-8">
+      {/* Portfolio Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Portfolio Overview</h1>
+          <div className="flex items-center gap-4 mt-2">
+            <div className="text-3xl font-bold text-gray-900 dark:text-slate-100">
+              ${chartData.length > 0 ? chartData[chartData.length - 1].y.toFixed(2) : '0.00'}
             </div>
-          </div>
-          
-          {/* Time Period Selector */}
-          <div className="flex space-x-0.5 sm:space-x-1 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 p-0.5 sm:p-1 rounded-lg overflow-hidden">
-            {['1D', '7D', '1M', '3M', 'All'].map((period) => (
-              <button
-                key={period}
-                onClick={() => setSelectedTimeframe(period)}
-                className={`flex-1 px-1.5 sm:px-3 py-1 rounded text-xs sm:text-sm font-medium transition-colors min-w-0 ${
-                  selectedTimeframe === period
-                    ? 'bg-blue-500/20 text-blue-300'
-                    : 'text-gray-600 dark:text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-gray-200 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                {period}
-              </button>
-            ))}
+            <div className={`flex items-center gap-1 text-sm font-medium ${
+              chartMetrics.change >= 0 ? 'text-green-400' : 'text-red-400'
+            }`}>
+              {chartMetrics.change >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
+              {chartMetrics.change >= 0 ? '+' : ''}${chartMetrics.change.toFixed(2)} ({chartMetrics.changePercent >= 0 ? '+' : ''}{chartMetrics.changePercent.toFixed(1)}%)
+            </div>
           </div>
         </div>
         
-               {/* Chart Area */}
-               <div className="h-64 w-full overflow-hidden">
-                 {chartData && chartData.length > 0 ? (
-                   <PortfolioChart data={chartData} />
-                 ) : (
-                   <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-600 dark:text-slate-400">
-                     <div className="text-center">
-                       <ChartIcon />
-                       <p className="mt-2">No data available for selected period</p>
-                       <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-slate-500 mt-1">
-                         {portfolioItems.length === 0 ? 'No portfolio items found' : 'No data available'}
-                       </p>
-                     </div>
-                   </div>
-                 )}
-               </div>
+        {/* Time Period Selector */}
+        <div className="flex space-x-0.5 sm:space-x-1 bg-gray-100 dark:bg-gray-100 dark:bg-slate-800/50 p-0.5 sm:p-1 rounded-lg overflow-hidden">
+          {['1D', '7D', '1M', '3M', 'All'].map((period) => (
+            <button
+              key={period}
+              onClick={() => setSelectedTimeframe(period)}
+              className={`flex-1 px-1.5 sm:px-3 py-1 rounded text-xs sm:text-sm font-medium transition-colors min-w-0 ${
+                selectedTimeframe === period
+                  ? 'bg-blue-500/20 text-blue-300'
+                  : 'text-gray-600 dark:text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-gray-200 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              {period}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Chart Area */}
+      <div className="h-64 w-full overflow-hidden">
+        {chartData && chartData.length > 0 ? (
+          <PortfolioChart data={chartData} />
+        ) : (
+          <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-600 dark:text-slate-400">
+            <div className="text-center">
+              <ChartIcon />
+              <p className="mt-2">No data available for selected period</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-slate-500 mt-1">
+                {portfolioItems.length === 0 ? 'No portfolio items found' : 'No data available'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Portfolio Summary Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className={`${card} p-4 sm:p-6`}>
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 p-8 -m-8">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-sm">Total Items</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">{formatNumber(metrics.totalItems)}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">{formatNumber(metrics.totalItems)}</p>
             </div>
-            <div className="p-2 sm:p-3 bg-yellow-500/20 rounded-xl">
+            <div className="p-3 bg-yellow-500/20 rounded-xl">
               <CollectionIcon />
             </div>
           </div>
         </div>
 
-        <div className={`${card} p-4 sm:p-6`}>
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-sm">Total Cost</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">{centsToStr(metrics.totalCost)}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">{centsToStr(metrics.totalCost)}</p>
             </div>
-            <div className="p-2 sm:p-3 bg-slate-500/20 rounded-xl">
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+            <div className="p-3 bg-slate-500/20 rounded-xl">
+              <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
               </svg>
@@ -482,53 +480,52 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className={`${card} p-4 sm:p-6`}>
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-slate-400 text-sm">Market Value</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-slate-100">{centsToStr(metrics.estimatedMarketValue)}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{centsToStr(metrics.estimatedMarketValue)}</p>
             </div>
-            <div className="p-2 sm:p-3 bg-green-500/20 rounded-xl">
+            <div className="p-3 bg-green-500/20 rounded-xl">
               <TrendingUpIcon />
             </div>
           </div>
         </div>
 
-        <div className={`${card} p-4 sm:p-6`}>
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-slate-400 text-sm">Total Profit</p>
-              <p className={`text-lg sm:text-2xl font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`text-2xl font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {centsToStr(metrics.totalProfit)}
               </p>
               <p className={`text-sm ${metrics.profitPercentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {metrics.profitPercentage >= 0 ? '+' : ''}{metrics.profitPercentage.toFixed(1)}%
               </p>
             </div>
-            <div className={`p-2 sm:p-3 rounded-xl ${metrics.totalProfit >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+            <div className={`p-3 rounded-xl ${metrics.totalProfit >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
               {metrics.totalProfit >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
             </div>
           </div>
         </div>
       </div>
 
-
       {/* Recent Activity */}
-      <div className={`${card} p-6`}>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Recent Activity</h3>
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-6">Recent Activity</h2>
         <div className="space-y-3">
           {orders.slice(0, 5).map((order) => (
-            <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-slate-800 last:border-b-0">
+            <div key={order.id} className="flex items-center justify-between py-3 px-4 border border-gray-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900/60 backdrop-blur">
               <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${order.status === 'sold' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                <div className={`w-3 h-3 rounded-full ${order.status === 'sold' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                 <div>
-                  <p className="text-gray-800 dark:text-slate-200 text-sm">{order.item}</p>
-                  <p className="text-gray-600 dark:text-slate-400 text-xs">{order.order_date}</p>
+                  <p className="text-gray-800 dark:text-slate-200 font-medium">{order.item}</p>
+                  <p className="text-gray-600 dark:text-slate-400 text-sm">{order.order_date}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-gray-800 dark:text-slate-200 text-sm">{centsToStr(order.buy_price_cents)}</p>
-                <p className="text-gray-600 dark:text-slate-400 text-xs">{order.status}</p>
+                <p className="text-gray-800 dark:text-slate-200 font-medium">{centsToStr(order.buy_price_cents)}</p>
+                <p className="text-gray-600 dark:text-slate-400 text-sm capitalize">{order.status}</p>
               </div>
             </div>
           ))}
@@ -1511,15 +1508,14 @@ export default function Portfolio() {
 
   return (
     <LayoutWithSidebar active={activeSidebarItem} section="portfolio">
-
-        <PortfolioContent 
-          orders={orders} 
-          portfolioItems={portfolioItems} 
-          marketData={marketData} 
-          manualItems={manualItems}
-          allOrders={allOrders}
-          currentTab={currentTab} 
-        />
+      <PortfolioContent 
+        orders={orders} 
+        portfolioItems={portfolioItems} 
+        marketData={marketData} 
+        manualItems={manualItems}
+        allOrders={allOrders}
+        currentTab={currentTab} 
+      />
     </LayoutWithSidebar>
   );
 }

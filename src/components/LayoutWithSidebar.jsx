@@ -61,7 +61,7 @@ export default function LayoutWithSidebar({ children, active, section }) {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100">
+    <div className={`min-h-screen ${section === 'portfolio' ? '' : 'bg-gray-50 dark:bg-slate-950'} text-gray-900 dark:text-slate-100`}>
       {/* Sidebar */}
       <Sidebar active={active} section={section} onCollapseChange={setSidebarCollapsed} />
       
@@ -70,9 +70,9 @@ export default function LayoutWithSidebar({ children, active, section }) {
         isSmallScreen 
           ? 'main-content min-h-screen' // Use CSS class for bottom bar isolation
           : `transition-all duration-300 ${(sidebarCollapsed || !isLargeScreen) ? 'ml-16' : 'ml-64'}`
-      }`}>
+      } ${section === 'portfolio' ? 'bg-transparent' : ''}`}>
         
-        <div ref={contentRef} className="flex-1 w-full p-4 sm:p-6">
+        <div ref={contentRef} className={`flex-1 w-full p-4 sm:p-6 ${section === 'portfolio' ? 'bg-transparent' : ''}`}>
           {children}
         </div>
       </div>
