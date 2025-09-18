@@ -51,7 +51,7 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
     <div 
       className={`rounded-xl border bg-white dark:bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
         isSelected
-          ? 'border-indigo-500 bg-indigo-500/10' 
+          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 dark:border-indigo-400' 
           : 'border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:bg-slate-800/50'
       }`}
       onClick={onToggleSelection}
@@ -121,7 +121,7 @@ export function SimpleItemRow({ item, isSelected, onToggleSelection, onSave, dis
       </div>
 
       {/* Mobile: Stacked layout with labels */}
-      <div className="sm:hidden space-y-3">
+      <div className="sm:hidden space-y-3 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <input
@@ -231,15 +231,15 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
 
   return (
     <div 
-      className={`rounded-xl border bg-white dark:bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
+      className={`w-full border border-gray-200 dark:border-slate-700 rounded-xl transition cursor-pointer ${
         isSelected
-          ? 'border-indigo-500 bg-indigo-500/10' 
-          : 'border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:bg-slate-800/50'
+          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 dark:border-indigo-400' 
+          : 'hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/30'
       }`}
       onClick={onToggleSelection}
     >
       {/* Desktop: Grid layout with checkbox */}
-      <div className="hidden sm:grid grid-cols-[auto_2fr_1fr_auto] gap-4 items-center min-w-0">
+      <div className="hidden sm:grid grid-cols-[auto_2fr_1fr_auto] gap-4 items-center min-w-0 p-4">
         <div className="flex items-center gap-2">
         <input
           type="checkbox"
@@ -309,7 +309,7 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
       </div>
 
       {/* Mobile: Stacked layout with labels - NO checkbox */}
-      <div className="sm:hidden space-y-3">
+      <div className="sm:hidden space-y-3 p-4">
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs text-gray-600 dark:text-slate-400">Item Name</label>
@@ -483,7 +483,7 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
       </div>
 
       {/* Mobile: Stacked layout without checkbox - full width input */}
-      <div className="sm:hidden space-y-3">
+      <div className="sm:hidden space-y-3 p-4">
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600 dark:text-slate-400">Name</span>
           <div className="flex items-center gap-2">
@@ -676,7 +676,7 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
       </div>
 
       {/* Mobile: Stacked layout with labels - NO checkbox */}
-      <div className="sm:hidden space-y-3">
+      <div className="sm:hidden space-y-3 p-4">
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs text-gray-600 dark:text-slate-400">Item Name</label>

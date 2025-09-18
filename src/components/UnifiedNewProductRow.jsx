@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabaseClient";
 import { moneyToCents, centsToStr } from "../utils/money.js";
 
@@ -11,6 +12,9 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
   const [filteredCategories, setFilteredCategories] = useState([]);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const desktopInputRef = useRef(null);
+  const mobileInputRef = useRef(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
 
   useEffect(() => {
@@ -54,13 +58,35 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
     }
   };
 
-  const handleInputFocus = () => {
+  const handleInputFocus = (isMobile = false) => {
+    console.log('Input focused, showing dropdown. Existing categories:', existingCategories);
+    const inputRef = isMobile ? mobileInputRef : desktopInputRef;
+    console.log('Input ref:', inputRef.current, 'isMobile:', isMobile);
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      console.log('Input rect:', rect);
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+      console.log('Dropdown position set:', {
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
     setShowDropdown(true);
   };
 
   const handleInputBlur = () => {
     // Delay hiding dropdown to allow clicks on dropdown items
-    setTimeout(() => setShowDropdown(false), 150);
+    setTimeout(() => setShowDropdown(false), 200);
+  };
+
+  const handleDropdownMouseDown = (e) => {
+    // Prevent input blur when clicking on dropdown
+    e.preventDefault();
   };
 
   const handleSave = async () => {
@@ -97,17 +123,27 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
 
   return (
     <div 
-      className={`rounded-xl border bg-white dark:bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
+      className={`w-full border border-gray-200 dark:border-slate-700 rounded-xl transition cursor-pointer ${
         isSelected
-          ? 'border-indigo-500 bg-indigo-500/10' 
-          : 'border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:bg-slate-800/50'
+          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 dark:border-indigo-400' 
+          : 'hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/30'
       }`}
       onClick={onToggleSelection}
     >
       {/* Desktop: Grid layout */}
-      <div className="hidden sm:grid grid-cols-[3fr_2fr_1fr_auto] gap-3 items-center min-w-0 overflow-hidden">
+      <div className="hidden sm:grid grid-cols-[auto_3fr_2fr_1fr_auto] gap-4 items-center min-w-0 p-4">
         
-        <div onClick={(e) => e.stopPropagation()} className="min-w-0 overflow-hidden">
+        {/* Checkbox for selection */}
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={onToggleSelection}
+            className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all accent-indigo-500"
+          />
+        </div>
+        
+        <div onClick={(e) => e.stopPropagation()} className="min-w-0">
           <input
             type="text"
             value={name}
@@ -117,30 +153,45 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
           />
         </div>
         
-        <div onClick={(e) => e.stopPropagation()} className="min-w-0 overflow-hidden relative">
+        <div onClick={(e) => e.stopPropagation()} className="min-w-0 relative">
           <input
+            ref={desktopInputRef}
             type="text"
             value={categoryInput}
             onChange={handleCategoryInputChange}
-            onFocus={handleInputFocus}
+            onFocus={() => handleInputFocus(false)}
             onBlur={handleInputBlur}
             placeholder="Type to search categories..."
             className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
             onClick={(e) => e.stopPropagation()}
           />
           
-          {/* Dropdown */}
-          {showDropdown && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
-              {/* Existing categories */}
-              {filteredCategories.map(cat => (
+          {/* Portal-based Dropdown */}
+          {showDropdown && (() => {
+            console.log('Rendering desktop dropdown with showDropdown:', showDropdown, 'position:', dropdownPosition);
+            return createPortal(
+            <div 
+              className="fixed bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-[9999] max-h-48 overflow-y-auto"
+              style={{
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+                width: dropdownPosition.width
+              }}
+              onMouseDown={handleDropdownMouseDown}
+            >
+              {/* Show all categories when input is empty */}
+              {(categoryInput.trim() === '' ? (existingCategories.length > 0 ? existingCategories : ['No categories yet']) : filteredCategories).map(cat => (
                 <div
                   key={cat}
-                  onClick={(e) => {
+                  onClick={cat === 'No categories yet' ? undefined : (e) => {
                     e.stopPropagation();
                     handleCategorySelect(cat);
                   }}
-                  className="px-3 py-2 text-sm text-gray-900 dark:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer first:rounded-t-xl last:rounded-b-xl"
+                  className={`px-3 py-2 text-sm first:rounded-t-xl last:rounded-b-xl ${
+                    cat === 'No categories yet' 
+                      ? 'text-gray-500 dark:text-slate-400 cursor-default' 
+                      : 'text-gray-900 dark:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer'
+                  }`}
                 >
                   {cat}
                 </div>
@@ -158,18 +209,20 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  + Add "{categoryInput.trim()}"
+                  Add "{categoryInput.trim()}"
                 </div>
               )}
               
               {/* No results */}
-              {filteredCategories.length === 0 && !categoryInput.trim() && (
+              {filteredCategories.length === 0 && categoryInput.trim() && existingCategories.some(cat => cat.toLowerCase() === categoryInput.toLowerCase()) && (
                 <div className="px-3 py-2 text-sm text-gray-500 dark:text-slate-400">
-                  No categories found
+                  Category already exists
                 </div>
               )}
-            </div>
-          )}
+            </div>,
+            document.body
+            );
+          })()}
         </div>
         
         <div onClick={(e) => e.stopPropagation()} className="min-w-0 overflow-hidden">
@@ -214,8 +267,19 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
         </div>
       </div>
 
-      {/* Mobile: Stacked layout with labels - NO checkbox */}
-      <div className="sm:hidden space-y-3">
+      {/* Mobile: Stacked layout with labels */}
+      <div className="sm:hidden space-y-3 p-4">
+        {/* Mobile checkbox */}
+        <div className="flex items-center gap-3 pb-2 border-b border-gray-200 dark:border-slate-700">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={onToggleSelection}
+            className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all accent-indigo-500"
+          />
+          <span className="text-sm text-gray-600 dark:text-slate-400">Select row</span>
+        </div>
+        
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs text-gray-600 dark:text-slate-400">Item Name</label>
@@ -235,28 +299,41 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
           <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Category</label>
           <div className="relative">
             <input
+              ref={mobileInputRef}
               type="text"
               value={categoryInput}
               onChange={handleCategoryInputChange}
-              onFocus={handleInputFocus}
+              onFocus={() => handleInputFocus(true)}
               onBlur={handleInputBlur}
               placeholder="Type to search categories..."
               className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
               onClick={(e) => e.stopPropagation()}
             />
             
-            {/* Dropdown */}
-            {showDropdown && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
-                {/* Existing categories */}
-                {filteredCategories.map(cat => (
+            {/* Portal-based Dropdown */}
+            {showDropdown && createPortal(
+              <div 
+                className="fixed bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-[9999] max-h-48 overflow-y-auto"
+                style={{
+                  top: dropdownPosition.top,
+                  left: dropdownPosition.left,
+                  width: dropdownPosition.width
+                }}
+                onMouseDown={handleDropdownMouseDown}
+              >
+                {/* Show all categories when input is empty */}
+                {(categoryInput.trim() === '' ? (existingCategories.length > 0 ? existingCategories : ['No categories yet']) : filteredCategories).map(cat => (
                   <div
                     key={cat}
-                    onClick={(e) => {
+                    onClick={cat === 'No categories yet' ? undefined : (e) => {
                       e.stopPropagation();
                       handleCategorySelect(cat);
                     }}
-                    className="px-3 py-2 text-sm text-gray-900 dark:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer first:rounded-t-xl last:rounded-b-xl"
+                    className={`px-3 py-2 text-sm first:rounded-t-xl last:rounded-b-xl ${
+                      cat === 'No categories yet' 
+                        ? 'text-gray-500 dark:text-slate-400 cursor-default' 
+                        : 'text-gray-900 dark:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer'
+                    }`}
                   >
                     {cat}
                   </div>
@@ -274,17 +351,18 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
-                    + Add "{categoryInput.trim()}"
+                    Add "{categoryInput.trim()}"
                   </div>
                 )}
                 
                 {/* No results */}
-                {filteredCategories.length === 0 && !categoryInput.trim() && (
+                {filteredCategories.length === 0 && categoryInput.trim() && existingCategories.some(cat => cat.toLowerCase() === categoryInput.toLowerCase()) && (
                   <div className="px-3 py-2 text-sm text-gray-500 dark:text-slate-400">
-                    No categories found
+                    Category already exists
                   </div>
                 )}
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         </div>

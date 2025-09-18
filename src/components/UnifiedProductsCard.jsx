@@ -67,7 +67,7 @@ export default function UnifiedProductsCard({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full">
       {/* Header with Selection Count and Actions */}
       {!hasNewRows && totalProducts > 0 && (
         <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
@@ -139,15 +139,15 @@ export default function UnifiedProductsCard({
 
       {/* Add New Product Section - Show when adding new products */}
       {hasNewRows && (
-        <div className="border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800/30">
+        <div className="w-full">
           {/* Section Header */}
-          <div className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 py-3 px-4">
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">Add new product...</h3>
           </div>
 
           {/* New Product Rows */}
-          <div className="divide-y divide-gray-200 dark:divide-slate-700">
+          <div className="w-full">
             {newProductRows.map(newRow => (
               <UnifiedNewProductRow
                 key={newRow.id}
@@ -170,7 +170,7 @@ export default function UnifiedProductsCard({
 
       {/* Categories - Show as expandable sections (hidden when adding new products) */}
       {!hasNewRows && totalProducts > 0 && (
-        <div className="space-y-2">
+        <div className="w-full">
           {categories.map(category => {
             const categoryProducts = getCategoryProducts(category.key);
             const isExpanded = expandedCategories.has(category.key);
@@ -178,10 +178,10 @@ export default function UnifiedProductsCard({
             if (categoryProducts.length === 0) return null;
 
             return (
-              <div key={category.key} className="border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800/30">
+              <div key={category.key} className="w-full">
                 {/* Category Header */}
                 <div 
-                  className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors border-b border-gray-200 dark:border-slate-700"
+                  className="flex items-center justify-between py-3 px-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors border-b border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800/50"
                   onClick={() => onToggleCategoryExpansion(category.key)}
                 >
                   <div className="flex items-center gap-3">
@@ -198,7 +198,7 @@ export default function UnifiedProductsCard({
 
                 {/* Category Content */}
                 {isExpanded && (
-                  <div className="divide-y divide-gray-200 dark:divide-slate-700">
+                  <div className="w-full">
                     {categoryProducts.map(product => (
                       <CategoryItemRow
                         key={product.id}
