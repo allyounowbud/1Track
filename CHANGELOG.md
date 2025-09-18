@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Database/Products Page UI Cleanup**: Removed unnecessary UI elements from the database/products page:
+  - **Circle Icons**: Removed decorative circle icons next to description text for cleaner appearance
+  - **Empty State Text**: Removed "No products yet" text and "Start building your product database" messaging when sections are empty
+  - **Minimal Design**: Achieved cleaner, more professional appearance with less visual clutter
+- **Database Page Title and Description Updates**: Updated all database tabs with consistent styling:
+  - **Title Changes**: Changed "Database - Products" to "Add Products", "Database - Retailers" to "Add Retailers", "Database - Marketplaces" to "Add Marketplaces"
+  - **Description Text**: Added descriptive text under each tab title with proper spacing
+  - **Unified Components**: Created UnifiedRetailersCard and UnifiedMarketplacesCard components to match the products tab structure
+  - **Consistent Layout**: All tabs now have the same clean, professional appearance with proper spacing and descriptions
 - **User Avatar and Username Flickering**: Fixed flickering of user avatar and username on the Hub page by implementing localStorage caching in the useAuth hook. User data is now cached and loaded immediately on page load, eliminating the visual flicker that occurred when navigating back to the home page. The Sidebar component was also updated to use the centralized useAuth hook instead of duplicating authentication logic.
 - **Portfolio Chart Improvements**: Fixed multiple issues with the portfolio value chart:
   - **Responsive Design**: Chart now properly fills full screen on mobile and adapts to different screen sizes without distortion
@@ -48,6 +57,11 @@ All notable changes to this project will be documented in this file.
 - **Portfolio Value Layout Improvement**: Moved the green change indicator (+$520.00 (+260.0%)) to the right side of the portfolio value, keeping both values on the same line instead of stacking vertically
 - **Collection Filter Row Mobile Fix**: Fixed the jumbled filter row on mobile by changing from horizontal flex-wrap to vertical stacking on mobile, making filter buttons more compact, widening the sort order toggle, and making the dropdown full-width on mobile
 - **Collection Filter Mobile Layout Reorganization**: Reorganized mobile filter layout with All/Sealed/Singles on the left, ascending/descending toggle moved to the right on the first row, and full-width sort dropdown on a separate second row. Desktop layout remains unchanged. Also increased dropdown height to h-12 to prevent text cutoff
+- **Database/Products Page Fix**: Fixed the database/products page that was causing crashes and freezing:
+  - **Table Reference**: Updated all queries from `products` table to `items` table to match actual Supabase schema
+  - **Query Key**: Updated React Query key from "products" to "items" for consistency
+  - **Variable Reference**: Fixed undefined `items` variable reference in market data fetching useEffect
+  - **Error Prevention**: Resolved infinite loop and crash issues caused by incorrect table references
 - **Sort Order Toggle Width Improvement**: Made the ascending/descending toggle buttons wider (px-4 on mobile, px-5 on desktop) to fix the squished appearance and improve visual balance
 - **Search Page Full Width Layout**: Fixed the SearchPage to use the full content area like other pages by removing the custom container structure and using the standard page layout, allowing more content to be displayed
 - **Search Page Filter Dropdowns Mobile Optimization**: Made filter dropdowns full-width on mobile for better text visibility, reduced font size to text-[10px] on mobile (text-xs on larger screens), and restored full descriptive text labels since more space is now available

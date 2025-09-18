@@ -49,21 +49,6 @@ export default function UnifiedProductsCard({
           <h2 className="text-lg font-semibold leading-[2.25rem]">Products</h2>
           <p className="text-xs text-gray-600 dark:text-slate-400 -mt-1">Total: {totalProducts}</p>
           
-          {/* Empty state preview */}
-          {totalProducts === 0 && !hasNewRows && (
-            <div className="mt-3">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400/60"></div>
-                <p className="text-sm text-gray-700 dark:text-slate-300">
-                  Product database with categories and market values for items not tracked by the API.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <div className="w-1 h-1 rounded-full bg-slate-600"></div>
-                <p className="text-xs text-slate-500">No products yet</p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -220,6 +205,7 @@ export default function UnifiedProductsCard({
           </div>
         </div>
       )}
+
     </section>
   );
 }

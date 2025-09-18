@@ -8,6 +8,8 @@ import PageHeader from "../components/PageHeader.jsx";
 import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
 import { CategoryItemRow, NewCategoryRowComponent, SimpleItemRow, NewSimpleRowComponent } from "../components/CategoryComponents.jsx";
 import UnifiedProductsCard from "../components/UnifiedProductsCard.jsx";
+import UnifiedRetailersCard from "../components/UnifiedRetailersCard.jsx";
+import UnifiedMarketplacesCard from "../components/UnifiedMarketplacesCard.jsx";
 import { moneyToCents, centsToStr, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm, headerIconBtn, headerGhostBtn, iconSave, iconSaveBusy, iconDelete } from "../utils/ui.js";
 import { getBatchMarketData, getMarketValueInCents, getMarketValueFormatted } from "../services/marketDataService.js";
@@ -15,7 +17,7 @@ import { getBatchMarketData, getMarketValueInCents, getMarketValueFormatted } fr
 /* ---------- queries ---------- */
 async function getProducts() {
   const { data, error } = await supabase
-    .from("products")
+    .from("items")
     .select("id, name, category, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name, search_terms")
     .order("category, name", { ascending: true });
   if (error) throw error;
@@ -56,7 +58,7 @@ export default function Settings() {
 
   // Unified products query
   const { data: allProducts = [], refetch: refetchProducts } = useQuery({
-    queryKey: ["products"],
+    queryKey: ["items"],
     queryFn: getProducts,
   });
 
@@ -77,15 +79,15 @@ export default function Settings() {
 
   // Fetch market data for all products
   useEffect(() => {
-    const allProducts = [
+    const allProductNames = [
       ...tcgSealed.map(item => item.name),
       ...videoGames.map(item => item.name),
-      ...items.map(item => item.name)
+      ...otherItems.map(item => item.name)
     ].filter(Boolean);
 
-    if (allProducts.length > 0) {
+    if (allProductNames.length > 0) {
       setMarketDataLoading(true);
-      getBatchMarketData(allProducts)
+      getBatchMarketData(allProductNames)
         .then(data => {
           setMarketData(data);
           setMarketDataLoading(false);
@@ -424,7 +426,7 @@ export default function Settings() {
     
     try {
       const { error } = await supabase
-        .from('products')
+        .from('items')
         .delete()
         .in('id', selectedIds);
       
@@ -518,7 +520,7 @@ export default function Settings() {
     
     try {
       const { error } = await supabase
-        .from('products')
+        .from('items')
         .delete()
         .in('id', selectedIds);
       
@@ -606,7 +608,7 @@ export default function Settings() {
     
     try {
       const { error } = await supabase
-        .from('products')
+        .from('items')
         .delete()
         .in('id', selectedIds);
       
@@ -642,7 +644,7 @@ export default function Settings() {
     
     try {
       const { error } = await supabase
-        .from('products')
+        .from('items')
         .delete()
         .in('id', selectedIds);
       
@@ -707,8 +709,7 @@ function SettingsCard({
           {!isExpanded && (
             <div className="mt-3">
               {/* Clean purpose description */}
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400/60"></div>
+              <div className="mb-2">
                 <p className="text-sm text-gray-700 dark:text-slate-300">
                     {cardType === 'items' && "Other products collection with names and market values"}
                     {cardType === 'tcg_sealed' && "TCG sealed products collection with names and market values"}
@@ -734,19 +735,6 @@ function SettingsCard({
                 </div>
               )}
               
-              {/* Clean empty state */}
-              {data.length === 0 && (
-                <div className="flex items-center gap-2">
-                  <div className="w-1 h-1 rounded-full bg-slate-600"></div>
-                  <p className="text-xs text-gray-500 dark:text-slate-500">
-                    {cardType === 'items' && "No items yet"}
-                    {cardType === 'tcg_sealed' && "No items yet"}
-                    {cardType === 'retailers' && "No retailers yet"}
-                    {cardType === 'markets' && "No marketplaces yet"}
-                    {cardType === 'video_games' && "No items yet"}
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -943,7 +931,29 @@ function SettingsCard({
 
   return (
     <LayoutWithSidebar active="database" section="database">
-      <PageHeader title={`Database - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`} />
+      <PageHeader title={
+        activeTab === "products" ? "Add Products" : 
+        activeTab === "retailers" ? "Add Retailers" : 
+        activeTab === "marketplaces" ? "Add Marketplaces" : 
+        `Database - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`
+      } />
+      
+      {/* Description for each tab */}
+      {activeTab === "products" && (
+        <p className="text-sm text-gray-700 dark:text-slate-300 mb-6 -mt-3">
+          Product database with categories and market values for items not tracked by the API.
+        </p>
+      )}
+      {activeTab === "retailers" && (
+        <p className="text-sm text-gray-700 dark:text-slate-300 mb-6 -mt-3">
+          Retailers where you purchase items for your collection.
+        </p>
+      )}
+      {activeTab === "marketplaces" && (
+        <p className="text-sm text-gray-700 dark:text-slate-300 mb-6 -mt-3">
+          Marketplaces with their fee percentages for selling items.
+        </p>
+      )}
 
       {/* Products Tab Content */}
       {activeTab === "products" && (
@@ -971,122 +981,36 @@ function SettingsCard({
       {/* Retailers Tab Content */}
       {activeTab === "retailers" && (
         <div className="space-y-6">
-          {(!hasAnyNewRows || hasNewRetailerRows) && (
-            <SettingsCard
-              title="Retailers"
-              totalCount={retailers.length}
-              selectedRows={selectedRetailers}
-              newRows={newRetailerRows}
-              hasNewRows={hasNewRetailerRows}
-              toggleAllSelection={toggleAllRetailerSelection}
-              bulkSave={bulkSaveRetailers}
-              bulkDelete={bulkDeleteRetailers}
-              cancelNewRows={() => {
-                setNewRetailerRows([]);
-                setSelectedRetailers(new Set());
-              }}
-              addNewRow={addNewRetailerRow}
-              clearSelection={() => setSelectedRetailers(new Set())}
-              data={retailers}
-              newRowsData={newRetailerRows}
-              onRowToggle={toggleRetailerSelection}
-              renderRow={(retailer) => (
-                <SimpleItemRow
-                  key={retailer.id}
-                  item={retailer}
-                  isSelected={selectedRetailers.has(retailer.id)}
-                  onToggleSelection={() => toggleRetailerSelection(retailer.id)}
-                  onSave={() => refetchRetailers()}
-                  disabled={hasNewRetailerRows}
-                  isCheckboxDisabled={hasNewRetailerRows}
-                />
-              )}
-              renderNewRow={(newRow) => (
-                <NewSimpleRowComponent
-                  key={newRow.id}
-                  row={newRow}
-                  isSelected={selectedRetailers.has(newRow.id)}
-                  onToggleSelection={() => toggleRetailerSelection(newRow.id)}
-                  onSave={(data) => {
-                    setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
-                    setSelectedRetailers(new Set());
-                    refetchRetailers();
-                  }}
-                  onCancel={() => {
-                    setNewRetailerRows(prev => prev.filter(row => row.id !== newRow.id));
-                    setSelectedRetailers(new Set());
-                  }}
-                />
-              )}
-              cardType="retailers"
-              isExpanded={expandedCard === 'retailers' || hasNewRetailerRows}
-              onToggleExpansion={() => {
-                if (hasNewRetailerRows) return; // Prevent collapse when this card has new rows
-                setExpandedCard(expandedCard === 'retailers' ? null : 'retailers');
-              }}
-            />
-          )}
+          <UnifiedRetailersCard
+            retailers={retailers}
+            selectedRetailers={selectedRetailers}
+            newRetailerRows={newRetailerRows}
+            onToggleRetailerSelection={toggleRetailerSelection}
+            onToggleAllRetailersSelection={toggleAllRetailerSelection}
+            onAddNewRetailerRow={addNewRetailerRow}
+            onBulkSave={bulkSaveRetailers}
+            onBulkDelete={bulkDeleteRetailers}
+            onRefetch={refetchRetailers}
+            onRemoveNewRow={removeNewRow}
+          />
         </div>
       )}
 
       {/* Marketplaces Tab Content */}
       {activeTab === "marketplaces" && (
         <div className="space-y-6">
-          {(!hasAnyNewRows || hasNewMarketRows) && (
-            <SettingsCard
-              title="Marketplaces"
-              totalCount={markets.length}
-              selectedRows={selectedMarkets}
-              newRows={newMarketRows}
-              hasNewRows={hasNewMarketRows}
-              toggleAllSelection={toggleAllMarketSelection}
-              bulkSave={bulkSaveMarkets}
-              bulkDelete={bulkDeleteMarkets}
-              cancelNewRows={() => {
-                setNewMarketRows([]);
-                setSelectedMarkets(new Set());
-              }}
-              addNewRow={addNewMarketRow}
-              clearSelection={() => setSelectedMarkets(new Set())}
-              data={markets}
-              newRowsData={newMarketRows}
-              onRowToggle={toggleMarketSelection}
-              renderRow={(market) => (
-                <SimpleItemRow
-                  key={market.id}
-                  item={market}
-                  isSelected={selectedMarkets.has(market.id)}
-                  onToggleSelection={() => toggleMarketSelection(market.id)}
-                  onSave={() => refetchMarkets()}
-                  disabled={hasNewMarketRows}
-                  isCheckboxDisabled={hasNewMarketRows}
-                />
-              )}
-              renderNewRow={(newRow) => (
-                <NewSimpleRowComponent
-                  key={newRow.id}
-                  row={newRow}
-                  isSelected={selectedMarkets.has(newRow.id)}
-                  onToggleSelection={() => toggleMarketSelection(newRow.id)}
-                  onSave={(data) => {
-                    setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
-                    setSelectedMarkets(new Set());
-                    refetchMarkets();
-                  }}
-                  onCancel={() => {
-                    setNewMarketRows(prev => prev.filter(row => row.id !== newRow.id));
-                    setSelectedMarkets(new Set());
-                  }}
-                />
-              )}
-              cardType="markets"
-              isExpanded={expandedCard === 'markets' || hasNewMarketRows}
-              onToggleExpansion={() => {
-                if (hasNewMarketRows) return; // Prevent collapse when this card has new rows
-                setExpandedCard(expandedCard === 'markets' ? null : 'markets');
-              }}
-            />
-          )}
+          <UnifiedMarketplacesCard
+            marketplaces={markets}
+            selectedMarketplaces={selectedMarkets}
+            newMarketplaceRows={newMarketRows}
+            onToggleMarketplaceSelection={toggleMarketSelection}
+            onToggleAllMarketplacesSelection={toggleAllMarketSelection}
+            onAddNewMarketplaceRow={addNewMarketRow}
+            onBulkSave={bulkSaveMarkets}
+            onBulkDelete={bulkDeleteMarkets}
+            onRefetch={refetchMarkets}
+            onRemoveNewRow={removeNewRow}
+          />
         </div>
       )}
     </LayoutWithSidebar>
