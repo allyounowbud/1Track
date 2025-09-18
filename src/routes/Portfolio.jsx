@@ -400,7 +400,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
   return (
     <div className="space-y-6 overflow-x-hidden">
       {/* Portfolio Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-4 sm:mb-0">
         <div>
           <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-slate-100">Portfolio Overview</h1>
           <div className="flex items-center gap-2 sm:gap-4 mt-1">
@@ -456,7 +456,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 p-2 sm:p-4 -m-2 sm:-m-4">
         <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Inventory</p>
               <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">{formatNumber(metrics.totalItems)}</p>
@@ -468,12 +468,12 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         </div>
 
         <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Total Cost</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">{centsToStr(metrics.totalCost)}</p>
+               <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">${centsToStr(metrics.totalCost)}</p>
             </div>
-            <div className="p-2 sm:p-3 bg-red-500/20 rounded-xl">
+            <div className="p-2 sm:p-3 bg-gray-500/20 rounded-xl">
               <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
@@ -483,15 +483,15 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         </div>
 
         <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
               <p className="text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Market Value</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-slate-100">{centsToStr(metrics.estimatedMarketValue)}</p>
+               <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-slate-100">${centsToStr(metrics.estimatedMarketValue)}</p>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">
                 +0.0%
               </p>
             </div>
-            <div className="p-2 sm:p-3 bg-blue-500/20 rounded-xl">
+            <div className="p-2 sm:p-3 bg-gray-500/20 rounded-xl">
               <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zM8 6a2 2 0 114 0v1H8V6zm4 10a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
               </svg>
@@ -500,17 +500,17 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         </div>
 
         <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
               <p className="text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Total Profit</p>
-              <p className={`text-lg sm:text-2xl font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {centsToStr(metrics.totalProfit)}
-              </p>
+               <p className={`text-lg sm:text-2xl font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                 ${centsToStr(metrics.totalProfit)}
+               </p>
               <p className={`text-xs sm:text-sm ${metrics.profitPercentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {metrics.profitPercentage >= 0 ? '+' : ''}{metrics.profitPercentage.toFixed(1)}%
               </p>
             </div>
-            <div className={`p-2 sm:p-3 rounded-xl ${metrics.totalProfit >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+            <div className="p-2 sm:p-3 bg-gray-500/20 rounded-xl">
               {metrics.totalProfit >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
             </div>
           </div>
@@ -567,30 +567,37 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
             }
             
             return (
-              <div key={order.id} className="py-3 border-b border-gray-200 dark:border-slate-800 last:border-b-0">
+              <div 
+                key={order.id} 
+                className="py-3 border-b border-gray-200 dark:border-slate-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                onClick={() => {
+                  // Navigate to order book with this order highlighted
+                  window.location.href = `/orderbook?highlight=${order.id}`;
+                }}
+              >
                 {/* Top Row: Title and Status */}
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-bold text-gray-900 dark:text-slate-100 text-base sm:text-lg">
                     {itemName}
                   </h3>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor}`}>
-                    {statusText}
-                  </span>
-                </div>
-                
-                {/* Second Row: Price and Set Name */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor}`}>
+                      {statusText}
+                    </span>
                     <p className={`font-semibold text-sm sm:text-base ${priceColor}`}>
-                      {displayPrice}
+                      ${displayPrice}
                     </p>
-                    {itemSet && (
-                      <p className="text-gray-600 dark:text-slate-400 text-sm">
-                        {itemSet}
-                      </p>
-                    )}
                   </div>
                 </div>
+                
+                {/* Second Row: Set Name */}
+                {itemSet && (
+                  <div className="mb-3">
+                    <p className="text-gray-600 dark:text-slate-400 text-sm">
+                      {itemSet}
+                    </p>
+                  </div>
+                )}
                 
                 {/* Data Grid - Only for Sales */}
                 {isSale && (
@@ -598,13 +605,13 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
                     <div>
                       <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Buy Price</p>
                       <p className="font-semibold text-red-600 dark:text-red-400 text-sm sm:text-base">
-                        {centsToStr(order.buy_price_cents)}
+                        ${centsToStr(order.buy_price_cents)}
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Profit/Loss</p>
                       <p className={`font-semibold text-sm sm:text-base ${profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {profitLoss >= 0 ? '+' : ''}{centsToStr(profitLoss)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(1)}%)
+                        {profitLoss >= 0 ? '+' : ''}${centsToStr(profitLoss)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(1)}%)
                       </p>
                     </div>
                   </div>
