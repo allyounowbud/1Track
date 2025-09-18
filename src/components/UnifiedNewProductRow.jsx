@@ -6,40 +6,61 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
   const [name, setName] = useState("");
   const [marketValue, setMarketValue] = useState("");
   const [category, setCategory] = useState(row.category || 'Collectibles');
-  const [newCategory, setNewCategory] = useState("");
-  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
+  const [categoryInput, setCategoryInput] = useState(row.category || 'Collectibles');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredCategories, setFilteredCategories] = useState([]);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const categories = [
-    ...existingCategories.map(cat => ({ value: cat, label: cat })),
-    { value: 'add_new', label: '+ Add new category...' }
-  ];
 
   useEffect(() => {
     // When a new row is added, ensure the category is set from the row prop
     if (row.category && row.category !== category) {
       setCategory(row.category);
+      setCategoryInput(row.category);
     }
   }, [row.category]);
 
-  const handleCategoryChange = (e) => {
-    const selectedValue = e.target.value;
-    if (selectedValue === 'add_new') {
-      setIsAddingNewCategory(true);
-      setNewCategory("");
+  // Filter categories based on input
+  useEffect(() => {
+    if (categoryInput.trim() === '') {
+      setFilteredCategories(existingCategories);
     } else {
-      setIsAddingNewCategory(false);
-      setCategory(selectedValue);
+      const filtered = existingCategories.filter(cat => 
+        cat.toLowerCase().includes(categoryInput.toLowerCase())
+      );
+      setFilteredCategories(filtered);
+    }
+  }, [categoryInput, existingCategories]);
+
+  const handleCategoryInputChange = (e) => {
+    const value = e.target.value;
+    setCategoryInput(value);
+    setShowDropdown(true);
+  };
+
+  const handleCategorySelect = (selectedCategory) => {
+    setCategory(selectedCategory);
+    setCategoryInput(selectedCategory);
+    setShowDropdown(false);
+  };
+
+  const handleAddNewCategory = () => {
+    const newCategoryName = categoryInput.trim();
+    if (newCategoryName) {
+      setCategory(newCategoryName);
+      setCategoryInput(newCategoryName);
+      setShowDropdown(false);
     }
   };
 
-  const handleNewCategorySave = () => {
-    if (newCategory.trim()) {
-      setCategory(newCategory.trim());
-      setIsAddingNewCategory(false);
-      setNewCategory("");
-    }
+  const handleInputFocus = () => {
+    setShowDropdown(true);
+  };
+
+  const handleInputBlur = () => {
+    // Delay hiding dropdown to allow clicks on dropdown items
+    setTimeout(() => setShowDropdown(false), 150);
   };
 
   const handleSave = async () => {
@@ -96,39 +117,57 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
           />
         </div>
         
-        <div onClick={(e) => e.stopPropagation()} className="min-w-0 overflow-hidden">
-          <select
-            value={category}
-            onChange={handleCategoryChange}
-            className="new-product-select w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none cursor-pointer"
+        <div onClick={(e) => e.stopPropagation()} className="min-w-0 overflow-hidden relative">
+          <input
+            type="text"
+            value={categoryInput}
+            onChange={handleCategoryInputChange}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            placeholder="Type to search categories..."
+            className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
             onClick={(e) => e.stopPropagation()}
-          >
-            {categories.map(cat => (
-              <option key={cat.value} value={cat.value} className="bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-slate-100">
-                {cat.label}
-              </option>
-            ))}
-          </select>
-          {isAddingNewCategory && (
-            <div className="mt-2 flex gap-2">
-              <input
-                type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                placeholder="Enter new category name"
-                className="flex-1 h-8 px-2 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
-                onClick={(e) => e.stopPropagation()}
-                onKeyPress={(e) => e.key === 'Enter' && handleNewCategorySave()}
-              />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleNewCategorySave();
-                }}
-                className="px-3 h-8 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Add
-              </button>
+          />
+          
+          {/* Dropdown */}
+          {showDropdown && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
+              {/* Existing categories */}
+              {filteredCategories.map(cat => (
+                <div
+                  key={cat}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCategorySelect(cat);
+                  }}
+                  className="px-3 py-2 text-sm text-gray-900 dark:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer first:rounded-t-xl last:rounded-b-xl"
+                >
+                  {cat}
+                </div>
+              ))}
+              
+              {/* Add new category option */}
+              {categoryInput.trim() && !existingCategories.some(cat => cat.toLowerCase() === categoryInput.toLowerCase()) && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddNewCategory();
+                  }}
+                  className="px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer border-t border-gray-200 dark:border-slate-700 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  + Add "{categoryInput.trim()}"
+                </div>
+              )}
+              
+              {/* No results */}
+              {filteredCategories.length === 0 && !categoryInput.trim() && (
+                <div className="px-3 py-2 text-sm text-gray-500 dark:text-slate-400">
+                  No categories found
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -194,40 +233,60 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
         
         <div>
           <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Category</label>
-          <select
-            value={category}
-            onChange={handleCategoryChange}
-            className="new-product-select w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-pointer"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {categories.map(cat => (
-              <option key={cat.value} value={cat.value} className="bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-slate-100">
-                {cat.label}
-              </option>
-            ))}
-          </select>
-          {isAddingNewCategory && (
-            <div className="mt-2 flex gap-2">
-              <input
-                type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                placeholder="Enter new category name"
-                className="flex-1 h-8 px-2 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
-                onClick={(e) => e.stopPropagation()}
-                onKeyPress={(e) => e.key === 'Enter' && handleNewCategorySave()}
-              />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleNewCategorySave();
-                }}
-                className="px-3 h-8 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-          )}
+          <div className="relative">
+            <input
+              type="text"
+              value={categoryInput}
+              onChange={handleCategoryInputChange}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
+              placeholder="Type to search categories..."
+              className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
+              onClick={(e) => e.stopPropagation()}
+            />
+            
+            {/* Dropdown */}
+            {showDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
+                {/* Existing categories */}
+                {filteredCategories.map(cat => (
+                  <div
+                    key={cat}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCategorySelect(cat);
+                    }}
+                    className="px-3 py-2 text-sm text-gray-900 dark:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer first:rounded-t-xl last:rounded-b-xl"
+                  >
+                    {cat}
+                  </div>
+                ))}
+                
+                {/* Add new category option */}
+                {categoryInput.trim() && !existingCategories.some(cat => cat.toLowerCase() === categoryInput.toLowerCase()) && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddNewCategory();
+                    }}
+                    className="px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer border-t border-gray-200 dark:border-slate-700 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    + Add "{categoryInput.trim()}"
+                  </div>
+                )}
+                
+                {/* No results */}
+                {filteredCategories.length === 0 && !categoryInput.trim() && (
+                  <div className="px-3 py-2 text-sm text-gray-500 dark:text-slate-400">
+                    No categories found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         
         <div>
