@@ -755,7 +755,7 @@ function Toggle({ value, onChange, label }) {
     >
       <span
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-          value ? "bg-indigo-600" : "bg-slate-700"
+          value ? "bg-indigo-600" : "bg-gray-300 dark:bg-slate-700"
         }`}
       >
         <span

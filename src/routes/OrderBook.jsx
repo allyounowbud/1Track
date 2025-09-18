@@ -140,17 +140,23 @@ export default function OrderBook() {
       .tw-date::-webkit-datetime-edit, .tw-date::-webkit-datetime-edit-fields-wrapper { padding:0; line-height:1.25rem; }
       .tw-date::-webkit-calendar-picker-indicator { opacity:.9; }
       
-      /* Custom checkbox styling for dark theme */
+      /* Custom checkbox styling for both light and dark themes */
       input[type="checkbox"] {
         -webkit-appearance: none;
         appearance: none;
-        background-color: #1e293b; /* slate-800 */
-        border: 1px solid #475569; /* slate-600 */
+        background-color: white;
+        border: 1px solid #d1d5db; /* gray-300 */
         border-radius: 0.25rem;
         width: 1rem;
         height: 1rem;
         position: relative;
         cursor: pointer;
+      }
+      
+      /* Dark mode checkbox styling */
+      .dark input[type="checkbox"] {
+        background-color: #1e293b; /* slate-800 */
+        border: 1px solid #475569; /* slate-600 */
       }
       
       input[type="checkbox"]:checked {
@@ -196,9 +202,18 @@ export default function OrderBook() {
         height: 2.5rem !important;
       }
       
-      /* Ensure new order selects maintain their styling on all screen sizes */
+      /* Ensure new order selects maintain their styling on all screen sizes - light mode */
       .new-order-select:focus {
-        background: rgb(15 23 42 / 0.6) !important;
+        background: rgb(249 250 251 / 0.8) !important; /* gray-50 */
+        border: 1px solid rgb(99 102 241) !important;
+        outline: none !important;
+        box-shadow: none !important;
+        border-radius: 0.75rem !important;
+      }
+      
+      /* Dark mode new order select focus */
+      .dark .new-order-select:focus {
+        background: rgb(15 23 42 / 0.6) !important; /* slate-900 */
         border: 1px solid rgb(99 102 241) !important;
         outline: none !important;
         box-shadow: none !important;
@@ -214,8 +229,13 @@ export default function OrderBook() {
         border-radius: 0 !important;
       }
       
-      /* Make date picker icons more visible */
+      /* Date picker icons - light mode */
       input[type="date"]::-webkit-calendar-picker-indicator {
+        opacity: 0.7;
+      }
+      
+      /* Date picker icons - dark mode */
+      .dark input[type="date"]::-webkit-calendar-picker-indicator {
         filter: invert(1);
         opacity: 0.7;
       }
@@ -812,7 +832,7 @@ function UnifiedOrderView({
           </div>
           
           {/* Page break line */}
-          <div className="border-b border-slate-700 mb-5"></div>
+          <div className="border-b border-gray-200 dark:border-slate-700 mb-5"></div>
         </div>
       )}
 
@@ -858,7 +878,7 @@ function UnifiedOrderView({
 function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
   if (!grouped.length) {
     return (
-      <div className="px-4 py-8 text-center text-slate-400">
+      <div className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
         No orders found. Click{" "}
         <button
           onClick={addNewRow}
@@ -909,7 +929,7 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
 function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted, selectedRows, onToggleRowSelection, setSelectedRows, orderRowRefs, formStates, setFormStates, addNewRow }) {
   if (!orders.length) {
     return (
-      <div className="px-4 py-8 text-center text-slate-400">
+      <div className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
         No orders found. Click{" "}
         <button
           onClick={addNewRow}
@@ -932,18 +952,18 @@ function UnifiedListView({ orders, items, retailers, markets, onSaved, onDeleted
   return (
     <>
       {/* Table Header - Hidden on mobile */}
-      <div className="hidden lg:grid grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-slate-700 w-full py-2">
+      <div className="hidden lg:grid grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_73px_73px_132px_0.68fr_73px] gap-1 items-center border-b border-gray-200 dark:border-slate-700 w-full py-2">
         <div className="w-6"></div>
-        <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Item</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Market $</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Order date</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Item</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Profile</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Retailer</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Buy $</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Sale $</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Market $</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Sale date</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Marketplace</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Ship $</div>
       </div>
 
       {/* Table Body */}
@@ -982,7 +1002,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
     <div className={`border rounded-xl overflow-visible transition-all ${
       allRowsSelected 
         ? 'border-indigo-500 bg-indigo-500/10' 
-        : 'border-slate-800'
+        : 'border-gray-200 dark:border-slate-800'
     }`}>
       {/* Header Row */}
       <div 
@@ -993,7 +1013,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
         } ${
           allRowsSelected
             ? 'bg-indigo-500/20 hover:bg-indigo-500/30'
-            : 'bg-slate-800/30 hover:bg-slate-800/50'
+            : 'bg-gray-100 dark:bg-slate-800/30 hover:bg-gray-200 dark:hover:bg-slate-800/50'
         }`}
         onClick={() => {
           // Prevent collapsing when there are new orders
@@ -1026,40 +1046,40 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
                 setSelectedRows(newSelected);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
+              className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all flex-shrink-0 accent-indigo-500"
             />
           )}
           <div className={title === "New Order" ? "ml-0" : ""}>
-            <div className="text-lg font-semibold text-slate-100">{title}</div>
-            <div className="text-sm text-slate-400">
+            <div className="text-lg font-semibold text-gray-900 dark:text-slate-100">{title}</div>
+            <div className="text-sm text-gray-600 dark:text-slate-400">
               {title === "New Order" ? "Click save to add new order" : `${count} orders`}
             </div>
           </div>
         </div>
         {!isNewOrderSection && (
-          <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${effectiveOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-5 h-5 text-gray-600 dark:text-slate-400 transition-transform ${effectiveOpen ? 'rotate-180' : ''}`} />
         )}
       </div>
 
       {/* Content */}
       {effectiveOpen && (
-        <div className="p-4 border-t border-slate-700">
+        <div className="p-4 border-t border-gray-200 dark:border-slate-700">
           {/* Header Row for Orders */}
-          <div className={`hidden lg:grid gap-1 items-center border-b border-slate-700 w-full py-2 ${
+          <div className={`hidden lg:grid gap-1 items-center border-b border-gray-200 dark:border-slate-700 w-full py-2 ${
             title === "New Order"
-              ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]' 
+              ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]'
               : 'grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]'
           }`}>
             {title !== "New Order" && <div className="w-6"></div>}
-            <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
-            <div className="text-xs text-slate-300 font-medium px-3">Item</div>
-            <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
-            <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
-            <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
-            <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
-            <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
-            <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
-            <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
+            <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Order date</div>
+            <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Item</div>
+            <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Profile</div>
+            <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Retailer</div>
+            <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Buy $</div>
+            <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Sale date</div>
+            <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Sale $</div>
+            <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Marketplace</div>
+            <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Ship $</div>
           </div>
 
           {/* Order Rows */}
@@ -1092,7 +1112,7 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
   if (!orders.length) {
     return (
       <div className={`${pageCard}`}>
-        <div className="px-4 py-8 text-center text-slate-400">
+        <div className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
           No orders found. Click{" "}
           <button
             onClick={addNewRow}
@@ -1116,26 +1136,26 @@ function ListView({ orders, items, retailers, markets, onSaved, onDeleted, selec
   return (
     <div className={`${pageCard}`}>
       {/* Table Header - Hidden on mobile */}
-      <div className={`hidden lg:grid gap-1 items-center border-b border-slate-700 w-full py-2 ${
+      <div className={`hidden lg:grid gap-1 items-center border-b border-gray-200 dark:border-slate-700 w-full py-2 ${
         newRows.length > 0 
-          ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]' 
+          ? 'grid-cols-[132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]'
           : 'grid-cols-[auto_132px_2fr_0.68fr_0.68fr_73px_132px_73px_0.68fr_73px]'
       }`}>
         {newRows.length === 0 && <div className="w-6"></div>}
-        <div className="text-xs text-slate-300 font-medium px-3">Order date</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Item</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Profile</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Retailer</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Buy $</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Sale date</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Sale $</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Marketplace</div>
-        <div className="text-xs text-slate-300 font-medium px-3">Ship $</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Order date</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Item</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Profile</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Retailer</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Buy $</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Sale date</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Sale $</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Marketplace</div>
+        <div className="text-xs text-gray-600 dark:text-slate-300 font-medium px-3">Ship $</div>
       </div>
 
       {/* Mobile Header - Show on small screens */}
-      <div className="lg:hidden flex items-center justify-between mb-4 pb-3 border-b border-slate-700">
-        <div className="text-sm font-semibold text-slate-400">
+      <div className="lg:hidden flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-slate-700">
+        <div className="text-sm font-semibold text-gray-600 dark:text-slate-400">
           Orders ({orders.length})
         </div>
       </div>
@@ -1267,7 +1287,7 @@ function DayCard({
                       setSelectedRows(newSelected);
                     }
                   }}
-                  className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
+                  className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
                 />
                 <span className="text-xs text-slate-400">Select all</span>
               </div>
@@ -1581,7 +1601,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
                 e.stopPropagation();
                 onToggleSelection();
               }}
-              className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
+              className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-400 focus:ring-2 transition-all accent-indigo-500"
             />
           </div>
         )}
@@ -1778,7 +1798,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
               onChange={(e) => setSalePrice(e.target.value)}
               onClick={(e) => e.stopPropagation()}
               placeholder={formState.salePrice && formState.salePrice !== "0" ? "" : "0.00"}
-              className={`w-full h-10 appearance-none bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.salePrice && formState.salePrice !== "0" ? 'text-slate-100' : 'text-slate-500'}`}
+              className={`w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm placeholder-gray-500 dark:placeholder-slate-400 outline-none focus:border-indigo-500 ${formState.salePrice && formState.salePrice !== "0" ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-500'}`}
             />
           </div>
 
@@ -1825,7 +1845,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       )}
       
       {/* Mobile-only ghost text for row selection */}
-      <div className="lg:hidden text-xs text-slate-500 text-center mt-2 cursor-pointer select-none">
+      <div className="lg:hidden text-xs text-gray-500 dark:text-slate-500 text-center mt-2 cursor-pointer select-none">
         {isSelected ? "Selected" : "Click to select row"}
       </div>
     </div>

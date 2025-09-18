@@ -285,7 +285,7 @@ export default function ProductSearchDropdown({
       {isOpen && (searchResults.length > 0 || error || isSearching) && createPortal(
         <div 
           data-dropdown-portal
-          className="fixed z-[999999] bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          className="fixed z-[999999] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
           style={{ 
             position: 'fixed',
             top: `${dropdownPosition.top}px`,
@@ -295,19 +295,19 @@ export default function ProductSearchDropdown({
           }}
         >
           {error && (
-            <div className="px-3 py-2 text-sm text-red-400 border-b border-gray-300 dark:border-slate-700">
+            <div className="px-3 py-2 text-sm text-red-400 border-b border-gray-200 dark:border-slate-700">
               {error}
             </div>
           )}
           
           {isSearching && (
-            <div className="px-3 py-2 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-300 dark:border-slate-700">
+            <div className="px-3 py-2 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700">
               Searching...
             </div>
           )}
           
           {searchResults.length === 0 && !isSearching && !error && searchQuery.trim().length >= 2 && (
-            <div className="px-3 py-2 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-300 dark:border-slate-700">
+            <div className="px-3 py-2 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700">
               No products found for "{searchQuery}"
             </div>
           )}
@@ -316,10 +316,10 @@ export default function ProductSearchDropdown({
             <div
               key={product.product_id}
               onClick={() => handleProductSelect(product)}
-              className={`px-3 py-2 cursor-pointer border-b border-gray-300 dark:border-slate-700 last:border-b-0 transition-colors ${
+              className={`px-3 py-2 cursor-pointer border-b border-gray-200 dark:border-slate-700 last:border-b-0 transition-colors ${
                 index === selectedIndex 
-                  ? 'bg-indigo-600/20 text-indigo-200' 
-                  : 'hover:bg-slate-700 text-slate-200'
+                  ? 'bg-indigo-100 dark:bg-indigo-600/20 text-indigo-800 dark:text-indigo-200' 
+                  : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-900 dark:text-slate-200'
               }`}
             >
               <div className="flex justify-between items-start">
@@ -327,7 +327,7 @@ export default function ProductSearchDropdown({
                   <div className="text-sm font-medium truncate">
                     {product.product_name}
                     {isSealedProduct(product.product_name) && (
-                      <span className="ml-1 text-xs bg-green-600/20 text-green-300 px-1 rounded">
+                      <span className="ml-1 text-xs bg-green-100 dark:bg-green-600/20 text-green-700 dark:text-green-300 px-1 rounded">
                         Sealed
                       </span>
                     )}
@@ -339,7 +339,7 @@ export default function ProductSearchDropdown({
                   )}
                 </div>
                 <div className="ml-2 text-right flex-shrink-0">
-                  <div className="text-xs font-medium text-green-400">
+                  <div className="text-xs font-medium text-green-600 dark:text-green-400">
                     {formatPrice(product.loose_price)}
                   </div>
                 </div>
@@ -349,10 +349,10 @@ export default function ProductSearchDropdown({
           
           {/* Show More button when there are more than 20 results */}
           {searchResults.length > 20 && !showAllResults && (
-            <div className="px-3 py-2 border-t border-gray-300 dark:border-slate-700">
+            <div className="px-3 py-2 border-t border-gray-200 dark:border-slate-700">
               <button
                 onClick={() => setShowAllResults(true)}
-                className="w-full text-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+                className="w-full text-center text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
               >
                 Show {searchResults.length - 20} more results ({searchResults.length} total)
               </button>
@@ -361,10 +361,10 @@ export default function ProductSearchDropdown({
           
           {/* Show Less button when showing all results */}
           {searchResults.length > 20 && showAllResults && (
-            <div className="px-3 py-2 border-t border-gray-300 dark:border-slate-700">
+            <div className="px-3 py-2 border-t border-gray-200 dark:border-slate-700">
               <button
                 onClick={() => setShowAllResults(false)}
-                className="w-full text-center text-sm text-gray-600 dark:text-slate-400 hover:text-slate-300 transition-colors"
+                className="w-full text-center text-sm text-gray-600 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
               >
                 Show less (top 20 results)
               </button>

@@ -17,6 +17,23 @@ All notable changes to this project will be documented in this file.
 - **Instant Theme Switching**: Removed transition animations from theme changes to prevent jarring visual effects where light and dark elements appear simultaneously. Theme changes now switch instantly for a cleaner, more professional experience
 - **Navigation Bar Flicker Fix**: Eliminated flicker in the navigation bar during theme changes by removing transition animations from the ThemeToggle component and navigation items, ensuring smooth and instant theme switching
 - **Order Book Light Mode Fix**: Completely updated the Order Book page to have consistent light mode styling, fixing the dark action buttons, dark expanded order details card, and all input fields to use proper light/dark theme-aware colors
+- **Order Book Complete Light Mode Support**: Fixed all remaining hardcoded dark mode styles in the Order Book component including:
+  - **Checkbox Styling**: Updated all checkboxes to use proper light/dark theme colors (white/gray-300 for light mode, slate-800/slate-600 for dark mode)
+  - **Table Headers**: Fixed all table header text colors to use gray-600 for light mode and slate-300 for dark mode
+  - **Border Colors**: Updated all border colors to use gray-200 for light mode and slate-700/800 for dark mode
+  - **Background Colors**: Fixed grouped view backgrounds to use gray-100 for light mode and slate-800/30 for dark mode
+  - **Text Colors**: Updated all text colors to use proper light/dark theme variants (gray-900/gray-600 for light mode, slate-100/slate-400 for dark mode)
+  - **Input Field Styling**: Fixed hardcoded dark mode input field that was missing light mode styling
+  - **CSS Custom Styles**: Updated all custom CSS rules to support both light and dark modes with proper theme detection
+- **Product Search Dropdown Light Mode**: Fixed the search dropdown styling for better contrast in light mode:
+  - **Background**: Changed from gray-100 to white for better contrast
+  - **Text Colors**: Updated item names and descriptions to use gray-900 for light mode and slate-200 for dark mode
+  - **Hover States**: Fixed hover backgrounds to use gray-100 for light mode and slate-700 for dark mode
+  - **Selection States**: Updated selected item styling to use indigo-100/indigo-800 for light mode
+  - **Sealed Pills**: Fixed "Sealed" indicator pills to use green-100/green-700 for light mode
+  - **Price Text**: Updated price colors to use green-600 for light mode and green-400 for dark mode
+  - **Border Colors**: Changed all borders to use gray-200 for light mode and slate-700 for dark mode
+- **Quick Add Sold Toggle Light Mode**: Fixed the sold toggle switch to use proper light mode colors (gray-300 for off state instead of hardcoded slate-700)
 - **Portfolio Chart Mobile Responsiveness**: Fixed chart filter buttons on mobile to prevent horizontal scroll by making them more responsive with smaller spacing, flexible sizing, and proper overflow handling
 - **Portfolio Summary Cards Mobile Optimization**: Made value text sizes responsive (text-lg on mobile, text-2xl on larger screens) and reduced card padding on mobile for better fit and readability on small screens
 - **Portfolio Value Layout Improvement**: Moved the green change indicator (+$520.00 (+260.0%)) to the right side of the portfolio value, keeping both values on the same line instead of stacking vertically
