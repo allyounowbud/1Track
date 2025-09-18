@@ -70,7 +70,7 @@ export default function UnifiedProductsCard({
     <div className="w-full">
       {/* Header with Selection Count and Actions */}
       {!hasNewRows && totalProducts > 0 && (
-        <div className="w-full border border-gray-200 dark:border-slate-700 rounded-xl p-4 mb-4 bg-gray-50 dark:bg-slate-800/50">
+        <div className="w-full rounded-xl p-4 mb-4 bg-gray-50 dark:bg-slate-800/50">
           <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
             {/* Left side - Selection Count */}
             <div className="flex-1">
@@ -185,7 +185,7 @@ export default function UnifiedProductsCard({
               <div key={category.key} className="w-full">
                 {/* Category Header */}
                 <div 
-                  className="flex items-center justify-between py-3 px-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors border-b border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800/50"
+                  className="flex items-center justify-between py-3 px-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors bg-gray-50 dark:bg-slate-800/50"
                   onClick={() => onToggleCategoryExpansion(category.key)}
                 >
                   <div className="flex items-center gap-3">
