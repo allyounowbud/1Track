@@ -231,9 +231,9 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
 
   return (
     <div 
-      className={`w-full border border-gray-200 dark:border-slate-700 rounded-xl transition cursor-pointer ${
+      className={`w-full border border-gray-200 dark:border-slate-700 rounded-xl transition cursor-pointer mb-2 ${
         isSelected
-          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 dark:border-indigo-400' 
+          ? 'border-indigo-500' 
           : 'hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/30'
       }`}
       onClick={onToggleSelection}

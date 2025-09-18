@@ -43,21 +43,39 @@ export default function UnifiedProductsCard({
     const categorySelectedCount = getCategorySelectedCount(category);
     const isFullySelected = categorySelectedCount === categoryProducts.length;
     
+    // Create a new selection set
+    const newSelected = new Set(selectedProducts);
+    
     if (isFullySelected) {
       // Deselect all products in this category
       categoryProducts.forEach(product => {
-        if (selectedProducts.has(product.id)) {
-          onToggleProductSelection(product.id);
-        }
+        newSelected.delete(product.id);
       });
     } else {
       // Select all products in this category
       categoryProducts.forEach(product => {
-        if (!selectedProducts.has(product.id)) {
-          onToggleProductSelection(product.id);
-        }
+        newSelected.add(product.id);
       });
     }
+    
+    // Update the selection by toggling each product individually
+    // This ensures the parent component's state is properly updated
+    const currentSelected = new Set(selectedProducts);
+    const toToggle = [];
+    
+    // Find products that need to be toggled
+    categoryProducts.forEach(product => {
+      const wasSelected = currentSelected.has(product.id);
+      const shouldBeSelected = newSelected.has(product.id);
+      if (wasSelected !== shouldBeSelected) {
+        toToggle.push(product.id);
+      }
+    });
+    
+    // Toggle each product that needs to change
+    toToggle.forEach(productId => {
+      onToggleProductSelection(productId);
+    });
   };
 
   const hasAnySelection = selectedProducts.size > 0;
@@ -126,7 +144,7 @@ export default function UnifiedProductsCard({
       {!hasNewRows && totalProducts > 0 && (
         <div className="w-full">
           {/* Bulk Actions Row - positioned like first category card */}
-          <div className="w-full rounded-xl p-4 mb-3 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+          <div className="w-full rounded-xl p-4 mb-3 bg-transparent border border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
               {/* Left side - Selection Count */}
               <div className="flex-1">
@@ -208,7 +226,7 @@ export default function UnifiedProductsCard({
                 <div 
                    className={`flex items-center justify-between py-3 px-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors ${
                      !isExpanded 
-                       ? 'border border-gray-200 dark:border-slate-700 rounded-xl mb-3 bg-white dark:bg-slate-800/50' 
+                       ? 'border border-gray-200 dark:border-slate-700 rounded-xl mb-3 bg-transparent' 
                        : 'bg-gray-50 dark:bg-transparent'
                    }`}
                   onClick={() => onToggleCategoryExpansion(category.key)}
