@@ -36,10 +36,11 @@ All notable changes to this project will be documented in this file.
 - **Quick Add Sold Toggle Light Mode**: Fixed the sold toggle switch to use proper light mode colors (gray-300 for off state instead of hardcoded slate-700)
 - **Portfolio Chart Mobile Optimization**: Enhanced the portfolio chart for mobile and small screens:
   - **Full Width Chart**: Chart now extends to the very edges of the screen on mobile (no left/right padding)
-  - **Hidden Y-Axis Labels**: Y-axis values are hidden on mobile to maximize chart space
+  - **Hidden Axis Labels**: Both Y-axis and X-axis values are hidden on mobile to maximize chart space
   - **Responsive Padding**: Dynamic padding adjustment based on screen size (768px breakpoint)
-  - **Smaller X-Axis Font**: Reduced font size for date labels on mobile for better fit
+  - **Container Expansion**: Chart container expands beyond screen edges on mobile (-mx-4) for true edge-to-edge effect
   - **Edge-to-Edge Design**: Chart line now appears to run right off both sides of the screen on mobile
+  - **Clean Mobile View**: No axis labels or text clutter on mobile, just the pure chart visualization
 - **Portfolio Chart Mobile Responsiveness**: Fixed chart filter buttons on mobile to prevent horizontal scroll by making them more responsive with smaller spacing, flexible sizing, and proper overflow handling
 - **Portfolio Summary Cards Mobile Optimization**: Made value text sizes responsive (text-lg on mobile, text-2xl on larger screens) and reduced card padding on mobile for better fit and readability on small screens
 - **Portfolio Value Layout Improvement**: Moved the green change indicator (+$520.00 (+260.0%)) to the right side of the portfolio value, keeping both values on the same line instead of stacking vertically
