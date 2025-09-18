@@ -235,7 +235,6 @@ export default function QuickAdd() {
 
   // Market data state
   const [selectedProductMarketData, setSelectedProductMarketData] = useState(null);
-  const [marketDataLoading, setMarketDataLoading] = useState(false);
 
   /* -------------------------- derived lists (names) ------------------------- */
   const itemNames = useMemo(() => {
@@ -524,7 +523,6 @@ export default function QuickAdd() {
                   setItemName(displayName);
                   
                   // Fetch market data for the selected product
-                  setMarketDataLoading(true);
                   try {
                     const marketData = await getProductMarketData(product.product_name);
                     setSelectedProductMarketData(marketData);
@@ -536,8 +534,6 @@ export default function QuickAdd() {
                   } catch (error) {
                     console.error('Error fetching market data:', error);
                     setSelectedProductMarketData(null);
-                  } finally {
-                    setMarketDataLoading(false);
                   }
                 }}
               />
@@ -609,10 +605,7 @@ export default function QuickAdd() {
                 className={inputBase}
               />
               {/* Market Price Suggestion */}
-              {marketDataLoading && (
-                <p className="text-xs text-slate-500 mt-1">Loading market data...</p>
-              )}
-              {selectedProductMarketData && !marketDataLoading && (
+              {selectedProductMarketData && (
                 <div className="mt-2 p-2 bg-gray-100 dark:bg-slate-800/50 rounded-lg border border-slate-700">
                   <p className="text-xs text-gray-600 dark:text-slate-400 mb-1">Market Price Suggestion:</p>
                   <div className="flex items-center gap-2">

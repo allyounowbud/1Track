@@ -445,7 +445,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
                        <ChartIcon />
                        <p className="mt-2">No data available for selected period</p>
                        <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-slate-500 mt-1">
-                         {portfolioItems.length === 0 ? 'No portfolio items found' : 'Loading market data...'}
+                         {portfolioItems.length === 0 ? 'No portfolio items found' : 'No data available'}
                        </p>
                      </div>
                    </div>
@@ -1381,7 +1381,6 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
 export default function Portfolio() {
   const location = useLocation();
   const [marketData, setMarketData] = useState({});
-  const [isLoadingMarketData, setIsLoadingMarketData] = useState(false);
 
   // Determine current tab from URL path
   const currentTab = useMemo(() => {
@@ -1465,44 +1464,36 @@ export default function Portfolio() {
         // All data is available from background cache
         console.log('Portfolio: All market data loaded from background cache');
         setMarketData(backgroundData);
-        setIsLoadingMarketData(false);
       } else if (backgroundDataCount > 0) {
         // Some data is available, use it and fetch the rest
         console.log(`Portfolio: ${backgroundDataCount}/${uniqueProductNames.length} products loaded from background cache`);
         setMarketData(backgroundData);
-        setIsLoadingMarketData(true);
         
         getBatchMarketData(uniqueProductNames)
           .then(data => {
             console.log('Portfolio: Received complete market data:', data);
             setMarketData(data);
-            setIsLoadingMarketData(false);
           })
           .catch(error => {
             console.error('Error fetching market data:', error);
             setMarketData(backgroundData); // Keep what we have from background
-            setIsLoadingMarketData(false);
           });
       } else {
         // No background data available, fetch all
         console.log('Portfolio: No background data available, fetching all market data');
-        setIsLoadingMarketData(true);
         
         getBatchMarketData(uniqueProductNames)
           .then(data => {
             console.log('Portfolio: Received market data:', data);
             setMarketData(data);
-            setIsLoadingMarketData(false);
           })
           .catch(error => {
             console.error('Error fetching market data:', error);
             setMarketData({});
-            setIsLoadingMarketData(false);
           });
       }
     } else {
       setMarketData({});
-      setIsLoadingMarketData(false);
     }
   }, [uniqueProductNames]);
 
@@ -1520,11 +1511,6 @@ export default function Portfolio() {
 
   return (
     <LayoutWithSidebar active={activeSidebarItem} section="portfolio">
-      {isLoadingMarketData && (
-        <div className={`${card} p-6 text-center mb-6`}>
-          <div className="text-gray-600 dark:text-slate-400">Loading market data...</div>
-        </div>
-      )}
 
         <PortfolioContent 
           orders={orders} 

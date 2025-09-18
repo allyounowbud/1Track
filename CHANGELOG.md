@@ -33,6 +33,8 @@ All notable changes to this project will be documented in this file.
 - **Light Mode as Default Theme**: Changed the default theme from dark mode to light mode for new users, while preserving user theme preferences across sessions. Users who have previously set a theme will continue to see their chosen theme when they return to the app
 - **Mobile Preview Card Layout Fix**: Fixed preview cards in Search and Portfolio pages to properly respect the bottom navigation bar on mobile devices, preventing content from being cut off when fully scrolled down
 - **Mobile Preview Background Scroll Prevention**: Enhanced mobile preview experience by completely disabling background content scrolling when preview cards are active, preventing scroll conflicts and ensuring smooth interaction with preview content
+- **Removed Market Data Loading Cards**: Eliminated all "Loading market data..." cards and loading states throughout the application, providing a cleaner user experience without loading interruptions
+- **Enhanced Background Market Data Fetching**: Improved background market data service to fetch data immediately on app load, expanded to include both orders and inventory products, and implemented 24-hour caching with localStorage persistence for seamless data availability across sessions
 
 ### Added
 - **Complete Light/Dark Mode Theme System**: Implemented a comprehensive theme system with light and dark mode support across the entire application. Features include:

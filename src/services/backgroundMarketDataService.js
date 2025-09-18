@@ -11,18 +11,21 @@ const BATCH_DELAY = 200;
 let isBackgroundLoading = false;
 let backgroundLoadPromise = null;
 
-// Get all unique product names from orders
-async function getAllPortfolioProductNames() {
+// Get all unique product names from orders and inventory
+async function getAllProductNames() {
   try {
-    const { data: orders, error } = await supabase
+    // Get from orders
+    const { data: orders, error: ordersError } = await supabase
       .from("orders")
       .select("item")
       .eq("status", "ordered")
       .not("item", "is", null);
     
-    if (error) throw error;
+    if (ordersError) throw ordersError;
     
     const names = new Set();
+    
+    // Add order items
     orders.forEach(order => {
       if (order.item) {
         // Add the full display name
@@ -36,9 +39,34 @@ async function getAllPortfolioProductNames() {
       }
     });
     
+    // Get from inventory (if inventory table exists)
+    try {
+      const { data: inventory, error: inventoryError } = await supabase
+        .from("inventory")
+        .select("name")
+        .not("name", "is", null);
+      
+      if (!inventoryError && inventory) {
+        inventory.forEach(item => {
+          if (item.name) {
+            names.add(item.name);
+            
+            // Also add the base product name (before " - ")
+            const baseProductName = item.name.split(' - ')[0];
+            if (baseProductName !== item.name) {
+              names.add(baseProductName);
+            }
+          }
+        });
+      }
+    } catch (inventoryError) {
+      // Inventory table might not exist, that's okay
+      console.log('Inventory table not found, skipping inventory products');
+    }
+    
     return Array.from(names);
   } catch (error) {
-    console.error('Error fetching portfolio product names:', error);
+    console.error('Error fetching product names:', error);
     return [];
   }
 }
@@ -102,10 +130,10 @@ async function loadBackgroundMarketData() {
   
   backgroundLoadPromise = (async () => {
     try {
-      const productNames = await getAllPortfolioProductNames();
+      const productNames = await getAllProductNames();
       
       if (productNames.length === 0) {
-        console.log('📭 No portfolio items found for background loading');
+        console.log('📭 No products found for background loading');
         return;
       }
       
@@ -194,10 +222,8 @@ export function initializeBackgroundMarketData() {
     console.error('Error loading background market data from localStorage:', error);
   }
   
-  // Start background loading after a short delay
-  setTimeout(() => {
-    loadBackgroundMarketData();
-  }, 2000); // 2 second delay to let the app initialize
+  // Start background loading immediately
+  loadBackgroundMarketData();
 }
 
 // Get market data from background cache
