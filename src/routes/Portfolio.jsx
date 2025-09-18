@@ -520,86 +520,108 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       {/* Recent Activity */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-6">Recent Activity</h2>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {orders.slice(0, 10).map((order) => {
             // Parse item name and set
             const itemParts = order.item.split(' - ');
             const itemName = itemParts[0] || order.item;
             const itemSet = itemParts[1] || '';
             
+            // Determine status and styling
+            let statusText, statusColor;
+            if (order.status === 'sold') {
+              statusText = 'Sold';
+              statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+            } else if (order.status === 'added') {
+              statusText = 'Added';
+              statusColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+            } else {
+              statusText = 'Buy';
+              statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+            }
+            
             const isSale = order.status === 'sold';
             const profitLoss = isSale && order.sell_price_cents ? order.sell_price_cents - order.buy_price_cents : 0;
             const profitLossPercent = order.buy_price_cents > 0 ? (profitLoss / order.buy_price_cents) * 100 : 0;
             
             return (
-              <div key={order.id} className="py-4 border-b border-gray-200 dark:border-slate-800 last:border-b-0">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-2 h-2 rounded-full ${isSale ? 'bg-green-500' : 'bg-blue-500'}`}></div>
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        isSale 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                      }`}>
-                        {isSale ? 'SOLD' : 'BOUGHT'}
-                      </span>
-                    </div>
-                    
-                    <h3 className="font-bold text-gray-900 dark:text-slate-100 text-lg mb-1">
-                      {itemName}
-                    </h3>
-                    
-                    {itemSet && (
-                      <p className="text-gray-600 dark:text-slate-400 text-sm mb-3">
-                        {itemSet}
-                      </p>
-                    )}
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                      {isSale ? (
-                        <>
-                          <div>
-                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Buy Price</p>
-                            <p className="font-medium text-gray-900 dark:text-slate-100">{centsToStr(order.buy_price_cents)}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Sell Price</p>
-                            <p className="font-medium text-gray-900 dark:text-slate-100">{centsToStr(order.sell_price_cents || 0)}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Profit/Loss</p>
-                            <p className={`font-medium ${profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {profitLoss >= 0 ? '+' : ''}{centsToStr(profitLoss)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(1)}%)
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Sold Date</p>
-                            <p className="font-medium text-gray-900 dark:text-slate-100">{order.sell_date || order.order_date}</p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div>
-                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Price</p>
-                            <p className="font-medium text-gray-900 dark:text-slate-100">{centsToStr(order.buy_price_cents)}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Retailer</p>
-                            <p className="font-medium text-gray-900 dark:text-slate-100">{order.retailer || 'Unknown'}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Buy Date</p>
-                            <p className="font-medium text-gray-900 dark:text-slate-100">{order.order_date}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Status</p>
-                            <p className="font-medium text-gray-900 dark:text-slate-100 capitalize">{order.status}</p>
-                          </div>
-                        </>
+              <div key={order.id} className="py-3 border-b border-gray-200 dark:border-slate-800 last:border-b-0">
+                {/* Top Row: Title and Status */}
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-bold text-gray-900 dark:text-slate-100 text-base sm:text-lg">
+                    {itemName}
+                  </h3>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor}`}>
+                    {statusText}
+                  </span>
+                </div>
+                
+                {/* Set Name */}
+                {itemSet && (
+                  <p className="text-gray-600 dark:text-slate-400 text-sm mb-3">
+                    {itemSet}
+                  </p>
+                )}
+                
+                {/* Data Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-xs sm:text-sm">
+                  {isSale ? (
+                    <>
+                      <div>
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Revenue</p>
+                        <p className="font-semibold text-green-600 dark:text-green-400 text-sm sm:text-base">
+                          {centsToStr(order.sell_price_cents || 0)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Cost</p>
+                        <p className="font-semibold text-red-600 dark:text-red-400 text-sm sm:text-base">
+                          {centsToStr(order.buy_price_cents)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Profit/Loss</p>
+                        <p className={`font-semibold text-sm sm:text-base ${profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {profitLoss >= 0 ? '+' : ''}{centsToStr(profitLoss)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(1)}%)
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Date</p>
+                        <p className="font-medium text-gray-900 dark:text-slate-100 text-sm">
+                          {order.sell_date || order.order_date}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Cost</p>
+                        <p className="font-semibold text-red-600 dark:text-red-400 text-sm sm:text-base">
+                          {centsToStr(order.buy_price_cents)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Retailer</p>
+                        <p className="font-medium text-gray-900 dark:text-slate-100 text-sm">
+                          {order.retailer_name || order.retailer || 'Unknown'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Date</p>
+                        <p className="font-medium text-gray-900 dark:text-slate-100 text-sm">
+                          {order.order_date}
+                        </p>
+                      </div>
+                      {order.marketplace_name && (
+                        <div>
+                          <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Marketplace</p>
+                          <p className="font-medium text-gray-900 dark:text-slate-100 text-sm">
+                            {order.marketplace_name}
+                          </p>
+                        </div>
                       )}
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
             );
