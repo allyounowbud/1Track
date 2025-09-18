@@ -2,17 +2,18 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { moneyToCents, centsToStr } from "../utils/money.js";
 
-export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSave, onCancel }) {
+export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSave, onCancel, existingCategories = [] }) {
   const [name, setName] = useState("");
   const [marketValue, setMarketValue] = useState("");
   const [category, setCategory] = useState(row.category || 'Collectibles');
+  const [newCategory, setNewCategory] = useState("");
+  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
   const categories = [
-    { value: 'Collectibles', label: 'Collectibles' },
-    { value: 'Sports Cards', label: 'Sports Cards' },
-    { value: 'Other', label: 'Other' }
+    ...existingCategories.map(cat => ({ value: cat, label: cat })),
+    { value: 'add_new', label: '+ Add new category...' }
   ];
 
   useEffect(() => {
@@ -21,6 +22,25 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
       setCategory(row.category);
     }
   }, [row.category]);
+
+  const handleCategoryChange = (e) => {
+    const selectedValue = e.target.value;
+    if (selectedValue === 'add_new') {
+      setIsAddingNewCategory(true);
+      setNewCategory("");
+    } else {
+      setIsAddingNewCategory(false);
+      setCategory(selectedValue);
+    }
+  };
+
+  const handleNewCategorySave = () => {
+    if (newCategory.trim()) {
+      setCategory(newCategory.trim());
+      setIsAddingNewCategory(false);
+      setNewCategory("");
+    }
+  };
 
   const handleSave = async () => {
     if (busy || !name.trim() || !category) return;
@@ -79,7 +99,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
         <div onClick={(e) => e.stopPropagation()} className="min-w-0 overflow-hidden">
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={handleCategoryChange}
             className="new-product-select w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           >
@@ -89,6 +109,28 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
               </option>
             ))}
           </select>
+          {isAddingNewCategory && (
+            <div className="mt-2 flex gap-2">
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="Enter new category name"
+                className="flex-1 h-8 px-2 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
+                onClick={(e) => e.stopPropagation()}
+                onKeyPress={(e) => e.key === 'Enter' && handleNewCategorySave()}
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNewCategorySave();
+                }}
+                className="px-3 h-8 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          )}
         </div>
         
         <div onClick={(e) => e.stopPropagation()} className="min-w-0 overflow-hidden">
@@ -154,7 +196,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
           <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Category</label>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={handleCategoryChange}
             className="new-product-select w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           >
@@ -164,6 +206,28 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
               </option>
             ))}
           </select>
+          {isAddingNewCategory && (
+            <div className="mt-2 flex gap-2">
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="Enter new category name"
+                className="flex-1 h-8 px-2 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
+                onClick={(e) => e.stopPropagation()}
+                onKeyPress={(e) => e.key === 'Enter' && handleNewCategorySave()}
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNewCategorySave();
+                }}
+                className="px-3 h-8 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          )}
         </div>
         
         <div>

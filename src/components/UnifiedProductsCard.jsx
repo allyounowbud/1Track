@@ -19,11 +19,13 @@ export default function UnifiedProductsCard({
   isLoading = false,
   error = null
 }) {
-  const categories = [
-    { key: 'Collectibles', label: 'Collectibles', color: 'blue' },
-    { key: 'Sports Cards', label: 'Sports Cards', color: 'blue' },
-    { key: 'Other', label: 'Other', color: 'blue' }
-  ];
+  // Get unique categories from products
+  const uniqueCategories = [...new Set(products.map(p => p.product_category))].filter(Boolean);
+  const categories = uniqueCategories.map(cat => ({ 
+    key: cat, 
+    label: cat, 
+    color: 'blue' 
+  }));
 
   const getCategoryProducts = (category) => {
     return products.filter(p => p.product_category === category);
@@ -135,13 +137,43 @@ export default function UnifiedProductsCard({
         </div>
       )}
 
-      {/* Categories - Show as expandable sections */}
-      {(totalProducts > 0 || hasNewRows) && (
+      {/* Add New Product Section - Show when adding new products */}
+      {hasNewRows && (
+        <div className="border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800/30">
+          {/* Section Header */}
+          <div className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-slate-700">
+            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Add new product...</h3>
+          </div>
+
+          {/* New Product Rows */}
+          <div className="divide-y divide-gray-200 dark:divide-slate-700">
+            {newProductRows.map(newRow => (
+              <UnifiedNewProductRow
+                key={newRow.id}
+                row={newRow}
+                isSelected={selectedProducts.has(newRow.id)}
+                onToggleSelection={() => onToggleProductSelection(newRow.id)}
+                onSave={(data) => {
+                  onRemoveNewRow(newRow.id);
+                  onRefetch();
+                }}
+                onCancel={() => {
+                  onRemoveNewRow(newRow.id);
+                }}
+                existingCategories={uniqueCategories}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Categories - Show as expandable sections (hidden when adding new products) */}
+      {!hasNewRows && totalProducts > 0 && (
         <div className="space-y-2">
           {categories.map(category => {
             const categoryProducts = getCategoryProducts(category.key);
             const isExpanded = expandedCategories.has(category.key);
-
 
             if (categoryProducts.length === 0) return null;
 
@@ -187,26 +219,6 @@ export default function UnifiedProductsCard({
         </div>
       )}
 
-      {/* New Product Rows */}
-      {hasNewRows && (
-        <div className="space-y-2">
-          {newProductRows.map(newRow => (
-            <UnifiedNewProductRow
-              key={newRow.id}
-              row={newRow}
-              isSelected={selectedProducts.has(newRow.id)}
-              onToggleSelection={() => onToggleProductSelection(newRow.id)}
-              onSave={(data) => {
-                onRemoveNewRow(newRow.id);
-                onRefetch();
-              }}
-              onCancel={() => {
-                onRemoveNewRow(newRow.id);
-              }}
-            />
-          ))}
-        </div>
-      )}
 
       {/* Empty State - Show when no products and no new rows */}
       {totalProducts === 0 && !hasNewRows && (
