@@ -22,10 +22,9 @@ export default function UnifiedProductsCard({
   error = null
 }) {
   const categories = [
-    { key: 'tcg_sealed', label: 'TCG Sealed', color: 'blue' },
-    { key: 'tcg_singles', label: 'TCG Singles', color: 'blue' },
-    { key: 'video_games', label: 'Video Games', color: 'blue' },
-    { key: 'other_items', label: 'Other Items', color: 'blue' }
+    { key: 'Collectibles', label: 'Collectibles', color: 'blue' },
+    { key: 'Sports Cards', label: 'Sports Cards', color: 'blue' },
+    { key: 'Other', label: 'Other', color: 'blue' }
   ];
 
   const getCategoryProducts = (category) => {
@@ -43,10 +42,6 @@ export default function UnifiedProductsCard({
   const hasNewRows = newProductRows.length > 0;
   const totalProducts = products.length;
 
-  // Debug logging
-  console.log('UnifiedProductsCard - products:', products);
-  console.log('UnifiedProductsCard - totalProducts:', totalProducts);
-  console.log('UnifiedProductsCard - categories:', categories);
 
   // Show loading state
   if (isLoading) {
@@ -97,7 +92,7 @@ export default function UnifiedProductsCard({
           <div className="flex items-center gap-2">
             {!hasAnySelection && (
               <button
-                onClick={() => onAddNewProductRow('tcg_sealed')}
+                onClick={() => onAddNewProductRow('Collectibles')}
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
                 title="Add New Item"
               >
@@ -149,7 +144,6 @@ export default function UnifiedProductsCard({
             const categoryProducts = getCategoryProducts(category.key);
             const isExpanded = expandedCategories.has(category.key);
 
-            console.log(`Category ${category.key}:`, categoryProducts.length, 'products');
 
             if (categoryProducts.length === 0) return null;
 
@@ -223,7 +217,7 @@ export default function UnifiedProductsCard({
           <div className="text-slate-500 text-sm">
             Start building your product database by{" "}
             <button
-              onClick={() => onAddNewProductRow('tcg_sealed')}
+                onClick={() => onAddNewProductRow('Collectibles')}
               className="text-blue-400 hover:text-blue-300 underline cursor-pointer transition-colors"
             >
               + adding

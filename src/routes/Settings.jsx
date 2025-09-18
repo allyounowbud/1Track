@@ -25,7 +25,6 @@ async function getProducts() {
     console.error('Error fetching products:', error);
     throw error;
   }
-  console.log('Products fetched:', data);
   return data;
 }
 
@@ -67,17 +66,11 @@ export default function Settings() {
     queryFn: getProducts,
   });
 
-  // Debug logging
-  console.log('allProducts:', allProducts);
-  console.log('Product categories:', allProducts.map(p => p.product_category));
-  console.log('productsLoading:', productsLoading);
-  console.log('productsError:', productsError);
 
   // Helper functions to filter products by category
-  const tcgSealed = allProducts.filter(p => p.product_category === 'tcg_sealed');
-  const tcgSingles = allProducts.filter(p => p.product_category === 'tcg_singles');
-  const videoGames = allProducts.filter(p => p.product_category === 'video_games');
-  const otherItems = allProducts.filter(p => p.product_category === 'other_items');
+  const collectibles = allProducts.filter(p => p.product_category === 'Collectibles');
+  const sportsCards = allProducts.filter(p => p.product_category === 'Sports Cards');
+  const otherItems = allProducts.filter(p => p.product_category === 'Other');
 
   // Legacy queries for backward compatibility (will be removed after migration)
   const { data: items = [], refetch: refetchItems } = useQuery({
@@ -92,8 +85,8 @@ export default function Settings() {
   // Fetch market data for all products
   useEffect(() => {
     const allProductNames = [
-      ...tcgSealed.map(item => item.name),
-      ...videoGames.map(item => item.name),
+      ...collectibles.map(item => item.name),
+      ...sportsCards.map(item => item.name),
       ...otherItems.map(item => item.name)
     ].filter(Boolean);
 
@@ -109,7 +102,7 @@ export default function Settings() {
           setMarketDataLoading(false);
         });
     }
-  }, [tcgSealed, videoGames, items]);
+  }, [collectibles, sportsCards, otherItems]);
 
   const { data: retailers = [], refetch: refetchRetailers } = useQuery({
     queryKey: ["retailers"],
@@ -124,7 +117,7 @@ export default function Settings() {
   // Unified products state
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const [newProductRows, setNewProductRows] = useState([]);
-  const [expandedCategories, setExpandedCategories] = useState(new Set(['tcg_sealed', 'tcg_singles', 'video_games', 'other_items'])); // Default to all categories expanded
+  const [expandedCategories, setExpandedCategories] = useState(new Set(['Collectibles', 'Sports Cards', 'Other'])); // Default to all categories expanded
   
   // Legacy states for backward compatibility
   const [selectedItems, setSelectedItems] = useState(new Set());
@@ -370,7 +363,7 @@ export default function Settings() {
       }
       newSelected.add(rowId);
     }
-    setSelectedTCGSealed(newSelected);
+    setSelectedProducts(newSelected);
   }
 
   function addNewTCGSealedRow() {
@@ -415,13 +408,13 @@ export default function Settings() {
 
   /* ----- Bulk Operations ----- */
   
-  // TCG Sealed Bulk Operations
-  function toggleAllTCGSealedSelection() {
-    if (selectedTCGSealed.size === tcgSealed.length) {
+  // Collectibles Bulk Operations
+  function toggleAllCollectiblesSelection() {
+    if (selectedTCGSealed.size === collectibles.length) {
       if (hasNewTCGSealedRows) return;
       setSelectedTCGSealed(new Set());
     } else {
-      const allIds = tcgSealed.map(item => item.id);
+      const allIds = collectibles.map(item => item.id);
       setSelectedTCGSealed(new Set(allIds));
     }
   }
@@ -469,7 +462,7 @@ export default function Settings() {
     setSelectedProducts(newSelected);
   }
 
-  function addNewProductRow(category = 'tcg_sealed') {
+  function addNewProductRow(category = 'Collectibles') {
     if (newProductRows.length > 0) return; // Only allow one new row at a time
     
     const newId = nextNewRowId;
@@ -641,13 +634,13 @@ export default function Settings() {
   }
 
 
-  // Video Games Bulk Operations
-  function toggleAllVideoGamesSelection() {
-    if (selectedVideoGames.size === videoGames.length) {
+  // Sports Cards Bulk Operations
+  function toggleAllSportsCardsSelection() {
+    if (selectedVideoGames.size === sportsCards.length) {
       if (hasNewVideoGameRows) return;
       setSelectedVideoGames(new Set());
     } else {
-      const allIds = videoGames.map(game => game.id);
+      const allIds = sportsCards.map(card => card.id);
       setSelectedVideoGames(new Set(allIds));
     }
   }
