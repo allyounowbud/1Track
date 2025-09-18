@@ -454,8 +454,8 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 p-4 sm:p-8 -m-4 sm:-m-8">
-        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 p-2 sm:p-4 -m-2 sm:-m-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Inventory</p>
@@ -467,7 +467,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Total Cost</p>
@@ -482,7 +482,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Market Value</p>
@@ -499,7 +499,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Total Profit</p>
@@ -519,7 +519,10 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
 
       {/* Recent Activity */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-6">Recent Activity</h2>
+        <div className="pt-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">Recent Activity</h2>
+          <div className="border-b border-gray-200 dark:border-slate-800"></div>
+        </div>
         <div className="space-y-3">
           {orders
             .sort((a, b) => new Date(b.created_at || b.updated_at || b.id) - new Date(a.created_at || a.updated_at || a.id))
@@ -565,80 +568,47 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
             
             return (
               <div key={order.id} className="py-3 border-b border-gray-200 dark:border-slate-800 last:border-b-0">
-                {/* Top Row: Title and Price */}
+                {/* Top Row: Title and Status */}
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-bold text-gray-900 dark:text-slate-100 text-base sm:text-lg">
                     {itemName}
                   </h3>
-                  <p className={`font-semibold text-sm sm:text-base ${priceColor}`}>
-                    {displayPrice}
-                  </p>
-                </div>
-                
-                {/* Second Row: Status and Set Name */}
-                <div className="flex items-center gap-2 mb-3">
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor}`}>
                     {statusText}
                   </span>
-                  {itemSet && (
-                    <p className="text-gray-600 dark:text-slate-400 text-sm">
-                      {itemSet}
-                    </p>
-                  )}
                 </div>
                 
-                {/* Data Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 text-xs sm:text-sm">
-                  {isSale ? (
-                    <>
-                      <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Buy Price</p>
-                        <p className="font-semibold text-red-600 dark:text-red-400 text-sm sm:text-base">
-                          {centsToStr(order.buy_price_cents)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Profit/Loss</p>
-                        <p className={`font-semibold text-sm sm:text-base ${profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {profitLoss >= 0 ? '+' : ''}{centsToStr(profitLoss)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(1)}%)
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Sell Date</p>
-                        <p className="font-medium text-gray-900 dark:text-slate-100 text-sm">
-                          {displayDate}
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">
-                          {order.status === 'added' ? 'Market Value' : 'Cost'}
-                        </p>
-                        <p className={`font-semibold text-sm sm:text-base ${order.status === 'added' ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {centsToStr(order.status === 'added' ? (order.market_value_cents || order.buy_price_cents || 0) : order.buy_price_cents)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">
-                          {order.status === 'added' ? 'Add Date' : 'Order Date'}
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-slate-100 text-sm">
-                          {displayDate}
-                        </p>
-                      </div>
-                      {order.status === 'added' && order.condition && (
-                        <div>
-                          <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Condition</p>
-                          <p className="font-medium text-gray-900 dark:text-slate-100 text-sm capitalize">
-                            {order.condition}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  )}
+                {/* Second Row: Price and Set Name */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <p className={`font-semibold text-sm sm:text-base ${priceColor}`}>
+                      {displayPrice}
+                    </p>
+                    {itemSet && (
+                      <p className="text-gray-600 dark:text-slate-400 text-sm">
+                        {itemSet}
+                      </p>
+                    )}
+                  </div>
                 </div>
+                
+                {/* Data Grid - Only for Sales */}
+                {isSale && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+                    <div>
+                      <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Buy Price</p>
+                      <p className="font-semibold text-red-600 dark:text-red-400 text-sm sm:text-base">
+                        {centsToStr(order.buy_price_cents)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Profit/Loss</p>
+                      <p className={`font-semibold text-sm sm:text-base ${profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {profitLoss >= 0 ? '+' : ''}{centsToStr(profitLoss)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(1)}%)
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
