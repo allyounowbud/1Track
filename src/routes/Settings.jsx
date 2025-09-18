@@ -112,7 +112,7 @@ export default function Settings() {
   // Unified products state
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const [newProductRows, setNewProductRows] = useState([]);
-  const [expandedCategories, setExpandedCategories] = useState(new Set(['tcg_sealed'])); // Default to TCG Sealed expanded
+  const [expandedCategories, setExpandedCategories] = useState(new Set(['tcg_sealed', 'tcg_singles', 'video_games', 'other_items'])); // Default to all categories expanded
   
   // Legacy states for backward compatibility
   const [selectedItems, setSelectedItems] = useState(new Set());
@@ -475,6 +475,12 @@ export default function Settings() {
 
   // Unified Products Bulk Operations
   function toggleAllProductsSelection(category) {
+    if (category === false) {
+      // Clear all selections
+      setSelectedProducts(new Set());
+      return;
+    }
+    
     if (category === 'all') {
       // Handle select all for all products
       if (selectedProducts.size === allProducts.length) {
@@ -509,6 +515,8 @@ export default function Settings() {
   }
 
   async function bulkSaveProducts() {
+    // For now, just clear selection since individual saves are handled by CategoryItemRow
+    // In the future, this could be enhanced to save all selected items at once
     setSelectedProducts(new Set());
   }
 
