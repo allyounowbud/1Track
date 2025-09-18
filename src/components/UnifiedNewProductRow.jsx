@@ -6,8 +6,8 @@ import { moneyToCents, centsToStr } from "../utils/money.js";
 export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSave, onCancel, existingCategories = [] }) {
   const [name, setName] = useState("");
   const [marketValue, setMarketValue] = useState("");
-  const [category, setCategory] = useState(row.category || 'Collectibles');
-  const [categoryInput, setCategoryInput] = useState(row.category || 'Collectibles');
+  const [category, setCategory] = useState(row.category || '');
+  const [categoryInput, setCategoryInput] = useState(row.category || '');
   const [showDropdown, setShowDropdown] = useState(false);
   const [filteredCategories, setFilteredCategories] = useState([]);
   const [status, setStatus] = useState("");
@@ -90,7 +90,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
   };
 
   const handleSave = async () => {
-    if (busy || !name.trim() || !category) return;
+    if (busy || !name.trim() || !category.trim()) return;
     setBusy(true);
     setStatus("Saving…");
     
@@ -161,10 +161,16 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
             onChange={handleCategoryInputChange}
             onFocus={() => handleInputFocus(false)}
             onBlur={handleInputBlur}
-            placeholder="Type to search categories..."
-            className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
+            placeholder="Select or type category..."
+            className="w-full h-10 px-3 pr-8 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
             onClick={(e) => e.stopPropagation()}
           />
+          {/* Dropdown Arrow */}
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            <svg className="w-4 h-4 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
           
           {/* Portal-based Dropdown */}
           {showDropdown && (() => {
@@ -244,7 +250,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
               e.stopPropagation();
               handleSave();
             }}
-            disabled={busy || !name.trim()}
+            disabled={busy || !name.trim() || !category.trim()}
             className="w-10 h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
             title="Save Changes"
           >
@@ -305,10 +311,16 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
               onChange={handleCategoryInputChange}
               onFocus={() => handleInputFocus(true)}
               onBlur={handleInputBlur}
-              placeholder="Type to search categories..."
-              className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
+              placeholder="Select or type category..."
+              className="w-full h-10 px-3 pr-8 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
               onClick={(e) => e.stopPropagation()}
             />
+            {/* Dropdown Arrow */}
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
             
             {/* Portal-based Dropdown */}
             {showDropdown && createPortal(
@@ -387,7 +399,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
                   e.stopPropagation();
                   handleSave();
                 }}
-                disabled={busy || !name.trim()}
+                disabled={busy || !name.trim() || !category.trim()}
                 className="px-3 py-2 rounded-lg border border-indigo-500 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all duration-200 flex items-center gap-1 text-sm font-medium"
                 title="Save Changes"
               >

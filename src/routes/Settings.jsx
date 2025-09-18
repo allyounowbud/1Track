@@ -436,7 +436,7 @@ export default function Settings() {
     setSelectedProducts(newSelected);
   }
 
-  function addNewProductRow(category = 'Collectibles') {
+  function addNewProductRow(category = '') {
     if (newProductRows.length > 0) return; // Only allow one new row at a time
     
     const newId = nextNewRowId;
