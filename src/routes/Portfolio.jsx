@@ -252,7 +252,7 @@ function PortfolioContent({ orders, portfolioItems, marketData, manualItems, all
 
 /* ----------------------------- Overview Tab ---------------------------- */
 function OverviewTab({ orders, portfolioItems, marketData }) {
-  const [selectedTimeframe, setSelectedTimeframe] = useState('1M');
+  const [selectedTimeframe, setSelectedTimeframe] = useState('All');
 
   // Calculate portfolio metrics
   const metrics = useMemo(() => {
@@ -398,16 +398,16 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
   }, [chartData]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Portfolio Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Portfolio Overview</h1>
-          <div className="flex items-center gap-4 mt-2">
-            <div className="text-3xl font-bold text-gray-900 dark:text-slate-100">
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-slate-100">Portfolio Overview</h1>
+          <div className="flex items-center gap-2 sm:gap-4 mt-1">
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100">
               ${chartData.length > 0 ? chartData[chartData.length - 1].y.toFixed(2) : '0.00'}
             </div>
-            <div className={`flex items-center gap-1 text-sm font-medium ${
+            <div className={`flex items-center gap-1 text-xs sm:text-sm font-medium ${
               chartMetrics.change >= 0 ? 'text-green-400' : 'text-red-400'
             }`}>
               {chartMetrics.change >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
@@ -441,7 +441,9 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         ) : (
           <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-600 dark:text-slate-400">
             <div className="text-center">
-              <ChartIcon />
+              <div className="flex justify-center">
+                <ChartIcon />
+              </div>
               <p className="mt-2">No data available for selected period</p>
               <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-slate-500 mt-1">
                 {portfolioItems.length === 0 ? 'No portfolio items found' : 'No data available'}
@@ -453,26 +455,26 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 p-8 -m-8">
-        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-sm">Total Items</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">{formatNumber(metrics.totalItems)}</p>
+              <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Inventory</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">{formatNumber(metrics.totalItems)}</p>
             </div>
-            <div className="p-3 bg-yellow-500/20 rounded-xl">
+            <div className="p-2 sm:p-3 bg-gray-500/20 rounded-xl">
               <CollectionIcon />
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-sm">Total Cost</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">{centsToStr(metrics.totalCost)}</p>
+              <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Total Cost</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-900 dark:text-slate-100">{centsToStr(metrics.totalCost)}</p>
             </div>
-            <div className="p-3 bg-slate-500/20 rounded-xl">
-              <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
+            <div className="p-2 sm:p-3 bg-red-500/20 rounded-xl">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
               </svg>
@@ -480,30 +482,35 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-slate-400 text-sm">Market Value</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{centsToStr(metrics.estimatedMarketValue)}</p>
+              <p className="text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Market Value</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-slate-100">{centsToStr(metrics.estimatedMarketValue)}</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">
+                +0.0%
+              </p>
             </div>
-            <div className="p-3 bg-green-500/20 rounded-xl">
-              <TrendingUpIcon />
+            <div className="p-2 sm:p-3 bg-blue-500/20 rounded-xl">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zM8 6a2 2 0 114 0v1H8V6zm4 10a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_8px_25px_rgba(0,0,0,.15)] dark:shadow-[0_8px_25px_rgba(0,0,0,.15)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-slate-400 text-sm">Total Profit</p>
-              <p className={`text-2xl font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className="text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Total Profit</p>
+              <p className={`text-lg sm:text-2xl font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {centsToStr(metrics.totalProfit)}
               </p>
-              <p className={`text-sm ${metrics.profitPercentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`text-xs sm:text-sm ${metrics.profitPercentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {metrics.profitPercentage >= 0 ? '+' : ''}{metrics.profitPercentage.toFixed(1)}%
               </p>
             </div>
-            <div className={`p-3 rounded-xl ${metrics.totalProfit >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+            <div className={`p-2 sm:p-3 rounded-xl ${metrics.totalProfit >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
               {metrics.totalProfit >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
             </div>
           </div>
@@ -513,22 +520,90 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       {/* Recent Activity */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-6">Recent Activity</h2>
-        <div className="space-y-3">
-          {orders.slice(0, 5).map((order) => (
-            <div key={order.id} className="flex items-center justify-between py-3 px-4 border border-gray-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900/60 backdrop-blur">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${order.status === 'sold' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                <div>
-                  <p className="text-gray-800 dark:text-slate-200 font-medium">{order.item}</p>
-                  <p className="text-gray-600 dark:text-slate-400 text-sm">{order.order_date}</p>
+        <div className="space-y-4">
+          {orders.slice(0, 10).map((order) => {
+            // Parse item name and set
+            const itemParts = order.item.split(' - ');
+            const itemName = itemParts[0] || order.item;
+            const itemSet = itemParts[1] || '';
+            
+            const isSale = order.status === 'sold';
+            const profitLoss = isSale && order.sell_price_cents ? order.sell_price_cents - order.buy_price_cents : 0;
+            const profitLossPercent = order.buy_price_cents > 0 ? (profitLoss / order.buy_price_cents) * 100 : 0;
+            
+            return (
+              <div key={order.id} className="py-4 border-b border-gray-200 dark:border-slate-800 last:border-b-0">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`w-2 h-2 rounded-full ${isSale ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                        isSale 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}>
+                        {isSale ? 'SOLD' : 'BOUGHT'}
+                      </span>
+                    </div>
+                    
+                    <h3 className="font-bold text-gray-900 dark:text-slate-100 text-lg mb-1">
+                      {itemName}
+                    </h3>
+                    
+                    {itemSet && (
+                      <p className="text-gray-600 dark:text-slate-400 text-sm mb-3">
+                        {itemSet}
+                      </p>
+                    )}
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                      {isSale ? (
+                        <>
+                          <div>
+                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Buy Price</p>
+                            <p className="font-medium text-gray-900 dark:text-slate-100">{centsToStr(order.buy_price_cents)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Sell Price</p>
+                            <p className="font-medium text-gray-900 dark:text-slate-100">{centsToStr(order.sell_price_cents || 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Profit/Loss</p>
+                            <p className={`font-medium ${profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {profitLoss >= 0 ? '+' : ''}{centsToStr(profitLoss)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(1)}%)
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Sold Date</p>
+                            <p className="font-medium text-gray-900 dark:text-slate-100">{order.sell_date || order.order_date}</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Price</p>
+                            <p className="font-medium text-gray-900 dark:text-slate-100">{centsToStr(order.buy_price_cents)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Retailer</p>
+                            <p className="font-medium text-gray-900 dark:text-slate-100">{order.retailer || 'Unknown'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Buy Date</p>
+                            <p className="font-medium text-gray-900 dark:text-slate-100">{order.order_date}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide">Status</p>
+                            <p className="font-medium text-gray-900 dark:text-slate-100 capitalize">{order.status}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-gray-800 dark:text-slate-200 font-medium">{centsToStr(order.buy_price_cents)}</p>
-                <p className="text-gray-600 dark:text-slate-400 text-sm capitalize">{order.status}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
