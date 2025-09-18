@@ -268,16 +268,16 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
       </div>
 
       {/* Mobile: Stacked layout with labels */}
-      <div className="sm:hidden space-y-3 p-4">
+      <div className="sm:hidden space-y-4 p-4">
         {/* Mobile checkbox */}
-        <div className="flex items-center gap-3 pb-2 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center gap-3 pb-3 border-b border-gray-200 dark:border-slate-700">
           <input
             type="checkbox"
             checked={isSelected}
             onChange={onToggleSelection}
             className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all accent-indigo-500"
           />
-          <span className="text-sm text-gray-600 dark:text-slate-400">Select row</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Select row</span>
         </div>
         
         <div>
@@ -381,31 +381,33 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
               placeholder="Market value ($)"
             />
             
-            <div className="flex gap-1">
+            <div className="flex gap-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSave();
                 }}
                 disabled={busy || !name.trim()}
-                className="w-10 h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 rounded-lg border border-indigo-500 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all duration-200 flex items-center gap-1 text-sm font-medium"
                 title="Save Changes"
               >
-                <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                 </svg>
+                <span>Save</span>
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onCancel();
                 }}
-                className="w-10 h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center gap-1 text-sm font-medium"
                 title="Cancel"
               >
-                <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
+                <span>Cancel</span>
               </button>
             </div>
           </div>

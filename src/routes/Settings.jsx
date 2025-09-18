@@ -845,6 +845,10 @@ function SettingsCard({
             </div>
           )}
 
+            {/* Page break line - Hidden when adding new rows or when no items */}
+            {!hasNewRows && data.length > 0 && (
+            <div className="border-b border-slate-800 mb-2"></div>
+          )}
 
             {/* Column Headers - Only show when there are items */}
             {data.length > 0 && (
