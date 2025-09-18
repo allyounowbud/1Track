@@ -70,7 +70,7 @@ export default function UnifiedProductsCard({
     <div className="w-full">
       {/* Header with Selection Count and Actions */}
       {!hasNewRows && totalProducts > 0 && (
-        <div className="w-full rounded-xl p-4 mb-4 bg-gray-50 dark:bg-slate-800/50">
+         <div className="w-full rounded-xl p-4 mb-4 bg-gray-50 dark:bg-transparent">
           <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
             {/* Left side - Selection Count */}
             <div className="flex-1">
@@ -185,7 +185,7 @@ export default function UnifiedProductsCard({
               <div key={category.key} className="w-full">
                 {/* Category Header */}
                 <div 
-                  className="flex items-center justify-between py-3 px-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors bg-gray-50 dark:bg-slate-800/50"
+                   className="flex items-center justify-between py-3 px-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors bg-gray-50 dark:bg-transparent"
                   onClick={() => onToggleCategoryExpansion(category.key)}
                 >
                   <div className="flex items-center gap-3">
@@ -195,13 +195,20 @@ export default function UnifiedProductsCard({
                       ({categoryProducts.length} items)
                     </span>
                   </div>
-                  <div className="text-gray-600 dark:text-slate-400 text-sm">
-                    {isExpanded ? '▼' : '▶'}
+                  <div className="text-gray-600 dark:text-slate-400 text-sm transition-transform duration-200 ease-in-out">
+                    <svg 
+                      className={`w-4 h-4 transition-transform duration-200 ease-in-out ${isExpanded ? 'rotate-90' : 'rotate-0'}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
                 </div>
 
                 {/* Category Content */}
-                {isExpanded && (
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   <div className="w-full">
                     {categoryProducts.map(product => (
                       <CategoryItemRow
@@ -216,7 +223,7 @@ export default function UnifiedProductsCard({
                       />
                     ))}
                   </div>
-                )}
+                </div>
               </div>
             );
           })}

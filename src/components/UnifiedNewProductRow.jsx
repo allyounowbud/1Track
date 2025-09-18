@@ -131,17 +131,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
       onClick={onToggleSelection}
     >
       {/* Desktop: Grid layout */}
-      <div className="hidden sm:grid grid-cols-[auto_3fr_2fr_1fr_auto] gap-4 items-center min-w-0 p-4">
-        
-        {/* Checkbox for selection */}
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={onToggleSelection}
-            className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all accent-indigo-500"
-          />
-        </div>
+      <div className="hidden sm:grid grid-cols-[3fr_2fr_1fr_auto] gap-4 items-center min-w-0 p-4">
         
         <div onClick={(e) => e.stopPropagation()} className="min-w-0">
           <input
@@ -275,16 +265,6 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
 
       {/* Mobile: Stacked layout with labels */}
       <div className="sm:hidden space-y-4 p-4">
-        {/* Mobile checkbox */}
-        <div className="flex items-center gap-3 pb-3 border-b border-gray-200 dark:border-slate-700">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={onToggleSelection}
-            className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all accent-indigo-500"
-          />
-          <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Select row</span>
-        </div>
         
         <div>
           <div className="flex items-center justify-between mb-1">
