@@ -7,7 +7,7 @@ import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, rowCard } from "../utils/ui.js";
-import { getBatchMarketData, getMarketValueInCents } from "../services/marketDataService.js";
+import { getBatchMarketData, getMarketValueInCents, getProductMarketData } from "../services/marketDataService.js";
 import { getBackgroundMarketData, isBackgroundLoadingComplete } from "../services/backgroundMarketDataService.js";
 import { getProductImages } from "../services/imageService.js";
 import SearchPage from "../components/SearchPage.jsx";
@@ -69,7 +69,7 @@ async function getAllOrders() {
     .select(`
       id, order_date, sale_date, item, profile_name, retailer, 
       buy_price_cents, sale_price_cents, fees_pct, shipping_cents, 
-      marketplace, status
+      marketplace, status, market_value_cents
     `)
     .order("order_date", { ascending: false });
   
@@ -232,6 +232,128 @@ function PortfolioChart({ data }) {
       className="w-full h-full"
       preserveAspectRatio="xMidYMid meet"
     />
+  );
+}
+
+/* ----------------------------- Recent Activity Row Component ---------------------------- */
+function RecentActivityRow({ order, marketData }) {
+  const [genreData, setGenreData] = useState(null);
+  const [loadingGenre, setLoadingGenre] = useState(false);
+  const navigate = useNavigate();
+
+  // Parse item name and set
+  const itemParts = order.item.split(' - ');
+  const itemName = itemParts[0] || order.item;
+  let itemSet = itemParts[1] || '';
+
+  // Fetch genre if no set is available
+  useEffect(() => {
+    if (!itemSet && !genreData && !loadingGenre) {
+      setLoadingGenre(true);
+      getProductMarketData(itemName)
+        .then(data => {
+          if (data && data.console_name) {
+            setGenreData(data.console_name);
+          }
+          setLoadingGenre(false);
+        })
+        .catch(error => {
+          console.error('Error fetching genre for', itemName, ':', error);
+          setLoadingGenre(false);
+        });
+    }
+  }, [itemName, itemSet, genreData, loadingGenre]);
+
+  // Determine status and styling
+  let statusText, statusColor;
+  if (order.status === 'sold') {
+    statusText = 'Sold';
+    statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+  } else if (order.status === 'added') {
+    statusText = 'Added';
+    statusColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+  } else {
+    statusText = 'Paid';
+    statusColor = 'bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100';
+  }
+
+  const isSale = order.status === 'sold';
+  const profitLoss = isSale && order.sell_price_cents ? order.sell_price_cents - order.buy_price_cents : 0;
+  const profitLossPercent = order.buy_price_cents > 0 ? (profitLoss / order.buy_price_cents) * 100 : 0;
+
+  // Determine the appropriate date and price for display
+  let displayDate, displayPrice, priceColor;
+  if (isSale) {
+    displayDate = order.sell_date || order.order_date;
+    displayPrice = centsToStr(order.sell_price_cents || 0);
+    priceColor = 'text-green-600 dark:text-green-400';
+  } else if (order.status === 'added') {
+    displayDate = order.order_date;
+    displayPrice = centsToStr(order.market_value_cents || order.buy_price_cents || 0);
+    priceColor = 'text-blue-600 dark:text-blue-400';
+  } else {
+    displayDate = order.order_date;
+    displayPrice = centsToStr(order.buy_price_cents);
+    priceColor = 'text-red-600 dark:text-red-400';
+  }
+
+  // Use set if available, otherwise use genre
+  const displaySubtitle = itemSet || genreData || '';
+
+  return (
+    <div 
+      className="py-3 border-b border-gray-200 dark:border-slate-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+      onClick={() => {
+        // Navigate to order book with this specific order highlighted
+        const searchParams = new URLSearchParams({
+          highlight: order.id,
+          item: order.item,
+          date: order.order_date || order.sale_date || '',
+          status: order.status
+        });
+        navigate(`/orderbook?${searchParams.toString()}`);
+      }}
+    >
+      {/* Top Row: Title and Status */}
+      <div className="flex items-start justify-between mb-1">
+        <div>
+          <h3 className="font-semibold text-gray-800 dark:text-slate-200 text-sm sm:text-base leading-tight">
+            {itemName}
+          </h3>
+          {displaySubtitle && (
+            <p className="text-gray-600 dark:text-slate-400 text-sm leading-tight mt-0">
+              {displaySubtitle}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col items-end">
+          <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor} leading-tight`}>
+            {statusText}
+          </span>
+          <p className={`font-semibold text-sm sm:text-base ${priceColor} leading-tight mt-0`}>
+            ${displayPrice}
+          </p>
+        </div>
+      </div>
+      
+      {/* Data Grid - Only for Sales */}
+      {isSale && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+          <div>
+            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Buy Price</p>
+            <p className="font-semibold text-red-600 dark:text-red-400 text-sm sm:text-base">
+              ${centsToStr(order.buy_price_cents)}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Profit/Loss</p>
+            <p className={`font-semibold text-sm sm:text-base ${profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {profitLoss >= 0 ? '+' : ''}${centsToStr(profitLoss)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(1)}%)
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -527,103 +649,9 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           {orders
             .sort((a, b) => new Date(b.created_at || b.updated_at || b.id) - new Date(a.created_at || a.updated_at || a.id))
             .slice(0, 10)
-            .map((order) => {
-            // Parse item name and set
-            const itemParts = order.item.split(' - ');
-            const itemName = itemParts[0] || order.item;
-            const itemSet = itemParts[1] || '';
-            
-            // Determine status and styling
-            let statusText, statusColor;
-            if (order.status === 'sold') {
-              statusText = 'Sold';
-              statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-            } else if (order.status === 'added') {
-              statusText = 'Added';
-              statusColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-            } else {
-              statusText = 'Paid';
-              statusColor = 'bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100';
-            }
-            
-            const isSale = order.status === 'sold';
-            const profitLoss = isSale && order.sell_price_cents ? order.sell_price_cents - order.buy_price_cents : 0;
-            const profitLossPercent = order.buy_price_cents > 0 ? (profitLoss / order.buy_price_cents) * 100 : 0;
-            
-            // Determine the appropriate date and price for display
-            let displayDate, displayPrice, priceColor;
-            if (isSale) {
-              displayDate = order.sell_date || order.order_date;
-              displayPrice = centsToStr(order.sell_price_cents || 0);
-              priceColor = 'text-green-600 dark:text-green-400';
-            } else if (order.status === 'added') {
-              displayDate = order.order_date;
-              displayPrice = centsToStr(order.market_value_cents || order.buy_price_cents || 0);
-              priceColor = 'text-blue-600 dark:text-blue-400';
-            } else {
-              displayDate = order.order_date;
-              displayPrice = centsToStr(order.buy_price_cents);
-              priceColor = 'text-red-600 dark:text-red-400';
-            }
-            
-            return (
-              <div 
-                key={order.id} 
-                className="py-3 border-b border-gray-200 dark:border-slate-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
-                onClick={() => {
-                  // Navigate to order book with this specific order highlighted
-                  // Pass order details for better targeting
-                  const searchParams = new URLSearchParams({
-                    highlight: order.id,
-                    item: order.item,
-                    date: order.order_date || order.sale_date || '',
-                    status: order.status
-                  });
-                  navigate(`/orderbook?${searchParams.toString()}`);
-                }}
-              >
-                {/* Top Row: Title and Status */}
-                <div className="flex items-start justify-between mb-1">
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-slate-100 text-base sm:text-lg leading-tight">
-                      {itemName}
-                    </h3>
-                    {itemSet && (
-                      <p className="text-gray-600 dark:text-slate-400 text-sm leading-tight mt-0">
-                        {itemSet}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor} leading-tight`}>
-                      {statusText}
-                    </span>
-                    <p className={`font-semibold text-sm sm:text-base ${priceColor} leading-tight mt-0`}>
-                      ${displayPrice}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Data Grid - Only for Sales */}
-                {isSale && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
-                    <div>
-                      <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Buy Price</p>
-                      <p className="font-semibold text-red-600 dark:text-red-400 text-sm sm:text-base">
-                        ${centsToStr(order.buy_price_cents)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wide mb-1">Profit/Loss</p>
-                      <p className={`font-semibold text-sm sm:text-base ${profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {profitLoss >= 0 ? '+' : ''}${centsToStr(profitLoss)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(1)}%)
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+            .map((order) => (
+              <RecentActivityRow key={order.id} order={order} marketData={marketData} />
+            ))}
         </div>
       </div>
     </div>

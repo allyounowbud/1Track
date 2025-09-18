@@ -1,6 +1,7 @@
 // src/routes/OrderBook.jsx
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
@@ -108,6 +109,7 @@ async function getMarkets() {
 
 /* ====================== PAGE ====================== */
 export default function OrderBook() {
+  const location = useLocation();
   const {
     data: orders = [],
     isLoading,
@@ -228,6 +230,48 @@ export default function OrderBook() {
 
   /* single fuzzy search bar */
   const [q, setQ] = useState("");
+
+  // Handle URL parameters for highlighting specific orders
+  const urlParams = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      highlight: params.get('highlight'),
+      item: params.get('item'),
+      date: params.get('date'),
+      status: params.get('status')
+    };
+  }, [location.search]);
+
+  // Auto-select and scroll to highlighted order
+  useEffect(() => {
+    if (urlParams.highlight && orders.length > 0) {
+      const orderId = parseInt(urlParams.highlight);
+      const order = orders.find(o => o.id === orderId);
+      
+      if (order) {
+        // Select the order
+        setSelectedRows(new Set([orderId]));
+        
+        // Set search query to help locate the order
+        if (urlParams.item) {
+          setQ(urlParams.item);
+        }
+        
+        // Scroll to the order after a short delay to ensure it's rendered
+        setTimeout(() => {
+          const element = document.querySelector(`[data-order-id="${orderId}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Add a temporary highlight effect
+            element.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+            setTimeout(() => {
+              element.style.backgroundColor = '';
+            }, 3000);
+          }
+        }, 500);
+      }
+    }
+  }, [urlParams.highlight, orders]);
 
   /* bulk selection state */
   const [selectedRows, setSelectedRows] = useState(new Set());
@@ -1512,6 +1556,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
   return (
     <div 
+      data-order-id={order.id}
       className={`lg:rounded-lg lg:bg-gray-100 dark:lg:bg-slate-900/30 lg:py-3 lg:px-3 lg:overflow-visible lg:transition lg:cursor-pointer lg:relative lg:hover:bg-gray-200 dark:lg:hover:bg-slate-800/30 rounded-xl border bg-white dark:bg-slate-900/60 p-4 space-y-3 ${
         isSelected || order.isNew
           ? 'bg-indigo-500/10 border-indigo-500 lg:border-indigo-500' 
