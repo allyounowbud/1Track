@@ -37,7 +37,8 @@ All notable changes to this project will be documented in this file.
 - **Portfolio Chart Mobile Optimization**: Enhanced the portfolio chart for mobile and small screens:
   - **Full Width Chart**: Chart now extends to the very edges of the screen on mobile (no left/right padding)
   - **Hidden Y-Axis Labels**: Y-axis values are hidden on mobile to maximize chart space
-  - **Responsive X-Axis Labels**: X-axis dates are shown with smaller, lighter text that fits within container
+  - **Responsive X-Axis Labels**: X-axis shows month names only with smaller, lighter text that fits within container
+  - **Adjusted Label Positioning**: First and last labels moved inward (15% and 85% positions) to ensure full visibility
   - **Responsive Padding**: Dynamic padding adjustment based on screen size (768px breakpoint)
   - **Ghost Text Styling**: X-axis labels use light gray color (rgb(156, 163, 175)) with font-weight 300
   - **Responsive Sizing**: 3 ticks on mobile (9px font) vs 5 ticks on desktop (11px font)

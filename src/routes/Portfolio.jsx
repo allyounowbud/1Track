@@ -203,11 +203,11 @@ function PortfolioChart({ data }) {
           x = xScale(data[0].x);
         } else if (i === 0) {
           // First label - move it in from the edge
-          index = Math.floor((data.length - 1) * 0.15); // Move to 15% from start
+          index = Math.floor((data.length - 1) * 0.08); // Move to 8% from start
           x = xScale(data[index].x);
         } else if (i === xTicks - 1) {
           // Last label - move it in from the edge
-          index = Math.floor((data.length - 1) * 0.85); // Move to 85% from start
+          index = Math.floor((data.length - 1) * 0.92); // Move to 92% from start
           x = xScale(data[index].x);
         } else {
           // Middle labels - evenly distributed
