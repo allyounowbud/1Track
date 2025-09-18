@@ -1,7 +1,7 @@
 // src/routes/Portfolio.jsx
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
@@ -63,41 +63,18 @@ async function getPortfolioItems() {
 }
 
 async function getAllOrders() {
-  // Get all orders for order history display with product category info
+  // Get all orders for order history display
   const { data, error } = await supabase
     .from("orders")
     .select(`
       id, order_date, sale_date, item, profile_name, retailer, 
       buy_price_cents, sale_price_cents, fees_pct, shipping_cents, 
-      marketplace, status, market_value_cents
+      marketplace, status
     `)
     .order("order_date", { ascending: false });
   
   if (error) throw error;
-  
-  // Get product categories to determine if items are singles
-  const { data: products, error: productsError } = await supabase
-    .from("products")
-    .select("name, category");
-  
-  if (productsError) {
-    console.error("Error fetching product categories:", productsError);
-    return data || [];
-  }
-  
-  // Create a map of item names to categories
-  const categoryMap = new Map();
-  products?.forEach(product => {
-    categoryMap.set(product.name, product.category);
-  });
-  
-  // Add category information to orders
-  const ordersWithCategory = (data || []).map(order => ({
-    ...order,
-    category: categoryMap.get(order.item) || null
-  }));
-  
-  return ordersWithCategory;
+  return data || [];
 }
 
 
@@ -557,20 +534,16 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
             const itemSet = itemParts[1] || '';
             
             // Determine status and styling
-            // Check if this is a single card - if so, treat as "Added" regardless of actual status
-            const isSingle = order.category === 'tcg_singles';
-            const effectiveStatus = isSingle ? 'added' : order.status;
-            
             let statusText, statusColor;
-            if (effectiveStatus === 'sold') {
+            if (order.status === 'sold') {
               statusText = 'Sold';
               statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-            } else if (effectiveStatus === 'added') {
+            } else if (order.status === 'added') {
               statusText = 'Added';
               statusColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
             } else {
-              statusText = 'Buy';
-              statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+              statusText = 'Paid';
+              statusColor = 'bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100';
             }
             
             const isSale = order.status === 'sold';
@@ -583,8 +556,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
               displayDate = order.sell_date || order.order_date;
               displayPrice = centsToStr(order.sell_price_cents || 0);
               priceColor = 'text-green-600 dark:text-green-400';
-            } else if (effectiveStatus === 'added') {
-              // For singles or added items, show market value
+            } else if (order.status === 'added') {
               displayDate = order.order_date;
               displayPrice = centsToStr(order.market_value_cents || order.buy_price_cents || 0);
               priceColor = 'text-blue-600 dark:text-blue-400';
@@ -599,33 +571,38 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
                 key={order.id} 
                 className="py-3 border-b border-gray-200 dark:border-slate-800 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
                 onClick={() => {
-                  // Navigate to order book with this order highlighted
-                  window.location.href = `/orderbook?highlight=${order.id}`;
+                  // Navigate to order book with this specific order highlighted
+                  // Pass order details for better targeting
+                  const searchParams = new URLSearchParams({
+                    highlight: order.id,
+                    item: order.item,
+                    date: order.order_date || order.sale_date || '',
+                    status: order.status
+                  });
+                  navigate(`/orderbook?${searchParams.toString()}`);
                 }}
               >
                 {/* Top Row: Title and Status */}
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-gray-900 dark:text-slate-100 text-base sm:text-lg">
-                    {itemName}
-                  </h3>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor}`}>
+                <div className="flex items-start justify-between mb-1">
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-slate-100 text-base sm:text-lg leading-tight">
+                      {itemName}
+                    </h3>
+                    {itemSet && (
+                      <p className="text-gray-600 dark:text-slate-400 text-sm leading-tight mt-0">
+                        {itemSet}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor} leading-tight`}>
                       {statusText}
                     </span>
-                    <p className={`font-semibold text-sm sm:text-base ${priceColor}`}>
+                    <p className={`font-semibold text-sm sm:text-base ${priceColor} leading-tight mt-0`}>
                       ${displayPrice}
                     </p>
                   </div>
                 </div>
-                
-                {/* Second Row: Set Name */}
-                {itemSet && (
-                  <div className="mb-3">
-                    <p className="text-gray-600 dark:text-slate-400 text-sm">
-                      {itemSet}
-                    </p>
-                  </div>
-                )}
                 
                 {/* Data Grid - Only for Sales */}
                 {isSale && (
@@ -1495,6 +1472,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
 /* ====================== MAIN COMPONENT ====================== */
 export default function Portfolio() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [marketData, setMarketData] = useState({});
 
   // Determine current tab from URL path
