@@ -38,6 +38,28 @@ export default function UnifiedProductsCard({
     }).length;
   };
 
+  const toggleCategorySelection = (category) => {
+    const categoryProducts = getCategoryProducts(category);
+    const categorySelectedCount = getCategorySelectedCount(category);
+    const isFullySelected = categorySelectedCount === categoryProducts.length;
+    
+    if (isFullySelected) {
+      // Deselect all products in this category
+      categoryProducts.forEach(product => {
+        if (selectedProducts.has(product.id)) {
+          onToggleProductSelection(product.id);
+        }
+      });
+    } else {
+      // Select all products in this category
+      categoryProducts.forEach(product => {
+        if (!selectedProducts.has(product.id)) {
+          onToggleProductSelection(product.id);
+        }
+      });
+    }
+  };
+
   const hasAnySelection = selectedProducts.size > 0;
   const hasNewRows = newProductRows.length > 0;
   const totalProducts = products.length;
@@ -189,7 +211,15 @@ export default function UnifiedProductsCard({
                   onClick={() => onToggleCategoryExpansion(category.key)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <input
+                      type="checkbox"
+                      checked={getCategorySelectedCount(category.key) === categoryProducts.length && categoryProducts.length > 0}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleCategorySelection(category.key);
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all accent-indigo-500"
+                    />
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">{category.label}</h3>
                     <span className="text-sm text-gray-600 dark:text-slate-400">
                       ({categoryProducts.length} items)
