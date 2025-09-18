@@ -16,11 +16,16 @@ import { getBatchMarketData, getMarketValueInCents, getMarketValueFormatted } fr
 
 /* ---------- queries ---------- */
 async function getProducts() {
+  console.log('Fetching products from items table...');
   const { data, error } = await supabase
     .from("items")
     .select("id, name, category, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name, search_terms")
     .order("category, name", { ascending: true });
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching products:', error);
+    throw error;
+  }
+  console.log('Products fetched:', data);
   return data;
 }
 
@@ -57,13 +62,20 @@ export default function Settings() {
   const activeTab = location.pathname.split('/')[2] || 'products';
 
   // Unified products query
-  const { data: allProducts = [], refetch: refetchProducts } = useQuery({
-    queryKey: ["items"],
+  const { data: allProducts = [], refetch: refetchProducts, isLoading: productsLoading, error: productsError } = useQuery({
+    queryKey: ["products"],
     queryFn: getProducts,
   });
 
+  // Debug logging
+  console.log('allProducts:', allProducts);
+  console.log('Product categories:', allProducts.map(p => p.category));
+  console.log('productsLoading:', productsLoading);
+  console.log('productsError:', productsError);
+
   // Helper functions to filter products by category
   const tcgSealed = allProducts.filter(p => p.category === 'tcg_sealed');
+  const tcgSingles = allProducts.filter(p => p.category === 'tcg_singles');
   const videoGames = allProducts.filter(p => p.category === 'video_games');
   const otherItems = allProducts.filter(p => p.category === 'other_items');
 
@@ -982,6 +994,8 @@ function SettingsCard({
             onRemoveNewRow={removeNewRow}
             marketData={marketData}
             marketDataLoading={marketDataLoading}
+            isLoading={productsLoading}
+            error={productsError}
           />
         </div>
       )}

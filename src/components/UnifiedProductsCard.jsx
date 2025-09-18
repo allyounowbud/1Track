@@ -17,7 +17,9 @@ export default function UnifiedProductsCard({
   onRefetch,
   onRemoveNewRow,
   marketData,
-  marketDataLoading
+  marketDataLoading,
+  isLoading = false,
+  error = null
 }) {
   const categories = [
     { key: 'tcg_sealed', label: 'TCG Sealed', color: 'blue' },
@@ -40,6 +42,34 @@ export default function UnifiedProductsCard({
   const hasAnySelection = selectedProducts.size > 0;
   const hasNewRows = newProductRows.length > 0;
   const totalProducts = products.length;
+
+  // Debug logging
+  console.log('UnifiedProductsCard - products:', products);
+  console.log('UnifiedProductsCard - totalProducts:', totalProducts);
+  console.log('UnifiedProductsCard - categories:', categories);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <div className="text-gray-600 dark:text-slate-400 text-lg">Loading products...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <div className="text-red-600 dark:text-red-400 text-lg mb-4">Error loading products</div>
+          <div className="text-gray-600 dark:text-slate-400 text-sm">{error.message}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -118,6 +148,8 @@ export default function UnifiedProductsCard({
           {categories.map(category => {
             const categoryProducts = getCategoryProducts(category.key);
             const isExpanded = expandedCategories.has(category.key);
+
+            console.log(`Category ${category.key}:`, categoryProducts.length, 'products');
 
             if (categoryProducts.length === 0) return null;
 
