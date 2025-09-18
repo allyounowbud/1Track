@@ -7,7 +7,7 @@ import Sidebar from "./Sidebar";
  * Props:
  * - children: React.ReactNode
  * - active: string (current active section)
- * - section: "orderbook" | "emails" | "profiles"
+ * - section: "orderbook" | "shipments" | "emails"
  */
 export default function LayoutWithSidebar({ children, active, section }) {
   // Initialize from localStorage, default to collapsed (true)

@@ -7,7 +7,7 @@ import { card } from "../utils/ui.js";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 
 const tile =
-  "group rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-gray-50 dark:hover:bg-slate-900 transition p-4 sm:p-5 flex items-start gap-4";
+  "group rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-gray-50 dark:hover:bg-slate-900 transition p-3 sm:p-4 flex flex-col gap-3";
 
 export default function Hub() {
   const userInfo = useAuth();
@@ -204,7 +204,7 @@ export default function Hub() {
     },
     {
       title: "Complete Database Section Implementation - Full Settings Functionality with New Organization",
-      description: "Successfully implemented the complete Database section as a main workspace alongside Order Book, Emails, and Profiles. The Database section features proper sidebar navigation with Products, Retailers, and Marketplaces tabs. Within the Products tab, users can toggle between Singles and Sealed views, each containing the appropriate product categories (Pokemon Singles/Sealed, Magic Singles/Sealed, Yu-Gi-Oh Singles/Sealed, and Video Games). All original Settings functionality has been preserved including expanded cards, + Add buttons, bulk action buttons, row selection, focused editing mode, and all the advanced features like checkbox disabling during new row creation. The interface maintains the same look and feel as the original Settings page but with much better organization and structure.",
+      description: "Successfully implemented the complete Database section as a main workspace alongside Order Book and Shipments. The Database section features proper sidebar navigation with Products, Retailers, and Marketplaces tabs. Within the Products tab, users can toggle between Singles and Sealed views, each containing the appropriate product categories (Pokemon Singles/Sealed, Magic Singles/Sealed, Yu-Gi-Oh Singles/Sealed, and Video Games). All original Settings functionality has been preserved including expanded cards, + Add buttons, bulk action buttons, row selection, focused editing mode, and all the advanced features like checkbox disabling during new row creation. The interface maintains the same look and feel as the original Settings page but with much better organization and structure.",
       color: "bg-blue-500/70",
       date: "2024-12-20",
       time: "06:20",
@@ -891,7 +891,7 @@ export default function Hub() {
     },
     {
       title: "Implemented Collapsible Sidebar Navigation",
-      description: "Completely redesigned the navigation system with a modern collapsible left sidebar that replaces the header tabs. The sidebar includes section-specific navigation (Order Book, Emails, Profiles) with icons and labels, a collapsible toggle button, and user account information at the bottom. This provides significantly more space for content, eliminates tab wrapping issues, and creates a modern dashboard feel similar to popular applications like Notion and Linear. The sidebar can be collapsed to save even more space when needed.",
+      description: "Completely redesigned the navigation system with a modern collapsible left sidebar that replaces the header tabs. The sidebar includes section-specific navigation (Order Book, Shipments) with icons and labels, a collapsible toggle button, and user account information at the bottom. This provides significantly more space for content, eliminates tab wrapping issues, and creates a modern dashboard feel similar to popular applications like Notion and Linear. The sidebar can be collapsed to save even more space when needed.",
       color: "bg-slate-600",
       date: "2024-12-19",
       time: "20:30",
@@ -947,7 +947,7 @@ export default function Hub() {
     },
     {
       title: "Added App Logo and BETA Badge to Headers",
-      description: "Enhanced the application branding by adding the OneTrack logo to the left of the title in all header components. Added a subtle 'BETA' badge in ghost text styling to the right of the OneTrack title across all pages (Hub, Order Book, Emails, Shipments, and Profiles). This provides consistent branding and clearly indicates the application's beta status to users while maintaining the clean, professional appearance of the interface.",
+      description: "Enhanced the application branding by adding the OneTrack logo to the left of the title in all header components. Added a subtle 'BETA' badge in ghost text styling to the right of the OneTrack title across all pages (Hub, Order Book, Emails, and Shipments). This provides consistent branding and clearly indicates the application's beta status to users while maintaining the clean, professional appearance of the interface.",
       color: "bg-slate-600",
       date: "2024-12-19",
       time: "18:45",
@@ -1094,95 +1094,81 @@ export default function Hub() {
         <div className={`${card} mb-6`}>
           <h2 className="text-lg font-semibold mb-4">Choose a workspace</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             <Link to="/orders" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-gray-200 dark:bg-slate-500/20 grid place-items-center text-gray-600 dark:text-slate-300">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-slate-500/20 grid place-items-center text-gray-600 dark:text-slate-300 flex-shrink-0">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="text-lg font-semibold text-gray-900 dark:text-white">Order Book</div>
+                <div className="ml-auto text-gray-400 dark:text-slate-500 group-hover:text-gray-600 dark:group-hover:text-slate-300">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
-              <div className="flex-1">
-                <div className="text-xl font-semibold text-gray-900 dark:text-white">Order Book</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">
-                  Track purchases, sales, and inventory. Quickly add new orders, mark existing orders as sold, 
-                  and track your stats from anywhere!
-                </div>
-                <div className="mt-3 inline-flex items-center text-gray-700 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-slate-200">
-                  Open →
-                </div>
+              <div className="text-gray-600 dark:text-slate-400 text-sm leading-relaxed">
+                Track purchases, sales, and inventory. Add orders and mark as sold.
               </div>
             </Link>
 
             <Link to="/portfolio" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-emerald-500/20 grid place-items-center text-emerald-300">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="text-xl font-semibold text-gray-900 dark:text-white">Portfolio</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">
-                  Track your collection value, view trends, monitor performance, and analyze detailed statistics. 
-                  Includes inventory management and comprehensive analytics with market data integration.
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-emerald-500/20 grid place-items-center text-emerald-300 flex-shrink-0">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                 </div>
-                <div className="mt-3 inline-flex items-center text-emerald-600 dark:text-emerald-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-200">
-                  Open →
+                <div className="text-lg font-semibold text-gray-900 dark:text-white">Portfolio</div>
+                <div className="ml-auto text-gray-400 dark:text-slate-500 group-hover:text-gray-600 dark:group-hover:text-slate-300">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </div>
               </div>
-            </Link>
-
-            <Link to="/emails" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-red-500/20 grid place-items-center text-red-300">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <rect x="3" y="5" width="18" height="14" rx="2" />
-                  <path d="M3 7l9 6 9-6" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="text-xl font-semibold text-gray-900 dark:text-white">Emails</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">
-                  Auto-import orders & shipping updates. Connect your Gmail to automatically sync order confirmations, 
-                  track shipments, and add orders to your order book.
-                </div>
-                <div className="mt-3 inline-flex items-center text-red-600 dark:text-red-300 group-hover:text-red-700 dark:group-hover:text-red-200">
-                  Open →
-                </div>
+              <div className="text-gray-600 dark:text-slate-400 text-sm leading-relaxed">
+                Track collection value, view trends, and analyze performance with market data.
               </div>
             </Link>
 
-            <Link to="/profiles" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-purple-500/20 grid place-items-center text-purple-300">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+            <Link to="/shipments" className={tile}>
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-red-500/20 grid place-items-center text-red-300 flex-shrink-0">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </div>
+                <div className="text-lg font-semibold text-gray-900 dark:text-white">Shipments</div>
+                <div className="ml-auto text-gray-400 dark:text-slate-500 group-hover:text-gray-600 dark:group-hover:text-slate-300">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
-              <div className="flex-1">
-                <div className="text-xl font-semibold text-gray-900 dark:text-white">Profiles</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">
-                  Manage customer profiles and contact information. Track customer order history, 
-                  manage contact details, and build better relationships with your customers.
-                </div>
-                <div className="mt-3 inline-flex items-center text-purple-600 dark:text-purple-300 group-hover:text-purple-700 dark:group-hover:text-purple-200">
-                  Open →
-                </div>
+              <div className="text-gray-600 dark:text-slate-400 text-sm leading-relaxed">
+                Track orders and shipments automatically with Gmail integration.
               </div>
             </Link>
+
 
             <Link to="/database" className={tile}>
-              <div className="h-12 w-12 rounded-xl bg-cyan-500/20 grid place-items-center text-cyan-300">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-                </svg>
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-cyan-500/20 grid place-items-center text-cyan-300 flex-shrink-0">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                  </svg>
+                </div>
+                <div className="text-lg font-semibold text-gray-900 dark:text-white">Database</div>
+                <div className="ml-auto text-gray-400 dark:text-slate-500 group-hover:text-gray-600 dark:group-hover:text-slate-300">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
-              <div className="flex-1">
-                <div className="text-xl font-semibold text-gray-900 dark:text-white">Database</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">
-                  Manage your product database, retailers, and marketplaces. Organize Pokemon cards, 
-                  Magic cards, Yu-Gi-Oh cards, video games, and more with singles/sealed separation.
-                </div>
-                <div className="mt-3 inline-flex items-center text-cyan-600 dark:text-cyan-300 group-hover:text-cyan-700 dark:group-hover:text-cyan-200">
-                  Open →
-                </div>
+              <div className="text-gray-600 dark:text-slate-400 text-sm leading-relaxed">
+                Manage products, retailers, and marketplaces with organized categories.
               </div>
             </Link>
           </div>

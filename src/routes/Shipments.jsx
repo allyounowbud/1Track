@@ -340,7 +340,7 @@ export default function Shipments() {
   };
 
   return (
-    <LayoutWithSidebar active="shipments" section="emails">
+    <LayoutWithSidebar active="shipments" section="shipments">
       <PageHeader title="Shipments" />
 
         {/* Shipments Management */}

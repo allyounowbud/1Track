@@ -2,12 +2,13 @@
 import { useState, useEffect } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../hooks/useAuth";
 import ThemeToggle from "./ThemeToggle";
 
 /**
  * Props:
  * - active: string (current active section)
- * - section: "orderbook" | "emails" | "profiles"
+ * - section: "orderbook" | "shipments" | "emails"
  * - onCollapseChange: function (isCollapsed: boolean) => void
  */
 export default function Sidebar({ active = "", section = "orderbook", onCollapseChange }) {
@@ -16,7 +17,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     const saved = localStorage.getItem('sidebar-collapsed');
     return saved !== null ? JSON.parse(saved) : true;
   });
-  const [userInfo, setUserInfo] = useState({ avatar_url: "", username: "" });
+  const userInfo = useAuth();
   const [isSmallScreen, setIsSmallScreen] = useState(() => {
     // Initialize with immediate check to prevent flash
     if (typeof window !== 'undefined') {
@@ -33,40 +34,6 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     }
     return false;
   });
-
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name ||
-        m.preferred_username ||
-        m.full_name ||
-        m.name ||
-        user.email ||
-        "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    }
-    loadUser();
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      const user = session?.user;
-      if (!user) return setUserInfo({ avatar_url: "", username: "" });
-      const m = user.user_metadata || {};
-      const username =
-        m.user_name ||
-        m.preferred_username ||
-        m.full_name ||
-        m.name ||
-        user.email ||
-        "Account";
-      const avatar_url = m.avatar_url || m.picture || "";
-      setUserInfo({ avatar_url, username });
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
 
   // Handle responsive behavior
   useEffect(() => {
@@ -123,8 +90,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
           homeItem,
           { key: "orderbook", label: "Order Book", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", to: "/add" },
           { key: "portfolio", label: "Portfolio", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", to: "/portfolio" },
-          { key: "emails", label: "Emails", icon: "M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", to: "/emails" },
-          { key: "profiles", label: "Profiles", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", to: "/profiles" },
+          { key: "shipments", label: "Shipments", icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4", to: "/shipments" },
           { key: "database", label: "Database", icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4", to: "/database" }
         ];
       }
@@ -138,16 +104,17 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
           { key: "sold", label: "Mark as Sold", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", to: "/sold" },
           { key: "orders", label: "Order Book", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", to: "/orders" }
         ];
+      case "shipments":
+        return [
+          homeItem,
+          { key: "shipments", label: "Shipments", icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4", to: "/shipments" },
+          { key: "emails", label: "Emails", icon: "M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", to: "/emails" }
+        ];
       case "emails":
         return [
           homeItem,
-          { key: "emails", label: "Emails", icon: "M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", to: "/emails" },
-          { key: "shipments", label: "Shipments", icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4", to: "/shipments" }
-        ];
-      case "profiles":
-        return [
-          homeItem,
-          { key: "profiles", label: "Profiles", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", to: "/profiles" }
+          { key: "shipments", label: "Shipments", icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4", to: "/shipments" },
+          { key: "emails", label: "Emails", icon: "M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", to: "/emails" }
         ];
       case "database":
         return [

@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **User Avatar and Username Flickering**: Fixed flickering of user avatar and username on the Hub page by implementing localStorage caching in the useAuth hook. User data is now cached and loaded immediately on page load, eliminating the visual flicker that occurred when navigating back to the home page. The Sidebar component was also updated to use the centralized useAuth hook instead of duplicating authentication logic.
 - **Portfolio Chart Improvements**: Fixed multiple issues with the portfolio value chart:
   - **Responsive Design**: Chart now properly fills full screen on mobile and adapts to different screen sizes without distortion
   - **No Horizontal Scroll**: Added overflow-hidden to chart container to prevent horizontal scrolling on small screens
@@ -35,6 +36,15 @@ All notable changes to this project will be documented in this file.
 - **Mobile Preview Background Scroll Prevention**: Enhanced mobile preview experience by completely disabling background content scrolling when preview cards are active, preventing scroll conflicts and ensuring smooth interaction with preview content
 - **Removed Market Data Loading Cards**: Eliminated all "Loading market data..." cards and loading states throughout the application, providing a cleaner user experience without loading interruptions
 - **Enhanced Background Market Data Fetching**: Improved background market data service to fetch data immediately on app load, expanded to include both orders and inventory products, and implemented 24-hour caching with localStorage persistence for seamless data availability across sessions
+- **Enhanced Card Shadow Effects**: Updated all card components across the app to use the same prominent drop shadow effect as the Mark as Sold page, providing consistent visual depth and modern appearance in light mode
+- **Removed Profiles Page**: Completely removed the Profiles page and all related content from the application, including navigation items, routing, and workspace cards, streamlining the app to focus on core functionality
+- **Responsive Workspace Grid Layout**: Updated the Hub page workspace grid to be fully responsive: 4 columns on large screens (lg), 3 columns on medium screens (md), 2 columns on small screens (sm), and stacked (1 column) on mobile devices
+- **Redesigned Workspace Cards**: Completely redesigned workspace cards to be more compact and space-efficient, featuring smaller icons (10x10), concise descriptions, horizontal layout with chevron arrows, and reduced padding to eliminate wasted space while maintaining readability
+- **Improved Workspace Card Layout**: Enhanced workspace card design with title and icon grouped together at the top, description below, and chevron arrow positioned on the right side of the header row, creating a more natural and visually appealing layout that eliminates awkward icon placement
+- **Updated Navigation from Emails to Shipments**: Changed the main navigation and hub workspace card from "Emails" to "Shipments" to better reflect the primary functionality of tracking orders and shipments automatically, with Gmail integration being a supporting feature rather than the main focus
+- **Reordered Navigation and Added Tabs**: Swapped the order in sidebar navigation to put Shipments first, and added tab navigation to the Emails page with Shipments and Emails tabs, maintaining consistent navigation hierarchy across the application
+- **Moved Tabs to Sidebar Navigation**: Removed page-level tabs from the Emails page and moved the Shipments/Emails navigation to the sidebar, creating consistent navigation behavior across both Shipments and Emails pages
+- **Updated Frontend Email References**: Changed frontend display text from "Gmail" to "Email" on the emails page to make the interface more inclusive, while keeping backend function names unchanged to maintain Gmail integration functionality
 
 ### Added
 - **Complete Light/Dark Mode Theme System**: Implemented a comprehensive theme system with light and dark mode support across the entire application. Features include:

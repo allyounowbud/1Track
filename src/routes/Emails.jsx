@@ -182,10 +182,10 @@ export default function Emails() {
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-lg font-semibold">
                 <MailIcon className="h-5 w-5" />
-                Gmail Account Management
+                Email Account Management
               </div>
               <p className="text-gray-600 dark:text-slate-400 text-sm mt-1">
-                Connect multiple Gmail accounts to automatically import order confirmations and shipping updates.
+                Connect multiple email accounts to automatically import order confirmations and shipping updates.
               </p>
             </div>
             {connected && (
@@ -210,7 +210,7 @@ export default function Emails() {
             {/* Accounts List */}
             {gmailAccounts.length === 0 ? (
               <div className="text-center py-8 text-gray-600 dark:text-slate-400">
-                No Gmail accounts connected.
+                No email accounts connected.
               </div>
             ) : (
               <div className="space-y-2">
@@ -253,8 +253,8 @@ export default function Emails() {
             <div className="text-center py-12">
               <div className="text-gray-600 dark:text-slate-400 mb-4">
                 <MailIcon className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p className="text-xl font-medium">No Gmail Accounts Connected</p>
-                <p className="text-sm mt-2">Connect your Gmail accounts to start automatically importing order confirmations and shipping updates.</p>
+                <p className="text-xl font-medium">No Email Accounts Connected</p>
+                <p className="text-sm mt-2">Connect your email accounts to start automatically importing order confirmations and shipping updates.</p>
               </div>
               <button
                 onClick={connectGmail} 
