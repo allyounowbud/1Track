@@ -192,12 +192,30 @@ function PortfolioChart({ data }) {
         }
       }
 
-      // Add X-axis labels (dates) - responsive sizing
+      // Add X-axis labels (months only) - responsive sizing with adjusted positioning
       const xTicks = isMobile ? Math.min(3, data.length) : Math.min(5, data.length); // Fewer ticks on mobile
       for (let i = 0; i < xTicks; i++) {
-        const index = data.length === 1 ? 0 : Math.floor((data.length - 1) * (i / (xTicks - 1)));
+        let index, x;
+        
+        if (xTicks === 1) {
+          // Single point - center it
+          index = 0;
+          x = xScale(data[0].x);
+        } else if (i === 0) {
+          // First label - move it in from the edge
+          index = Math.floor((data.length - 1) * 0.15); // Move to 15% from start
+          x = xScale(data[index].x);
+        } else if (i === xTicks - 1) {
+          // Last label - move it in from the edge
+          index = Math.floor((data.length - 1) * 0.85); // Move to 85% from start
+          x = xScale(data[index].x);
+        } else {
+          // Middle labels - evenly distributed
+          index = Math.floor((data.length - 1) * (i / (xTicks - 1)));
+          x = xScale(data[index].x);
+        }
+        
         const point = data[index];
-        const x = xScale(point.x);
         
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
@@ -206,7 +224,7 @@ function PortfolioChart({ data }) {
         text.setAttribute('fill', 'rgb(156, 163, 175)'); // Lighter gray color
         text.setAttribute('font-size', isMobile ? '9' : '11'); // Smaller font
         text.setAttribute('font-weight', '300'); // Light weight
-        text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short' }); // Month only
         svg.appendChild(text);
       }
 
