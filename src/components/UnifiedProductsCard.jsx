@@ -20,9 +20,16 @@ export default function UnifiedProductsCard({
   isLoading = false,
   error = null
 }) {
-  // Get unique categories from products
+  // Get unique categories from products and sort them with "Other" last
   const uniqueCategories = [...new Set(products.map(p => p.product_category))].filter(Boolean);
-  const categories = uniqueCategories.map(cat => ({ 
+  const sortedCategories = uniqueCategories.sort((a, b) => {
+    // If one is "Other", it should come last
+    if (a === 'Other') return 1;
+    if (b === 'Other') return -1;
+    // Otherwise, sort alphabetically
+    return a.localeCompare(b);
+  });
+  const categories = sortedCategories.map(cat => ({ 
     key: cat, 
     label: cat, 
     color: 'blue' 
