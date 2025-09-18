@@ -91,7 +91,12 @@ function PortfolioChart({ data }) {
       const containerRect = svg.getBoundingClientRect();
       const width = containerRect.width;
       const height = containerRect.height;
-      const padding = { top: 20, right: 20, bottom: 40, left: 60 };
+      
+      // Check if we're on mobile/small screen
+      const isMobile = width < 768; // md breakpoint
+      const padding = isMobile 
+        ? { top: 20, right: 0, bottom: 40, left: 0 } // No left/right padding on mobile
+        : { top: 20, right: 20, bottom: 40, left: 60 }; // Original padding on desktop
 
       // Clear previous content
       svg.innerHTML = '';
@@ -169,20 +174,22 @@ function PortfolioChart({ data }) {
 
       // Removed data points (circles) as requested
 
-      // Add Y-axis labels
-      const yTicks = 5;
-      for (let i = 0; i <= yTicks; i++) {
-        const value = yMin + (yMax - yMin) * (i / yTicks);
-        const y = yScale(value);
-        
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', padding.left - 10);
-        text.setAttribute('y', y + 4);
-        text.setAttribute('text-anchor', 'end');
-        text.setAttribute('fill', 'rgb(148, 163, 184)');
-        text.setAttribute('font-size', '12');
-        text.textContent = `$${value.toFixed(0)}`;
-        svg.appendChild(text);
+      // Add Y-axis labels (only on desktop)
+      if (!isMobile) {
+        const yTicks = 5;
+        for (let i = 0; i <= yTicks; i++) {
+          const value = yMin + (yMax - yMin) * (i / yTicks);
+          const y = yScale(value);
+          
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', padding.left - 10);
+          text.setAttribute('y', y + 4);
+          text.setAttribute('text-anchor', 'end');
+          text.setAttribute('fill', 'rgb(148, 163, 184)');
+          text.setAttribute('font-size', '12');
+          text.textContent = `$${value.toFixed(0)}`;
+          svg.appendChild(text);
+        }
       }
 
       // Add X-axis labels (dates)
@@ -197,7 +204,7 @@ function PortfolioChart({ data }) {
         text.setAttribute('y', height - padding.bottom + 20);
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('fill', 'rgb(148, 163, 184)');
-        text.setAttribute('font-size', '12');
+        text.setAttribute('font-size', isMobile ? '10' : '12'); // Smaller font on mobile
         text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         svg.appendChild(text);
       }
