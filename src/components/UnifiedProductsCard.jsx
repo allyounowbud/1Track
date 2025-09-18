@@ -29,13 +29,13 @@ export default function UnifiedProductsCard({
   ];
 
   const getCategoryProducts = (category) => {
-    return products.filter(p => p.category === category);
+    return products.filter(p => p.product_category === category);
   };
 
   const getCategorySelectedCount = (category) => {
     return Array.from(selectedProducts).filter(id => {
       const product = products.find(p => p.id === id);
-      return product && product.category === category;
+      return product && product.product_category === category;
     }).length;
   };
 
@@ -183,7 +183,7 @@ export default function UnifiedProductsCard({
                         onToggleSelection={() => onToggleProductSelection(product.id)}
                         onSave={() => onRefetch()}
                         disabled={hasNewRows}
-                        category={product.category}
+                        category={product.product_category}
                         isCheckboxDisabled={hasNewRows}
                       />
                     ))}

@@ -19,8 +19,8 @@ async function getProducts() {
   console.log('Fetching products from items table...');
   const { data, error } = await supabase
     .from("items")
-    .select("id, name, category, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name, search_terms")
-    .order("category, name", { ascending: true });
+    .select("id, name, product_category, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override, upc_code, console_name, search_terms")
+    .order("product_category, name", { ascending: true });
   if (error) {
     console.error('Error fetching products:', error);
     throw error;
@@ -69,15 +69,15 @@ export default function Settings() {
 
   // Debug logging
   console.log('allProducts:', allProducts);
-  console.log('Product categories:', allProducts.map(p => p.category));
+  console.log('Product categories:', allProducts.map(p => p.product_category));
   console.log('productsLoading:', productsLoading);
   console.log('productsError:', productsError);
 
   // Helper functions to filter products by category
-  const tcgSealed = allProducts.filter(p => p.category === 'tcg_sealed');
-  const tcgSingles = allProducts.filter(p => p.category === 'tcg_singles');
-  const videoGames = allProducts.filter(p => p.category === 'video_games');
-  const otherItems = allProducts.filter(p => p.category === 'other_items');
+  const tcgSealed = allProducts.filter(p => p.product_category === 'tcg_sealed');
+  const tcgSingles = allProducts.filter(p => p.product_category === 'tcg_singles');
+  const videoGames = allProducts.filter(p => p.product_category === 'video_games');
+  const otherItems = allProducts.filter(p => p.product_category === 'other_items');
 
   // Legacy queries for backward compatibility (will be removed after migration)
   const { data: items = [], refetch: refetchItems } = useQuery({
@@ -505,10 +505,10 @@ export default function Settings() {
       }
     } else {
       // Handle select all for specific category
-      const categoryProducts = allProducts.filter(p => p.category === category);
+      const categoryProducts = allProducts.filter(p => p.product_category === category);
       const categorySelected = Array.from(selectedProducts).filter(id => {
         const product = allProducts.find(p => p.id === id);
-        return product && product.category === category;
+        return product && product.product_category === category;
       });
       
       if (categorySelected.length === categoryProducts.length) {
