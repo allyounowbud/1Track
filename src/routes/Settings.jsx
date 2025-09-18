@@ -532,6 +532,58 @@ export default function Settings() {
     });
   }
 
+  // Delete category function
+  async function deleteCategory(categoryToDelete) {
+    // Prevent deletion of "Other" category
+    if (categoryToDelete === 'Other') {
+      alert('The "Other" category cannot be deleted.');
+      return;
+    }
+
+    // Confirm deletion
+    const categoryProducts = allProducts.filter(p => p.product_category === categoryToDelete);
+    const confirmMessage = categoryProducts.length > 0 
+      ? `Delete category "${categoryToDelete}"? This will move ${categoryProducts.length} items to the "Other" category.`
+      : `Delete category "${categoryToDelete}"?`;
+    
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      // If there are products in this category, move them to "Other"
+      if (categoryProducts.length > 0) {
+        const productIds = categoryProducts.map(p => p.id);
+        
+        const { error } = await supabase
+          .from('items')
+          .update({ product_category: 'Other' })
+          .in('id', productIds);
+
+        if (error) {
+          console.error('Error moving products to Other category:', error);
+          alert('Error moving products to Other category. Please try again.');
+          return;
+        }
+      }
+
+      // Remove category from expanded categories if it was expanded
+      setExpandedCategories(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(categoryToDelete);
+        return newSet;
+      });
+
+      // Refresh the data
+      await refetchProducts();
+      
+      console.log(`Category "${categoryToDelete}" deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      alert('Error deleting category. Please try again.');
+    }
+  }
+
   // Remove new row function
   function removeNewRow(rowId) {
     setNewProductRows(prev => prev.filter(row => row.id !== rowId));
@@ -927,9 +979,17 @@ function SettingsCard({
       
       {/* Description for each tab */}
       {activeTab === "products" && (
-        <p className="text-sm text-gray-700 dark:text-slate-300 mb-6 -mt-3">
-          Product database with categories and market values for items not tracked by the API.
-        </p>
+        <div className="text-xs text-gray-600 dark:text-slate-400 mb-4 -mt-2 leading-relaxed">
+          <p className="mb-1">
+            <strong>Manual Product Database:</strong> Add items not tracked by the API with custom categories and market values.
+          </p>
+          <p className="mb-1">
+            <strong>How to use:</strong> Click "Add Product" to create new entries, select rows for bulk actions (save/delete), or expand categories to edit existing items.
+          </p>
+          <p>
+            <strong>Categories:</strong> Organize items by type (Collectibles, Sports Cards, etc.) for better inventory management.
+          </p>
+        </div>
       )}
       {activeTab === "retailers" && (
         <p className="text-sm text-gray-700 dark:text-slate-300 mb-6 -mt-3">
@@ -957,6 +1017,7 @@ function SettingsCard({
             onBulkSave={bulkSaveProducts}
             onBulkDelete={bulkDeleteProducts}
             onToggleCategoryExpansion={toggleCategoryExpansion}
+            onDeleteCategory={deleteCategory}
             onRefetch={refetchProducts}
             onRemoveNewRow={removeNewRow}
             isLoading={productsLoading}

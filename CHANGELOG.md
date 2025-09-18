@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Category Deletion Feature**: Added ability to delete categories from the product database:
+  - **Delete Button**: Added red delete button to category headers (except "Other" category)
+  - **Smart Product Migration**: When a category is deleted, all products in that category are automatically moved to "Other" category
+  - **Database Updates**: Automatically updates the database to change product_category to "Other" for affected items
+  - **Protection for "Other"**: The "Other" category cannot be deleted to prevent data loss
+  - **Confirmation Dialog**: Shows confirmation dialog with count of items that will be moved
+  - **Error Handling**: Proper error handling and user feedback for failed operations
+
 ### Fixed
 - **Database/Products Page UI Cleanup**: Removed unnecessary UI elements from the database/products page:
   - **Circle Icons**: Removed decorative circle icons next to description text for cleaner appearance

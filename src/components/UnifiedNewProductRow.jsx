@@ -125,7 +125,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
     <div 
       className={`w-full border border-gray-200 dark:border-slate-700 rounded-xl transition cursor-pointer mb-2 ${
         isSelected
-          ? 'border-indigo-500' 
+          ? 'border-indigo-500 dark:border-indigo-400' 
           : 'hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/30'
       }`}
       onClick={onToggleSelection}

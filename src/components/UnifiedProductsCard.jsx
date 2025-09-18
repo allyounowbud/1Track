@@ -14,6 +14,7 @@ export default function UnifiedProductsCard({
   onBulkSave,
   onBulkDelete,
   onToggleCategoryExpansion,
+  onDeleteCategory,
   onRefetch,
   onRemoveNewRow,
   isLoading = false,
@@ -31,52 +32,7 @@ export default function UnifiedProductsCard({
     return products.filter(p => p.product_category === category);
   };
 
-  const getCategorySelectedCount = (category) => {
-    return Array.from(selectedProducts).filter(id => {
-      const product = products.find(p => p.id === id);
-      return product && product.product_category === category;
-    }).length;
-  };
 
-  const toggleCategorySelection = (category) => {
-    const categoryProducts = getCategoryProducts(category);
-    const categorySelectedCount = getCategorySelectedCount(category);
-    const isFullySelected = categorySelectedCount === categoryProducts.length;
-    
-    // Create a new selection set
-    const newSelected = new Set(selectedProducts);
-    
-    if (isFullySelected) {
-      // Deselect all products in this category
-      categoryProducts.forEach(product => {
-        newSelected.delete(product.id);
-      });
-    } else {
-      // Select all products in this category
-      categoryProducts.forEach(product => {
-        newSelected.add(product.id);
-      });
-    }
-    
-    // Update the selection by toggling each product individually
-    // This ensures the parent component's state is properly updated
-    const currentSelected = new Set(selectedProducts);
-    const toToggle = [];
-    
-    // Find products that need to be toggled
-    categoryProducts.forEach(product => {
-      const wasSelected = currentSelected.has(product.id);
-      const shouldBeSelected = newSelected.has(product.id);
-      if (wasSelected !== shouldBeSelected) {
-        toToggle.push(product.id);
-      }
-    });
-    
-    // Toggle each product that needs to change
-    toToggle.forEach(productId => {
-      onToggleProductSelection(productId);
-    });
-  };
 
   const hasAnySelection = selectedProducts.size > 0;
   const hasNewRows = newProductRows.length > 0;
@@ -232,32 +188,37 @@ export default function UnifiedProductsCard({
                   onClick={() => onToggleCategoryExpansion(category.key)}
                 >
                   <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={getCategorySelectedCount(category.key) === categoryProducts.length && categoryProducts.length > 0}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        toggleCategorySelection(category.key);
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                      className="h-4 w-4 rounded border-gray-300 bg-white dark:border-slate-500 dark:bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-2 transition-all accent-indigo-500"
-                    />
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">{category.label}</h3>
                     <span className="text-sm text-gray-600 dark:text-slate-400">
                       ({categoryProducts.length} items)
                     </span>
                   </div>
-                  <div className="text-gray-600 dark:text-slate-400 text-sm transition-transform duration-200 ease-in-out">
-                    <svg 
-                      className={`w-4 h-4 transition-transform duration-200 ease-in-out ${isExpanded ? 'rotate-90' : 'rotate-0'}`}
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                  <div className="flex items-center gap-2">
+                    {/* Delete Category Button - Only show for non-Other categories */}
+                    {category.key !== 'Other' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteCategory(category.key);
+                        }}
+                        className="p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                        title={`Delete category "${category.label}"`}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+                    <div className="text-gray-600 dark:text-slate-400 text-sm transition-transform duration-200 ease-in-out">
+                      <svg 
+                        className={`w-4 h-4 transition-transform duration-200 ease-in-out ${isExpanded ? 'rotate-90' : 'rotate-0'}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
