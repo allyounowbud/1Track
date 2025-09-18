@@ -63,18 +63,41 @@ async function getPortfolioItems() {
 }
 
 async function getAllOrders() {
-  // Get all orders for order history display
+  // Get all orders for order history display with product category info
   const { data, error } = await supabase
     .from("orders")
     .select(`
       id, order_date, sale_date, item, profile_name, retailer, 
       buy_price_cents, sale_price_cents, fees_pct, shipping_cents, 
-      marketplace, status
+      marketplace, status, market_value_cents
     `)
     .order("order_date", { ascending: false });
   
   if (error) throw error;
-  return data || [];
+  
+  // Get product categories to determine if items are singles
+  const { data: products, error: productsError } = await supabase
+    .from("products")
+    .select("name, category");
+  
+  if (productsError) {
+    console.error("Error fetching product categories:", productsError);
+    return data || [];
+  }
+  
+  // Create a map of item names to categories
+  const categoryMap = new Map();
+  products?.forEach(product => {
+    categoryMap.set(product.name, product.category);
+  });
+  
+  // Add category information to orders
+  const ordersWithCategory = (data || []).map(order => ({
+    ...order,
+    category: categoryMap.get(order.item) || null
+  }));
+  
+  return ordersWithCategory;
 }
 
 
@@ -534,11 +557,15 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
             const itemSet = itemParts[1] || '';
             
             // Determine status and styling
+            // Check if this is a single card - if so, treat as "Added" regardless of actual status
+            const isSingle = order.category === 'tcg_singles';
+            const effectiveStatus = isSingle ? 'added' : order.status;
+            
             let statusText, statusColor;
-            if (order.status === 'sold') {
+            if (effectiveStatus === 'sold') {
               statusText = 'Sold';
               statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-            } else if (order.status === 'added') {
+            } else if (effectiveStatus === 'added') {
               statusText = 'Added';
               statusColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
             } else {
@@ -556,7 +583,8 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
               displayDate = order.sell_date || order.order_date;
               displayPrice = centsToStr(order.sell_price_cents || 0);
               priceColor = 'text-green-600 dark:text-green-400';
-            } else if (order.status === 'added') {
+            } else if (effectiveStatus === 'added') {
+              // For singles or added items, show market value
               displayDate = order.order_date;
               displayPrice = centsToStr(order.market_value_cents || order.buy_price_cents || 0);
               priceColor = 'text-blue-600 dark:text-blue-400';
