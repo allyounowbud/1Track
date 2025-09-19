@@ -1206,11 +1206,13 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
           {/* Header */}
           <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-4">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <div className="flex-1 min-w-0 pr-4">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate">
                   {expandedItem.name.replace(/\s*-\s*Pokemon\s+.*$/i, '')}
                 </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Item Details & Performance</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
+                  {expandedItem.marketInfo?.console_name || 'Collection Item'}
+                </p>
               </div>
                   <button
                 onClick={handleClosePreview}

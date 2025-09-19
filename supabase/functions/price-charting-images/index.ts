@@ -68,6 +68,12 @@ async function scrapeProductImages(productName: string, consoleName?: string): P
     
     // Multiple regex patterns to catch different image formats
     const imagePatterns = [
+      // PriceCharting specific image URLs (priority) - various formats
+      /(https?:\/\/storage\.googleapis\.com\/images\.pricecharting\.com\/[^"'\s]*\/240\.jpg)/gi,
+      /(https?:\/\/storage\.googleapis\.com\/images\.pricecharting\.com\/[^"'\s]*\/[0-9]+\.jpg)/gi,
+      // Relative PriceCharting image paths
+      /(\/images\/[^"'\s]*\/240\.jpg)/gi,
+      /(\/images\/[^"'\s]*\/[0-9]+\.jpg)/gi,
       // Standard img tags with src
       /<img[^>]+src=["']([^"']*\.(?:jpg|jpeg|png|gif|webp))["'][^>]*>/gi,
       // Data attributes
@@ -87,9 +93,14 @@ async function scrapeProductImages(productName: string, consoleName?: string): P
           // Ensure it's a full URL
           let fullUrl = imageUrl
           if (!imageUrl.startsWith('http')) {
-            fullUrl = imageUrl.startsWith('/') 
-              ? `https://www.pricecharting.com${imageUrl}`
-              : `https://www.pricecharting.com/${imageUrl}`
+            // Handle PriceCharting image paths specifically
+            if (imageUrl.startsWith('/images/')) {
+              fullUrl = `https://storage.googleapis.com/images.pricecharting.com${imageUrl.replace('/images/', '')}`
+            } else {
+              fullUrl = imageUrl.startsWith('/') 
+                ? `https://www.pricecharting.com${imageUrl}`
+                : `https://www.pricecharting.com/${imageUrl}`
+            }
           }
           imageUrls.push(fullUrl)
         }
@@ -99,11 +110,18 @@ async function scrapeProductImages(productName: string, consoleName?: string): P
     console.log(`Found ${imageUrls.length} total image URLs before filtering`)
     
     // Filter and prioritize images
-    const filteredImages = imageUrls
+    const priceChartingImages = imageUrls.filter(url => 
+      url.includes('storage.googleapis.com/images.pricecharting.com') ||
+      url.includes('images.pricecharting.com')
+    )
+    
+    const otherImages = imageUrls
       .filter(url => {
         // Filter out common non-product images
         const lowerUrl = url.toLowerCase()
-        return !lowerUrl.includes('logo') && 
+        return !lowerUrl.includes('storage.googleapis.com/images.pricecharting.com') &&
+               !lowerUrl.includes('images.pricecharting.com') &&
+               !lowerUrl.includes('logo') && 
                !lowerUrl.includes('icon') && 
                !lowerUrl.includes('banner') &&
                !lowerUrl.includes('placeholder') &&
@@ -125,11 +143,17 @@ async function scrapeProductImages(productName: string, consoleName?: string): P
                 // Or just any image that's not obviously a UI element
                 (!lowerUrl.includes('ui') && !lowerUrl.includes('button') && !lowerUrl.includes('arrow')))
       })
-      .slice(0, 5) // Limit to 5 images max
     
-    console.log(`Found ${filteredImages.length} images for ${productName}`)
+    // Prioritize PriceCharting images first, then other images
+    const filteredImages = [...priceChartingImages, ...otherImages].slice(0, 5)
+    
+    console.log(`Found ${priceChartingImages.length} PriceCharting images and ${otherImages.length} other images for ${productName}`)
+    console.log(`Total filtered images: ${filteredImages.length}`)
     if (filteredImages.length > 0) {
       console.log('Sample image URLs:', filteredImages.slice(0, 2))
+      if (priceChartingImages.length > 0) {
+        console.log('PriceCharting images found:', priceChartingImages.slice(0, 2))
+      }
     } else {
       console.log('No images found. Sample raw URLs:', imageUrls.slice(0, 5))
     }
