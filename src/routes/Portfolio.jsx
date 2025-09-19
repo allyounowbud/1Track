@@ -140,8 +140,8 @@ function PortfolioChart({ data }) {
       const width = containerRect.width;
       const height = containerRect.height;
       
-      // Mobile-first design - use full width with Y-axis labels inside chart
-      const padding = { top: 20, right: 10, bottom: 50, left: 10 }; // Minimal padding for full-width mobile experience
+      // Full-width design with padding to ensure labels are visible
+      const padding = { top: 10, right: 20, bottom: 50, left: 20 }; // Padding to keep labels visible
 
       // Clear previous content
       svg.innerHTML = '';
@@ -149,8 +149,14 @@ function PortfolioChart({ data }) {
       // Validate data
       if (data.length === 0) return;
 
-      // Calculate scales - include both cost and market value
-      const xMin = Math.min(...data.map(d => d.x));
+      // Calculate scales - start from first non-zero values
+      const marketValueStartIndex = data.findIndex(point => point.y > 0);
+      const costBasisStartIndex = data.findIndex(point => point.cost > 0);
+      const startIndex = Math.min(marketValueStartIndex >= 0 ? marketValueStartIndex : data.length, 
+                                 costBasisStartIndex >= 0 ? costBasisStartIndex : data.length);
+      
+      // Use actual data range starting from first non-zero values
+      const xMin = startIndex < data.length ? data[startIndex].x : Math.min(...data.map(d => d.x));
       const xMax = Math.max(...data.map(d => d.x));
       const yMin = Math.min(...data.map(d => Math.min(d.y, d.cost)));
       const yMax = Math.max(...data.map(d => Math.max(d.y, d.cost)));
@@ -174,162 +180,157 @@ function PortfolioChart({ data }) {
 
       // Create gradient for the area under the line
       const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      const linearGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-      linearGradient.setAttribute('id', 'portfolio-gradient');
-      linearGradient.setAttribute('x1', '0%');
-      linearGradient.setAttribute('y1', '0%');
-      linearGradient.setAttribute('x2', '0%');
-      linearGradient.setAttribute('y2', '100%');
       
-      const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-      stop1.setAttribute('offset', '0%');
-      stop1.setAttribute('stop-color', 'rgb(59, 130, 246)'); // Blue instead of yellow
-      stop1.setAttribute('stop-opacity', '0.3');
+      // Blue gradient for market value area
+      const blueGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+      blueGradient.setAttribute('id', 'blue-gradient');
+      blueGradient.setAttribute('x1', '0%');
+      blueGradient.setAttribute('y1', '0%');
+      blueGradient.setAttribute('x2', '0%');
+      blueGradient.setAttribute('y2', '100%');
       
-      const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-      stop2.setAttribute('offset', '100%');
-      stop2.setAttribute('stop-color', 'rgb(59, 130, 246)'); // Blue instead of yellow
-      stop2.setAttribute('stop-opacity', '0');
+      const blueStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      blueStop1.setAttribute('offset', '0%');
+      blueStop1.setAttribute('stop-color', 'rgb(59, 130, 246)');
+      blueStop1.setAttribute('stop-opacity', '0.3');
       
-      linearGradient.appendChild(stop1);
-      linearGradient.appendChild(stop2);
-      gradient.appendChild(linearGradient);
+      const blueStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      blueStop2.setAttribute('offset', '100%');
+      blueStop2.setAttribute('stop-color', 'rgb(59, 130, 246)');
+      blueStop2.setAttribute('stop-opacity', '0');
+      
+      blueGradient.appendChild(blueStop1);
+      blueGradient.appendChild(blueStop2);
+      gradient.appendChild(blueGradient);
+      
+      // Red gradient for cost basis area
+      const redGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+      redGradient.setAttribute('id', 'red-gradient');
+      redGradient.setAttribute('x1', '0%');
+      redGradient.setAttribute('y1', '0%');
+      redGradient.setAttribute('x2', '0%');
+      redGradient.setAttribute('y2', '100%');
+      
+      const redStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      redStop1.setAttribute('offset', '0%');
+      redStop1.setAttribute('stop-color', 'rgb(239, 68, 68)');
+      redStop1.setAttribute('stop-opacity', '0.3');
+      
+      const redStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      redStop2.setAttribute('offset', '100%');
+      redStop2.setAttribute('stop-color', 'rgb(239, 68, 68)');
+      redStop2.setAttribute('stop-opacity', '0');
+      
+      redGradient.appendChild(redStop1);
+      redGradient.appendChild(redStop2);
+      gradient.appendChild(redGradient);
+      
       svg.appendChild(gradient);
 
       // Create area path showing the difference between market value and cost basis
       // Only show area if there's a meaningful difference between the values
       if (yRange > 0.01) { // Only if there's a meaningful difference
-        // Create the area path by going along the market value line, then back along the cost basis line
-        let areaPath = '';
+        // Find the earliest start point for both lines
+        const marketValueStartIndex = data.findIndex(point => point.y > 0);
+        const costBasisStartIndex = data.findIndex(point => point.cost > 0);
+        const startIndex = Math.min(marketValueStartIndex >= 0 ? marketValueStartIndex : data.length, 
+                                   costBasisStartIndex >= 0 ? costBasisStartIndex : data.length);
         
-        // Forward path along market value line
-        data.forEach((point, index) => {
-          const x = xScale(point.x);
-          const y = yScale(point.y);
-          areaPath += `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-        });
-        
-        // Backward path along cost basis line
-        for (let i = data.length - 1; i >= 0; i--) {
-          const point = data[i];
-          const x = xScale(point.x);
-          const y = yScale(point.cost);
-          areaPath += ` L ${x} ${y}`;
-        }
-        
-        // Close the path
-        areaPath += ' Z';
+        if (startIndex < data.length) {
+          // Create the area path by going along the market value line, then back along the cost basis line
+          let areaPath = '';
+          
+          // Forward path along market value line (from first non-zero point)
+          data.slice(startIndex).forEach((point, index) => {
+            const x = xScale(point.x);
+            const y = yScale(point.y);
+            areaPath += `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+          });
+          
+          // Backward path along cost basis line (from last point back to first non-zero point)
+          for (let i = data.length - 1; i >= startIndex; i--) {
+            const point = data[i];
+            const x = xScale(point.x);
+            const y = yScale(point.cost);
+            areaPath += ` L ${x} ${y}`;
+          }
+          
+          // Close the path
+          areaPath += ' Z';
 
-        const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        area.setAttribute('d', areaPath);
-        area.setAttribute('fill', 'url(#portfolio-gradient)');
-        svg.appendChild(area);
+          const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          area.setAttribute('d', areaPath);
+          area.setAttribute('fill', 'url(#blue-gradient)');
+          svg.appendChild(area);
+        }
       }
 
-      // Create market value line path
-      const marketValuePath = data.map((point, index) => {
+      // Create market value line path - only start where first non-zero value begins
+      const marketValuePath = marketValueStartIndex >= 0 ? data.slice(marketValueStartIndex).map((point, index) => {
         const x = xScale(point.x);
         const y = yScale(point.y);
         return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-      }).join(' ');
+      }).join(' ') : '';
 
       const marketValueLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       marketValueLine.setAttribute('d', marketValuePath);
       marketValueLine.setAttribute('fill', 'none');
       marketValueLine.setAttribute('stroke', 'rgb(59, 130, 246)'); // Blue for market value
-      marketValueLine.setAttribute('stroke-width', '2');
+      marketValueLine.setAttribute('stroke-width', '3');
       marketValueLine.setAttribute('stroke-linecap', 'round');
       marketValueLine.setAttribute('stroke-linejoin', 'round');
       svg.appendChild(marketValueLine);
 
-      // Create cost basis line path
-      const costBasisPath = data.map((point, index) => {
+      // Create cost basis line path - only start where first non-zero value begins
+      const costBasisPath = costBasisStartIndex >= 0 ? data.slice(costBasisStartIndex).map((point, index) => {
         const x = xScale(point.x);
         const y = yScale(point.cost);
         return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-      }).join(' ');
+      }).join(' ') : '';
 
       const costBasisLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       costBasisLine.setAttribute('d', costBasisPath);
       costBasisLine.setAttribute('fill', 'none');
       costBasisLine.setAttribute('stroke', 'rgb(239, 68, 68)'); // Red for cost basis
-      costBasisLine.setAttribute('stroke-width', '2');
+      costBasisLine.setAttribute('stroke-width', '3');
       costBasisLine.setAttribute('stroke-linecap', 'round');
       costBasisLine.setAttribute('stroke-linejoin', 'round');
       svg.appendChild(costBasisLine);
 
-      // Add centered legend above the chart
-      const legendWidth = 240; // Approximate width of both legend items
-      const legendX = (width - legendWidth) / 2; // Center horizontally
-      const legend = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      legend.setAttribute('transform', `translate(${legendX}, ${padding.top - 15})`);
-      
-      // Market value legend
-      const marketValueLegend = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      const marketValueDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      marketValueDot.setAttribute('cx', '0');
-      marketValueDot.setAttribute('cy', '0');
-      marketValueDot.setAttribute('r', '4');
-      marketValueDot.setAttribute('fill', 'rgb(59, 130, 246)');
-      marketValueLegend.appendChild(marketValueDot);
-      
-      const marketValueText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      marketValueText.setAttribute('x', '12');
-      marketValueText.setAttribute('y', '4');
-      marketValueText.setAttribute('fill', 'white');
-      marketValueText.setAttribute('font-size', '12');
-      marketValueText.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
-      marketValueText.textContent = 'Market Value';
-      marketValueLegend.appendChild(marketValueText);
-      
-      // Cost basis legend
-      const costBasisLegend = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      costBasisLegend.setAttribute('transform', 'translate(120, 0)'); // Move to the right instead of below
-      
-      const costBasisDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      costBasisDot.setAttribute('cx', '0');
-      costBasisDot.setAttribute('cy', '0');
-      costBasisDot.setAttribute('r', '4');
-      costBasisDot.setAttribute('fill', 'rgb(239, 68, 68)');
-      costBasisLegend.appendChild(costBasisDot);
-      
-      const costBasisText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      costBasisText.setAttribute('x', '12');
-      costBasisText.setAttribute('y', '4');
-      costBasisText.setAttribute('fill', 'white');
-      costBasisText.setAttribute('font-size', '12');
-      costBasisText.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
-      costBasisText.textContent = 'Cost Basis';
-      costBasisLegend.appendChild(costBasisText);
-      
-      legend.appendChild(marketValueLegend);
-      legend.appendChild(costBasisLegend);
-      svg.appendChild(legend);
+      // Create area below cost basis line
+      if (yRange > 0.01) {
+        if (costBasisStartIndex >= 0) {
+          let costBasisAreaPath = '';
+          
+          // Forward path along cost basis line (from first non-zero point)
+          data.slice(costBasisStartIndex).forEach((point, index) => {
+            const x = xScale(point.x);
+            const y = yScale(point.cost);
+            costBasisAreaPath += `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+          });
+          
+          // Line to bottom of chart
+          const lastX = xScale(data[data.length - 1].x);
+          costBasisAreaPath += ` L ${lastX} ${height - padding.bottom}`;
+          
+          // Backward path along bottom (from last point back to first non-zero point)
+          for (let i = data.length - 1; i >= costBasisStartIndex; i--) {
+            const x = xScale(data[i].x);
+            const y = height - padding.bottom;
+            costBasisAreaPath += ` L ${x} ${y}`;
+          }
+          
+          // Close the path
+          costBasisAreaPath += ' Z';
 
-      // Add subtle Y-axis labels with increments
-      const yAxisLabels = [];
-      const numLabels = 5;
-      
-      // Calculate the range and add a small buffer above the max value
-      const yBuffer = (yMax - yMin) * 0.1; // 10% buffer above max
-      const yMinWithBuffer = yMin;
-      const yMaxWithBuffer = yMax + yBuffer;
-      
-      for (let i = 1; i <= numLabels; i++) { // Start from 1 to skip the bottom "$0" label
-        const value = yMinWithBuffer + (yMaxWithBuffer - yMinWithBuffer) * (i / numLabels);
-        const y = yScale(value);
-        
-        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        label.setAttribute('x', padding.left + 5); // Position inside the chart area
-        label.setAttribute('y', y + 4);
-        label.setAttribute('fill', 'rgb(156, 163, 175)'); // Subtle gray color
-        label.setAttribute('font-size', '10');
-        label.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
-        label.setAttribute('text-anchor', 'start'); // Left-align since it's inside
-        label.setAttribute('opacity', '0.7'); // Make it subtle
-        label.textContent = `$${value.toFixed(0)}`;
-        svg.appendChild(label);
+          const costBasisArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          costBasisArea.setAttribute('d', costBasisAreaPath);
+          costBasisArea.setAttribute('fill', 'url(#red-gradient)');
+          svg.appendChild(costBasisArea);
+        }
       }
+
+
 
       // Add X-axis labels - handle different timeframes appropriately
       const firstDate = new Date(xMin);
@@ -390,20 +391,25 @@ function PortfolioChart({ data }) {
           current.setMonth(current.getMonth() + 1);
         }
         
-        // Limit to reasonable number of labels (3-8)
-        const maxLabels = Math.min(8, Math.max(3, uniqueMonths.length));
+        // Limit to reasonable number of labels (4-8) for better visibility
+        const maxLabels = Math.min(8, Math.max(4, uniqueMonths.length));
         const step = Math.max(1, Math.floor(uniqueMonths.length / maxLabels));
         const selectedMonths = [];
         
-        // Select months with even spacing
+        // Select months with even spacing, ensuring we get good distribution
         for (let i = 0; i < uniqueMonths.length; i += step) {
           selectedMonths.push(uniqueMonths[i]);
           if (selectedMonths.length >= maxLabels) break;
         }
         
-        // Always include the last month if not already included
-        if (selectedMonths.length > 0 && selectedMonths[selectedMonths.length - 1] !== uniqueMonths[uniqueMonths.length - 1]) {
-          selectedMonths[selectedMonths.length - 1] = uniqueMonths[uniqueMonths.length - 1];
+        // Always include the first and last months for context
+        if (selectedMonths.length > 0) {
+          if (selectedMonths[0] !== uniqueMonths[0]) {
+            selectedMonths[0] = uniqueMonths[0];
+          }
+          if (selectedMonths[selectedMonths.length - 1] !== uniqueMonths[uniqueMonths.length - 1]) {
+            selectedMonths[selectedMonths.length - 1] = uniqueMonths[uniqueMonths.length - 1];
+          }
         }
         
         labels = selectedMonths.map(monthData => ({
@@ -412,24 +418,46 @@ function PortfolioChart({ data }) {
         }));
       }
       
-      // Render labels evenly across chart width with proper spacing
-      labels.forEach((labelData, index) => {
-        // Calculate position with buffer to keep labels within bounds
-        const labelBuffer = 20; // Buffer to prevent labels from being cut off
-        const availableWidth = width - padding.left - padding.right - (labelBuffer * 2);
-        const x = padding.left + labelBuffer + (index / (labels.length - 1)) * availableWidth;
+      // Render labels with proper spacing for full-width chart
+      if (labels.length > 0) {
+        const availableWidth = width - padding.left - padding.right;
+        const labelSpacing = availableWidth / (labels.length - 1);
         
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', x);
-        text.setAttribute('y', height - padding.bottom + 18);
-        text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('fill', 'rgb(156, 163, 175)');
-        text.setAttribute('font-size', '12');
-        text.setAttribute('font-weight', '500');
-        text.setAttribute('class', 'chart-x-axis-label');
-        text.textContent = labelData.text;
-        svg.appendChild(text);
-      });
+        labels.forEach((labelData, index) => {
+          const x = padding.left + (index * labelSpacing);
+          
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', x);
+          text.setAttribute('y', height - padding.bottom + 30);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('fill', 'rgb(55, 65, 81)');
+          text.setAttribute('font-size', '13');
+          text.setAttribute('font-weight', '700');
+          text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+          text.setAttribute('opacity', '1');
+          text.setAttribute('class', 'chart-x-axis-label');
+          text.textContent = labelData.text;
+          svg.appendChild(text);
+        });
+      }
+
+      // Add subtle Y-axis labels as ghost text
+      const numYLabels = 4;
+      for (let i = 0; i <= numYLabels; i++) {
+        const value = yMin + (yMax - yMin) * (i / numYLabels);
+        const y = yScale(value);
+        
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', padding.left + 2);
+        label.setAttribute('y', y + 3);
+        label.setAttribute('fill', 'rgb(75, 85, 99)');
+        label.setAttribute('font-size', '11');
+        label.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+        label.setAttribute('text-anchor', 'start');
+        label.setAttribute('opacity', '1');
+        label.textContent = `$${value.toFixed(0)}`;
+        svg.appendChild(label);
+      }
 
     } catch (error) {
       console.error('Error rendering chart:', error);
@@ -1094,9 +1122,10 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
           </div>
         </div>
         
-      {/* Full-Width Chart Area - Native Mobile Style */}
-      <div className="bg-gray-50 dark:bg-gray-900 py-6 -mx-4">
-        <div className="h-80 w-full overflow-hidden">
+      {/* Chart Area - Full Width */}
+      <div className="py-6 -mx-4">
+        <div className="rounded-2xl p-2">
+          <div className="h-96 w-full overflow-hidden">
                  {chartData && chartData.length > 0 ? (
                    <PortfolioChart data={chartData} />
                  ) : (
@@ -1113,6 +1142,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                    </div>
                  )}
                </div>
+        </div>
       </div>
 
       {/* KPI Cards Grid - Native Mobile Style */}
@@ -1425,39 +1455,50 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
               <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Top Performing Items</h4>
                 <div className="space-y-2">
-                  {itemGroups.slice(0, 3).map((item, idx) => (
-                    <div key={item.item} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{item.item}</span>
+                  {itemGroups.slice(0, 3).map((item, idx) => {
+                    const parts = item.item.split(' - ');
+                    const itemName = parts[0] || item.item;
+                    const setName = parts.slice(1).join(' - ');
+                    
+                    return (
+                      <div key={item.item} className="flex items-start justify-between gap-2 min-w-0">
+                        <div className="flex items-start gap-2 min-w-0 flex-1">
+                          <div className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0 mt-1.5"></div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{itemName}</div>
+                            {setName && (
+                              <div className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">{setName}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(item.revenueC)}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">{formatNumber(item.sold)} sold</div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(item.revenueC)}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">{formatNumber(item.sold)} sold</div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Stats</h4>
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Total Items</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(itemGroups.length)}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">Total Items</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white ml-2">{formatNumber(itemGroups.length)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Items Bought</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(itemGroups.reduce((sum, item) => sum + item.bought, 0))}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">Items Bought</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white ml-2">{formatNumber(itemGroups.reduce((sum, item) => sum + item.bought, 0))}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Items Sold</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(itemGroups.reduce((sum, item) => sum + item.sold, 0))}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">Items Sold</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white ml-2">{formatNumber(itemGroups.reduce((sum, item) => sum + item.sold, 0))}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Items On Hand</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(itemGroups.reduce((sum, item) => sum + item.onHand, 0))}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">Items On Hand</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white ml-2">{formatNumber(itemGroups.reduce((sum, item) => sum + item.onHand, 0))}</span>
                   </div>
                 </div>
               </div>
