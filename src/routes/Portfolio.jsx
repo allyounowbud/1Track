@@ -537,54 +537,54 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold text-gray-900 dark:text-white">
-              ${chartData.length > 0 ? chartData[chartData.length - 1].y.toFixed(2) : '0.00'}
-            </div>
+                ${chartData.length > 0 ? chartData[chartData.length - 1].y.toFixed(2) : '0.00'}
+              </div>
             <div className={`flex items-center justify-end gap-1 text-xs font-medium ${
-              chartMetrics.change >= 0 ? 'text-green-400' : 'text-red-400'
-            }`}>
-              {chartMetrics.change >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
-              {chartMetrics.change >= 0 ? '+' : ''}${chartMetrics.change.toFixed(2)} ({chartMetrics.changePercent >= 0 ? '+' : ''}{chartMetrics.changePercent.toFixed(1)}%)
+                chartMetrics.change >= 0 ? 'text-green-400' : 'text-red-400'
+              }`}>
+                {chartMetrics.change >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
+                {chartMetrics.change >= 0 ? '+' : ''}${chartMetrics.change.toFixed(2)} ({chartMetrics.changePercent >= 0 ? '+' : ''}{chartMetrics.changePercent.toFixed(1)}%)
+              </div>
             </div>
+          </div>
+          
+          {/* Time Period Selector */}
+        <div className="flex space-x-0.5 bg-gray-100 dark:bg-gray-800/50 p-0.5 rounded-lg overflow-hidden">
+            {['1D', '7D', '1M', '3M', 'All'].map((period) => (
+              <button
+                key={period}
+                onClick={() => setSelectedTimeframe(period)}
+              className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${
+                  selectedTimeframe === period
+                    ? 'bg-blue-500/20 text-blue-300'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                {period}
+              </button>
+            ))}
           </div>
         </div>
         
-        {/* Time Period Selector */}
-        <div className="flex space-x-0.5 bg-gray-100 dark:bg-gray-800/50 p-0.5 rounded-lg overflow-hidden">
-          {['1D', '7D', '1M', '3M', 'All'].map((period) => (
-            <button
-              key={period}
-              onClick={() => setSelectedTimeframe(period)}
-              className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${
-                selectedTimeframe === period
-                  ? 'bg-blue-500/20 text-blue-300'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              {period}
-            </button>
-          ))}
-        </div>
-      </div>
-      
       {/* Full-Width Chart Area - Native Mobile Style */}
       <div className="bg-gray-50 dark:bg-gray-900">
         <div className="h-80 w-full overflow-hidden">
-          {chartData && chartData.length > 0 ? (
-            <PortfolioChart data={chartData} />
-          ) : (
+                 {chartData && chartData.length > 0 ? (
+                   <PortfolioChart data={chartData} />
+                 ) : (
             <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-300">
-              <div className="text-center">
+                     <div className="text-center">
                 <div className="flex justify-center">
-                  <ChartIcon />
+                       <ChartIcon />
                 </div>
-                <p className="mt-2">No data available for selected period</p>
+                       <p className="mt-2">No data available for selected period</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {portfolioItems.length === 0 ? 'No portfolio items found' : 'No data available'}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+                         {portfolioItems.length === 0 ? 'No portfolio items found' : 'No data available'}
+                       </p>
+                     </div>
+                   </div>
+                 )}
+               </div>
       </div>
 
       {/* KPI Cards Grid - Native Mobile Style */}
@@ -648,8 +648,8 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
             <div className="p-2 bg-gray-500/20 rounded-xl">
               {metrics.totalProfit >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
             </div>
+            </div>
           </div>
-        </div>
         </div>
       </div>
 
@@ -657,7 +657,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
         <div className="px-4 py-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
-          <div className="space-y-3">
+        <div className="space-y-3">
             {orders
               .sort((a, b) => new Date(b.created_at || b.updated_at || b.id) - new Date(a.created_at || a.updated_at || a.id))
               .slice(0, 10)
@@ -971,50 +971,50 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <input
-            type="text"
+            <input
+              type="text"
             placeholder="Search collection..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
+            />
         </div>
-
+        
         {/* Compact Filter Row */}
         <div className="flex items-center justify-between gap-2">
           {/* Item Type Filter - Compact Pills */}
           <div className="flex bg-white dark:bg-gray-900/50 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => setItemType("all")}
+              <button
+                onClick={() => setItemType("all")}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                itemType === "all" 
-                  ? "bg-indigo-500 text-white shadow-sm" 
+                  itemType === "all" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
                   : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setItemType("sealed")}
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setItemType("sealed")}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                itemType === "sealed" 
-                  ? "bg-indigo-500 text-white shadow-sm" 
+                  itemType === "sealed" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
                   : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-              }`}
-            >
-              Sealed
-            </button>
-            <button
-              onClick={() => setItemType("singles")}
+                }`}
+              >
+                Sealed
+              </button>
+              <button
+                onClick={() => setItemType("singles")}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                itemType === "singles" 
-                  ? "bg-indigo-500 text-white shadow-sm" 
+                  itemType === "singles" 
+                    ? "bg-indigo-500 text-white shadow-sm" 
                   : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-              }`}
-            >
-              Singles
-            </button>
-          </div>
+                }`}
+              >
+                Singles
+              </button>
+            </div>
 
           {/* Sort Controls - Compact */}
           <div className="flex items-center gap-1.5">
@@ -1056,8 +1056,8 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                 ↓
               </button>
             </div>
+            </div>
           </div>
-        </div>
 
         {/* Results Count - Subtle */}
         <div className="mt-2 text-xs text-gray-500 dark:text-gray-300">
@@ -1101,12 +1101,12 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               onClick={() => handleOpenPreview(item)}
             >
               <div className="mb-3">
-              <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0">
                 <h4 className="text-gray-800 dark:text-gray-200 font-medium truncate mb-0.5 text-sm">{cleanTitle}</h4>
-                {marketInfo && marketInfo.console_name && (
+                    {marketInfo && marketInfo.console_name && (
                   <p className="text-gray-600 dark:text-gray-300 text-xs truncate">{marketInfo.console_name}</p>
-                )}
-              </div>
+                    )}
+                </div>
               </div>
               
               {/* Product Image */}
@@ -1126,15 +1126,15 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                 {/* Fallback placeholder */}
                 <div className={`w-full h-full flex flex-col items-center justify-center ${productImages[item.name] && productImages[item.name].length > 0 ? 'hidden' : 'flex'}`}>
                   {/* Pokemon card icon */}
-                  <div className="flex items-center justify-center mb-1">
-                    <svg className="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center justify-center mb-2">
+                    <svg className="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
                   </div>
                   
                   {/* Product type indicator */}
                   <div className="text-center">
-                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {cleanTitle.includes('Elite Trainer Box') ? 'ETB' :
                        cleanTitle.includes('Booster Box') ? 'Booster Box' :
                        cleanTitle.includes('Booster Pack') ? 'Pack' :
@@ -1152,7 +1152,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                   </div>
                   
                   {/* Decorative elements */}
-                  <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-yellow-400 rounded-full opacity-60"></div>
+                  <div className="absolute top-2 right-2 w-2 h-2 bg-yellow-400 rounded-full opacity-60"></div>
                   <div className="absolute bottom-2 left-2 w-1 h-1 bg-blue-400 rounded-full opacity-40"></div>
                   <div className="absolute top-1/2 left-1 w-1 h-1 bg-red-400 rounded-full opacity-30"></div>
                 </div>
@@ -1194,7 +1194,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
       {filteredItems.length === 0 && (
         <div className="px-4 py-8">
           <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center">
-            <CollectionIcon />
+          <CollectionIcon />
             <p className="text-gray-600 dark:text-gray-300 mt-2">No items found in your collection</p>
           </div>
         </div>
@@ -1212,16 +1212,16 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Item Details & Performance</p>
               </div>
-              <button
+                  <button
                 onClick={handleClosePreview}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
+                  >
                 <svg className="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                    </div>
 
           {/* Content */}
           <div className="px-4 py-6">
@@ -1249,14 +1249,14 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                   const realizedPL = totalRevenue - totalFees - totalShipping - soldCost;
                   
                   // Market value calculation
-                  const marketInfo = expandedItem.marketInfo;
-                  const manualValue = expandedItem.manualValue;
-                  let currentMarketValue;
-                  if (marketInfo && marketInfo.loose_price) {
-                    currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                  } else if (manualValue && manualValue > 0) {
-                    currentMarketValue = manualValue;
-                  } else {
+                          const marketInfo = expandedItem.marketInfo;
+                          const manualValue = expandedItem.manualValue;
+                          let currentMarketValue;
+                          if (marketInfo && marketInfo.loose_price) {
+                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                          } else if (manualValue && manualValue > 0) {
+                            currentMarketValue = manualValue;
+                          } else {
                     currentMarketValue = Math.round(expandedItem.totalCost / expandedItem.quantity);
                   }
                   
@@ -1300,8 +1300,8 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                         <div className="text-xs text-gray-600 dark:text-gray-300">Sold</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">{totalSold}</div>
                         <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">total sold</div>
-                      </div>
-                      
+                    </div>
+
                       {/* On Hand */}
                       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
                         <div className="text-xs text-gray-600 dark:text-gray-300">On Hand</div>
@@ -1351,19 +1351,19 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                         <div className="text-xs text-gray-600 dark:text-gray-300">ROI</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">
                           {Number.isFinite(roi) ? `${(roi * 100).toFixed(0)}%` : '—'}
-                        </div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">profit / cost</div>
                       </div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">profit / cost</div>
+                    </div>
                       
                       {/* Margin */}
                       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
                         <div className="text-xs text-gray-600 dark:text-gray-300">Margin</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">
                           {Number.isFinite(margin) ? `${(margin * 100).toFixed(0)}%` : '—'}
-                        </div>
+                  </div>
                         <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">profit / revenue</div>
-                      </div>
-                      
+                </div>
+
                       {/* Avg Hold */}
                       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
                         <div className="text-xs text-gray-600 dark:text-gray-300">Avg Hold</div>
@@ -1376,28 +1376,28 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                         <div className="text-xs text-gray-600 dark:text-gray-300">ASP</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(asp)}</div>
                         <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">average sale price</div>
-                      </div>
-                      
+                  </div>
+
                       {/* Market Price */}
                       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
                         <div className="text-xs text-gray-600 dark:text-gray-300">Market Price</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(currentMarketValue)}</div>
                         <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">from database</div>
-                      </div>
+                          </div>
                       
                       {/* Est. Value */}
                       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
                         <div className="text-xs text-gray-600 dark:text-gray-300">Est. Value</div>
                         <div className={`text-base font-semibold mt-0.5 ${onHandMarketValue > 0 ? 'text-indigo-400' : 'text-gray-600 dark:text-gray-300'}`}>
                           ${centsToStr(onHandMarketValue)}
-                        </div>
+                          </div>
                         <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">based on mkt price</div>
-                      </div>
+                        </div>
                     </>
                   );
                 })()}
-              </div>
-            </div>
+                        </div>
+                          </div>
 
             {/* Simplified Order History */}
             <div className="mb-8">
@@ -1439,18 +1439,18 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
                               {transaction.type}
-                            </div>
+                      </div>
                             <div className="text-xs text-gray-600 dark:text-gray-300">
                               {new Date(transaction.date).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
+                  </div>
+                </div>
+              </div>
                         <div className={`text-sm font-medium ${
                           transaction.type === 'Purchase' ? 'text-red-400' : 'text-green-400'
                         }`}>
                           {transaction.type === 'Purchase' ? '-' : '+'}${centsToStr(transaction.price)}
-                        </div>
-                      </div>
+            </div>
+          </div>
                     ))
                   ) : (
                     <div className="text-center py-8 text-gray-600 dark:text-gray-300">
@@ -1603,14 +1603,14 @@ export default function Portfolio() {
 
   return (
     <LayoutWithSidebar active={activeSidebarItem} section="portfolio">
-      <PortfolioContent 
-        orders={orders} 
-        portfolioItems={portfolioItems} 
-        marketData={marketData} 
-        manualItems={manualItems}
-        allOrders={allOrders}
-        currentTab={currentTab} 
-      />
+        <PortfolioContent 
+          orders={orders} 
+          portfolioItems={portfolioItems} 
+          marketData={marketData} 
+          manualItems={manualItems}
+          allOrders={allOrders}
+          currentTab={currentTab} 
+        />
     </LayoutWithSidebar>
   );
 }
