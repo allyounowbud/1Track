@@ -1155,7 +1155,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
           return (
             <div 
               key={index} 
-              className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors cursor-pointer"
+              className="bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors cursor-pointer"
               onClick={() => setExpandedItem(item)}
             >
               <div className="mb-3">
@@ -1267,7 +1267,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
 
       {filteredItems.length === 0 && (
         <div className="px-4 py-8">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center">
             <CollectionIcon />
             <p className="text-gray-600 dark:text-gray-400 mt-2">No items found in your collection</p>
           </div>
@@ -1285,7 +1285,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
           
           {/* Preview Panel */}
           <div 
-            className="fixed inset-0 bottom-16 lg:bottom-0 lg:left-auto lg:right-0 lg:w-1/2 xl:w-2/5 bg-white dark:bg-gray-900 z-[60] shadow-2xl lg:shadow-none"
+            className="fixed inset-0 bottom-16 lg:bottom-0 lg:left-auto lg:right-0 lg:w-1/2 xl:w-2/5 bg-gray-50 dark:bg-gray-900 z-[60] shadow-2xl lg:shadow-none"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="h-full overflow-y-auto p-4 lg:p-6 pb-safe">
@@ -1332,7 +1332,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     </div>
 
                     {/* Total Cost */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-2 lg:p-3 text-center">
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 lg:p-3 text-center">
                       <div className="text-xs text-gray-600 dark:text-gray-400">Total Cost</div>
                       <div className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{centsToStr(expandedItem.totalCost)}</div>
                       <div className="text-[11px] text-gray-600 dark:text-gray-400/60">total spent</div>
@@ -1346,7 +1346,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     </div>
 
                     {/* Market Value */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-2 lg:p-3 text-center">
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 lg:p-3 text-center">
                       <div className="text-xs text-gray-600 dark:text-gray-400">Market Value</div>
                       <div className="text-lg lg:text-xl font-semibold text-blue-300">
                         {(() => {
@@ -1369,7 +1369,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     </div>
 
                     {/* Per Item Market Value */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-2 lg:p-3 text-center">
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 lg:p-3 text-center">
                       <div className="text-xs text-gray-600 dark:text-gray-400">Per Item Value</div>
                       <div className="text-lg lg:text-xl font-semibold text-blue-300">
                         {(() => {
@@ -1392,7 +1392,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     </div>
 
                     {/* Profit/Loss */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-2 lg:p-3 text-center">
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 lg:p-3 text-center">
                       <div className="text-xs text-gray-600 dark:text-gray-400">Profit/Loss</div>
                       <div className={`text-lg lg:text-xl font-semibold ${
                         (() => {
@@ -1453,7 +1453,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                 </div>
 
                   {/* Order History */}
-                  <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 lg:p-6">
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 lg:p-6">
                     <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-4 lg:mb-6">Order History</h3>
                   
                   {/* Desktop Table View */}
