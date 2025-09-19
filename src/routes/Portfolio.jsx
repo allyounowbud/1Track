@@ -1067,7 +1067,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
 
       {/* Collection Grid - Native Mobile Style */}
       <div className="px-4 py-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-4">
         {filteredItems.map((item, index) => {
           const marketInfo = item.marketInfo;
           const manualValue = item.manualValue;
@@ -1097,20 +1097,20 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
           return (
             <div 
               key={index} 
-              className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm"
               onClick={() => handleOpenPreview(item)}
             >
-              <div className="mb-3">
-              <div className="flex-1 min-w-0">
-                <h4 className="text-gray-800 dark:text-gray-200 font-medium truncate mb-1">{cleanTitle}</h4>
-                {marketInfo && marketInfo.console_name && (
-                  <p className="text-gray-600 dark:text-gray-300 text-xs truncate mb-1">{marketInfo.console_name}</p>
-                )}
-              </div>
+              <div className="mb-4">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-gray-800 dark:text-gray-200 font-medium truncate mb-1 text-base">{cleanTitle}</h4>
+                  {marketInfo && marketInfo.console_name && (
+                    <p className="text-gray-600 dark:text-gray-300 text-sm truncate">{marketInfo.console_name}</p>
+                  )}
+                </div>
               </div>
               
               {/* Product Image */}
-              <div className="w-full h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative group border border-gray-300 dark:border-gray-700">
+              <div className="w-full h-36 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg mb-4 flex items-center justify-center overflow-hidden relative group border border-gray-300 dark:border-gray-700">
                 {productImages[item.name] && productImages[item.name].length > 0 ? (
                   <img 
                     src={productImages[item.name][0]} 
