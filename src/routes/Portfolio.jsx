@@ -675,7 +675,8 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
 function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [itemType, setItemType] = useState("all"); // "all", "sealed", "singles"
-  const [expandedItem, setExpandedItem] = useState(null); // null or item object
+  const [expandedItem, setExpandedItem] = useState(null);
+  const [scrollPosition, setScrollPosition] = useState(0); // null or item object
   const [productImages, setProductImages] = useState({});
   const [sortBy, setSortBy] = useState("name"); // "name", "marketValue", "totalCost", "profit", "quantity", "dateAdded", "set"
   const [sortOrder, setSortOrder] = useState("asc"); // "asc", "desc"
@@ -683,6 +684,21 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
   // Get order details for a specific item from all orders
   const getItemOrders = (itemName) => {
     return allOrders.filter(order => order.item === itemName);
+  };
+
+  // Handle opening expanded item preview
+  const handleOpenPreview = (item) => {
+    setScrollPosition(window.scrollY);
+    setExpandedItem(item);
+  };
+
+  // Handle closing expanded item preview
+  const handleClosePreview = () => {
+    setExpandedItem(null);
+    // Restore scroll position after a brief delay to allow the preview to close
+    setTimeout(() => {
+      window.scrollTo(0, scrollPosition);
+    }, 100);
   };
 
   // Prevent background scroll when modal is open (mobile only)
@@ -1156,7 +1172,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             <div 
               key={index} 
               className="bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors cursor-pointer"
-              onClick={() => setExpandedItem(item)}
+              onClick={() => handleOpenPreview(item)}
             >
               <div className="mb-3">
                 <div className="flex-1 min-w-0">
@@ -1274,248 +1290,268 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
         </div>
       )}
 
-      {/* Expanded Item Preview - Side Panel on Large Screens, Full Screen on Mobile */}
+      {/* Full-Page Item Preview */}
       {expandedItem && (
-        <>
-          {/* Backdrop for mobile/small screens */}
-          <div 
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setExpandedItem(null)}
-          />
-          
-          {/* Preview Panel */}
-          <div 
-            className="fixed inset-0 bottom-16 lg:bottom-0 lg:left-auto lg:right-0 lg:w-1/2 xl:w-2/5 bg-gray-50 dark:bg-gray-900 z-[60] shadow-2xl lg:shadow-none"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="h-full overflow-y-auto p-4 lg:p-6 pb-safe">
-                {/* Close button */}
-                <div className="flex justify-end mb-4">
-                  <button
-                    onClick={() => setExpandedItem(null)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                  >
-                    <svg className="w-5 h-5 lg:w-6 lg:h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                
-                <div className="space-y-6 lg:space-y-8">
-                  {/* Stats Section */}
-                  <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 lg:p-6">
-                    <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-4 lg:mb-6">Stats</h3>
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 lg:gap-3">
-                    {/* Total Bought */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-2 lg:p-3 text-center">
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Total Bought</div>
-                      <div className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{expandedItem.quantity}</div>
-                      <div className="text-[11px] text-gray-600 dark:text-gray-400/60">items purchased</div>
-                    </div>
+        <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 z-[100] overflow-y-auto">
+          {/* Header */}
+          <div className="border-b border-gray-200 dark:border-gray-800 px-4 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {expandedItem.name.replace(/\s*-\s*Pokemon\s+.*$/i, '')}
+                </h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Item Details & Performance</p>
+              </div>
+              <button
+                onClick={handleClosePreview}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
 
-                    {/* Total Sold */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-2 lg:p-3 text-center">
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Total Sold</div>
-                      <div className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">
-                        {getItemOrders(expandedItem.name).filter(order => order.sale_date).length}
-                      </div>
-                      <div className="text-[11px] text-gray-600 dark:text-gray-400/60">items sold</div>
-                    </div>
-
-                    {/* On Hand */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-2 lg:p-3 text-center">
-                      <div className="text-xs text-gray-600 dark:text-gray-400">On Hand</div>
-                      <div className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">
-                        {expandedItem.quantity - getItemOrders(expandedItem.name).filter(order => order.sale_date).length}
-                      </div>
-                      <div className="text-[11px] text-gray-600 dark:text-gray-400/60">in inventory</div>
-                    </div>
-
-                    {/* Total Cost */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 lg:p-3 text-center">
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Total Cost</div>
-                      <div className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{centsToStr(expandedItem.totalCost)}</div>
-                      <div className="text-[11px] text-gray-600 dark:text-gray-400/60">total spent</div>
-                    </div>
-
-                    {/* Per Item Cost */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-2 lg:p-3 text-center">
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Per Item</div>
-                      <div className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{centsToStr(Math.round(expandedItem.totalCost / expandedItem.quantity))}</div>
-                      <div className="text-[11px] text-gray-600 dark:text-gray-400/60">average cost</div>
-                    </div>
-
-                    {/* Market Value */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 lg:p-3 text-center">
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Market Value</div>
-                      <div className="text-lg lg:text-xl font-semibold text-blue-300">
-                        {(() => {
-                          const marketInfo = expandedItem.marketInfo;
-                          const manualValue = expandedItem.manualValue;
-                          let currentMarketValue;
-                          
-                          if (marketInfo && marketInfo.loose_price) {
-                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                          } else if (manualValue && manualValue > 0) {
-                            currentMarketValue = manualValue;
-                          } else {
-                            currentMarketValue = expandedItem.totalCost;
-                          }
-                          
-                          return centsToStr(currentMarketValue * expandedItem.quantity);
-                        })()}
-                      </div>
-                      <div className="text-[11px] text-gray-600 dark:text-gray-400/60">current value</div>
-                    </div>
-
-                    {/* Per Item Market Value */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 lg:p-3 text-center">
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Per Item Value</div>
-                      <div className="text-lg lg:text-xl font-semibold text-blue-300">
-                        {(() => {
-                          const marketInfo = expandedItem.marketInfo;
-                          const manualValue = expandedItem.manualValue;
-                          let currentMarketValue;
-                          
-                          if (marketInfo && marketInfo.loose_price) {
-                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                          } else if (manualValue && manualValue > 0) {
-                            currentMarketValue = manualValue;
-                          } else {
-                            currentMarketValue = expandedItem.totalCost;
-                          }
-                          
-                          return centsToStr(currentMarketValue);
-                        })()}
-                      </div>
-                      <div className="text-[11px] text-gray-600 dark:text-gray-400/60">per item</div>
-                    </div>
-
-                    {/* Profit/Loss */}
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 lg:p-3 text-center">
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Profit/Loss</div>
-                      <div className={`text-lg lg:text-xl font-semibold ${
-                        (() => {
-                          const marketInfo = expandedItem.marketInfo;
-                          const manualValue = expandedItem.manualValue;
-                          let currentMarketValue;
-                          
-                          if (marketInfo && marketInfo.loose_price) {
-                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                          } else if (manualValue && manualValue > 0) {
-                            currentMarketValue = manualValue;
-                          } else {
-                            currentMarketValue = expandedItem.totalCost;
-                          }
-                          
-                          const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
-                          return profit >= 0 ? 'text-emerald-300' : 'text-rose-300';
-                        })()
-                      }`}>
-                        {(() => {
-                          const marketInfo = expandedItem.marketInfo;
-                          const manualValue = expandedItem.manualValue;
-                          let currentMarketValue;
-                          
-                          if (marketInfo && marketInfo.loose_price) {
-                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                          } else if (manualValue && manualValue > 0) {
-                            currentMarketValue = manualValue;
-                          } else {
-                            currentMarketValue = expandedItem.totalCost;
-                          }
-                          
-                          const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
-                          const profitPercentage = expandedItem.totalCost > 0 ? (profit / expandedItem.totalCost) * 100 : 0;
-                          return `${profit >= 0 ? '+' : ''}${centsToStr(profit)} (${profit >= 0 ? '+' : ''}${profitPercentage.toFixed(1)}%)`;
-                        })()}
-                      </div>
-                      <div className="text-[11px] text-gray-600 dark:text-gray-400/60">
-                        {(() => {
-                          const marketInfo = expandedItem.marketInfo;
-                          const manualValue = expandedItem.manualValue;
-                          let currentMarketValue;
-                          
-                          if (marketInfo && marketInfo.loose_price) {
-                            currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
-                          } else if (manualValue && manualValue > 0) {
-                            currentMarketValue = manualValue;
-                          } else {
-                            currentMarketValue = expandedItem.totalCost;
-                          }
-                          
-                          const profit = (currentMarketValue * expandedItem.quantity) - expandedItem.totalCost;
-                          return profit >= 0 ? 'unrealized profit' : 'unrealized loss';
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                  {/* Order History */}
-                  <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 lg:p-6">
-                    <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-4 lg:mb-6">Order History</h3>
+          {/* Content */}
+          <div className="px-4 py-6">
+            {/* 14 KPI Pills Grid - Based on Stats Page */}
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Performance Analytics</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {(() => {
+                  const itemOrders = getItemOrders(expandedItem.name);
+                  const soldOrders = itemOrders.filter(order => order.sale_date && order.sale_price_cents > 0);
+                  const totalSold = soldOrders.length;
+                  const totalBought = expandedItem.quantity;
+                  const onHand = totalBought - totalSold;
                   
-                  {/* Desktop Table View */}
-                  <div className="hidden lg:block overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-300 dark:border-gray-700">
-                          <th className="text-left py-3 px-2 text-xs font-medium text-gray-600 dark:text-gray-400">Order Date</th>
-                          <th className="text-left py-3 px-2 text-xs font-medium text-gray-600 dark:text-gray-400">Item</th>
-                          <th className="text-left py-3 px-2 text-xs font-medium text-gray-600 dark:text-gray-400">Retailer</th>
-                          <th className="text-right py-3 px-2 text-xs font-medium text-gray-600 dark:text-gray-400">Buy $</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {getItemOrders(expandedItem.name).map((order, index) => (
-                          <tr key={order.id || index} className="border-b border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/30">
-                            <td className="py-3 px-2 text-sm text-gray-800 dark:text-gray-200">
-                              {order.order_date ? new Date(order.order_date).toLocaleDateString() : '—'}
-                            </td>
-                            <td className="py-3 px-2 text-sm text-gray-800 dark:text-gray-200 truncate max-w-xs">
-                              {order.item ? order.item.replace(/\s*-\s*Pokemon\s+.*$/i, '') : '—'}
-                            </td>
-                            <td className="py-3 px-2 text-sm text-gray-700 dark:text-gray-300">
-                              {order.retailer || '—'}
-                            </td>
-                            <td className="py-3 px-2 text-sm text-gray-800 dark:text-gray-200 text-right">
-                              {order.buy_price_cents ? centsToStr(order.buy_price_cents) : '—'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile Card View */}
-                  <div className="lg:hidden space-y-3">
-                    {getItemOrders(expandedItem.name).map((order, index) => (
-                      <div key={order.id || index} className="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-4 space-y-2">
-                        <div className="flex justify-between items-start">
-                          <div className="text-gray-800 dark:text-gray-200 font-medium">
-                            {order.order_date ? new Date(order.order_date).toLocaleDateString() : 'No date'}
-                          </div>
-                          <div className="text-gray-800 dark:text-gray-200 font-medium">
-                            {order.buy_price_cents ? centsToStr(order.buy_price_cents) : '—'}
-                          </div>
-                        </div>
-                        <div className="text-gray-700 dark:text-gray-300 text-sm">
-                          {order.item ? order.item.replace(/\s*-\s*Pokemon\s+.*$/i, '') : 'No item name'}
-                        </div>
-                        {order.retailer && (
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            Retailer: {order.retailer}
-                          </div>
-                        )}
+                  // Calculate values
+                  const totalCost = expandedItem.totalCost;
+                  const totalRevenue = soldOrders.reduce((sum, order) => sum + (order.sale_price_cents || 0), 0);
+                  const totalFees = soldOrders.reduce((sum, order) => {
+                    const revenue = order.sale_price_cents || 0;
+                    const feesPct = order.fees_pct || 0;
+                    return sum + Math.round(revenue * feesPct);
+                  }, 0);
+                  const totalShipping = soldOrders.reduce((sum, order) => sum + (order.shipping_cents || 0), 0);
+                  const soldCost = soldOrders.reduce((sum, order) => sum + (order.buy_price_cents || 0), 0);
+                  const realizedPL = totalRevenue - totalFees - totalShipping - soldCost;
+                  
+                  // Market value calculation
+                  const marketInfo = expandedItem.marketInfo;
+                  const manualValue = expandedItem.manualValue;
+                  let currentMarketValue;
+                  if (marketInfo && marketInfo.loose_price) {
+                    currentMarketValue = Math.round(parseFloat(marketInfo.loose_price) * 100);
+                  } else if (manualValue && manualValue > 0) {
+                    currentMarketValue = manualValue;
+                  } else {
+                    currentMarketValue = Math.round(expandedItem.totalCost / expandedItem.quantity);
+                  }
+                  
+                  const onHandMarketValue = onHand * currentMarketValue;
+                  const totalMarketValue = totalBought * currentMarketValue;
+                  const unrealizedPL = onHandMarketValue - (totalCost - soldCost);
+                  
+                  // Calculate ROI and Margin
+                  const roi = soldCost > 0 ? realizedPL / soldCost : 0;
+                  const margin = totalRevenue > 0 ? realizedPL / totalRevenue : 0;
+                  
+                  // Calculate average hold time
+                  let avgHoldDays = 0;
+                  if (soldOrders.length > 0) {
+                    const totalHoldDays = soldOrders.reduce((sum, order) => {
+                      if (order.order_date && order.sale_date) {
+                        const orderDate = new Date(order.order_date);
+                        const saleDate = new Date(order.sale_date);
+                        const holdDays = Math.round((saleDate - orderDate) / (24 * 60 * 60 * 1000));
+                        return sum + (holdDays > 0 ? holdDays : 0);
+                      }
+                      return sum;
+                    }, 0);
+                    avgHoldDays = Math.round(totalHoldDays / soldOrders.length);
+                  }
+                  
+                  // Average Sale Price
+                  const asp = totalSold > 0 ? Math.round(totalRevenue / totalSold) : 0;
+                  
+                  return (
+                    <>
+                      {/* Bought */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Bought</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">{totalBought}</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">total purchases</div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                      
+                      {/* Sold */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Sold</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">{totalSold}</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">total sold</div>
+                      </div>
+                      
+                      {/* On Hand */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">On Hand</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">{onHand}</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">total inventory</div>
+                      </div>
+                      
+                      {/* Cost */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Cost</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(totalCost)}</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">total amt spent</div>
+                      </div>
+                      
+                      {/* Fees */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Fees</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(totalFees)}</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">from marketplace</div>
+                      </div>
+                      
+                      {/* Shipping */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Shipping</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(totalShipping)}</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">from sales</div>
+                      </div>
+                      
+                      {/* Revenue */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Revenue</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(totalRevenue)}</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">total from sales</div>
+                      </div>
+                      
+                      {/* Realized P/L */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Realized P/L</div>
+                        <div className={`text-base font-semibold mt-0.5 ${realizedPL >= 0 ? 'text-emerald-400' : realizedPL < 0 ? 'text-red-400' : 'text-gray-900 dark:text-white'}`}>
+                          ${centsToStr(realizedPL)}
+                        </div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">after fees + ship</div>
+                      </div>
+                      
+                      {/* ROI */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">ROI</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">
+                          {Number.isFinite(roi) ? `${(roi * 100).toFixed(0)}%` : '—'}
+                        </div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">profit / cost</div>
+                      </div>
+                      
+                      {/* Margin */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Margin</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">
+                          {Number.isFinite(margin) ? `${(margin * 100).toFixed(0)}%` : '—'}
+                        </div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">profit / revenue</div>
+                      </div>
+                      
+                      {/* Avg Hold */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Avg Hold</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">{avgHoldDays}d</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">time in days</div>
+                      </div>
+                      
+                      {/* ASP */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">ASP</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(asp)}</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">average sale price</div>
+                      </div>
+                      
+                      {/* Market Price */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Market Price</div>
+                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(currentMarketValue)}</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">from database</div>
+                      </div>
+                      
+                      {/* Est. Value */}
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Est. Value</div>
+                        <div className={`text-base font-semibold mt-0.5 ${onHandMarketValue > 0 ? 'text-indigo-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                          ${centsToStr(onHandMarketValue)}
+                        </div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">based on mkt price</div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Simplified Order History */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Transaction History</h3>
+              <div className="space-y-2">
+                {(() => {
+                  const allTransactions = [];
+                  const itemOrders = getItemOrders(expandedItem.name);
+                  
+                  // Add purchase transactions
+                  itemOrders.forEach(order => {
+                    if (order.order_date) {
+                      allTransactions.push({
+                        date: order.order_date,
+                        type: 'Purchase',
+                        price: order.buy_price_cents || 0,
+                        sortDate: new Date(order.order_date),
+                      });
+                    }
+                    // Add sale transaction if exists
+                    if (order.sale_date && order.sale_price_cents > 0) {
+                      allTransactions.push({
+                        date: order.sale_date,
+                        type: 'Sale',
+                        price: order.sale_price_cents,
+                        sortDate: new Date(order.sale_date),
+                      });
+                    }
+                  });
+                  
+                  // Sort by date (newest first)
+                  allTransactions.sort((a, b) => b.sortDate - a.sortDate);
+                  
+                  return allTransactions.length > 0 ? (
+                    allTransactions.map((transaction, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${transaction.type === 'Purchase' ? 'bg-blue-400' : 'bg-green-400'}`}></div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {transaction.type}
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              {new Date(transaction.date).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`text-sm font-medium ${
+                          transaction.type === 'Purchase' ? 'text-red-400' : 'text-green-400'
+                        }`}>
+                          {transaction.type === 'Purchase' ? '-' : '+'}${centsToStr(transaction.price)}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                      No transaction history available
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
