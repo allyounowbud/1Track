@@ -92,11 +92,8 @@ function PortfolioChart({ data }) {
       const width = containerRect.width;
       const height = containerRect.height;
       
-      // Check if we're on mobile/small screen
-      const isMobile = width < 768; // md breakpoint
-      const padding = isMobile 
-        ? { top: 20, right: 0, bottom: 40, left: 0 } // No left/right padding on mobile
-        : { top: 20, right: 20, bottom: 40, left: 60 }; // Original padding on desktop
+      // Mobile-first design - always use minimal padding for full-width chart
+      const padding = { top: 20, right: 10, bottom: 50, left: 10 }; // Minimal padding for full-width mobile experience
 
       // Clear previous content
       svg.innerHTML = '';
@@ -174,26 +171,10 @@ function PortfolioChart({ data }) {
 
       // Removed data points (circles) as requested
 
-      // Add Y-axis labels (only on desktop)
-      if (!isMobile) {
-        const yTicks = 5;
-        for (let i = 0; i <= yTicks; i++) {
-          const value = yMin + (yMax - yMin) * (i / yTicks);
-          const y = yScale(value);
-          
-          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          text.setAttribute('x', padding.left - 10);
-          text.setAttribute('y', y + 4);
-          text.setAttribute('text-anchor', 'end');
-          text.setAttribute('fill', 'rgb(148, 163, 184)');
-          text.setAttribute('font-size', '12');
-          text.textContent = `$${value.toFixed(0)}`;
-          svg.appendChild(text);
-        }
-      }
+      // Skip Y-axis labels for cleaner mobile look - focus on the chart itself
 
-      // Add X-axis labels (months only) - responsive sizing with adjusted positioning
-      const xTicks = isMobile ? Math.min(3, data.length) : Math.min(5, data.length); // Fewer ticks on mobile
+      // Add X-axis labels (months) - optimized for mobile with proper month labels
+      const xTicks = Math.min(6, data.length); // Show up to 6 month labels for better readability
       for (let i = 0; i < xTicks; i++) {
         let index, x;
         
@@ -203,11 +184,11 @@ function PortfolioChart({ data }) {
           x = xScale(data[0].x);
         } else if (i === 0) {
           // First label - move it in from the edge
-          index = Math.floor((data.length - 1) * 0.08); // Move to 8% from start
+          index = Math.floor((data.length - 1) * 0.05); // Move to 5% from start
           x = xScale(data[index].x);
         } else if (i === xTicks - 1) {
           // Last label - move it in from the edge
-          index = Math.floor((data.length - 1) * 0.92); // Move to 92% from start
+          index = Math.floor((data.length - 1) * 0.95); // Move to 95% from start
           x = xScale(data[index].x);
         } else {
           // Middle labels - evenly distributed
@@ -219,12 +200,12 @@ function PortfolioChart({ data }) {
         
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
-        text.setAttribute('y', height - padding.bottom + (isMobile ? 15 : 20));
+        text.setAttribute('y', height - padding.bottom + 20);
         text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('fill', 'rgb(156, 163, 175)'); // Lighter gray color
-        text.setAttribute('font-size', isMobile ? '9' : '11'); // Smaller font
-        text.setAttribute('font-weight', '300'); // Light weight
-        text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short' }); // Month only
+        text.setAttribute('fill', 'rgb(107, 114, 128)'); // Better contrast for mobile
+        text.setAttribute('font-size', '11'); // Readable font size
+        text.setAttribute('font-weight', '500'); // Medium weight for better readability
+        text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short' }); // Month only (Aug, Sep, Oct, etc.)
         svg.appendChild(text);
       }
 
@@ -546,12 +527,12 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
   }, [chartData]);
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
-      {/* Mobile App Style Header */}
-      <div className="border-b border-gray-200 dark:border-gray-800 pb-4">
-        <div className="flex items-center justify-between mb-3">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Native Mobile App Header */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Portfolio</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Portfolio</h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">Collection Overview</p>
           </div>
           <div className="text-right">
@@ -585,9 +566,9 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         </div>
       </div>
       
-      {/* Chart Area */}
-      <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-4">
-        <div className="h-64 w-full overflow-hidden max-w-full">
+      {/* Full-Width Chart Area - Native Mobile Style */}
+      <div className="bg-white dark:bg-gray-900">
+        <div className="h-80 w-full overflow-hidden">
           {chartData && chartData.length > 0 ? (
             <PortfolioChart data={chartData} />
           ) : (
@@ -606,8 +587,9 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         </div>
       </div>
 
-      {/* KPI Cards Grid - Mobile First */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-2">
+      {/* KPI Cards Grid - Native Mobile Style */}
+      <div className="px-4 py-4">
+        <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -668,18 +650,21 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
             </div>
           </div>
         </div>
+        </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
-        <div className="space-y-3">
-          {orders
-            .sort((a, b) => new Date(b.created_at || b.updated_at || b.id) - new Date(a.created_at || a.updated_at || a.id))
-            .slice(0, 10)
-            .map((order) => (
-              <RecentActivityRow key={order.id} order={order} marketData={marketData} />
-            ))}
+      {/* Recent Activity - Native Mobile Style */}
+      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+        <div className="px-4 py-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
+          <div className="space-y-3">
+            {orders
+              .sort((a, b) => new Date(b.created_at || b.updated_at || b.id) - new Date(a.created_at || a.updated_at || a.id))
+              .slice(0, 10)
+              .map((order) => (
+                <RecentActivityRow key={order.id} order={order} marketData={marketData} />
+              ))}
+          </div>
         </div>
       </div>
     </div>
@@ -952,9 +937,9 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
   }, [groupedItems, searchTerm, sortBy, sortOrder]);
 
   return (
-    <div className="space-y-6">
-      {/* Mobile App Style Header */}
-      <div className="border-b border-gray-200 dark:border-gray-800 pb-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Native Mobile App Header */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Collection</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">Browse your inventory</p>
@@ -962,7 +947,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4">
         <div className="flex items-center gap-4 mb-4">
           <div className="flex-1">
             <input
@@ -1138,8 +1123,9 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
         </div>
       </div>
 
-      {/* Collection Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Collection Grid - Native Mobile Style */}
+      <div className="px-4 py-4">
+        <div className="grid grid-cols-1 gap-4">
         {filteredItems.map((item, index) => {
           const marketInfo = item.marketInfo;
           const manualValue = item.manualValue;
@@ -1169,7 +1155,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
           return (
             <div 
               key={index} 
-              className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors cursor-pointer"
+              className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors cursor-pointer"
               onClick={() => setExpandedItem(item)}
             >
               <div className="mb-3">
@@ -1276,12 +1262,15 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             </div>
           );
         })}
+        </div>
       </div>
 
       {filteredItems.length === 0 && (
-        <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center">
-          <CollectionIcon />
-          <p className="text-gray-600 dark:text-gray-400 mt-2">No items found in your collection</p>
+        <div className="px-4 py-8">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+            <CollectionIcon />
+            <p className="text-gray-600 dark:text-gray-400 mt-2">No items found in your collection</p>
+          </div>
         </div>
       )}
 
