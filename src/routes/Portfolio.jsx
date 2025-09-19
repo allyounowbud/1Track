@@ -1067,7 +1067,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
 
       {/* Collection Grid - Native Mobile Style */}
       <div className="px-4 py-4">
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-2 gap-3">
         {filteredItems.map((item, index) => {
           const marketInfo = item.marketInfo;
           const manualValue = item.manualValue;
