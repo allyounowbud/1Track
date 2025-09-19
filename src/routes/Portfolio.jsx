@@ -221,41 +221,73 @@ function PortfolioChart({ data }) {
 
       // Skip Y-axis labels for cleaner mobile look - focus on the chart itself
 
-      // Add X-axis labels (months) - optimized for mobile with proper month labels
-      const xTicks = Math.min(6, data.length); // Show up to 6 month labels for better readability
-      for (let i = 0; i < xTicks; i++) {
-        let index, x;
-        
-        if (xTicks === 1) {
-          // Single point - center it
-          index = 0;
-          x = xScale(data[0].x);
-        } else if (i === 0) {
-          // First label - move it in from the edge
-          index = Math.floor((data.length - 1) * 0.05); // Move to 5% from start
-          x = xScale(data[index].x);
-        } else if (i === xTicks - 1) {
-          // Last label - move it in from the edge
-          index = Math.floor((data.length - 1) * 0.95); // Move to 95% from start
-          x = xScale(data[index].x);
-        } else {
-          // Middle labels - evenly distributed
-          index = Math.floor((data.length - 1) * (i / (xTicks - 1)));
-          x = xScale(data[index].x);
+      // Add X-axis labels (months) - evenly spaced with unique months only
+      const firstDate = new Date(xMin);
+      const lastDate = new Date(xMax);
+      
+      // Generate all unique months in the date range
+      const uniqueMonths = [];
+      const monthSet = new Set();
+      
+      // Start from the first month and go to the last month
+      const current = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
+      const end = new Date(lastDate.getFullYear(), lastDate.getMonth(), 1);
+      
+      while (current <= end) {
+        const monthKey = `${current.getFullYear()}-${current.getMonth()}`;
+        if (!monthSet.has(monthKey)) {
+          monthSet.add(monthKey);
+          uniqueMonths.push({
+            date: new Date(current),
+            label: current.toLocaleDateString('en-US', { month: 'short' }),
+            year: current.getFullYear()
+          });
         }
-        
-        const point = data[index];
+        current.setMonth(current.getMonth() + 1);
+      }
+      
+      // Limit to reasonable number of labels (3-8)
+      const maxLabels = Math.min(8, Math.max(3, uniqueMonths.length));
+      const step = Math.max(1, Math.floor(uniqueMonths.length / maxLabels));
+      const selectedMonths = [];
+      
+      // Select months with even spacing
+      for (let i = 0; i < uniqueMonths.length; i += step) {
+        selectedMonths.push(uniqueMonths[i]);
+        if (selectedMonths.length >= maxLabels) break;
+      }
+      
+      // Always include the last month if not already included
+      if (selectedMonths.length > 0 && selectedMonths[selectedMonths.length - 1] !== uniqueMonths[uniqueMonths.length - 1]) {
+        selectedMonths[selectedMonths.length - 1] = uniqueMonths[uniqueMonths.length - 1];
+      }
+      
+      // Render the selected month labels with even spacing
+      selectedMonths.forEach((monthData, index) => {
+        // Calculate x position evenly across the chart width
+        const x = padding.left + (index / (selectedMonths.length - 1)) * (width - padding.left - padding.right);
         
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
-        text.setAttribute('y', height - padding.bottom + 20);
+        text.setAttribute('y', height - padding.bottom + 18);
         text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('fill', 'rgb(107, 114, 128)'); // Better contrast for mobile
-        text.setAttribute('font-size', '11'); // Readable font size
+        text.setAttribute('fill', 'rgb(156, 163, 175)'); // Better contrast for dark mode
+        text.setAttribute('font-size', '12'); // Slightly larger for better readability
         text.setAttribute('font-weight', '500'); // Medium weight for better readability
-        text.textContent = new Date(point.x).toLocaleDateString('en-US', { month: 'short' }); // Month only (Aug, Sep, Oct, etc.)
+        text.setAttribute('class', 'chart-x-axis-label'); // For potential CSS styling
+        
+        // Format date based on data range
+        const now = new Date();
+        const isCurrentYear = monthData.year === now.getFullYear();
+        
+        if (isCurrentYear) {
+          text.textContent = monthData.label; // Month only (Aug, Sep, Oct, etc.)
+        } else {
+          text.textContent = `${monthData.label} '${monthData.year.toString().slice(-2)}`; // Month + Year
+        }
+        
         svg.appendChild(text);
-      }
+      });
 
     } catch (error) {
       console.error('Error rendering chart:', error);
@@ -429,6 +461,81 @@ function PortfolioContent({ orders, portfolioItems, marketData, manualItems, all
 function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcgSingles, videoGames }) {
   const [selectedTimeframe, setSelectedTimeframe] = useState('All');
   const [itemSearchQuery, setItemSearchQuery] = useState('');
+  const [showItemDropdown, setShowItemDropdown] = useState(false);
+  const [filteredItems, setFilteredItems] = useState([]);
+  const searchInputRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // Get unique items from order book for dropdown
+  const orderBookItems = useMemo(() => {
+    const uniqueItems = [...new Set(orders.map(order => order.item).filter(Boolean))];
+    return uniqueItems.sort();
+  }, [orders]);
+
+  // Filter items based on search query
+  useEffect(() => {
+    if (itemSearchQuery.trim()) {
+      const query = itemSearchQuery.toLowerCase().trim();
+      const filtered = orderBookItems.filter(item => 
+        item.toLowerCase().includes(query)
+      );
+      setFilteredItems(filtered);
+      setShowItemDropdown(true);
+    } else {
+      setFilteredItems(orderBookItems);
+      setShowItemDropdown(false);
+    }
+  }, [itemSearchQuery, orderBookItems]);
+
+  // Handle item selection from dropdown
+  const handleItemSelect = (itemName) => {
+    setItemSearchQuery(itemName);
+    setShowItemDropdown(false);
+    // Small delay to ensure the dropdown closes before refocusing
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100);
+  };
+
+  // Handle input focus
+  const handleInputFocus = () => {
+    if (itemSearchQuery.trim()) {
+      setShowItemDropdown(true);
+    }
+  };
+
+  // Handle dropdown arrow click
+  const handleDropdownToggle = () => {
+    if (!showItemDropdown) {
+      // Opening dropdown - show all items
+      setFilteredItems(orderBookItems);
+      setShowItemDropdown(true);
+    } else {
+      // Closing dropdown
+      setShowItemDropdown(false);
+    }
+  };
+
+  // Handle clicking outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        searchInputRef.current && 
+        !searchInputRef.current.contains(event.target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
+        setShowItemDropdown(false);
+      }
+    };
+
+    if (showItemDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => {
+        document.removeEventListener('click', handleClickOutside);
+      };
+    }
+  }, [showItemDropdown]);
 
   // Filter orders based on timeframe and item search
   const filteredOrders = useMemo(() => {
@@ -450,7 +557,8 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
           startDate.setMonth(now.getMonth() - 1);
           break;
         case '3M':
-          startDate.setMonth(now.getMonth() - 3);
+          startDate.setMonth(now.getMonth() - 2); // Show last 3 months including current month
+          startDate.setDate(1); // Start from the first day of the month
           break;
         case '6M':
           startDate.setMonth(now.getMonth() - 6);
@@ -473,15 +581,18 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
 
   // Calculate portfolio metrics
   const metrics = useMemo(() => {
-    const totalItems = portfolioItems.length;
-    const totalCost = portfolioItems.reduce((sum, item) => sum + (item.buy_price_cents || 0), 0);
+    // Use filtered data when there's a search query, otherwise use all portfolio items
+    const dataToUse = itemSearchQuery.trim() ? filteredOrders : portfolioItems;
+    
+    const totalItems = dataToUse.length;
+    const totalCost = dataToUse.reduce((sum, item) => sum + (item.buy_price_cents || 0), 0);
     
     // Calculate current market value using real API data
     let estimatedMarketValue = 0;
     let itemsWithMarketData = 0;
     let itemsWithoutMarketData = 0;
     
-    portfolioItems.forEach(item => {
+    dataToUse.forEach(item => {
       // Try to find market data by exact match first
       let marketInfo = marketData[item.item];
       
@@ -516,7 +627,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
       itemsWithoutMarketData,
       marketDataCoverage: totalItems > 0 ? (itemsWithMarketData / totalItems) * 100 : 0,
     };
-  }, [portfolioItems, marketData]);
+  }, [portfolioItems, filteredOrders, marketData, itemSearchQuery]);
 
   // Calculate portfolio value over time for the chart
   const portfolioHistory = useMemo(() => {
@@ -537,7 +648,8 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
         startDate.setMonth(now.getMonth() - 1);
         break;
       case '3M':
-        startDate.setMonth(now.getMonth() - 3);
+        startDate.setMonth(now.getMonth() - 2); // Show last 3 months including current month
+        startDate.setDate(1); // Start from the first day of the month
         break;
       case '6M':
         startDate.setMonth(now.getMonth() - 6);
@@ -693,21 +805,88 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                 </svg>
               </div>
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search items in order book..."
                 value={itemSearchQuery}
                 onChange={(e) => setItemSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/50 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                onFocus={handleInputFocus}
+                className="w-full pl-10 pr-12 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/50 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
+              
+              {/* Dropdown Arrow */}
+              <button
+                onClick={handleDropdownToggle}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                type="button"
+              >
+                <svg 
+                  className={`h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-transform ${showItemDropdown ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {/* Clear Button - only show when there's text */}
               {itemSearchQuery && (
                 <button
-                  onClick={() => setItemSearchQuery('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => {
+                    setItemSearchQuery('');
+                    setShowItemDropdown(false);
+                  }}
+                  className="absolute inset-y-0 right-8 pr-1 flex items-center"
+                  type="button"
                 >
                   <svg className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+              )}
+              
+              {/* Dropdown List */}
+              {showItemDropdown && orderBookItems.length > 0 && (
+                <div 
+                  ref={dropdownRef}
+                  className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                >
+                  {(itemSearchQuery.trim() ? filteredItems : orderBookItems).map((item, index) => (
+                    <button
+                      key={index}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleItemSelect(item)}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700"
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {/* No results message */}
+              {showItemDropdown && itemSearchQuery.trim() && filteredItems.length === 0 && orderBookItems.length > 0 && (
+                <div 
+                  ref={dropdownRef}
+                  className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4"
+                >
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    No items found matching "{itemSearchQuery}"
+                  </p>
+                </div>
+              )}
+              
+              {/* No items in order book message */}
+              {showItemDropdown && orderBookItems.length === 0 && (
+                <div 
+                  ref={dropdownRef}
+                  className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4"
+                >
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    No items found in order book
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -738,63 +917,70 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
       <div className="px-4 py-6">
         <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-300 text-xs">Inventory</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(metrics.totalItems)}</p>
-            </div>
-            <div className="p-2 bg-gray-500/20 rounded-xl">
-              <CollectionIcon />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-300 text-xs">Total Cost</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(metrics.totalCost)}</p>
-            </div>
-            <div className="p-2 bg-gray-500/20 rounded-xl">
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
-              </svg>
+          <div className="flex items-center justify-center">
+            <div className="flex items-center justify-between w-full max-w-xs">
+              <div>
+                <p className="text-gray-600 dark:text-gray-300 text-xs">Inventory</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(metrics.totalItems)}</p>
+              </div>
+              <div className="p-2 bg-gray-500/20 rounded-xl">
+                <CollectionIcon />
+              </div>
             </div>
           </div>
         </div>
 
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-300 text-xs">Market Value</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(metrics.estimatedMarketValue)}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                +0.0%
-              </p>
-            </div>
-            <div className="p-2 bg-gray-500/20 rounded-xl">
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zM8 6a2 2 0 114 0v1H8V6zm4 10a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-              </svg>
+          <div className="flex items-center justify-center">
+            <div className="flex items-center justify-between w-full max-w-xs">
+              <div>
+                <p className="text-gray-600 dark:text-gray-300 text-xs">Total Cost</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(metrics.totalCost)}</p>
+              </div>
+              <div className="p-2 bg-gray-500/20 rounded-xl">
+                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-300 text-xs">Total Profit</p>
-              <p className={`text-lg font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                ${centsToStr(metrics.totalProfit)}
-              </p>
-              <p className={`text-xs ${metrics.profitPercentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {metrics.profitPercentage >= 0 ? '+' : ''}{metrics.profitPercentage.toFixed(1)}%
-              </p>
+          <div className="flex items-center justify-center">
+            <div className="flex items-center justify-between w-full max-w-xs">
+              <div>
+                <p className="text-gray-600 dark:text-gray-300 text-xs">Market Value</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(metrics.estimatedMarketValue)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  +0.0%
+                </p>
+              </div>
+              <div className="p-2 bg-gray-500/20 rounded-xl">
+                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zM8 6a2 2 0 114 0v1H8V6zm4 10a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+              </div>
             </div>
-            <div className="p-2 bg-gray-500/20 rounded-xl">
-              {metrics.totalProfit >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
-            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
+          <div className="flex items-center justify-center">
+            <div className="flex items-center justify-between w-full max-w-xs">
+              <div>
+                <p className="text-gray-600 dark:text-gray-300 text-xs">Total Profit</p>
+                <p className={`text-lg font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  ${centsToStr(metrics.totalProfit)}
+                </p>
+                <p className={`text-xs ${metrics.profitPercentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {metrics.profitPercentage >= 0 ? '+' : ''}{metrics.profitPercentage.toFixed(1)}%
+                </p>
+              </div>
+              <div className="p-2 bg-gray-500/20 rounded-xl">
+                {metrics.totalProfit >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
+              </div>
             </div>
           </div>
         </div>
@@ -804,44 +990,56 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
       <div className="px-4 py-8">
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            {itemSearchQuery ? `Performance Analytics - ${itemSearchQuery}` : 'Performance Analytics'}
+            {itemSearchQuery ? (() => {
+              const parts = itemSearchQuery.split(' - ');
+              const itemName = parts[0] || itemSearchQuery;
+              const setName = parts.slice(1).join(' - ');
+              return (
+                <>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {itemName}
+                  </div>
+                  {setName && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {setName}
+                    </div>
+                  )}
+                </>
+              );
+            })() : 'Performance Analytics'}
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            {itemSearchQuery ? 'Item-specific performance metrics' : 'Comprehensive insights and performance metrics'}
+            {!itemSearchQuery && 'Comprehensive insights and performance metrics'}
           </p>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
           {itemSearchQuery ? (
             // Item-specific view when filter is active
             <>
               <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Item Performance</h4>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Stats</h4>
                 {itemGroups.length > 0 ? (
                   <div className="space-y-3">
                     {itemGroups.slice(0, 1).map((item, idx) => (
                       <div key={item.item}>
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.item}</span>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Total Revenue</span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(item.revenueC)}</span>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                            <div className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(item.bought)}</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">Items Bought</div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Items Sold</span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(item.sold)}</span>
+                          <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                            <div className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(item.sold)}</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">Items Sold</div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Items Bought</span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(item.bought)}</span>
+                          <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                            <div className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(Math.round(item.totalCostC / item.bought))}</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">Avg Cost</div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-xs text-gray-600 dark:text-gray-400">On Hand</span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(item.onHand)}</span>
+                          <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                            <div className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(item.aspC)}</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">Avg Sale Price</div>
                           </div>
                         </div>
                       </div>
@@ -854,44 +1052,167 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                 )}
               </div>
 
-              <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Financial Metrics</h4>
+              <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700/50 min-h-0 flex flex-col">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3 flex-shrink-0">Financial Performance</h4>
                 {itemGroups.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3 flex-1 min-h-0">
                     {itemGroups.slice(0, 1).map((item, idx) => (
-                      <div key={item.item} className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-xs text-gray-600 dark:text-gray-400">Realized P/L</span>
-                          <span className={`text-sm font-medium ${item.realizedPlC >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      <div key={item.item} className="space-y-2 sm:space-y-3">
+                        <div className="flex justify-between items-center min-h-[1.5rem]">
+                          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">Total Revenue</span>
+                          <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">${centsToStr(item.revenueC)}</span>
+                        </div>
+                        <div className="flex justify-between items-center min-h-[1.5rem]">
+                          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">Total Cost</span>
+                          <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">${centsToStr(item.totalCostC)}</span>
+                        </div>
+                        <div className="flex justify-between items-center min-h-[1.5rem]">
+                          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">Realized P/L</span>
+                          <span className={`text-xs sm:text-sm font-medium whitespace-nowrap ${item.realizedPlC >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             ${centsToStr(item.realizedPlC)}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-xs text-gray-600 dark:text-gray-400">ROI</span>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {Number.isFinite(item.roi) ? `${(item.roi * 100).toFixed(0)}%` : '—'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-xs text-gray-600 dark:text-gray-400">Margin</span>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {Number.isFinite(item.margin) ? `${(item.margin * 100).toFixed(0)}%` : '—'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-xs text-gray-600 dark:text-gray-400">Avg Hold Time</span>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">{item.avgHoldDays}d</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-xs text-gray-600 dark:text-gray-400">Avg Sale Price</span>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(item.aspC)}</span>
-                        </div>
+                        {item.revenueC > 0 && (
+                          <>
+                            <div className="flex justify-between items-center min-h-[1.5rem]">
+                              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">ROI</span>
+                              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                                {Number.isFinite(item.roi) ? `${(item.roi * 100).toFixed(0)}%` : '—'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center min-h-[1.5rem]">
+                              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">Margin</span>
+                              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                                {Number.isFinite(item.margin) ? `${(item.margin * 100).toFixed(0)}%` : '—'}
+                              </span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
                 ) : (
+                  <div className="text-center py-3 sm:py-4 flex-1 flex items-center justify-center">
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">No financial data available</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Market Insight</h4>
+                {filteredOrders.length > 0 ? (
+                  <div className="space-y-3">
+                    {(() => {
+                      // Calculate market values using the same logic as the KPI cards
+                      const dataToUse = filteredOrders;
+                      const totalItems = dataToUse.length;
+                      const totalCost = dataToUse.reduce((sum, item) => sum + (item.buy_price_cents || 0), 0);
+                      
+                      // Calculate current market value using real API data
+                      let estimatedMarketValue = 0;
+                      let itemsWithMarketData = 0;
+                      
+                      dataToUse.forEach(item => {
+                        // Try to find market data by exact match first
+                        let marketInfo = marketData[item.item];
+                        
+                        // If no exact match, try to find by extracting the base product name
+                        if (!marketInfo) {
+                          // Extract the base product name (before the " - " separator)
+                          const baseProductName = item.item.split(' - ')[0];
+                          marketInfo = marketData[baseProductName];
+                        }
+                        
+                        if (marketInfo && marketInfo.loose_price) {
+                          // Use loose price as market value (convert to cents)
+                          estimatedMarketValue += Math.round(parseFloat(marketInfo.loose_price) * 100);
+                          itemsWithMarketData++;
+                        } else {
+                          // Fallback to cost if no market data available
+                          estimatedMarketValue += item.buy_price_cents || 0;
+                        }
+                      });
+                      
+                      const unitMarketValue = totalItems > 0 ? Math.round(estimatedMarketValue / totalItems) : 0;
+                      const unrealizedPl = estimatedMarketValue - totalCost;
+                      
+                      return (
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Market Value</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(unitMarketValue)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Total Market Value</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(estimatedMarketValue)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Unrealized P/L</span>
+                            <span className="text-sm font-medium text-blue-400">
+                              ${centsToStr(unrealizedPl)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Avg Hold Time</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {(() => {
+                                // Calculate average hold time based on order book dates
+                                const now = new Date();
+                                let totalHoldDays = 0;
+                                let validHoldTimes = 0;
+                                
+                                console.log('Avg Hold Time Debug:', {
+                                  dataToUseLength: filteredOrders.length,
+                                  dataToUse: filteredOrders.map(order => ({
+                                    item: order.item,
+                                    order_date: order.order_date,
+                                    buy_price_cents: order.buy_price_cents,
+                                    sale_price_cents: order.sale_price_cents
+                                  }))
+                                });
+                                
+                                // For each order, calculate hold time from purchase date to current date
+                                filteredOrders.forEach(order => {
+                                  console.log('Processing order:', order);
+                                  if (order.order_date) {
+                                    const orderDate = new Date(order.order_date);
+                                    const holdDays = Math.floor((now - orderDate) / (1000 * 60 * 60 * 24));
+                                    
+                                    console.log('Hold calculation:', {
+                                      orderDate: orderDate,
+                                      now: now,
+                                      holdDays: holdDays,
+                                      isValid: !isNaN(holdDays) && holdDays >= 0
+                                    });
+                                    
+                                    if (!isNaN(holdDays) && holdDays >= 0) {
+                                      totalHoldDays += holdDays;
+                                      validHoldTimes++;
+                                    }
+                                  } else {
+                                    console.log('No order_date for order:', order);
+                                  }
+                                });
+                                
+                                const avgDays = validHoldTimes > 0 ? Math.round(totalHoldDays / validHoldTimes) : 0;
+                                console.log('Final calculation:', {
+                                  totalHoldDays,
+                                  validHoldTimes,
+                                  avgDays,
+                                  result: isNaN(avgDays) || avgDays === 0 ? '-' : `${avgDays}d`
+                                });
+                                
+                                return isNaN(avgDays) || avgDays === 0 ? '-' : `${avgDays}d`;
+                              })()}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
                   <div className="text-center py-4">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No financial data available</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No market data available</p>
                   </div>
                 )}
               </div>
@@ -941,6 +1262,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
             </>
           )}
         </div>
+      </div>
       </div>
 
       {/* Recent Activity - Native Mobile Style */}
