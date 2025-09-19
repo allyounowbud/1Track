@@ -166,13 +166,31 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
             );
           })}
           
-          {/* Theme Toggle - Mobile */}
-          <div className="flex flex-col items-center justify-center p-2 rounded-lg min-w-0 flex-1 h-full">
-            <ThemeToggle isCollapsed={true} />
-            <span className="text-xs font-medium truncate text-center leading-tight hidden xs:block text-gray-600 dark:text-slate-300 mt-1">
-              Theme
+          {/* Profile Link - Mobile */}
+          <NavLink
+            to="/profile"
+            end
+            className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-0 flex-1 h-full ${
+              active === "profile" 
+                ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900/50 shadow-sm' 
+                : 'text-gray-600 dark:text-slate-300'
+            }`}
+          >
+            {userInfo.avatar_url ? (
+              <img
+                src={userInfo.avatar_url}
+                alt="Profile"
+                className="h-5 w-5 rounded object-cover mb-1"
+              />
+            ) : (
+              <div className="h-5 w-5 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-slate-300 text-xs font-semibold mb-1">
+                {(userInfo.username || "U").slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <span className="text-xs font-medium truncate text-center leading-tight hidden xs:block">
+              Profile
             </span>
-          </div>
+          </NavLink>
         </nav>
       </div>
     );
@@ -243,7 +261,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
         ))}
       </nav>
 
-      {/* Theme Toggle */}
+      {/* Theme Toggle - Desktop */}
       <div className={`flex-shrink-0 ${isCollapsed ? 'flex justify-center py-2' : 'p-4'}`}>
         <ThemeToggle isCollapsed={isCollapsed} />
       </div>
@@ -253,7 +271,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
         {isCollapsed ? (
           // Collapsed: Profile image fills entire button
           <Link
-            to="/"
+            to="/profile"
             className="flex items-center justify-center w-10 h-10 rounded-lg text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-800/50"
           >
             {userInfo.avatar_url ? (
@@ -271,7 +289,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
         ) : (
           // Expanded: Profile image + text
           <Link
-            to="/"
+            to="/profile"
             className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800/50"
           >
             {userInfo.avatar_url ? (

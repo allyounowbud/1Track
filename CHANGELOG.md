@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Profile Page & User Hub**: Created comprehensive profile page that serves as a user hub with account management and settings:
+  - **User Information Display**: Shows user avatar, username, and account status with professional card layout
+  - **Sign Out Functionality**: Secure sign out with proper session cleanup and navigation to login page
+  - **Theme Settings**: Integrated dark/light mode toggle with visual switch and current mode display
+  - **Discord Webhook Integration**: Settings for Discord notifications with URL input and save functionality
+  - **Data Management**: Complete import/export system for order book data with JSON backup/restore
+  - **Mobile Navigation Update**: Replaced theme toggle in mobile bottom bar with profile page link using user avatar
+  - **Desktop Navigation**: Added profile link to desktop sidebar with user icon and proper active states
+  - **Settings Persistence**: All settings saved to localStorage with proper error handling and user feedback
+  - **Professional UI**: Consistent card-based layout with proper spacing, colors, and responsive design
+  - **Future-Ready**: Placeholder sections for additional settings like email notifications and API integrations
+
+### Added
 - **Category Deletion Feature**: Added ability to delete categories from the product database:
   - **Delete Button**: Added red delete button to category headers (except "Other" category)
   - **Smart Product Migration**: When a category is deleted, all products in that category are automatically moved to "Other" category
