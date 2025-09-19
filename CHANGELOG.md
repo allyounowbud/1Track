@@ -18,6 +18,19 @@ All notable changes to this project will be documented in this file.
   - **Circle Icons**: Removed decorative circle icons next to description text for cleaner appearance
   - **Empty State Text**: Removed "No products yet" text and "Start building your product database" messaging when sections are empty
   - **Minimal Design**: Achieved cleaner, more professional appearance with less visual clutter
+- **Auto-Cancel New Rows on Page Change**: Fixed issue where "add new row" forms would persist when switching between database tabs:
+  - **Tab Navigation**: New product/retailer/marketplace rows are now automatically canceled when switching between products, retailers, and marketplaces tabs
+  - **Page Navigation**: New rows are also canceled when navigating to different pages entirely
+  - **Clean State**: Ensures users don't lose work unexpectedly and maintains clean state when changing contexts
+  - **Consistent Behavior**: All new row types (products, retailers, marketplaces) now behave consistently
+- **Stats Integration into Portfolio**: Successfully integrated all stats functionality from the separate Stats page into the Portfolio Overview tab:
+  - **Performance Analytics Section**: Added comprehensive stats section below KPI cards with 8 key performance indicators
+  - **Top Performing Items**: Shows top 3 revenue-generating items with sales data
+  - **Quick Stats Summary**: Displays total items, bought, sold, and on-hand counts
+  - **Data Integration**: Links to order book and API data using item names for accurate calculations
+  - **Consistent Styling**: Matches Portfolio page design with rounded cards and proper mobile optimization
+  - **Navigation Cleanup**: Removed separate Stats page and updated sidebar navigation
+  - **Route Cleanup**: Removed `/portfolio/stats` route and Stats.jsx file
 - **Database Page Title and Description Updates**: Updated all database tabs with consistent styling:
   - **Title Changes**: Changed "Database - Products" to "Add Products", "Database - Retailers" to "Add Retailers", "Database - Marketplaces" to "Add Marketplaces"
   - **Description Text**: Added descriptive text under each tab title with proper spacing

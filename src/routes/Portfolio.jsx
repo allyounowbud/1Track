@@ -7,11 +7,22 @@ import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { centsToStr, formatNumber } from "../utils/money.js";
 import { card, inputBase, rowCard } from "../utils/ui.js";
+
+// Stats helper functions
+const cents = (n) => Math.round(Number(n || 0));
+const pctStr = (p) => (Number.isFinite(p) ? `${(p * 100).toFixed(0)}%` : "—");
+const within = (d, from, to) => {
+  if (!d) return false;
+  const x = new Date(d).getTime();
+  if (isNaN(x)) return false;
+  if (from && x < from) return false;
+  if (to && x > to) return false;
+  return true;
+};
 import { getBatchMarketData, getMarketValueInCents, getProductMarketData } from "../services/marketDataService.js";
 import { getBackgroundMarketData, isBackgroundLoadingComplete } from "../services/backgroundMarketDataService.js";
 import { getProductImages } from "../services/imageService.js";
 import SearchPage from "../components/SearchPage.jsx";
-import Stats from "./Stats.jsx";
 
 // Icons
 const TrendingUpIcon = () => (
@@ -73,6 +84,43 @@ async function getAllOrders() {
     `)
     .order("order_date", { ascending: false });
   
+  if (error) throw error;
+  return data || [];
+}
+
+// Stats-related queries
+async function getItems() {
+  const { data, error } = await supabase
+    .from("items")
+    .select("id, name, market_value_cents")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+async function getTCGSealed() {
+  const { data, error } = await supabase
+    .from("tcg_sealed")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+async function getTCGSingles() {
+  const { data, error } = await supabase
+    .from("tcg_singles")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+async function getVideoGames() {
+  const { data, error } = await supabase
+    .from("video_games")
+    .select("id, name, market_value_cents, price_source, api_product_id, api_last_updated, api_price_cents, manual_override")
+    .order("name", { ascending: true });
   if (error) throw error;
   return data || [];
 }
@@ -365,23 +413,63 @@ function RecentActivityRow({ order, marketData }) {
 }
 
 /* ----------------------------- Portfolio Content Router ---------------------------- */
-function PortfolioContent({ orders, portfolioItems, marketData, manualItems, allOrders, currentTab }) {
+function PortfolioContent({ orders, portfolioItems, marketData, manualItems, allOrders, currentTab, items, tcgSealed, tcgSingles, videoGames }) {
   switch (currentTab) {
     case 'collection':
       return <CollectionTab portfolioItems={portfolioItems} marketData={marketData} manualItems={manualItems} allOrders={allOrders} />;
     case 'search':
       return <SearchPage />;
-    case 'stats':
-      return <StatsTab orders={orders} />;
     case 'overview':
     default:
-      return <OverviewTab orders={orders} portfolioItems={portfolioItems} marketData={marketData} />;
+      return <OverviewTab orders={orders} portfolioItems={portfolioItems} marketData={marketData} items={items} tcgSealed={tcgSealed} tcgSingles={tcgSingles} videoGames={videoGames} />;
   }
 }
 
 /* ----------------------------- Overview Tab ---------------------------- */
-function OverviewTab({ orders, portfolioItems, marketData }) {
+function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcgSingles, videoGames }) {
   const [selectedTimeframe, setSelectedTimeframe] = useState('All');
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
+
+  // Filter orders based on timeframe and item search
+  const filteredOrders = useMemo(() => {
+    let filtered = orders;
+    
+    // Apply timeframe filter
+    if (selectedTimeframe !== 'All') {
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (selectedTimeframe) {
+        case '1D':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case '7D':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '1M':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case '3M':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case '6M':
+          startDate.setMonth(now.getMonth() - 6);
+          break;
+      }
+      
+      filtered = filtered.filter(order => new Date(order.order_date) >= startDate);
+    }
+    
+    // Apply item search filter
+    if (itemSearchQuery.trim()) {
+      const query = itemSearchQuery.toLowerCase().trim();
+      filtered = filtered.filter(order => 
+        order.item && order.item.toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered;
+  }, [orders, selectedTimeframe, itemSearchQuery]);
 
   // Calculate portfolio metrics
   const metrics = useMemo(() => {
@@ -432,7 +520,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
 
   // Calculate portfolio value over time for the chart
   const portfolioHistory = useMemo(() => {
-    if (!orders.length) return [];
+    if (!filteredOrders.length) return [];
 
     // Get date range based on selected timeframe
     const now = new Date();
@@ -461,8 +549,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
 
     // Group orders by date and calculate cumulative portfolio value
     const dailyData = {};
-    const sortedOrders = orders
-      .filter(order => new Date(order.order_date) >= startDate)
+    const sortedOrders = filteredOrders
       .sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
 
     let cumulativeCost = 0;
@@ -500,7 +587,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
     });
 
     return result;
-  }, [orders, marketData, selectedTimeframe]);
+  }, [filteredOrders, marketData, selectedTimeframe]);
 
   // Get chart data points
   const chartData = useMemo(() => {
@@ -526,11 +613,43 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
     return { change, changePercent };
   }, [chartData]);
 
+  // Market value lookup for stats
+  const marketByName = useMemo(() => {
+    const m = new Map();
+    
+    // Add manual database values
+    for (const it of items) {
+      const k = (it.name || "").toLowerCase();
+      const v = cents(it.market_value_cents);
+      if (v > 0) {
+        m.set(k, v);
+      }
+    }
+    
+    // Add category table values
+    const allCategoryItems = [...tcgSealed, ...tcgSingles, ...videoGames];
+    for (const item of allCategoryItems) {
+      const k = (item.name || "").toLowerCase();
+      const v = cents(item.market_value_cents);
+      if (v > 0 && !m.has(k)) {
+        m.set(k, v);
+      }
+    }
+    
+    return m;
+  }, [items, tcgSealed, tcgSingles, videoGames]);
+
+  // Calculate stats KPIs
+  const kpis = useMemo(() => makeTopKpis(filteredOrders), [filteredOrders]);
+  
+  // Calculate item groups for stats
+  const itemGroups = useMemo(() => makeItemGroups(filteredOrders, marketByName), [filteredOrders, marketByName]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Native Mobile App Header */}
-      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700/50 px-4 py-4">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700/50 px-4 py-6">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Portfolio</h1>
             <p className="text-sm text-gray-600 dark:text-gray-300">Collection Overview</p>
@@ -549,7 +668,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
           
           {/* Time Period Selector */}
-        <div className="flex space-x-0.5 bg-gray-100 dark:bg-gray-800/50 p-0.5 rounded-lg overflow-hidden">
+        <div className="flex space-x-0.5 bg-gray-100 dark:bg-gray-800/50 p-0.5 rounded-lg overflow-hidden mt-4">
             {['1D', '7D', '1M', '3M', 'All'].map((period) => (
               <button
                 key={period}
@@ -564,10 +683,38 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
               </button>
             ))}
           </div>
+
+          {/* Item Search Filter */}
+          <div className="mt-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search items in order book..."
+                value={itemSearchQuery}
+                onChange={(e) => setItemSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/50 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              {itemSearchQuery && (
+                <button
+                  onClick={() => setItemSearchQuery('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  <svg className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
         
       {/* Full-Width Chart Area - Native Mobile Style */}
-      <div className="bg-gray-50 dark:bg-gray-900">
+      <div className="bg-gray-50 dark:bg-gray-900 py-6">
         <div className="h-80 w-full overflow-hidden">
                  {chartData && chartData.length > 0 ? (
                    <PortfolioChart data={chartData} />
@@ -588,7 +735,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       </div>
 
       {/* KPI Cards Grid - Native Mobile Style */}
-      <div className="px-4 py-4">
+      <div className="px-4 py-6">
         <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-between">
@@ -653,26 +800,172 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
         </div>
       </div>
 
-      {/* Recent Activity - Native Mobile Style */}
-      <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700/50">
-        <div className="px-4 py-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
-        <div className="space-y-3">
-            {orders
-              .sort((a, b) => new Date(b.created_at || b.updated_at || b.id) - new Date(a.created_at || a.updated_at || a.id))
-              .slice(0, 10)
-              .map((order) => (
-                <RecentActivityRow key={order.id} order={order} marketData={marketData} />
-              ))}
-          </div>
+      {/* Performance Analytics Section */}
+      <div className="px-4 py-8">
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            {itemSearchQuery ? `Performance Analytics - ${itemSearchQuery}` : 'Performance Analytics'}
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            {itemSearchQuery ? 'Item-specific performance metrics' : 'Comprehensive insights and performance metrics'}
+          </p>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {itemSearchQuery ? (
+            // Item-specific view when filter is active
+            <>
+              <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Item Performance</h4>
+                {itemGroups.length > 0 ? (
+                  <div className="space-y-3">
+                    {itemGroups.slice(0, 1).map((item, idx) => (
+                      <div key={item.item}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.item}</span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Total Revenue</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(item.revenueC)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Items Sold</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(item.sold)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Items Bought</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(item.bought)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-xs text-gray-600 dark:text-gray-400">On Hand</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(item.onHand)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No data found for this item</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Financial Metrics</h4>
+                {itemGroups.length > 0 ? (
+                  <div className="space-y-3">
+                    {itemGroups.slice(0, 1).map((item, idx) => (
+                      <div key={item.item} className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">Realized P/L</span>
+                          <span className={`text-sm font-medium ${item.realizedPlC >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            ${centsToStr(item.realizedPlC)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">ROI</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {Number.isFinite(item.roi) ? `${(item.roi * 100).toFixed(0)}%` : '—'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">Margin</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {Number.isFinite(item.margin) ? `${(item.margin * 100).toFixed(0)}%` : '—'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">Avg Hold Time</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{item.avgHoldDays}d</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">Avg Sale Price</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(item.aspC)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No financial data available</p>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            // Default view when no filter is active
+            <>
+              <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Top Performing Items</h4>
+                <div className="space-y-2">
+                  {itemGroups.slice(0, 3).map((item, idx) => (
+                    <div key={item.item} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{item.item}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(item.revenueC)}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">{formatNumber(item.sold)} sold</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Stats</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Total Items</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(itemGroups.length)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Items Bought</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(itemGroups.reduce((sum, item) => sum + item.bought, 0))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Items Sold</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(itemGroups.reduce((sum, item) => sum + item.sold, 0))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Items On Hand</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{formatNumber(itemGroups.reduce((sum, item) => sum + item.onHand, 0))}</span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Recent Activity - Native Mobile Style */}
+      {!itemSearchQuery && (
+        <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700/50">
+          <div className="px-4 py-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Recent Activity</h2>
+          <div className="space-y-3">
+              {orders
+                .sort((a, b) => new Date(b.created_at || b.updated_at || b.id) - new Date(a.created_at || a.updated_at || a.id))
+                .slice(0, 10)
+                .map((order) => (
+                  <RecentActivityRow key={order.id} order={order} marketData={marketData} />
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ----------------------------- Collection Tab ---------------------------- */
 function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [itemType, setItemType] = useState("all"); // "all", "sealed", "singles"
   const [expandedItem, setExpandedItem] = useState(null);
@@ -765,12 +1058,22 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
         // Sealed products typically contain keywords like: box, bundle, pack, case, booster, elite, premium
         const sealedKeywords = ['box', 'bundle', 'pack', 'case', 'booster', 'elite', 'premium', 'collection', 'tin', 'display'];
         const isSealed = sealedKeywords.some(keyword => itemName.toLowerCase().includes(keyword));
-        if (!isSealed) return;
+        
+        // Check if it's a promo card (always single) - check both product name and set name
+        const setName = (item.marketInfo?.console_name || '').toLowerCase();
+        const isPromo = itemName.toLowerCase().includes('promo') || setName.includes('promo');
+        
+        if (!isSealed || isPromo) return;
       } else if (itemType === "singles") {
         // Singles are typically individual cards or items without sealed keywords
         const sealedKeywords = ['box', 'bundle', 'pack', 'case', 'booster', 'elite', 'premium', 'collection', 'tin', 'display'];
         const isSealed = sealedKeywords.some(keyword => itemName.toLowerCase().includes(keyword));
-        if (isSealed) return;
+        
+        // Check if it's a promo card (always single) - check both product name and set name
+        const setName = (item.marketInfo?.console_name || '').toLowerCase();
+        const isPromo = itemName.toLowerCase().includes('promo') || setName.includes('promo');
+        
+        if (isSealed && !isPromo) return;
       }
       
       if (!groups[itemName]) {
@@ -963,81 +1266,89 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
       </div>
 
       {/* Search and Filters - Mobile Optimized */}
-      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700/50 px-4 py-3">
-        {/* Search Bar */}
-        <div className="relative mb-3">
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700/50 px-4 py-4 space-y-4">
+        {/* Search Bar with Item Count Pill */}
+        <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-            <input
-              type="text"
+          <input
+            type="text"
             placeholder="Search collection..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/50 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-20 py-3 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/50 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+          {/* Item Count Pill */}
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+            <div className="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg">
+              {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
+            </div>
+          </div>
         </div>
         
-        {/* Compact Filter Row */}
-        <div className="flex items-center justify-between gap-2">
-          {/* Item Type Filter - Compact Pills */}
-          <div className="flex bg-white dark:bg-gray-900/50 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700/50">
-              <button
-                onClick={() => setItemType("all")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                  itemType === "all" 
-                    ? "bg-indigo-500 text-white shadow-sm" 
+        {/* Filter and Sort Controls - Better Mobile Layout */}
+        <div className="space-y-3">
+          {/* Item Type Filter - Full Width on Mobile */}
+          <div className="flex bg-white dark:bg-gray-900/50 rounded-xl p-1 border border-gray-200 dark:border-gray-700/50">
+            <button
+              onClick={() => setItemType("all")}
+              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                itemType === "all" 
+                  ? "bg-indigo-500 text-white shadow-sm" 
                   : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setItemType("sealed")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                  itemType === "sealed" 
-                    ? "bg-indigo-500 text-white shadow-sm" 
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setItemType("sealed")}
+              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                itemType === "sealed" 
+                  ? "bg-indigo-500 text-white shadow-sm" 
                   : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
-              >
-                Sealed
-              </button>
-              <button
-                onClick={() => setItemType("singles")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                  itemType === "singles" 
-                    ? "bg-indigo-500 text-white shadow-sm" 
+              }`}
+            >
+              Sealed
+            </button>
+            <button
+              onClick={() => setItemType("singles")}
+              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                itemType === "singles" 
+                  ? "bg-indigo-500 text-white shadow-sm" 
                   : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
+              }`}
+            >
+              Singles
+            </button>
+          </div>
+
+          {/* Sort Controls - Stacked on Mobile */}
+          <div className="flex items-center gap-3">
+            {/* Sort By Dropdown */}
+            <div className="flex-1">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full bg-white dark:bg-gray-900/50 text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50 px-3 py-2.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
-                Singles
-              </button>
+                <option value="name">Sort by Name</option>
+                <option value="marketValue">Sort by Value</option>
+                <option value="totalCost">Sort by Cost</option>
+                <option value="profit">Sort by P/L</option>
+                <option value="quantity">Sort by Quantity</option>
+                <option value="dateAdded">Sort by Date</option>
+                <option value="set">Sort by Set</option>
+              </select>
             </div>
 
-          {/* Sort Controls - Compact */}
-          <div className="flex items-center gap-1.5">
-            {/* Sort By Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-white dark:bg-gray-900/50 text-xs text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50 px-2 py-1.5 h-8 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer min-w-0"
-            >
-              <option value="name">Name</option>
-              <option value="marketValue">Value</option>
-              <option value="totalCost">Cost</option>
-              <option value="profit">P/L</option>
-              <option value="quantity">Qty</option>
-              <option value="dateAdded">Date</option>
-              <option value="set">Set</option>
-            </select>
-
             {/* Sort Order Toggle */}
-            <div className="flex bg-white dark:bg-gray-900/50 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700/50">
+            <div className="flex bg-white dark:bg-gray-900/50 rounded-lg p-1 border border-gray-200 dark:border-gray-700/50">
               <button
                 onClick={() => setSortOrder("asc")}
-                className={`px-2 py-1 text-xs rounded-md transition-all duration-200 ${
+                className={`px-3 py-2 text-sm rounded-md transition-all duration-200 ${
                   sortOrder === "asc" 
                     ? "bg-indigo-500 text-white shadow-sm" 
                     : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -1047,7 +1358,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               </button>
               <button
                 onClick={() => setSortOrder("desc")}
-                className={`px-2 py-1 text-xs rounded-md transition-all duration-200 ${
+                className={`px-3 py-2 text-sm rounded-md transition-all duration-200 ${
                   sortOrder === "desc" 
                     ? "bg-indigo-500 text-white shadow-sm" 
                     : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -1056,12 +1367,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                 ↓
               </button>
             </div>
-            </div>
           </div>
-
-        {/* Results Count - Subtle */}
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-300">
-          {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
         </div>
       </div>
 
@@ -1192,10 +1498,29 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
       </div>
 
       {filteredItems.length === 0 && (
-        <div className="px-4 py-8">
-          <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-8 text-center">
-          <CollectionIcon />
-            <p className="text-gray-600 dark:text-gray-300 mt-2">No items found in your collection</p>
+        <div className="px-4 py-4">
+          <div className="max-w-md mx-auto bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-8 text-center">
+            <div className="flex justify-center mb-4">
+              <CollectionIcon />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No items found in your collection</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+              Start building your collection by adding items through the search page for quick bulk actions, or add new orders to the order book directly, one at a time.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <button 
+                onClick={() => navigate('/portfolio/search')}
+                className="px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition-colors"
+              >
+                Browse & Add Items
+              </button>
+              <button 
+                onClick={() => navigate('/orders')}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Go to Order Book
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1470,6 +1795,133 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
 }
 
 
+/* ----------------------------- Stats Helper Functions ---------------------------- */
+
+// Aggregate KPIs for the top card
+function makeTopKpis(filtered) {
+  const filteredArray = Array.isArray(filtered) ? filtered : [];
+  const purchases = filteredArray.filter(o => o.order_date && (!o.sale_date || true)); // all purchases counted via order_date presence
+  const sales = filteredArray.filter(o => cents(o.sale_price_cents) > 0);
+
+  const spentC = purchases.reduce((a, o) => a + cents(o.buy_price_cents), 0);
+  const revenueC = sales.reduce((a, o) => a + cents(o.sale_price_cents), 0);
+  const feesC = sales.reduce((a, o) => a + Math.round(cents(o.sale_price_cents) * (Number(o.fees_pct) || 0)), 0);
+  const shipC = sales.reduce((a, o) => a + cents(o.shipping_cents), 0);
+  const soldCostC = sales.reduce((a, o) => a + cents(o.buy_price_cents), 0);
+  const realizedPlC = revenueC - feesC - shipC - soldCostC;
+  const sold = sales.length;
+
+  // longest hold among unsold
+  let longestHoldDays = 0, longestHoldName = "—";
+  const today = Date.now();
+  for (const o of filtered) {
+    if (cents(o.sale_price_cents) > 0) continue;
+    const od = new Date(o.order_date).getTime();
+    if (isNaN(od)) continue;
+    const d = Math.max(0, Math.round((today - od) / (24*3600*1000)));
+    if (d > longestHoldDays) { longestHoldDays = d; longestHoldName = o.item || "—"; }
+  }
+
+  // per-item bests
+  const byItem = new Map();
+  for (const o of sales) {
+    const k = o.item || "—";
+    if (!byItem.has(k)) byItem.set(k, { sold:0, rev:0, cost:0, profit:0 });
+    const r = byItem.get(k);
+    const rev = cents(o.sale_price_cents);
+    const cost = cents(o.buy_price_cents);
+    const fee = Math.round(rev * (Number(o.fees_pct) || 0));
+    const ship = cents(o.shipping_cents);
+    r.sold += 1; r.rev += rev; r.cost += cost; r.profit += (rev - fee - ship - cost);
+  }
+  let bestSellerName="—", bestSellerCount=0, bestMarginName="—", bestMarginPct=NaN, bestRoiName="—", bestRoiPct=NaN;
+  for (const [name, v] of byItem.entries()) {
+    if (v.sold > bestSellerCount) { bestSellerCount=v.sold; bestSellerName=name; }
+    const margin = v.rev>0 ? v.profit/v.rev : NaN;
+    const roi = v.cost>0 ? v.profit/v.cost : NaN;
+    if ((Number.isFinite(margin)?margin:-Infinity) > (Number.isFinite(bestMarginPct)?bestMarginPct:-Infinity)) {
+      bestMarginPct = margin; bestMarginName=name;
+    }
+    if ((Number.isFinite(roi)?roi:-Infinity) > (Number.isFinite(bestRoiPct)?bestRoiPct:-Infinity)) {
+      bestRoiPct = roi; bestRoiName=name;
+    }
+  }
+
+  return {
+    spentC, revenueC, realizedPlC, sold,
+    longestHoldDays, longestHoldName,
+    bestSellerName, bestSellerCount,
+    bestMarginName, bestMarginPct,
+    bestRoiName, bestRoiPct,
+  };
+}
+
+// per-item aggregation (cards)
+function makeItemGroups(filtered, marketByName) {
+  const m = new Map();
+  const filteredArray = Array.isArray(filtered) ? filtered : [];
+  for (const o of filteredArray) {
+    const key = o.item || "—";
+    if (!m.has(key)) {
+      m.set(key, {
+        item: key,
+        bought: 0,
+        sold: 0,
+        onHand: 0,
+        totalCostC: 0,
+        revenueC: 0,
+        feesC: 0,
+        shipC: 0,
+        realizedPlC: 0,
+        soldCostC: 0,
+        holdDaysTotal: 0,
+        holdSamples: 0,
+        onHandMarketC: 0,
+        unitMarketC: 0,
+      });
+    }
+    const row = m.get(key);
+    row.bought += 1;
+    row.totalCostC += cents(o.buy_price_cents);
+
+    if (cents(o.sale_price_cents) > 0) {
+      const rev = cents(o.sale_price_cents);
+      const fee = Math.round(rev * (Number(o.fees_pct) || 0));
+      const ship = cents(o.shipping_cents);
+      const cost = cents(o.buy_price_cents);
+      row.sold += 1;
+      row.revenueC += rev;
+      row.feesC += fee;
+      row.shipC += ship;
+      row.realizedPlC += rev - fee - ship - cost;
+      row.soldCostC += cost;
+
+      const od = new Date(o.order_date).getTime();
+      const sd = new Date(o.sale_date).getTime();
+      if (!isNaN(od) && !isNaN(sd) && sd >= od) {
+        row.holdDaysTotal += Math.round((sd - od) / (24 * 3600 * 1000));
+        row.holdSamples += 1;
+      }
+    } else {
+      row.onHand += 1;
+      const mv = marketByName.get((o.item || "").toLowerCase()) || 0;
+      row.onHandMarketC += mv;
+      row.unitMarketC = mv;
+    }
+  }
+
+  const out = [...m.values()].map((r) => {
+    const margin = r.revenueC > 0 ? r.realizedPlC / r.revenueC : NaN;
+    const roi = r.soldCostC > 0 ? r.realizedPlC / r.soldCostC : NaN;
+    const avgHoldDays = r.holdSamples > 0 ? r.holdDaysTotal / r.holdSamples : 0;
+    const aspC = r.sold > 0 ? Math.round(r.revenueC / r.sold) : 0;
+    return { ...r, margin, roi, avgHoldDays, aspC };
+  });
+
+  out.sort((a, b) => (b.revenueC - a.revenueC) || (b.onHandMarketC - a.onHandMarketC));
+  return out.slice(0, 400);
+}
+
 /* ====================== MAIN COMPONENT ====================== */
 export default function Portfolio() {
   const location = useLocation();
@@ -1481,7 +1933,6 @@ export default function Portfolio() {
     const path = location.pathname;
     if (path.includes('/collection')) return 'collection';
     if (path.includes('/search')) return 'search';
-    if (path.includes('/stats')) return 'stats';
     return 'overview';
   }, [location.pathname]);
 
@@ -1490,7 +1941,6 @@ export default function Portfolio() {
     switch (currentTab) {
       case 'collection': return 'portfolio-collection';
       case 'search': return 'portfolio-search';
-      case 'stats': return 'portfolio-stats';
       default: return 'portfolio-overview';
     }
   }, [currentTab]);
@@ -1523,6 +1973,12 @@ export default function Portfolio() {
       return data || [];
     },
   });
+
+  // Stats-related queries
+  const { data: items = [] } = useQuery({ queryKey: ["items"], queryFn: getItems });
+  const { data: tcgSealed = [] } = useQuery({ queryKey: ["tcg_sealed"], queryFn: getTCGSealed });
+  const { data: tcgSingles = [] } = useQuery({ queryKey: ["tcg_singles"], queryFn: getTCGSingles });
+  const { data: videoGames = [] } = useQuery({ queryKey: ["video_games"], queryFn: getVideoGames });
 
   // Create stable dependency for market data fetching
   const uniqueProductNames = useMemo(() => {
@@ -1611,14 +2067,14 @@ export default function Portfolio() {
           marketData={marketData} 
           manualItems={manualItems}
           allOrders={allOrders}
-          currentTab={currentTab} 
+          currentTab={currentTab}
+          items={items}
+          tcgSealed={tcgSealed}
+          tcgSingles={tcgSingles}
+          videoGames={videoGames}
         />
     </LayoutWithSidebar>
   );
 }
 
-/* ----------------------------- Stats Tab ---------------------------- */
-function StatsTab({ orders }) {
-  return <Stats noLayout={true} />;
-}
 

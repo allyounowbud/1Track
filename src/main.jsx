@@ -13,7 +13,6 @@ import QuickAdd from "./routes/QuickAdd.jsx";       // Renamed from Dashboard.js
 import Settings from "./routes/Settings.jsx";
 import Database from "./routes/Database.jsx";
 import MarkSold from "./routes/MarkSold.jsx";
-import Stats from "./routes/Stats.jsx";
 import OrderBook from "./routes/OrderBook.jsx";
 import Emails from "./routes/Emails.jsx";           // <-- NEW
 import Shipments from "./routes/Shipments.jsx";     // <-- NEW
@@ -92,14 +91,6 @@ const router = createBrowserRouter([
   { 
     path: "/portfolio/search", 
     element: <Portfolio />,
-    errorElement: <ErrorElement />
-  },
-  { 
-    path: "/portfolio/stats", 
-    element: <Portfolio />,
-    errorElement: <ErrorElement />
-  },
-  { 
     errorElement: <ErrorElement />
   },
 

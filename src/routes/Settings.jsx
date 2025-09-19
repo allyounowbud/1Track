@@ -117,11 +117,13 @@ export default function Settings() {
     setNewItemRows([]);
     setNewTCGSealedRows([]);
     setNewVideoGameRows([]);
+    setNewProductRows([]);
     setNewRetailerRows([]);
     setNewMarketRows([]);
     setSelectedItems(new Set());
     setSelectedTCGSealed(new Set());
     setSelectedVideoGames(new Set());
+    setSelectedProducts(new Set());
     setSelectedRetailers(new Set());
     setSelectedMarkets(new Set());
     setExpandedCard(null);
@@ -131,11 +133,12 @@ export default function Settings() {
   const hasNewItemRows = newItemRows.length > 0;
   const hasNewTCGSealedRows = newTCGSealedRows.length > 0;
   const hasNewVideoGameRows = newVideoGameRows.length > 0;
+  const hasNewProductRows = newProductRows.length > 0;
   const hasNewRetailerRows = newRetailerRows.length > 0;
   const hasNewMarketRows = newMarketRows.length > 0;
 
   // Global check for any new rows across all cards
-  const hasAnyNewRows = hasNewItemRows || hasNewTCGSealedRows || hasNewVideoGameRows || hasNewRetailerRows || hasNewMarketRows;
+  const hasAnyNewRows = hasNewItemRows || hasNewTCGSealedRows || hasNewVideoGameRows || hasNewProductRows || hasNewRetailerRows || hasNewMarketRows;
 
   // Effect to clear unsaved changes when leaving the page
   useEffect(() => {
@@ -183,6 +186,7 @@ export default function Settings() {
     if (hasNewItemRows) return 'items';
     if (hasNewTCGSealedRows) return 'tcg_sealed';
     if (hasNewVideoGameRows) return 'video_games';
+    if (hasNewProductRows) return 'products';
     if (hasNewRetailerRows) return 'retailers';
     if (hasNewMarketRows) return 'markets';
     return null;
@@ -586,8 +590,25 @@ export default function Settings() {
 
   // Remove new row function
   function removeNewRow(rowId) {
+    // Remove from products
     setNewProductRows(prev => prev.filter(row => row.id !== rowId));
     setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(rowId);
+      return newSet;
+    });
+    
+    // Remove from retailers
+    setNewRetailerRows(prev => prev.filter(row => row.id !== rowId));
+    setSelectedRetailers(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(rowId);
+      return newSet;
+    });
+    
+    // Remove from marketplaces
+    setNewMarketRows(prev => prev.filter(row => row.id !== rowId));
+    setSelectedMarkets(prev => {
       const newSet = new Set(prev);
       newSet.delete(rowId);
       return newSet;
@@ -929,38 +950,47 @@ function SettingsCard({
             {!hasNewRows && data.map(renderRow)}
 
             {data.length === 0 && newRowsData.length === 0 && (
-              <div className="px-4 py-8 text-center text-slate-400">
-                  {(cardType === 'items' || cardType === 'tcg_sealed' || cardType === 'video_games' || cardType === 'retailers' || cardType === 'markets') ? (
-                    <>
-                      {(cardType === 'retailers' || cardType === 'markets') ? `No ${title.toLowerCase()} yet. Click ` : "No items yet. Click "}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                          addNewRow();
-              }}
-                        className="text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors"
-            >
-                        + add new
-            </button>
-                      {" "}{(cardType === 'retailers' || cardType === 'markets') ? `${title.slice(0, -1).toLowerCase()}.` : "order."}
-                    </>
-                  ) : (
-                    <>
-                      No {title.toLowerCase()} yet. Click{" "}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                          addNewRow();
-                  }}
-                        className="text-indigo-400 hover:text-indigo-300 underline cursor-pointer transition-colors"
-                >
-                        + add {title.slice(0, -1).toLowerCase()}
-                </button>
-                      {" "}to add new {title.slice(0, -1).toLowerCase()}.
-                    </>
-                  )}
-          </div>
-        )}
+              <div className="px-4 py-6">
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-6 text-center border border-gray-200 dark:border-gray-700/50">
+                  {/* Icon */}
+                  <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  
+                  {/* Title */}
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    {(cardType === 'retailers' || cardType === 'markets') ? `No ${title.toLowerCase()} yet` : "No items yet"}
+                  </h3>
+                  
+                  {/* Description */}
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                    {(cardType === 'retailers' || cardType === 'markets') 
+                      ? `Start building your ${title.toLowerCase()} list by adding your first ${title.slice(0, -1).toLowerCase()}.`
+                      : "Start building your product database by adding your first item."
+                    }
+                  </p>
+                  
+                  {/* Action Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addNewRow();
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    {(cardType === 'retailers' || cardType === 'markets') 
+                      ? `Add ${title.slice(0, -1).toLowerCase()}`
+                      : "Add Item"
+                    }
+                  </button>
+                </div>
+              </div>
+            )}
       </div>
             </div>
           )}
@@ -988,27 +1018,160 @@ function SettingsCard({
       
       {/* Description for each tab */}
       {activeTab === "products" && (
-        <div className="px-4 py-4 text-xs text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
-          <p className="mb-1">
-            <strong>Manual Product Database:</strong> Add items not tracked by the API with custom categories and market values.
-          </p>
-          <p className="mb-1">
-            <strong>How to use:</strong> Click "Add Product" to create new entries, select rows for bulk actions (save/delete), or expand categories to edit existing items.
-          </p>
-          <p>
-            <strong>Categories:</strong> Organize items by type (Collectibles, Sports Cards, etc.) for better inventory management.
-          </p>
+        <div className="px-4 py-3 mb-4">
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200 dark:border-gray-700/50 rounded-2xl p-5">
+            <div className="space-y-4">
+              {/* Header with Icon */}
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Backup Database</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">For items not in our database</p>
+                </div>
+              </div>
+
+              {/* Purpose Card */}
+              <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700/50">
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed text-center">
+                  Manually add products that aren't available through the search function, like action figures, collectibles, and other specialty items not tracked by the API.
+                </p>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">How to use:</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-indigo-600 dark:text-indigo-400 text-xs font-bold">1</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Enter item name and category</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-indigo-600 dark:text-indigo-400 text-xs font-bold">2</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Set market value (optional)</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-indigo-600 dark:text-indigo-400 text-xs font-bold">3</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Defaults to cost price if no market value</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       {activeTab === "retailers" && (
-        <p className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300 mb-6">
-          Retailers where you purchase items for your collection.
-        </p>
+        <div className="px-4 py-3 mb-4">
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200 dark:border-gray-700/50 rounded-2xl p-5">
+            <div className="space-y-4">
+              {/* Header with Icon */}
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Retailers</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Where you purchase items</p>
+                </div>
+              </div>
+
+              {/* Purpose Card */}
+              <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700/50">
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed text-center">
+                  Track the retailers where you purchase items for your collection, such as local game stores, online retailers, and specialty shops.
+                </p>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">How to use:</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-green-600 dark:text-green-400 text-xs font-bold">1</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Add retailer names</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-green-600 dark:text-green-400 text-xs font-bold">2</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Use when adding orders</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-green-600 dark:text-green-400 text-xs font-bold">3</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Track purchase sources</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       {activeTab === "marketplaces" && (
-        <p className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300 mb-6">
-          Marketplaces with their fee percentages for selling items.
-        </p>
+        <div className="px-4 py-3 mb-4">
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200 dark:border-gray-700/50 rounded-2xl p-5">
+            <div className="space-y-4">
+              {/* Header with Icon */}
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Marketplaces</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Where you sell items</p>
+                </div>
+              </div>
+
+              {/* Purpose Card */}
+              <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700/50">
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed text-center">
+                  Track marketplaces where you sell items, including their fee percentages for accurate profit calculations.
+                </p>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">How to use:</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-purple-600 dark:text-purple-400 text-xs font-bold">1</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Add marketplace names</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-purple-600 dark:text-purple-400 text-xs font-bold">2</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Set fee percentages</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-purple-600 dark:text-purple-400 text-xs font-bold">3</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Auto-calculate profits</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Products Tab Content */}

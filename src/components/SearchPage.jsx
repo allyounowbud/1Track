@@ -36,12 +36,13 @@ const LoadingSpinner = () => (
   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500 dark:border-gray-400"></div>
 );
 
+
 // Search API function
 async function searchProducts(query, filters = {}) {
   if (!query.trim()) return [];
   
   try {
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(query)}&limit=100`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(query)}&limit=1000`, {
       headers: {
         'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
@@ -53,68 +54,42 @@ async function searchProducts(query, filters = {}) {
     }
     
     const data = await response.json();
+    console.log('API Response:', data);
     
     if (data.success && data.data) {
       let products = [];
       
       if (data.data.products && Array.isArray(data.data.products)) {
         products = data.data.products;
+        console.log('Found products array:', products.length, 'items');
       } else if (Array.isArray(data.data)) {
         products = data.data;
+        console.log('Found data array:', products.length, 'items');
       } else if (data.data.product) {
         products = [data.data.product];
+        console.log('Found single product');
       }
       
-      // Apply filters
-      return products.filter(product => {
+      // Apply only client-side filters (API handles categorization)
+      const filteredProducts = products.filter(product => {
         const productName = (product['product-name'] || product.product_name || product.name || '').toLowerCase();
-        const consoleName = (product['console-name'] || product.console_name || product.console || '').toLowerCase();
         
-        // Filter by TCG type
-        if (filters.tcgType && filters.tcgType !== 'all') {
-          const tcgType = filters.tcgType.toLowerCase();
-          if (tcgType === 'pokemon') {
-            if (!productName.includes('pokemon') && !productName.includes('pokémon') && !consoleName.includes('pokemon')) {
-              return false;
-            }
-          } else if (tcgType === 'magic') {
-            if (!productName.includes('magic') && !productName.includes('mtg') && !consoleName.includes('magic')) {
-              return false;
-            }
-          } else if (tcgType === 'yugioh') {
-            if (!productName.includes('yugioh') && !productName.includes('yu-gi-oh') && !consoleName.includes('yugioh')) {
-              return false;
-            }
-          } else if (tcgType === 'sports') {
-            if (!productName.includes('baseball') && !productName.includes('football') && !productName.includes('basketball') && !productName.includes('sports')) {
-              return false;
-            }
-          } else if (tcgType === 'video_games') {
-            if (!productName.includes('nintendo') && !productName.includes('playstation') && !productName.includes('xbox') && !productName.includes('game')) {
-              return false;
-            }
-          }
-        }
-        
-        // Filter by set name
-        if (filters.setName && filters.setName.trim()) {
-          const setName = filters.setName.toLowerCase();
-          if (!consoleName.includes(setName) && !productName.includes(setName)) {
-            return false;
-          }
-        }
-        
-        // Filter by product type
+        // Filter by product type (sealed vs singles)
         if (filters.productType && filters.productType !== 'all') {
           const productType = filters.productType.toLowerCase();
+          
+          // Check if it's a promo card (always single) - check both product name and set name
+          const setName = (product['set-name'] || product.set_name || product.set || '').toLowerCase();
+          const isPromo = productName.includes('promo') || setName.includes('promo');
+          
           if (productType === 'sealed') {
-            // Sealed products typically don't have '#' in the name (which indicates singles)
-            if (productName.includes('#')) {
+            // Sealed products: no '#' AND not a promo
+            if (productName.includes('#') || isPromo) {
               return false;
             }
           } else if (productType === 'singles') {
-            // Singles typically have '#' in the name
-            if (!productName.includes('#')) {
+            // Singles: has '#' OR is a promo
+            if (!productName.includes('#') && !isPromo) {
               return false;
             }
           }
@@ -122,6 +97,10 @@ async function searchProducts(query, filters = {}) {
         
         return true;
       });
+      
+      console.log('After filtering:', filteredProducts.length, 'products remain');
+      console.log('Filter applied:', filters.productType);
+      return filteredProducts;
     }
     
     return [];
@@ -192,7 +171,9 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
   const priceType = newPrice ? 'New' : cibPrice ? 'CIB' : loosePrice ? 'Loose' : '';
   
   // Determine if it's a sealed product or single
-  const isSealed = !productName.includes('#');
+  const setName = (product['set-name'] || product.set_name || product.set || '').toLowerCase();
+  const isPromo = productName.includes('promo') || setName.includes('promo');
+  const isSealed = !productName.includes('#') && !isPromo;
   const isPokemon = productName.toLowerCase().includes('pokemon') || productName.toLowerCase().includes('pokémon') || consoleName.toLowerCase().includes('pokemon');
   const isMagic = productName.toLowerCase().includes('magic') || productName.toLowerCase().includes('mtg') || consoleName.toLowerCase().includes('magic');
   const isYugioh = productName.toLowerCase().includes('yugioh') || productName.toLowerCase().includes('yu-gi-oh') || consoleName.toLowerCase().includes('yugioh');
@@ -235,8 +216,10 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
       <div className="relative mb-3 flex-shrink-0">
         <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center relative overflow-hidden">
           {/* Category indicator */}
-          <div className={`absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium text-white ${categoryColor}`}>
-            {isSealed ? 'Sealed' : 'Single'}
+          <div className={`absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${
+            isVideoGame ? 'bg-red-500/80' : isSealed ? 'bg-green-500/80' : 'bg-blue-500/80'
+          }`}>
+            {isVideoGame ? 'Games' : isSealed ? 'Sealed' : 'Single'}
           </div>
           
           {/* Product Image or Loading/Fallback */}
@@ -292,11 +275,11 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
       <div className="flex flex-col flex-1">
         {/* Product Name and Set Name - Grouped together */}
         <div className="mb-4">
-          <h3 className="text-gray-800 dark:text-gray-800 dark:text-gray-200 font-medium text-xs md:text-sm leading-tight line-clamp-2 mb-1">
+          <h3 className="text-gray-800 dark:text-gray-200 font-medium text-xs md:text-sm leading-tight line-clamp-2 mb-1">
             {productName}
           </h3>
           {consoleName && (
-            <p className="text-gray-600 dark:text-gray-600 dark:text-gray-400 text-xs hidden md:block">
+            <p className="text-gray-600 dark:text-gray-400 text-xs hidden md:block">
               {consoleName}
             </p>
           )}
@@ -402,7 +385,9 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
   const newPrice = product['new-price'] ? parseFloat(product['new-price']) / 100 : 0;
   
   // Determine if it's a sealed product or single
-  const isSealed = !productName.includes('#');
+  const setName = (product['set-name'] || product.set_name || product.set || '').toLowerCase();
+  const isPromo = productName.includes('promo') || setName.includes('promo');
+  const isSealed = !productName.includes('#') && !isPromo;
   const isPokemon = productName.toLowerCase().includes('pokemon') || productName.toLowerCase().includes('pokémon') || consoleName.toLowerCase().includes('pokemon');
   const isMagic = productName.toLowerCase().includes('magic') || productName.toLowerCase().includes('mtg') || consoleName.toLowerCase().includes('magic');
   const isYugioh = productName.toLowerCase().includes('yugioh') || productName.toLowerCase().includes('yu-gi-oh') || consoleName.toLowerCase().includes('yugioh');
@@ -476,8 +461,10 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
       {/* Product Image */}
       <div className="relative mb-4">
         <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center relative overflow-hidden">
-          <div className={`absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium text-white ${categoryColor}`}>
-            {isSealed ? 'Sealed' : 'Single'}
+          <div className={`absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${
+            isVideoGame ? 'bg-red-500/80' : isSealed ? 'bg-green-500/80' : 'bg-blue-500/80'
+          }`}>
+            {isVideoGame ? 'Games' : isSealed ? 'Sealed' : 'Single'}
           </div>
           
           {/* Product Image or Loading/Fallback */}
@@ -680,6 +667,9 @@ export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [shouldHighlightAddToCollection, setShouldHighlightAddToCollection] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const [resultsPerPage] = useState(20);
   
   // Prevent background scroll when modal is open (mobile only)
   useEffect(() => {
@@ -822,21 +812,48 @@ export default function SearchPage() {
     return option ? option.label : 'Best Match';
   };
 
-  // Debounced search
+  // Debounced search - now works with filters even when search is empty
   useEffect(() => {
-    if (!searchQuery.trim()) {
+    // Check if we have either a search query OR active filters
+    const hasSearchQuery = searchQuery.trim();
+    const hasActiveFilters = filters.tcgType !== 'all' || filters.productType !== 'all';
+    
+    // If no search query and no active filters, clear results
+    if (!hasSearchQuery && !hasActiveFilters) {
       setSearchResults([]);
       setHasSearched(false);
+      setTotalResults(0);
+      setCurrentPage(1);
       return;
     }
+    
+    // Reset to page 1 when search query or filters change
+    setCurrentPage(1);
     
     const timeoutId = setTimeout(async () => {
       setIsSearching(true);
       setSearchError(null);
       
       try {
-        const results = await searchProducts(searchQuery, filters);
+        // Use search query or a category-specific search if only filters are active
+        let queryToUse = searchQuery;
+        if (!hasSearchQuery) {
+          if (filters.tcgType === 'pokemon') {
+            queryToUse = 'pokemon';
+          } else if (filters.tcgType === 'magic') {
+            queryToUse = 'magic the gathering';
+          } else if (filters.tcgType === 'yugioh') {
+            queryToUse = 'yugioh';
+          } else if (filters.tcgType === 'video_games') {
+            queryToUse = 'nintendo playstation xbox';
+          } else {
+            queryToUse = 'pokemon magic yugioh nintendo';
+          }
+        }
+        const results = await searchProducts(queryToUse, filters);
+        console.log('Search results:', results.length, 'for query:', queryToUse, 'with filters:', filters);
         setSearchResults(results);
+        setTotalResults(results.length);
         setHasSearched(true);
       } catch (error) {
         setSearchError('Failed to search products. Please try again.');
@@ -848,6 +865,19 @@ export default function SearchPage() {
     
     return () => clearTimeout(timeoutId);
   }, [searchQuery, filters]);
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(totalResults / resultsPerPage);
+  const startIndex = (currentPage - 1) * resultsPerPage;
+  const endIndex = startIndex + resultsPerPage;
+  const paginatedResults = searchResults.slice(startIndex, endIndex);
+  
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top of results
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   
   // Add item to collection
   const handleAddToCollection = async (productData) => {
@@ -892,92 +922,109 @@ export default function SearchPage() {
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Search and add products to your collection</p>
         </div>
 
-        {/* Search Section */}
-        <div className="px-4 py-4">
-          
-          {/* Search Bar */}
-          <div className="flex gap-2 md:gap-4 items-center mb-4">
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <SearchIcon />
-              </div>
-              <input
-                type="text"
-                placeholder="Search for Pokemon cards, Magic sets..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full min-w-0 h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500"
-              />
-              {isSearching && (
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <LoadingSpinner />
+        {/* Search Section - Mobile Optimized */}
+        <div className="px-4 py-4 space-y-4">
+          {/* Search Bar with Clear Button and Results Count Pill */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <SearchIcon />
+            </div>
+            <input
+              type="text"
+              placeholder="Search for products or use filters below..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-24 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            
+            {/* Results Count Pill */}
+            {hasSearched && (
+              <div className="absolute inset-y-0 right-10 flex items-center">
+                <div className="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg">
+                  {totalResults} found
                 </div>
-              )}
+              </div>
+            )}
+            
+            {/* Loading Spinner */}
+            {isSearching && (
+              <div className="absolute inset-y-0 right-10 flex items-center">
+                <LoadingSpinner />
+              </div>
+            )}
+            
+            {/* Clear Button */}
+            {(searchQuery.trim() || filters.tcgType !== 'all' || filters.productType !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilters({
+                    tcgType: 'all',
+                    productType: 'all',
+                    sortBy: 'best_match'
+                  });
+                }}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors z-10"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+          </div>
+          
+          {/* Filter and Sort Controls - Better Mobile Layout */}
+          <div className="space-y-3">
+            {/* Category and Product Type Filters - Full Width */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <select 
+                  value={filters.tcgType || 'all'}
+                  onChange={(e) => {
+                    const newTcgType = e.target.value;
+                    setFilters({ 
+                      ...filters, 
+                      tcgType: newTcgType,
+                      // Reset product type to 'all' when video games is selected
+                      productType: newTcgType === 'video_games' ? 'all' : filters.productType
+                    });
+                  }}
+                  className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 px-3 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="pokemon">Pokemon</option>
+                  <option value="magic">Magic: The Gathering</option>
+                  <option value="yugioh">Yu-Gi-Oh!</option>
+                  <option value="video_games">Video Games</option>
+                </select>
+              </div>
+              
+              <div>
+                <select 
+                  value={filters.productType || 'all'}
+                  onChange={(e) => setFilters({ ...filters, productType: e.target.value })}
+                  disabled={filters.tcgType === 'video_games'}
+                  className={`w-full border border-gray-200 dark:border-gray-700/50 px-3 py-2.5 rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    filters.tcgType === 'video_games' 
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' 
+                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white cursor-pointer'
+                  }`}
+                >
+                  <option value="all">All Types</option>
+                  <option value="singles">Cards Only</option>
+                  <option value="sealed">Sealed Only</option>
+                </select>
+              </div>
             </div>
             
-            <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm font-medium transition-colors">
-              Search
-            </button>
-            <button 
-              onClick={() => setSearchQuery('')}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm font-medium transition-colors"
-            >
-              Clear
-            </button>
-          </div>
-          
-          {/* Filter Row */}
-          <div className="flex gap-1 sm:gap-2 min-w-0">
-          {/* Category Dropdown */}
-          <div className="flex-1">
-            <div className="relative">
-              <select 
-                value={filters.tcgType || 'all'}
-                onChange={(e) => setFilters({ ...filters, tcgType: e.target.value })}
-                className="w-full h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 cursor-pointer"
-              >
-                <option value="all">Category</option>
-                <option value="pokemon">Pokemon</option>
-                <option value="magic">Magic: The Gathering</option>
-                <option value="yugioh">Yu-Gi-Oh!</option>
-                <option value="video_games">Video Games</option>
-              </select>
-            </div>
-          </div>
-          
-          {/* Product Type Dropdown */}
-          <div className="flex-1">
-            <div className="relative">
-              <select 
-                value={filters.productType || 'all'}
-                onChange={(e) => setFilters({ ...filters, productType: e.target.value })}
-                className="w-full h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 cursor-pointer"
-              >
-                <option value="all">Product Type</option>
-                <option value="singles">Cards Only</option>
-                <option value="sealed">Sealed Only</option>
-              </select>
-            </div>
-          </div>
-          
-          {/* Results Count */}
-          {hasSearched && (
-            <div className="flex items-center flex-shrink-0">
-              <span className="text-gray-600 dark:text-gray-400 text-xs ml-2">
-                {sortedResults.length} items found
-              </span>
-            </div>
-          )}
-          
-          {/* Sort Filter */}
-          <div className="flex-1">
-            <div className="relative">
+            {/* Sort Control - Full Width */}
+            <div>
               <select 
                 value={filters.sortBy || 'best_match'}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                className="w-full h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 cursor-pointer"
+                className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 px-3 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
-                <option value="best_match">Sort Results</option>
+                <option value="best_match">Sort by Best Match</option>
                 <option value="price_low_high">Price: Low to High</option>
                 <option value="price_high_low">Price: High to Low</option>
                 <option value="card_number_low_high">Card Number: Low to High</option>
@@ -994,7 +1041,6 @@ export default function SearchPage() {
             </div>
           </div>
         </div>
-      </div>
         
         {/* Main Content */}
         <div className="w-full">
@@ -1018,16 +1064,71 @@ export default function SearchPage() {
                   </p>
                 </div>
               ) : (
-                <div className="px-4 py-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {sortedResults.map((product, index) => (
-                    <ProductCard
-                      key={index}
-                      product={product}
-                      onAddToCollection={handleAddToCollection}
-                      onSelectProduct={handleSelectProduct}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="px-4 py-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {paginatedResults.map((product, index) => (
+                      <ProductCard
+                        key={index}
+                        product={product}
+                        onAddToCollection={handleAddToCollection}
+                        onSelectProduct={handleSelectProduct}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="px-4 py-4 flex items-center justify-between">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Showing {startIndex + 1}-{Math.min(endIndex, totalResults)} of {totalResults} results
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          Previous
+                        </button>
+                        <div className="flex items-center space-x-1">
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+                            
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => handlePageChange(pageNum)}
+                                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                                  currentPage === pageNum
+                                    ? 'bg-indigo-500 text-white'
+                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )
             ) : (
               /* Category Cards - Show when no search has been performed */
@@ -1041,7 +1142,7 @@ export default function SearchPage() {
                   {/* Pokemon Category */}
                   <div 
                     className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 group"
-                    onClick={() => setSearchQuery('pokemon')}
+                    onClick={() => setFilters(prev => ({ ...prev, tcgType: 'pokemon' }))}
                   >
                     <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
                       <img 
@@ -1062,7 +1163,7 @@ export default function SearchPage() {
                   {/* Magic: The Gathering Category */}
                   <div 
                     className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 group"
-                    onClick={() => setSearchQuery('magic')}
+                    onClick={() => setFilters(prev => ({ ...prev, tcgType: 'magic' }))}
                   >
                     <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
                       <img 
@@ -1083,7 +1184,7 @@ export default function SearchPage() {
                   {/* Yu-Gi-Oh Category */}
                   <div 
                     className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 group"
-                    onClick={() => setSearchQuery('yugioh')}
+                    onClick={() => setFilters(prev => ({ ...prev, tcgType: 'yugioh' }))}
                   >
                     <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
                       <img 
@@ -1104,7 +1205,7 @@ export default function SearchPage() {
                   {/* Video Games Category */}
                   <div 
                     className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 group"
-                    onClick={() => setSearchQuery('nintendo')}
+                    onClick={() => setFilters(prev => ({ ...prev, tcgType: 'video_games', productType: 'all' }))}
                   >
                     <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
                       <img 

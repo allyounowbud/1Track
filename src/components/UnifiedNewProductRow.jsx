@@ -125,13 +125,13 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
     <div 
       className={`w-full border border-gray-200 dark:border-slate-700 rounded-xl transition cursor-pointer mb-2 ${
         isSelected
-          ? 'border-indigo-500 dark:border-indigo-400' 
+          ? 'border-indigo-500 dark:border-indigo-500' 
           : 'hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/30'
       }`}
       onClick={onToggleSelection}
     >
       {/* Desktop: Grid layout */}
-      <div className="hidden sm:grid grid-cols-[3fr_2fr_1fr_auto] gap-4 items-center min-w-0 p-4">
+      <div className="hidden sm:grid grid-cols-[3fr_2fr_1fr] gap-4 items-center min-w-0 p-4">
         
         <div onClick={(e) => e.stopPropagation()} className="min-w-0">
           <input
@@ -151,7 +151,7 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
             onChange={handleCategoryInputChange}
             onFocus={() => handleInputFocus(false)}
             onBlur={handleInputBlur}
-            placeholder="Select or type category..."
+            placeholder="Select or add category..."
             className="w-full h-10 px-3 pr-8 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
             onClick={(e) => e.stopPropagation()}
           />
@@ -233,176 +233,169 @@ export function UnifiedNewProductRow({ row, isSelected, onToggleSelection, onSav
             placeholder="Market value ($)"
           />
         </div>
+      </div>
+      
+      {/* Desktop: Full-width button row */}
+      <div className="hidden sm:flex items-center gap-2 w-full px-4 pb-4">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSave();
+          }}
+          disabled={busy || !name.trim() || !category.trim()}
+          className="flex-1 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Save Changes"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+          </svg>
+          Save
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCancel();
+          }}
+          className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          title="Cancel"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Cancel
+        </button>
+      </div>
+
+      {/* Mobile: Stacked layout with labels */}
+      <div className="sm:hidden space-y-4 p-4">
         
-        <div className="flex items-center gap-2">
+        <div onClick={(e) => e.stopPropagation()}>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter product name..."
+            className="w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
+          />
+        </div>
+        
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <input
+            ref={mobileInputRef}
+            type="text"
+            value={categoryInput}
+            onChange={handleCategoryInputChange}
+            onFocus={() => handleInputFocus(true)}
+            onBlur={handleInputBlur}
+            placeholder="Select or add category..."
+            className="w-full h-10 px-3 pr-8 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
+            onClick={(e) => e.stopPropagation()}
+          />
+          {/* Dropdown Arrow */}
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            <svg className="w-4 h-4 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          
+          {/* Portal-based Dropdown */}
+          {showDropdown && createPortal(
+            <div 
+              className="fixed bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-[9999] max-h-48 overflow-y-auto"
+              style={{
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+                width: dropdownPosition.width
+              }}
+              onMouseDown={handleDropdownMouseDown}
+            >
+              {/* Show all categories when input is empty */}
+              {(categoryInput.trim() === '' ? (existingCategories.length > 0 ? existingCategories : ['No categories yet']) : filteredCategories).map(cat => (
+                <div
+                  key={cat}
+                  onClick={cat === 'No categories yet' ? undefined : (e) => {
+                    e.stopPropagation();
+                    handleCategorySelect(cat);
+                  }}
+                  className={`px-3 py-2 text-sm first:rounded-t-xl last:rounded-b-xl ${
+                    cat === 'No categories yet' 
+                      ? 'text-gray-500 dark:text-slate-400 cursor-default' 
+                      : 'text-gray-900 dark:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer'
+                  }`}
+                >
+                  {cat}
+                </div>
+              ))}
+              
+              {/* Add new category option */}
+              {categoryInput.trim() && !existingCategories.some(cat => cat.toLowerCase() === categoryInput.toLowerCase()) && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddNewCategory();
+                  }}
+                  className="px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer border-t border-gray-200 dark:border-slate-700 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add "{categoryInput.trim()}"
+                </div>
+              )}
+              
+              {/* No results */}
+              {filteredCategories.length === 0 && categoryInput.trim() && existingCategories.some(cat => cat.toLowerCase() === categoryInput.toLowerCase()) && (
+                <div className="px-3 py-2 text-sm text-gray-500 dark:text-slate-400">
+                  Category already exists
+                </div>
+              )}
+            </div>,
+            document.body
+          )}
+        </div>
+        
+        <div onClick={(e) => e.stopPropagation()}>
+          <input
+            className="w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+            value={marketValue}
+            onChange={(e) => {
+              e.stopPropagation();
+              setMarketValue(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Market value ($)"
+          />
+        </div>
+        
+        {/* Mobile: Full-width button row */}
+        <div className="flex items-center gap-2 w-full">
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleSave();
             }}
             disabled={busy || !name.trim() || !category.trim()}
-            className="w-10 h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Save Changes"
           >
-            <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
             </svg>
+            Save
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onCancel();
             }}
-            className="w-10 h-10 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
+            className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
             title="Cancel"
           >
-            <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
+            Cancel
           </button>
-        </div>
-      </div>
-
-      {/* Mobile: Stacked layout with labels */}
-      <div className="sm:hidden space-y-4 p-4">
-        
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs text-gray-600 dark:text-slate-400">Item Name</label>
-          </div>
-          <div onClick={(e) => e.stopPropagation()}>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter product name..."
-              className="w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
-            />
-          </div>
-        </div>
-        
-        <div>
-          <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Category</label>
-          <div className="relative">
-            <input
-              ref={mobileInputRef}
-              type="text"
-              value={categoryInput}
-              onChange={handleCategoryInputChange}
-              onFocus={() => handleInputFocus(true)}
-              onBlur={handleInputBlur}
-              placeholder="Select or type category..."
-              className="w-full h-10 px-3 pr-8 text-sm bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
-              onClick={(e) => e.stopPropagation()}
-            />
-            {/* Dropdown Arrow */}
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-              <svg className="w-4 h-4 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-            
-            {/* Portal-based Dropdown */}
-            {showDropdown && createPortal(
-              <div 
-                className="fixed bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-[9999] max-h-48 overflow-y-auto"
-                style={{
-                  top: dropdownPosition.top,
-                  left: dropdownPosition.left,
-                  width: dropdownPosition.width
-                }}
-                onMouseDown={handleDropdownMouseDown}
-              >
-                {/* Show all categories when input is empty */}
-                {(categoryInput.trim() === '' ? (existingCategories.length > 0 ? existingCategories : ['No categories yet']) : filteredCategories).map(cat => (
-                  <div
-                    key={cat}
-                    onClick={cat === 'No categories yet' ? undefined : (e) => {
-                      e.stopPropagation();
-                      handleCategorySelect(cat);
-                    }}
-                    className={`px-3 py-2 text-sm first:rounded-t-xl last:rounded-b-xl ${
-                      cat === 'No categories yet' 
-                        ? 'text-gray-500 dark:text-slate-400 cursor-default' 
-                        : 'text-gray-900 dark:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer'
-                    }`}
-                  >
-                    {cat}
-                  </div>
-                ))}
-                
-                {/* Add new category option */}
-                {categoryInput.trim() && !existingCategories.some(cat => cat.toLowerCase() === categoryInput.toLowerCase()) && (
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddNewCategory();
-                    }}
-                    className="px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer border-t border-gray-200 dark:border-slate-700 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Add "{categoryInput.trim()}"
-                  </div>
-                )}
-                
-                {/* No results */}
-                {filteredCategories.length === 0 && categoryInput.trim() && existingCategories.some(cat => cat.toLowerCase() === categoryInput.toLowerCase()) && (
-                  <div className="px-3 py-2 text-sm text-gray-500 dark:text-slate-400">
-                    Category already exists
-                  </div>
-                )}
-              </div>,
-              document.body
-            )}
-          </div>
-        </div>
-        
-        <div>
-          <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Market Value</label>
-          <div className="flex items-center gap-2">
-            <input
-              className="flex-1 h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 text-sm text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
-              value={marketValue}
-              onChange={(e) => {
-                e.stopPropagation();
-                setMarketValue(e.target.value);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="Market value ($)"
-            />
-            
-            <div className="flex gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSave();
-                }}
-                disabled={busy || !name.trim() || !category.trim()}
-                className="px-3 py-2 rounded-lg border border-indigo-500 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all duration-200 flex items-center gap-1 text-sm font-medium"
-                title="Save Changes"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                </svg>
-                <span>Save</span>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCancel();
-                }}
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center gap-1 text-sm font-medium"
-                title="Cancel"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <span>Cancel</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 

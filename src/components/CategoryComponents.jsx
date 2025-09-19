@@ -394,9 +394,10 @@ export function CategoryItemRow({ item, isSelected, onToggleSelection, onSave, d
   );
 }
 
-// Simple new row component for retailers and marketplaces (name only) - matches product styling exactly
+// Simple new row component for retailers and marketplaces - matches product styling exactly
 export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSave, onCancel }) {
   const [name, setName] = useState("");
+  const [feePercent, setFeePercent] = useState("");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -407,18 +408,31 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
       return;
     }
     
+    // For marketplaces, validate fee percentage
+    if (row.type === 'marketplace' && !feePercent.trim()) {
+      setStatus("Fee percentage is required");
+      return;
+    }
+    
     setBusy(true);
     setStatus("Saving…");
     try {
       const tableName = row.type === 'retailer' ? 'retailers' : 'marketplaces';
+      const insertData = { name: name.trim() };
+      
+      // Add fee percentage for marketplaces
+      if (row.type === 'marketplace' && feePercent.trim()) {
+        insertData.fee_percent = parseFloat(feePercent.trim()) / 100; // Convert percentage to decimal
+      }
+      
       const { error } = await supabase
         .from(tableName)
-        .insert({ name: name.trim() });
+        .insert(insertData);
       
       if (error) throw error;
       setStatus("Saved ✓");
       setTimeout(() => setStatus(""), 1500);
-      onSave({ name: name.trim() });
+      onSave({ name: name.trim(), feePercent: feePercent.trim() });
     } catch (e) {
       setStatus(String(e.message || e));
       setTimeout(() => setStatus(""), 2000);
@@ -428,43 +442,75 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
   };
 
   return (
-    <div 
-      className={`rounded-xl border p-3 overflow-visible transition cursor-pointer ${
-        isSelected 
-          ? 'border-indigo-500 bg-indigo-500/10' 
-          : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-gray-100 dark:bg-slate-800/50'
-      }`}
-    >
-      {/* Desktop: Grid layout without checkbox - full width input */}
-      <div className="hidden sm:grid grid-cols-[1fr_auto] gap-4 items-center min-w-0">
-        <div onClick={(e) => e.stopPropagation()}>
+    <div className="relative">
+      {/* Status Ribbon - Mobile Optimized */}
+      {status && (
+        <div className={`absolute -top-1 left-0 right-0 z-10 ${
+          status === 'Saved ✓' || status === 'Saving…'
+            ? 'bg-green-500 text-white'
+            : 'bg-red-500 text-white'
+        } rounded-t-lg px-3 py-1 text-xs font-medium text-center shadow-sm`}>
+          {status}
+        </div>
+      )}
+      
+      <div 
+        className={`rounded-xl border bg-white dark:bg-slate-900/60 p-3 overflow-visible transition cursor-pointer ${
+          isSelected
+            ? 'border-indigo-500 bg-indigo-500/10' 
+            : 'border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:bg-slate-800/50'
+        } ${status ? 'mt-4' : ''}`}
+        onClick={onToggleSelection}
+      >
+        {/* Desktop: Grid layout matching products page */}
+        <div className={`hidden sm:grid gap-4 items-center min-w-0 ${
+          row.type === 'marketplace' ? 'grid-cols-[2fr_1fr]' : 'grid-cols-1'
+        }`}>
           <input
             className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
             onClick={(e) => e.stopPropagation()}
-            placeholder="Name"
+            placeholder={row.type === 'retailer' ? 'Retailer name' : 'Marketplace name'}
           />
+          
+          {/* Fee percentage input for marketplaces only */}
+          {row.type === 'marketplace' && (
+            <input
+              className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+              value={feePercent}
+              onChange={(e) => {
+                e.stopPropagation();
+                setFeePercent(e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Fee %"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+            />
+          )}
         </div>
         
-        <div className="flex items-center gap-2">
-          {status && (
-            <span className={`text-xs ${status.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>
-              {status}
-            </span>
-          )}
+        {/* Desktop: Full-width button row */}
+        <div className="hidden sm:flex items-center gap-2 w-full">
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleSave();
             }}
             disabled={busy}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Save Changes"
           >
-            <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
             </svg>
+            Save
           </button>
           <button
             onClick={(e) => {
@@ -472,38 +518,62 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
               onCancel();
             }}
             disabled={busy}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
+            className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
             title="Cancel"
           >
-            <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
+            Cancel
           </button>
         </div>
-      </div>
 
-      {/* Mobile: Stacked layout without checkbox - full width input */}
-      <div className="sm:hidden space-y-3 p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600 dark:text-slate-400">Name</span>
-          <div className="flex items-center gap-2">
-            {status && (
-              <span className={`text-xs ${status.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>
-                {status}
-              </span>
-            )}
+        {/* Mobile: Stacked layout */}
+        <div className="sm:hidden space-y-3">
+          <input
+            className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+            value={name}
+            onChange={(e) => {
+              e.stopPropagation();
+              setName(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder={row.type === 'retailer' ? 'Retailer name' : 'Marketplace name'}
+          />
+          
+          {/* Fee percentage input for marketplaces only */}
+          {row.type === 'marketplace' && (
+            <input
+              className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
+              value={feePercent}
+              onChange={(e) => {
+                e.stopPropagation();
+                setFeePercent(e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Fee percentage (%)"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+            />
+          )}
+          
+          {/* Mobile: Full-width button row */}
+          <div className="flex items-center gap-2 w-full">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleSave();
               }}
               disabled={busy}
-              className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               title="Save Changes"
             >
-              <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
               </svg>
+              Save
             </button>
             <button
               onClick={(e) => {
@@ -511,23 +581,15 @@ export function NewSimpleRowComponent({ row, isSelected, onToggleSelection, onSa
                 onCancel();
               }}
               disabled={busy}
-              className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
+              className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
               title="Cancel"
             >
-              <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
+              Cancel
             </button>
           </div>
-        </div>
-        <div onClick={(e) => e.stopPropagation()}>
-          <input
-            className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="Name"
-          />
         </div>
       </div>
     </div>
@@ -623,7 +685,7 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
       onClick={onToggleSelection}
     >
       {/* Desktop: Grid layout */}
-      <div className="hidden sm:grid gap-4 items-center min-w-0 grid-cols-[2fr_1fr_auto]">
+      <div className="hidden sm:grid gap-4 items-center min-w-0 grid-cols-[2fr_1fr]">
         <input
           className="bg-gray-100 dark:bg-slate-800/30 border border-slate-600/50 rounded-lg px-2 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none w-full"
           value={name}
@@ -645,34 +707,37 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
           onClick={(e) => e.stopPropagation()}
           placeholder="Market value ($)"
         />
-        
-        <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSave();
-            }}
-            disabled={busy}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Save New Item"
-          >
-            <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onCancel();
-            }}
-            className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
-            title="Cancel New Row"
-          >
-            <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      </div>
+      
+      {/* Desktop: Full-width button row */}
+      <div className="hidden sm:flex items-center gap-2 w-full">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSave();
+          }}
+          disabled={busy}
+          className="flex-1 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Save New Item"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+          </svg>
+          Save
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCancel();
+          }}
+          className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          title="Cancel New Row"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Cancel
+        </button>
       </div>
 
       {/* Mobile: Stacked layout with labels - NO checkbox */}
@@ -695,46 +760,47 @@ export function NewCategoryRowComponent({ row, isSelected, onToggleSelection, on
         
         <div>
           <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Market Value</label>
-          <div className="flex items-center gap-2">
-            <input
-              className="flex-1 h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
-              value={details}
-              onChange={(e) => {
-                e.stopPropagation();
-                setDetails(e.target.value);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="Market value ($)"
-            />
-            
-            <div className="flex gap-1">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSave();
-                }}
-                disabled={busy}
-                className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Save New Item"
-              >
-                <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCancel();
-                }}
-                className="w-8 h-8 rounded-lg border border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-slate-500 text-gray-800 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
-                title="Cancel New Row"
-              >
-                <svg className="w-3 h-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
+          <input
+            className="w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+            value={details}
+            onChange={(e) => {
+              e.stopPropagation();
+              setDetails(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Market value ($)"
+          />
+        </div>
+        
+        {/* Mobile: Full-width button row */}
+        <div className="flex items-center gap-2 w-full">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave();
+            }}
+            disabled={busy}
+            className="flex-1 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Save New Item"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+            Save
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCancel();
+            }}
+            className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            title="Cancel New Row"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cancel
+          </button>
         </div>
       </div>
       
