@@ -1101,16 +1101,16 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               onClick={() => handleOpenPreview(item)}
             >
               <div className="mb-3">
-                <div className="flex-1 min-w-0">
-                <h4 className="text-gray-800 dark:text-gray-200 font-medium truncate mb-0.5 text-sm">{cleanTitle}</h4>
-                    {marketInfo && marketInfo.console_name && (
-                  <p className="text-gray-600 dark:text-gray-300 text-xs truncate">{marketInfo.console_name}</p>
-                    )}
-                </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-gray-800 dark:text-gray-200 font-medium truncate mb-1">{cleanTitle}</h4>
+                {marketInfo && marketInfo.console_name && (
+                  <p className="text-gray-600 dark:text-gray-300 text-xs truncate mb-1">{marketInfo.console_name}</p>
+                )}
+              </div>
               </div>
               
               {/* Product Image */}
-              <div className="w-full h-24 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg mb-2 flex items-center justify-center overflow-hidden relative group border border-gray-300 dark:border-gray-700">
+              <div className="w-full h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative group border border-gray-300 dark:border-gray-700">
                 {productImages[item.name] && productImages[item.name].length > 0 ? (
                   <img 
                     src={productImages[item.name][0]} 
@@ -1159,29 +1159,29 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               </div>
               
               {/* Market value and profit */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300 text-xs">On Hand:</span>
-                  <span className="text-gray-600 dark:text-gray-300 text-xs">
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">On Hand:</span>
+                  <span className="text-gray-600 dark:text-gray-300 text-sm font-medium">
                     {item.quantity}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300 text-xs">Total Cost:</span>
-                  <span className="text-red-400 text-xs">
-                    ${centsToStr(item.totalCost)} (${centsToStr(Math.round(item.totalCost / item.quantity))})
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">Total Cost:</span>
+                  <span className="text-red-400 text-sm font-medium">
+                    {centsToStr(item.totalCost)} ({centsToStr(Math.round(item.totalCost / item.quantity))})
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300 text-xs">Market Value:</span>
-                  <span className="text-blue-400 text-xs">
-                    ${centsToStr(totalMarketValue)} (${centsToStr(currentMarketValue)})
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">Market Value:</span>
+                  <span className="text-blue-400 text-sm font-medium">
+                    {centsToStr(totalMarketValue)} ({centsToStr(currentMarketValue)})
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300 text-xs">Profit:</span>
-                  <span className={`text-xs font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {profit >= 0 ? '+' : ''}${centsToStr(profit)} ({profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%)
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">Profit:</span>
+                  <span className={`text-sm font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {profit >= 0 ? '+' : ''}{centsToStr(profit)} ({profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%)
                   </span>
                 </div>
               </div>
