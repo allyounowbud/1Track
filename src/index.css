@@ -28,19 +28,19 @@
 
 .dark {
   /* Dark theme colors */
-  --bg-primary: 2 6 23; /* slate-950 */
-  --bg-secondary: 15 23 42; /* slate-900 */
-  --bg-tertiary: 30 41 59; /* slate-800 */
-  --bg-quaternary: 51 65 85; /* slate-700 */
+  --bg-primary: 17 24 39; /* gray-900 */
+  --bg-secondary: 17 24 39; /* gray-900 with 50% opacity */
+  --bg-tertiary: 55 65 81; /* gray-700 */
+  --bg-quaternary: 75 85 99; /* gray-600 */
   
-  --text-primary: 248 250 252; /* slate-50 */
-  --text-secondary: 241 245 249; /* slate-100 */
-  --text-tertiary: 203 213 225; /* slate-300 */
-  --text-quaternary: 148 163 184; /* slate-400 */
+  --text-primary: 255 255 255; /* white */
+  --text-secondary: 243 244 246; /* gray-100 */
+  --text-tertiary: 209 213 219; /* gray-300 */
+  --text-quaternary: 156 163 175; /* gray-400 */
   
-  --border-primary: 51 65 85; /* slate-700 */
-  --border-secondary: 71 85 105; /* slate-600 */
-  --border-tertiary: 100 116 139; /* slate-500 */
+  --border-primary: 55 65 81; /* gray-700 */
+  --border-secondary: 75 85 99; /* gray-600 */
+  --border-tertiary: 107 114 128; /* gray-500 */
   
   --accent-primary: 99 102 241; /* indigo-500 */
   --accent-secondary: 129 140 248; /* indigo-400 */

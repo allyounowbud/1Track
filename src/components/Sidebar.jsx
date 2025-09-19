@@ -71,7 +71,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
     ? "flex items-center justify-center w-10 h-10 rounded-lg"
     : "flex items-center gap-3 px-3 py-2 rounded-lg";
   const itemIdle = "text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-800/50";
-  const itemActive = "text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 shadow-sm";
+  const itemActive = "text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900/50 shadow-sm";
 
   const getItemClass = (key) => {
     const isActive = active === key;
@@ -141,7 +141,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   // Mobile bottom bar layout
   if (isSmallScreen) {
     return (
-      <div className="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 h-16 pb-safe">
+      <div className="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 h-16 pb-safe">
         {/* Navigation - horizontal layout for mobile */}
         <nav className="flex items-center justify-around px-2 py-2 h-full">
           {navigationItems.map((item) => {
@@ -153,7 +153,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                 end
                 className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-0 flex-1 h-full ${
                   isActive 
-                    ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 shadow-sm' 
+                    ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900/50 shadow-sm' 
                     : 'text-gray-600 dark:text-slate-300'
                 }`}
               >
@@ -182,12 +182,12 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
   // Desktop sidebar layout
   return (
     <div 
-      className={`sidebar-fixed bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 ${
+      className={`sidebar-fixed bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Header */}
-      <div className={`${isCollapsed ? 'flex justify-center py-3' : 'p-4'} border-b border-gray-200 dark:border-slate-800`}>
+      <div className={`${isCollapsed ? 'flex justify-center py-3' : 'p-4'} border-b border-gray-200 dark:border-gray-700`}>
         <div className={`${isCollapsed ? 'flex items-center justify-center' : 'flex items-center justify-between'}`}>
           {!isCollapsed && (
             <div className="flex items-end gap-2">
@@ -250,7 +250,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
       </div>
 
       {/* User Section */}
-      <div className={`border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0 ${isCollapsed ? 'flex justify-center py-4' : 'p-4'}`}>
+      <div className={`border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0 ${isCollapsed ? 'flex justify-center py-4' : 'p-4'}`}>
         {isCollapsed ? (
           // Collapsed: Profile image fills entire button
           <Link
@@ -264,7 +264,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                 className="w-full h-full rounded-lg object-cover"
               />
             ) : (
-              <div className="w-full h-full rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-600 dark:text-slate-300 text-base font-semibold">
+              <div className="w-full h-full rounded-lg bg-gray-100 dark:bg-gray-900/50 flex items-center justify-center text-gray-600 dark:text-slate-300 text-base font-semibold">
                 {(userInfo.username || "U").slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -282,7 +282,7 @@ export default function Sidebar({ active = "", section = "orderbook", onCollapse
                 className="h-8 w-8 rounded-lg object-cover flex-shrink-0"
               />
             ) : (
-              <div className="h-8 w-8 rounded-lg bg-gray-100 dark:bg-slate-800 grid place-items-center text-gray-600 dark:text-slate-300 text-sm flex-shrink-0">
+              <div className="h-8 w-8 rounded-lg bg-gray-100 dark:bg-gray-900/50 grid place-items-center text-gray-600 dark:text-slate-300 text-sm flex-shrink-0">
                 {(userInfo.username || "U").slice(0, 1).toUpperCase()}
               </div>
             )}

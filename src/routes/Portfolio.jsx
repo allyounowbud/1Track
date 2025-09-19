@@ -309,7 +309,7 @@ function RecentActivityRow({ order, marketData }) {
 
   return (
     <div 
-      className="py-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+      className="py-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       onClick={() => {
         // Navigate to order book with this specific order highlighted
         const searchParams = new URLSearchParams({
@@ -328,7 +328,7 @@ function RecentActivityRow({ order, marketData }) {
             {itemName}
           </h3>
           {displaySubtitle && (
-            <p className="text-gray-600 dark:text-gray-400 text-sm leading-tight mt-0">
+            <p className="text-gray-600 dark:text-gray-300 text-sm leading-tight mt-0">
               {displaySubtitle}
             </p>
           )}
@@ -347,13 +347,13 @@ function RecentActivityRow({ order, marketData }) {
       {isSale && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
           <div>
-            <p className="text-gray-500 dark:text-gray-500 text-xs uppercase tracking-wide mb-1">Buy Price</p>
+            <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide mb-1">Buy Price</p>
             <p className="font-semibold text-red-600 dark:text-red-400 text-sm sm:text-base">
               ${centsToStr(order.buy_price_cents)}
             </p>
           </div>
           <div>
-            <p className="text-gray-500 dark:text-gray-500 text-xs uppercase tracking-wide mb-1">Profit/Loss</p>
+            <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide mb-1">Profit/Loss</p>
             <p className={`font-semibold text-sm sm:text-base ${profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {profitLoss >= 0 ? '+' : ''}${centsToStr(profitLoss)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(1)}%)
             </p>
@@ -527,13 +527,13 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
   }, [chartData]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-transparent">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Native Mobile App Header */}
-      <div className="bg-gray-50 dark:bg-transparent border-b border-gray-200 dark:border-gray-800 px-4 py-4">
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Portfolio</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Collection Overview</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Collection Overview</p>
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -557,7 +557,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
               className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${
                 selectedTimeframe === period
                   ? 'bg-blue-500/20 text-blue-300'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700/50'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {period}
@@ -567,18 +567,18 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       </div>
       
       {/* Full-Width Chart Area - Native Mobile Style */}
-      <div className="bg-gray-50 dark:bg-transparent">
+      <div className="bg-gray-50 dark:bg-gray-900">
         <div className="h-80 w-full overflow-hidden">
           {chartData && chartData.length > 0 ? (
             <PortfolioChart data={chartData} />
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
+            <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-300">
               <div className="text-center">
                 <div className="flex justify-center">
                   <ChartIcon />
                 </div>
                 <p className="mt-2">No data available for selected period</p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {portfolioItems.length === 0 ? 'No portfolio items found' : 'No data available'}
                 </p>
               </div>
@@ -590,10 +590,10 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       {/* KPI Cards Grid - Native Mobile Style */}
       <div className="px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs">Inventory</p>
+              <p className="text-gray-600 dark:text-gray-300 text-xs">Inventory</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(metrics.totalItems)}</p>
             </div>
             <div className="p-2 bg-gray-500/20 rounded-xl">
@@ -602,10 +602,10 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs">Total Cost</p>
+              <p className="text-gray-600 dark:text-gray-300 text-xs">Total Cost</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(metrics.totalCost)}</p>
             </div>
             <div className="p-2 bg-gray-500/20 rounded-xl">
@@ -617,12 +617,12 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs">Market Value</p>
+              <p className="text-gray-600 dark:text-gray-300 text-xs">Market Value</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(metrics.estimatedMarketValue)}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 +0.0%
               </p>
             </div>
@@ -634,10 +634,10 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs">Total Profit</p>
+              <p className="text-gray-600 dark:text-gray-300 text-xs">Total Profit</p>
               <p className={`text-lg font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 ${centsToStr(metrics.totalProfit)}
               </p>
@@ -654,7 +654,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       </div>
 
       {/* Recent Activity - Native Mobile Style */}
-      <div className="bg-gray-50 dark:bg-transparent border-t border-gray-200 dark:border-gray-800">
+      <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
         <div className="px-4 py-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
           <div className="space-y-3">
@@ -953,17 +953,17 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
   }, [groupedItems, searchTerm, sortBy, sortOrder]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-transparent">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Native Mobile App Header */}
-      <div className="bg-gray-50 dark:bg-transparent border-b border-gray-200 dark:border-gray-800 px-4 py-4">
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Collection</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Browse your inventory</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Browse your inventory</p>
         </div>
       </div>
 
       {/* Search and Filters - Mobile Optimized */}
-      <div className="bg-gray-50 dark:bg-transparent border-b border-gray-200 dark:border-gray-800 px-4 py-3">
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
         {/* Search Bar */}
         <div className="relative mb-3">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -976,20 +976,20 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             placeholder="Search collection..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
 
         {/* Compact Filter Row */}
         <div className="flex items-center justify-between gap-2">
           {/* Item Type Filter - Compact Pills */}
-          <div className="flex bg-white dark:bg-gray-800 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700">
+          <div className="flex bg-white dark:bg-gray-900/50 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setItemType("all")}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
                 itemType === "all" 
                   ? "bg-indigo-500 text-white shadow-sm" 
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
               }`}
             >
               All
@@ -999,7 +999,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
                 itemType === "sealed" 
                   ? "bg-indigo-500 text-white shadow-sm" 
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
               }`}
             >
               Sealed
@@ -1009,7 +1009,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
                 itemType === "singles" 
                   ? "bg-indigo-500 text-white shadow-sm" 
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
               }`}
             >
               Singles
@@ -1022,7 +1022,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-white dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 px-2 py-1.5 h-8 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer min-w-0"
+              className="bg-white dark:bg-gray-900/50 text-xs text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 px-2 py-1.5 h-8 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer min-w-0"
             >
               <option value="name">Name</option>
               <option value="marketValue">Value</option>
@@ -1034,13 +1034,13 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             </select>
 
             {/* Sort Order Toggle */}
-            <div className="flex bg-white dark:bg-gray-800 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700">
+            <div className="flex bg-white dark:bg-gray-900/50 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => setSortOrder("asc")}
                 className={`px-2 py-1 text-xs rounded-md transition-all duration-200 ${
                   sortOrder === "asc" 
                     ? "bg-indigo-500 text-white shadow-sm" 
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                 }`}
               >
                 ↑
@@ -1050,7 +1050,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                 className={`px-2 py-1 text-xs rounded-md transition-all duration-200 ${
                   sortOrder === "desc" 
                     ? "bg-indigo-500 text-white shadow-sm" 
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                 }`}
               >
                 ↓
@@ -1060,7 +1060,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
         </div>
 
         {/* Results Count - Subtle */}
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-2 text-xs text-gray-500 dark:text-gray-300">
           {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
         </div>
       </div>
@@ -1097,7 +1097,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
           return (
             <div 
               key={index} 
-              className="bg-gray-50 dark:bg-transparent rounded-2xl border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors cursor-pointer"
+              className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
               onClick={() => handleOpenPreview(item)}
             >
               <div className="mb-3">
@@ -1116,10 +1116,10 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                       )}
                     </div>
                     {marketInfo && marketInfo.console_name && (
-                      <p className="text-gray-600 dark:text-gray-400 text-xs truncate">{marketInfo.console_name}</p>
+                      <p className="text-gray-600 dark:text-gray-300 text-xs truncate">{marketInfo.console_name}</p>
                     )}
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm">
                     {item.quantity} item{item.quantity !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -1161,7 +1161,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                     
                     {/* Set name if available */}
                     {marketInfo && marketInfo.console_name && (
-                      <div className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-full px-2">
+                      <div className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-full px-2">
                         {marketInfo.console_name}
                       </div>
                     )}
@@ -1177,26 +1177,26 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               {/* Market value and profit */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400 text-sm">Total Cost:</span>
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">Total Cost:</span>
                   <span className="text-red-400 text-sm font-medium">
                     {centsToStr(item.totalCost)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400 text-sm">Market Value:</span>
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">Market Value:</span>
                   <span className="text-blue-400 text-sm font-medium">
                     {centsToStr(totalMarketValue)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400 text-sm">Profit:</span>
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">Profit:</span>
                   <span className={`text-sm font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {profit >= 0 ? '+' : ''}{centsToStr(profit)} ({profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%)
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-500 dark:text-gray-500">Per item:</span>
-                  <span className="text-gray-600 dark:text-gray-400">
+                  <span className="text-gray-500 dark:text-gray-400">Per item:</span>
+                  <span className="text-gray-600 dark:text-gray-300">
                     {centsToStr(Math.round(item.totalCost / item.quantity))} cost • {centsToStr(currentMarketValue)} market
                   </span>
                 </div>
@@ -1209,30 +1209,30 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
 
       {filteredItems.length === 0 && (
         <div className="px-4 py-8">
-          <div className="bg-gray-50 dark:bg-transparent rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+          <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center">
             <CollectionIcon />
-            <p className="text-gray-600 dark:text-gray-400 mt-2">No items found in your collection</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">No items found in your collection</p>
           </div>
         </div>
       )}
 
       {/* Full-Page Item Preview */}
       {expandedItem && (
-        <div className="fixed inset-0 bg-gray-50 dark:bg-transparent z-[100] overflow-y-auto">
+        <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 z-[100] overflow-y-auto">
           {/* Header */}
-          <div className="border-b border-gray-200 dark:border-gray-800 px-4 py-4">
+          <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-4">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {expandedItem.name.replace(/\s*-\s*Pokemon\s+.*$/i, '')}
                 </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Item Details & Performance</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Item Details & Performance</p>
               </div>
               <button
                 onClick={handleClosePreview}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -1305,109 +1305,109 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                   return (
                     <>
                       {/* Bought */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Bought</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Bought</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">{totalBought}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">total purchases</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">total purchases</div>
                       </div>
                       
                       {/* Sold */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Sold</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Sold</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">{totalSold}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">total sold</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">total sold</div>
                       </div>
                       
                       {/* On Hand */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">On Hand</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">On Hand</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">{onHand}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">total inventory</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">total inventory</div>
                       </div>
                       
                       {/* Cost */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Cost</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Cost</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(totalCost)}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">total amt spent</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">total amt spent</div>
                       </div>
                       
                       {/* Fees */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Fees</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Fees</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(totalFees)}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">from marketplace</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">from marketplace</div>
                       </div>
                       
                       {/* Shipping */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Shipping</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Shipping</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(totalShipping)}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">from sales</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">from sales</div>
                       </div>
                       
                       {/* Revenue */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Revenue</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Revenue</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(totalRevenue)}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">total from sales</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">total from sales</div>
                       </div>
                       
                       {/* Realized P/L */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Realized P/L</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Realized P/L</div>
                         <div className={`text-base font-semibold mt-0.5 ${realizedPL >= 0 ? 'text-emerald-400' : realizedPL < 0 ? 'text-red-400' : 'text-gray-900 dark:text-white'}`}>
                           ${centsToStr(realizedPL)}
                         </div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">after fees + ship</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">after fees + ship</div>
                       </div>
                       
                       {/* ROI */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">ROI</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">ROI</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">
                           {Number.isFinite(roi) ? `${(roi * 100).toFixed(0)}%` : '—'}
                         </div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">profit / cost</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">profit / cost</div>
                       </div>
                       
                       {/* Margin */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Margin</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Margin</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">
                           {Number.isFinite(margin) ? `${(margin * 100).toFixed(0)}%` : '—'}
                         </div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">profit / revenue</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">profit / revenue</div>
                       </div>
                       
                       {/* Avg Hold */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Avg Hold</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Avg Hold</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">{avgHoldDays}d</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">time in days</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">time in days</div>
                       </div>
                       
                       {/* ASP */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">ASP</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">ASP</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(asp)}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">average sale price</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">average sale price</div>
                       </div>
                       
                       {/* Market Price */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Market Price</div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Market Price</div>
                         <div className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">${centsToStr(currentMarketValue)}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">from database</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">from database</div>
                       </div>
                       
                       {/* Est. Value */}
-                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent p-3 text-center">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Est. Value</div>
-                        <div className={`text-base font-semibold mt-0.5 ${onHandMarketValue > 0 ? 'text-indigo-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3 text-center">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Est. Value</div>
+                        <div className={`text-base font-semibold mt-0.5 ${onHandMarketValue > 0 ? 'text-indigo-400' : 'text-gray-600 dark:text-gray-300'}`}>
                           ${centsToStr(onHandMarketValue)}
                         </div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">based on mkt price</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">based on mkt price</div>
                       </div>
                     </>
                   );
@@ -1449,14 +1449,14 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                   
                   return allTransactions.length > 0 ? (
                     allTransactions.map((transaction, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-transparent rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div key={index} className="flex items-center justify-between p-3 bg-white dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-3">
                           <div className={`w-2 h-2 rounded-full ${transaction.type === 'Purchase' ? 'bg-blue-400' : 'bg-green-400'}`}></div>
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
                               {transaction.type}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                            <div className="text-xs text-gray-600 dark:text-gray-300">
                               {new Date(transaction.date).toLocaleDateString()}
                             </div>
                           </div>
@@ -1469,7 +1469,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                    <div className="text-center py-8 text-gray-600 dark:text-gray-300">
                       No transaction history available
                     </div>
                   );

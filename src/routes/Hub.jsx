@@ -1020,8 +1020,8 @@ export default function Hub() {
           <div className={`h-3 w-3 rounded-full ${color} mt-1 flex-shrink-0`}></div>
           <div className="flex-1">
             <div className="text-sm font-semibold text-gray-900 dark:text-gray-200 mb-2">{title}</div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 leading-relaxed line-clamp-3">{description}</div>
-            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
+            <div className="text-xs text-gray-600 dark:text-gray-300 mb-3 leading-relaxed line-clamp-3">{description}</div>
+            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
               <div className="flex items-center gap-1">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1059,13 +1059,13 @@ export default function Hub() {
 
   return (
     <LayoutWithSidebar active="hub" section="orderbook">
-      <div className="min-h-screen bg-gray-50 dark:bg-transparent">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Header - Scrollable */}
-        <div className="border-b border-gray-200 dark:border-gray-800">
+        <div className="border-b border-gray-200 dark:border-gray-700">
           <div className="px-4 py-4 lg:px-8">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">OneTrack</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Collection Management</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Collection Management</p>
             </div>
           </div>
         </div>
@@ -1154,7 +1154,7 @@ export default function Hub() {
           <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Updates</h2>
-                <div className="text-xs text-gray-500 dark:text-gray-400/60 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">v0.1.6</div>
+                <div className="text-xs text-gray-500 dark:text-gray-300/60 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">v0.1.6</div>
               </div>
               
               <div ref={changelogRef} className="space-y-3">
@@ -1177,12 +1177,12 @@ export default function Hub() {
 
           {/* Pagination Controls - Responsive */}
           {totalPages > 1 && (
-            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="text-sm text-gray-500 dark:text-gray-300">
                   {startIndex + 1}-{Math.min(endIndex, changelogData.length)} of {changelogData.length}
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="text-sm text-gray-500 dark:text-gray-300">
                   Page {currentPage} of {totalPages}
                 </div>
               </div>
@@ -1220,7 +1220,7 @@ export default function Hub() {
                     
                     return pages.map((page, index) => (
                       page === '...' ? (
-                        <span key={`ellipsis-${index}`} className="px-2 text-gray-500 dark:text-gray-400">
+                        <span key={`ellipsis-${index}`} className="px-2 text-gray-500 dark:text-gray-300">
                           ...
                         </span>
                       ) : (
