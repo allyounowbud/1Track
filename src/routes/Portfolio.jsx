@@ -529,7 +529,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Native Mobile App Header */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4">
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Portfolio</h1>
@@ -567,7 +567,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       </div>
       
       {/* Full-Width Chart Area - Native Mobile Style */}
-      <div className="bg-white dark:bg-gray-900">
+      <div className="bg-gray-50 dark:bg-gray-900">
         <div className="h-80 w-full overflow-hidden">
           {chartData && chartData.length > 0 ? (
             <PortfolioChart data={chartData} />
@@ -590,7 +590,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       {/* KPI Cards Grid - Native Mobile Style */}
       <div className="px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-xs">Inventory</p>
@@ -602,7 +602,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-xs">Total Cost</p>
@@ -617,7 +617,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-xs">Market Value</p>
@@ -634,7 +634,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-xs">Total Profit</p>
@@ -654,7 +654,7 @@ function OverviewTab({ orders, portfolioItems, marketData }) {
       </div>
 
       {/* Recent Activity - Native Mobile Style */}
-      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+      <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
         <div className="px-4 py-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
           <div className="space-y-3">
@@ -939,7 +939,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Native Mobile App Header */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4">
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Collection</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">Browse your inventory</p>
@@ -947,7 +947,7 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4">
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4">
         <div className="flex items-center gap-4 mb-4">
           <div className="flex-1">
             <input
