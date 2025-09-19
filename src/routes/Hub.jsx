@@ -1015,7 +1015,7 @@ export default function Hub() {
   // Changelog entry component
   const ChangelogEntry = ({ title, description, color, linkTo, date, time, author }) => {
     const content = (
-      <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
         <div className="flex items-start gap-3">
           <div className={`h-3 w-3 rounded-full ${color} mt-1 flex-shrink-0`}></div>
           <div className="flex-1">
@@ -1061,7 +1061,7 @@ export default function Hub() {
     <LayoutWithSidebar active="hub" section="orderbook">
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Header - Scrollable */}
-        <div className="border-b border-gray-200 dark:border-gray-700">
+        <div className="border-b border-gray-200 dark:border-gray-700/50">
           <div className="px-4 py-4 lg:px-8">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">OneTrack</h1>
@@ -1174,7 +1174,7 @@ export default function Hub() {
 
           {/* Pagination Controls - Responsive */}
           {totalPages > 1 && (
-            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700/50">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-sm text-gray-500 dark:text-gray-300">
                   {startIndex + 1}-{Math.min(endIndex, changelogData.length)} of {changelogData.length}
@@ -1187,7 +1187,7 @@ export default function Hub() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   ← Previous
                 </button>
@@ -1227,7 +1227,7 @@ export default function Hub() {
                           className={`px-3 py-2 text-sm rounded-xl border transition-colors ${
                             currentPage === page
                               ? 'border-blue-600 dark:border-indigo-600 bg-blue-600 dark:bg-indigo-600 text-white'
-                              : 'border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                              : 'border-gray-300 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                           }`}
                         >
                           {page}
@@ -1239,7 +1239,7 @@ export default function Hub() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next →
                 </button>

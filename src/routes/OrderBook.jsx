@@ -634,7 +634,7 @@ export default function OrderBook() {
   return (
     <LayoutWithSidebar active="orders" section="orderbook">
       {/* Mobile App Style Header */}
-      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700/50">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Order Book</h1>
         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Track your orders and sales</p>
       </div>
@@ -701,7 +701,7 @@ function UnifiedOrderView({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Search Bar */}
-      <div className="px-4 py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+      <div className="px-4 py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700/50">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg
@@ -724,7 +724,7 @@ function UnifiedOrderView({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={newRows.length > 0 ? "Complete new orders to search" : "Search for orders"}
             disabled={newRows.length > 0}
-            className={`h-10 text-sm w-full min-w-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-indigo-500 ${newRows.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`h-10 text-sm w-full min-w-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg pl-10 pr-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-indigo-500 ${newRows.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
           {searchQuery && newRows.length === 0 && (
             <button
@@ -741,7 +741,7 @@ function UnifiedOrderView({
 
       {/* Header with Selection Count and Actions */}
       {filtered.length > 0 && (
-        <div className="flex items-center justify-end py-3 px-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-end py-3 px-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700/50">
           {/* Left side - Selection Count (matches card header structure) */}
           {newRows.length === 0 && (
             <div className="flex items-center gap-4 mr-auto">
@@ -1048,7 +1048,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
     <div className={`border rounded-2xl overflow-visible transition-all ${
       allRowsSelected 
         ? 'border-indigo-500 bg-indigo-500/10' 
-        : 'border-gray-200 dark:border-gray-700'
+        : 'border-gray-200 dark:border-gray-700/50'
     }`}>
       {/* Header Row */}
       <div 
@@ -1626,7 +1626,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       className={`lg:rounded-lg lg:bg-gray-100 dark:lg:bg-gray-800/30 lg:py-3 lg:px-3 lg:overflow-visible lg:transition lg:cursor-pointer lg:relative lg:hover:bg-gray-200 dark:lg:hover:bg-gray-700/30 rounded-2xl border bg-white dark:bg-gray-800 p-4 space-y-3 ${
         isSelected || order.isNew
           ? 'bg-indigo-500/10 border-indigo-500 lg:border-indigo-500' 
-          : 'border-gray-200 dark:border-gray-700 lg:border-b lg:border-gray-200 dark:lg:border-gray-700/50'
+          : 'border-gray-200 dark:border-gray-700/50 lg:border-b lg:border-gray-200 dark:lg:border-gray-700/50'
       }`}
       onClick={onToggleSelection}
     >
@@ -1658,7 +1658,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-              className="w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none"
+              className="w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none"
         />
 
         {/* Item Name - Most Important */}
@@ -1678,7 +1678,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setProfile(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Profile"
-          className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none placeholder-gray-400 ${formState.profile_name ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+          className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none placeholder-gray-400 ${formState.profile_name ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
         />
 
         {/* Retailer */}
@@ -1699,7 +1699,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setBuyPrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="Buy"
-          className="w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none placeholder-gray-400"
+          className="w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none placeholder-gray-400"
         />
 
         {/* Sale Date - Responsive */}
@@ -1709,7 +1709,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setSaleDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="mm/dd/yy"
-          className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none ${formState.sale_date ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+          className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none ${formState.sale_date ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
         />
 
         {/* Sale Price */}
@@ -1718,7 +1718,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setSalePrice(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="0.00"
-          className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none placeholder-gray-400 ${formState.salePrice && formState.salePrice !== "0" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+          className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none placeholder-gray-400 ${formState.salePrice && formState.salePrice !== "0" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
         />
 
         {/* Marketplace */}
@@ -1739,7 +1739,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           onChange={(e) => setShipping(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           placeholder="0.00"
-          className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none placeholder-gray-400 ${formState.shipping && formState.shipping !== "0" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+          className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none placeholder-gray-400 ${formState.shipping && formState.shipping !== "0" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
         />
 
       </div>
@@ -1757,7 +1757,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
               value={formState.order_date || ""}
               onChange={(e) => setOrderDate(e.target.value)}
               onClick={(e) => e.stopPropagation()}
-              className="w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500"
+              className="w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500"
             />
           </div>
 
@@ -1783,7 +1783,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
               onChange={(e) => setProfile(e.target.value)}
               onClick={(e) => e.stopPropagation()}
               placeholder={formState.profile_name ? "" : "Profile"}
-              className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500 ${formState.profile_name ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+              className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500 ${formState.profile_name ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
             />
           </div>
 
@@ -1808,7 +1808,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
               onChange={(e) => setBuyPrice(e.target.value)}
               onClick={(e) => e.stopPropagation()}
               placeholder="Buy"
-              className="w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500"
+              className="w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500"
             />
           </div>
 
@@ -1821,7 +1821,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
               onChange={(e) => setSaleDate(e.target.value)}
               onClick={(e) => e.stopPropagation()}
               placeholder="mm/dd/yy"
-              className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500 ${formState.sale_date ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+              className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500 ${formState.sale_date ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
             />
           </div>
 
@@ -1833,7 +1833,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
               onChange={(e) => setSalePrice(e.target.value)}
               onClick={(e) => e.stopPropagation()}
               placeholder={formState.salePrice && formState.salePrice !== "0" ? "" : "0.00"}
-              className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:border-indigo-500 ${formState.salePrice && formState.salePrice !== "0" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+              className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:border-indigo-500 ${formState.salePrice && formState.salePrice !== "0" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
             />
           </div>
 
@@ -1858,7 +1858,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
               onChange={(e) => setShipping(e.target.value)}
               onClick={(e) => e.stopPropagation()}
               placeholder={formState.shipping && formState.shipping !== "0" ? "" : "0.00"}
-              className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:border-indigo-500 ${formState.shipping && formState.shipping !== "0" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+              className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-lg px-3 py-2 text-sm placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:border-indigo-500 ${formState.shipping && formState.shipping !== "0" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
             />
           </div>
         </div>

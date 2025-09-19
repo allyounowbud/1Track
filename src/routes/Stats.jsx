@@ -230,7 +230,7 @@ export default function Stats({ noLayout = false }) {
   const content = (
     <>
       {/* Mobile App Style Header */}
-      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700/50">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Stats</h1>
         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Performance analytics and insights</p>
       </div>
@@ -371,7 +371,7 @@ export default function Stats({ noLayout = false }) {
           {/* Summary Cards - Hide for single item */}
           {itemGroups.length !== 1 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Top Performing Items</h4>
               <div className="space-y-2">
                 {itemGroups.slice(0, 3).map((item, idx) => (
@@ -806,7 +806,7 @@ function Kpi({ title, value, hint, tone }) {
       : tone === "blue" ? "text-indigo-400"
       : "text-gray-900 dark:text-white";
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800 p-4 text-center">
       <div className="text-gray-600 dark:text-gray-400 text-sm">{title}</div>
       <div className={`text-xl font-semibold mt-1 ${toneClass}`}>{value}</div>
       {hint && <div className="text-gray-600 dark:text-gray-400 text-xs mt-1 truncate">{hint}</div>}

@@ -971,7 +971,7 @@ function SettingsCard({
   return (
     <LayoutWithSidebar active="database" section="database">
       {/* Mobile App Style Header */}
-      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700/50">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">
           {activeTab === "products" ? "Add Products" : 
            activeTab === "retailers" ? "Add Retailers" : 

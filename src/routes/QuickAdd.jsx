@@ -484,7 +484,7 @@ export default function QuickAdd() {
   return (
     <LayoutWithSidebar active="add" section="orderbook">
       {/* Mobile App Style Header */}
-      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700/50">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Quick Add</h1>
         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Add new orders and sales quickly</p>
       </div>
