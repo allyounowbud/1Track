@@ -970,16 +970,25 @@ function SettingsCard({
 
   return (
     <LayoutWithSidebar active="database" section="database">
-      <PageHeader title={
-        activeTab === "products" ? "Add Products" : 
-        activeTab === "retailers" ? "Add Retailers" : 
-        activeTab === "marketplaces" ? "Add Marketplaces" : 
-        `Database - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`
-      } />
+      {/* Mobile App Style Header */}
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+          {activeTab === "products" ? "Add Products" : 
+           activeTab === "retailers" ? "Add Retailers" : 
+           activeTab === "marketplaces" ? "Add Marketplaces" : 
+           `Database - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+        </h1>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+          {activeTab === "products" ? "Manage your product database" :
+           activeTab === "retailers" ? "Manage retailers" :
+           activeTab === "marketplaces" ? "Manage marketplaces" :
+           "Database management"}
+        </p>
+      </div>
       
       {/* Description for each tab */}
       {activeTab === "products" && (
-        <div className="text-xs text-gray-600 dark:text-slate-400 mb-4 -mt-2 leading-relaxed">
+        <div className="px-4 py-4 text-xs text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
           <p className="mb-1">
             <strong>Manual Product Database:</strong> Add items not tracked by the API with custom categories and market values.
           </p>
@@ -992,19 +1001,19 @@ function SettingsCard({
         </div>
       )}
       {activeTab === "retailers" && (
-        <p className="text-sm text-gray-700 dark:text-slate-300 mb-6 -mt-3">
+        <p className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300 mb-6">
           Retailers where you purchase items for your collection.
         </p>
       )}
       {activeTab === "marketplaces" && (
-        <p className="text-sm text-gray-700 dark:text-slate-300 mb-6 -mt-3">
+        <p className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300 mb-6">
           Marketplaces with their fee percentages for selling items.
         </p>
       )}
 
       {/* Products Tab Content */}
       {activeTab === "products" && (
-        <div className="space-y-6">
+        <div className="px-4 py-4 space-y-6">
           {/* Unified Products View */}
           <UnifiedProductsCard
             products={allProducts}
@@ -1028,7 +1037,7 @@ function SettingsCard({
 
       {/* Retailers Tab Content */}
       {activeTab === "retailers" && (
-        <div className="space-y-6">
+        <div className="px-4 py-4 space-y-6">
           <UnifiedRetailersCard
             retailers={retailers}
             selectedRetailers={selectedRetailers}
@@ -1046,7 +1055,7 @@ function SettingsCard({
 
       {/* Marketplaces Tab Content */}
       {activeTab === "marketplaces" && (
-        <div className="space-y-6">
+        <div className="px-4 py-4 space-y-6">
           <UnifiedMarketplacesCard
             marketplaces={markets}
             selectedMarketplaces={selectedMarkets}

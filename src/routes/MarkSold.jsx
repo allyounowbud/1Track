@@ -350,19 +350,22 @@ export default function MarkSold() {
 
   return (
     <LayoutWithSidebar active="sold" section="orderbook">
-      <PageHeader title="Mark as Sold" />
-        {/* ==================================== */}
+      {/* Mobile App Style Header */}
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Mark as Sold</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Mark existing orders as sold</p>
+      </div>
 
-        {/* Card (mobile-friendly: overflow-hidden, min-w-0, responsive gaps) */}
+        {/* Form */}
         <form
           onSubmit={markSold}
-          className="relative z-0 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] space-y-7"
+          className="px-4 py-4 space-y-6"
         >
           {/* SALE DETAILS TITLE */}
           <div>
-            <h2 className="text-lg font-semibold">Sale details</h2>
-            <p className="text-gray-600 dark:text-slate-400 text-sm -mt-1">Mark an existing order as sold</p>
-            <div className="border-b border-gray-200 dark:border-slate-800 mt-4"></div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Sale details</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm -mt-1">Mark an existing order as sold</p>
+            <div className="border-b border-gray-200 dark:border-gray-700 mt-4"></div>
           </div>
           {/* Grid of inputs (stacks on mobile) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -389,7 +392,7 @@ export default function MarkSold() {
             </div>
             {/* Sell Price */}
             <div className="min-w-0">
-              <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Sell Price</label>
+              <label className="text-gray-700 dark:text-gray-300 mb-2 block text-sm">Sell Price</label>
               <input
                 value={salePrice}
                 onChange={(e) => setSalePrice(e.target.value)}
@@ -400,7 +403,7 @@ export default function MarkSold() {
 
             {/* Sale Date */}
             <div className="min-w-0">
-              <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Sale Date</label>
+              <label className="text-gray-700 dark:text-gray-300 mb-2 block text-sm">Sale Date</label>
               <input
                 type="date"
                 value={saleDate}
@@ -426,7 +429,7 @@ export default function MarkSold() {
 
             {/* Fee */}
             <div className="min-w-0">
-              <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Fee (%)</label>
+              <label className="text-gray-700 dark:text-gray-300 mb-2 block text-sm">Fee (%)</label>
               <input
                 value={feesPct}
                 onChange={(e) => !feesLocked && setFeesPct(e.target.value)}
@@ -435,13 +438,13 @@ export default function MarkSold() {
                 className={`${inputBase} ${feesLocked ? disabledInput : ""}`}
               />
               {feesLocked && (
-                <p className="text-xs text-slate-500 mt-1">Locked from marketplace default.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Locked from marketplace default.</p>
               )}
             </div>
 
             {/* Shipping */}
             <div className="min-w-0">
-              <label className="text-gray-700 dark:text-slate-300 mb-2 block text-sm">Shipping</label>
+              <label className="text-gray-700 dark:text-gray-300 mb-2 block text-sm">Shipping</label>
               <input
                 value={shipping}
                 onChange={(e) => setShipping(e.target.value)}

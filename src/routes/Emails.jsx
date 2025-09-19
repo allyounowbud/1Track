@@ -131,36 +131,40 @@ export default function Emails() {
   /* ------------------------------- render ------------------------------- */
   return (
     <LayoutWithSidebar active="emails" section="emails">
-      <PageHeader title="Emails" />
+      {/* Mobile App Style Header */}
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Emails</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Connect and manage email accounts</p>
+      </div>
 
         {/* Stats Cards */}
         {connected && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-gray-100 dark:bg-slate-800/60 border border-gray-300 dark:border-slate-700 rounded-xl p-4">
+          <div className="px-4 py-4 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
-                  <MailIcon className="h-5 w-5 text-gray-700 dark:text-slate-300" />
+                  <MailIcon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-slate-100">{connected ? gmailAccounts.length : 0}</div>
-                  <div className="text-sm text-gray-600 dark:text-slate-400">Connected Accounts</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{connected ? gmailAccounts.length : 0}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Connected Accounts</div>
             </div>
           </div>
         </div>
 
-            <div className="bg-gray-100 dark:bg-slate-800/60 border border-gray-300 dark:border-slate-700 rounded-xl p-4">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
                   <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
                   <SyncIcon className="h-5 w-5 text-gray-700 dark:text-slate-300" />
                     </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-slate-100">{totalProcessed}</div>
-                  <div className="text-sm text-gray-600 dark:text-slate-400">Emails Processed</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{totalProcessed}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Emails Processed</div>
                       </div>
                     </div>
                   </div>
 
-            <div className="bg-gray-100 dark:bg-slate-800/60 border border-gray-300 dark:border-slate-700 rounded-xl p-4">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center">
                   <svg className="h-5 w-5 text-gray-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,8 +172,8 @@ export default function Emails() {
                   </svg>
                       </div>
                           <div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-slate-100">{todayProcessed}</div>
-                  <div className="text-sm text-gray-600 dark:text-slate-400">Today</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{todayProcessed}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Today</div>
                             </div>
                           </div>
                         </div>
@@ -177,14 +181,14 @@ export default function Emails() {
         )}
 
         {/* Email Management */}
-        <div className={`${card} mb-6`}>
+        <div className="px-4 py-4 mb-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-lg font-semibold">
+              <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
                 <MailIcon className="h-5 w-5" />
                 Email Account Management
               </div>
-              <p className="text-gray-600 dark:text-slate-400 text-sm mt-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                 Connect multiple email accounts to automatically import order confirmations and shipping updates.
               </p>
             </div>
@@ -192,7 +196,7 @@ export default function Emails() {
               <div className="flex items-center gap-2 shrink-0">
                 <button 
                   onClick={connectGmail} 
-                  className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors inline-flex items-center gap-2"
+                  className="h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors inline-flex items-center gap-2"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -206,10 +210,10 @@ export default function Emails() {
 
         {/* Connected Accounts */}
         {connected ? (
-          <div className={`${card} mb-6`}>
+          <div className="px-4 py-4 mb-6">
             {/* Accounts List */}
             {gmailAccounts.length === 0 ? (
-              <div className="text-center py-8 text-gray-600 dark:text-slate-400">
+              <div className="text-center py-8 text-gray-600 dark:text-gray-400">
                 No email accounts connected.
               </div>
             ) : (
@@ -217,14 +221,14 @@ export default function Emails() {
                 {gmailAccounts.map((account) => (
                   <div
                     key={account.id}
-                    className="flex items-center gap-4 p-4 rounded-xl border border-gray-300 dark:border-slate-700 hover:border-slate-600 bg-gray-100 dark:bg-slate-800/50 transition-colors"
+                    className="flex items-center gap-4 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
-                        <div className="text-gray-800 dark:text-slate-200 font-medium truncate">{account.email_address}</div>
+                        <div className="text-gray-800 dark:text-gray-200 font-medium truncate">{account.email_address}</div>
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-slate-400 mt-1">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         Connected {new Date(account.updated_at).toLocaleDateString()}
           </div>
         </div>
@@ -251,7 +255,7 @@ export default function Emails() {
         ) : (
           <div className={`${card} mb-6`}>
             <div className="text-center py-12">
-              <div className="text-gray-600 dark:text-slate-400 mb-4">
+              <div className="text-gray-600 dark:text-gray-400 mb-4">
                 <MailIcon className="h-16 w-16 mx-auto mb-4 opacity-50" />
                 <p className="text-xl font-medium">No Email Accounts Connected</p>
                 <p className="text-sm mt-2">Connect your email accounts to start automatically importing order confirmations and shipping updates.</p>

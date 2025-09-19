@@ -33,7 +33,7 @@ const StarIcon = () => (
 );
 
 const LoadingSpinner = () => (
-  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500 dark:border-slate-400"></div>
+  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500 dark:border-gray-400"></div>
 );
 
 // Search API function
@@ -226,14 +226,14 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
   
   return (
     <div 
-      className={`${card} p-4 hover:bg-gray-100 dark:hover:bg-slate-800/80 transition-all duration-200 cursor-pointer flex flex-col h-full`}
+      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 cursor-pointer flex flex-col h-full"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onSelectProduct && onSelectProduct(product, false)}
     >
       {/* Product Image - Fixed height */}
       <div className="relative mb-3 flex-shrink-0">
-        <div className="w-full h-48 bg-gray-200 dark:bg-slate-700 rounded-lg flex items-center justify-center relative overflow-hidden">
+        <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center relative overflow-hidden">
           {/* Category indicator */}
           <div className={`absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium text-white ${categoryColor}`}>
             {isSealed ? 'Sealed' : 'Single'}
@@ -241,8 +241,8 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
           
           {/* Product Image or Loading/Fallback */}
           {isLoadingImages ? (
-            <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-600 dark:text-slate-400">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 dark:border-slate-400 mb-2"></div>
+            <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 dark:border-gray-400 mb-2"></div>
               <div className="text-xs">Loading image...</div>
             </div>
           ) : productImages.length > 0 ? (
@@ -292,11 +292,11 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
       <div className="flex flex-col flex-1">
         {/* Product Name and Set Name - Grouped together */}
         <div className="mb-4">
-          <h3 className="text-gray-800 dark:text-gray-800 dark:text-slate-200 font-medium text-xs md:text-sm leading-tight line-clamp-2 mb-1">
+          <h3 className="text-gray-800 dark:text-gray-800 dark:text-gray-200 font-medium text-xs md:text-sm leading-tight line-clamp-2 mb-1">
             {productName}
           </h3>
           {consoleName && (
-            <p className="text-gray-600 dark:text-gray-600 dark:text-slate-400 text-xs hidden md:block">
+            <p className="text-gray-600 dark:text-gray-600 dark:text-gray-400 text-xs hidden md:block">
               {consoleName}
             </p>
           )}
@@ -311,7 +311,7 @@ function ProductCard({ product, onAddToCollection, onSelectProduct }) {
             <p className="text-gray-900 dark:text-slate-100 font-semibold text-sm md:text-lg">
               ${bestPrice.toFixed(2)}
             </p>
-            <p className="text-gray-600 dark:text-slate-400 text-xs">
+            <p className="text-gray-600 dark:text-gray-400 text-xs">
               Qty: {inventoryCount}
             </p>
           </div>
@@ -465,7 +465,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
         <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-slate-100">Product Details</h3>
         <button
           onClick={onClose}
-          className="text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 transition-colors"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 transition-colors"
         >
           <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -475,15 +475,15 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
       
       {/* Product Image */}
       <div className="relative mb-4">
-        <div className="w-full h-48 bg-gray-200 dark:bg-slate-700 rounded-lg flex items-center justify-center relative overflow-hidden">
+        <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center relative overflow-hidden">
           <div className={`absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium text-white ${categoryColor}`}>
             {isSealed ? 'Sealed' : 'Single'}
           </div>
           
           {/* Product Image or Loading/Fallback */}
           {isLoadingImages ? (
-            <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-600 dark:text-slate-400">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 dark:border-slate-400 mb-2"></div>
+            <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 dark:border-gray-400 mb-2"></div>
               <div className="text-xs">Loading image...</div>
             </div>
           ) : productImages.length > 0 ? (
@@ -522,11 +522,11 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
       {/* Product Info */}
       <div className="space-y-4">
         <div>
-          <h4 className="text-gray-800 dark:text-slate-200 font-medium text-lg leading-tight mb-1">
+          <h4 className="text-gray-800 dark:text-gray-200 font-medium text-lg leading-tight mb-1">
             {productName}
           </h4>
           {consoleName && (
-            <p className="text-gray-600 dark:text-slate-400 text-sm">
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
               {consoleName}
             </p>
           )}
@@ -534,7 +534,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
         
         {/* Price Breakdown */}
         <div>
-          <h5 className="text-gray-800 dark:text-slate-200 font-medium mb-2">Price Breakdown</h5>
+          <h5 className="text-gray-800 dark:text-gray-200 font-medium mb-2">Price Breakdown</h5>
           <div className="space-y-2">
             {loosePrice > 0 && (
               <div className="flex justify-between items-center p-2 bg-gray-100 dark:bg-slate-800/50 rounded">
@@ -560,7 +560,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
         {/* Graded Values (Mock data for now) */}
         {!isSealed && (
           <div>
-            <h5 className="text-gray-800 dark:text-slate-200 font-medium mb-2">Graded Values</h5>
+            <h5 className="text-gray-800 dark:text-gray-200 font-medium mb-2">Graded Values</h5>
             <div className="space-y-2">
               <div className="flex justify-between items-center p-2 bg-gray-100 dark:bg-slate-800/50 rounded">
                 <span className="text-gray-700 dark:text-slate-300">PSA 10</span>
@@ -580,9 +580,9 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
         
         {/* Price History Chart Placeholder */}
         <div>
-          <h5 className="text-gray-800 dark:text-slate-200 font-medium mb-2">Price History</h5>
+          <h5 className="text-gray-800 dark:text-gray-200 font-medium mb-2">Price History</h5>
           <div className="h-32 bg-gray-100 dark:bg-slate-800/50 rounded flex items-center justify-center">
-            <div className="text-center text-gray-600 dark:text-slate-400">
+            <div className="text-center text-gray-600 dark:text-gray-400">
               <svg className="w-8 h-8 mx-auto mb-2" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
               </svg>
@@ -596,7 +596,7 @@ function ProductPreview({ product, onAddToCollection, onClose, shouldHighlightAd
           ref={addToCollectionRef}
           className={`transition-all duration-1000 ${isHighlighted ? 'bg-blue-500/10 border border-blue-500/30 rounded-lg p-4' : ''}`}
         >
-          <h5 className="text-gray-800 dark:text-slate-200 font-medium mb-2">Add to Collection</h5>
+          <h5 className="text-gray-800 dark:text-gray-200 font-medium mb-2">Add to Collection</h5>
           <form onSubmit={handleSubmit} className="space-y-2 md:space-y-3">
             <div>
               <label className="block text-gray-700 dark:text-slate-300 text-xs md:text-sm mb-1">Order Date</label>
@@ -885,10 +885,15 @@ export default function SearchPage() {
   
   return (
     <>
-      <div className="space-y-6">
-        {/* Header Card */}
-        <div className={`${card} p-6 mb-6`}>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4">Find a Product</h1>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Mobile App Style Header */}
+        <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Find a Product</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Search and add products to your collection</p>
+        </div>
+
+        {/* Search Section */}
+        <div className="px-4 py-4">
           
           {/* Search Bar */}
           <div className="flex gap-2 md:gap-4 items-center mb-4">
@@ -901,7 +906,7 @@ export default function SearchPage() {
                 placeholder="Search for Pokemon cards, Magic sets..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full min-w-0 h-10 sm:h-11 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2 sm:py-3 text-sm sm:text-base text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500"
+                className="w-full min-w-0 h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500"
               />
               {isSearching && (
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -910,12 +915,12 @@ export default function SearchPage() {
               )}
             </div>
             
-            <button className="px-3 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg text-white dark:text-slate-200 text-sm md:text-base font-medium transition-colors">
+            <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm font-medium transition-colors">
               Search
             </button>
             <button 
               onClick={() => setSearchQuery('')}
-              className="px-3 md:px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg text-gray-800 dark:text-slate-200 text-sm md:text-base font-medium transition-colors"
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm font-medium transition-colors"
             >
               Clear
             </button>
@@ -929,7 +934,7 @@ export default function SearchPage() {
               <select 
                 value={filters.tcgType || 'all'}
                 onChange={(e) => setFilters({ ...filters, tcgType: e.target.value })}
-                className="w-full h-10 sm:h-12 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-1 sm:px-2 md:px-3 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 cursor-pointer"
+                className="w-full h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 cursor-pointer"
               >
                 <option value="all">Category</option>
                 <option value="pokemon">Pokemon</option>
@@ -946,7 +951,7 @@ export default function SearchPage() {
               <select 
                 value={filters.productType || 'all'}
                 onChange={(e) => setFilters({ ...filters, productType: e.target.value })}
-                className="w-full h-10 sm:h-12 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-lg px-1 sm:px-2 md:px-3 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500 cursor-pointer"
+                className="w-full h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 cursor-pointer"
               >
                 <option value="all">Product Type</option>
                 <option value="singles">Cards Only</option>
@@ -958,7 +963,7 @@ export default function SearchPage() {
           {/* Results Count */}
           {hasSearched && (
             <div className="flex items-center flex-shrink-0">
-              <span className="text-gray-600 dark:text-slate-400 text-xs ml-1 sm:ml-2">
+              <span className="text-gray-600 dark:text-gray-400 text-xs ml-2">
                 {sortedResults.length} items found
               </span>
             </div>
@@ -970,7 +975,7 @@ export default function SearchPage() {
               <select 
                 value={filters.sortBy || 'best_match'}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                className="w-full h-10 sm:h-12 bg-transparent border-0 rounded-lg px-1 sm:px-2 md:px-3 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-0 cursor-pointer"
+                className="w-full h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 cursor-pointer"
               >
                 <option value="best_match">Sort Results</option>
                 <option value="price_low_high">Price: Low to High</option>
@@ -997,23 +1002,23 @@ export default function SearchPage() {
           <div className="w-full">
             {hasSearched ? (
               searchError ? (
-                <div className={`${card} p-6 text-center`}>
+                <div className="px-4 py-8 text-center">
                   <p className="text-red-400 mb-4">{searchError}</p>
                   <button
                     onClick={() => window.location.reload()}
-                    className="px-4 py-2 bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 rounded-lg text-gray-800 dark:text-slate-200 transition-colors"
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
                   >
                     Try Again
                   </button>
                 </div>
               ) : sortedResults.length === 0 ? (
-                <div className={`${card} p-6 text-center`}>
-                  <p className="text-gray-600 dark:text-slate-400">
+                <div className="px-4 py-8 text-center">
+                  <p className="text-gray-600 dark:text-gray-400">
                     No items found for "{searchQuery}". Try adjusting your search terms or filters.
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+                <div className="px-4 py-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {sortedResults.map((product, index) => (
                     <ProductCard
                       key={index}
@@ -1026,16 +1031,16 @@ export default function SearchPage() {
               )
             ) : (
               /* Category Cards - Show when no search has been performed */
-              <div className="space-y-6">
+              <div className="px-4 py-4 space-y-6">
                 <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">Browse by Category</h2>
-                  <p className="text-gray-600 dark:text-slate-400">Select a category to explore popular items</p>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Browse by Category</h2>
+                  <p className="text-gray-600 dark:text-gray-400">Select a category to explore popular items</p>
                 </div>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {/* Pokemon Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 group"
                     onClick={() => setSearchQuery('pokemon')}
                   >
                     <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
@@ -1050,13 +1055,13 @@ export default function SearchPage() {
                       />
                       <div className="text-4xl hidden">⚡</div>
                     </div>
-                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Pokemon</h3>
-                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Trading Cards</p>
+                    <h3 className="text-gray-800 dark:text-gray-200 font-semibold text-sm text-center">Pokemon</h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs text-center mt-1">Trading Cards</p>
                   </div>
 
                   {/* Magic: The Gathering Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 group"
                     onClick={() => setSearchQuery('magic')}
                   >
                     <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
@@ -1071,13 +1076,13 @@ export default function SearchPage() {
                       />
                       <div className="text-4xl font-bold text-white hidden">M</div>
                     </div>
-                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Magic</h3>
-                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">The Gathering</p>
+                    <h3 className="text-gray-800 dark:text-gray-200 font-semibold text-sm text-center">Magic</h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs text-center mt-1">The Gathering</p>
                   </div>
 
                   {/* Yu-Gi-Oh Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 group"
                     onClick={() => setSearchQuery('yugioh')}
                   >
                     <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
@@ -1092,13 +1097,13 @@ export default function SearchPage() {
                       />
                       <div className="text-4xl hidden">👹</div>
                     </div>
-                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Yu-Gi-Oh!</h3>
-                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Trading Cards</p>
+                    <h3 className="text-gray-800 dark:text-gray-200 font-semibold text-sm text-center">Yu-Gi-Oh!</h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs text-center mt-1">Trading Cards</p>
                   </div>
 
                   {/* Video Games Category */}
                   <div 
-                    className={`${card} p-4 cursor-pointer hover:bg-gray-100 dark:bg-slate-800/80 transition-all duration-200 group`}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 group"
                     onClick={() => setSearchQuery('nintendo')}
                   >
                     <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform overflow-hidden">
@@ -1113,8 +1118,8 @@ export default function SearchPage() {
                       />
                       <div className="text-4xl hidden">🎮</div>
                     </div>
-                    <h3 className="text-gray-800 dark:text-slate-200 font-semibold text-sm text-center">Video Games</h3>
-                    <p className="text-gray-600 dark:text-slate-400 text-xs text-center mt-1">Nintendo, PlayStation</p>
+                    <h3 className="text-gray-800 dark:text-gray-200 font-semibold text-sm text-center">Video Games</h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs text-center mt-1">Nintendo, PlayStation</p>
                   </div>
 
                 </div>

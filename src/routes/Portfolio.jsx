@@ -69,7 +69,7 @@ async function getAllOrders() {
     .select(`
       id, order_date, sale_date, item, profile_name, retailer, 
       buy_price_cents, sale_price_cents, fees_pct, shipping_cents, 
-      marketplace, status, market_value_cents
+      marketplace, status
     `)
     .order("order_date", { ascending: false });
   
@@ -296,7 +296,7 @@ function RecentActivityRow({ order, marketData }) {
     priceColor = 'text-green-600 dark:text-green-400';
   } else if (order.status === 'added') {
     displayDate = order.order_date;
-    displayPrice = centsToStr(order.market_value_cents || order.buy_price_cents || 0);
+    displayPrice = centsToStr(order.buy_price_cents || 0);
     priceColor = 'text-blue-600 dark:text-blue-400';
   } else {
     displayDate = order.order_date;
@@ -1516,7 +1516,7 @@ export default function Portfolio() {
     queryKey: ["manual-items"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("products")
+        .from("items")
         .select("name, market_value_cents")
         .order("name", { ascending: true });
       if (error) throw error;

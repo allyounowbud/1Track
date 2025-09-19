@@ -1072,21 +1072,19 @@ export default function Hub() {
 
         {/* Main Content - Responsive */}
         <div className="px-4 py-6 lg:px-8 space-y-8">
-          {/* Quick Actions - Responsive Grid */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 p-2">
+          {/* Workplaces - Responsive Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-12 p-2">
               <Link
                 to="/portfolio"
-                className="group relative rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 text-white transition-all duration-200 active:scale-95 hover:scale-105"
+                className="group relative rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-3 text-white transition-all duration-200 active:scale-95 hover:scale-105 h-20 lg:h-28"
               >
-                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center">
+                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center h-full">
                   <div className="rounded-xl bg-white/20 p-2 flex-shrink-0">
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                   </div>
-                  <div className="flex-1 lg:flex-none">
+                  <div className="flex-1 lg:flex-none flex flex-col justify-center">
                     <h3 className="font-bold text-base lg:text-lg">Portfolio</h3>
                     <p className="text-blue-100 text-xs lg:text-sm mt-0.5">Collection value</p>
                     <p className="text-white/70 text-xs mt-2 lg:block hidden">$2,450</p>
@@ -1096,17 +1094,17 @@ export default function Hub() {
 
               <Link
                 to="/add"
-                className="group relative rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-4 text-white transition-all duration-200 active:scale-95 hover:scale-105"
+                className="group relative rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-3 text-white transition-all duration-200 active:scale-95 hover:scale-105 h-20 lg:h-28"
               >
-                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center">
+                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center h-full">
                   <div className="rounded-xl bg-white/20 p-2 flex-shrink-0">
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   </div>
-                  <div className="flex-1 lg:flex-none">
+                  <div className="flex-1 lg:flex-none flex flex-col justify-center">
                     <h3 className="font-bold text-base lg:text-lg">Order Book</h3>
-                    <p className="text-green-100 text-xs lg:text-sm mt-0.5">Add items</p>
+                    <p className="text-green-100 text-xs lg:text-sm mt-0.5">Manage items</p>
                     <p className="text-white/70 text-xs mt-2 lg:block hidden">12 items</p>
                   </div>
                 </div>
@@ -1114,15 +1112,15 @@ export default function Hub() {
 
               <Link
                 to="/shipments"
-                className="group relative rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 text-white transition-all duration-200 active:scale-95 hover:scale-105"
+                className="group relative rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-3 text-white transition-all duration-200 active:scale-95 hover:scale-105 h-20 lg:h-28"
               >
-                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center">
+                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center h-full">
                   <div className="rounded-xl bg-white/20 p-2 flex-shrink-0">
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
                   </div>
-                  <div className="flex-1 lg:flex-none">
+                  <div className="flex-1 lg:flex-none flex flex-col justify-center">
                     <h3 className="font-bold text-base lg:text-lg">Shipments</h3>
                     <p className="text-purple-100 text-xs lg:text-sm mt-0.5">Track packages</p>
                     <p className="text-white/70 text-xs mt-2 lg:block hidden">8 tracked</p>
@@ -1132,28 +1130,27 @@ export default function Hub() {
 
               <Link
                 to="/database"
-                className="group relative rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-4 text-white transition-all duration-200 active:scale-95 hover:scale-105"
+                className="group relative rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-3 text-white transition-all duration-200 active:scale-95 hover:scale-105 h-20 lg:h-28"
               >
-                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center">
+                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center h-full">
                   <div className="rounded-xl bg-white/20 p-2 flex-shrink-0">
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                     </svg>
                   </div>
-                  <div className="flex-1 lg:flex-none">
+                  <div className="flex-1 lg:flex-none flex flex-col justify-center">
                     <h3 className="font-bold text-base lg:text-lg">Database</h3>
-                    <p className="text-orange-100 text-xs lg:text-sm mt-0.5">Manage inventory</p>
+                    <p className="text-orange-100 text-xs lg:text-sm mt-0.5">User storage</p>
                     <p className="text-white/70 text-xs mt-2 lg:block hidden">156 products</p>
                   </div>
                 </div>
               </Link>
             </div>
-          </div>
 
-          {/* Recent Updates */}
+          {/* Changelog */}
           <div>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Updates</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Changelog</h2>
                 <div className="text-xs text-gray-500 dark:text-gray-300/60 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">v0.1.6</div>
               </div>
               

@@ -380,10 +380,14 @@ export default function Inventory({ noLayout = false }) {
 
   const content = (
     <>
-      <PageHeader title="Inventory" />
+      {/* Mobile App Style Header */}
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Inventory</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Track your current stock and values</p>
+      </div>
 
         {/* KPI pills (9 total: 3x3 on 550px+, 2x4 on small) */}
-        <div className={`${pageCard} mb-6`}>
+        <div className="px-4 py-4">
           <div className="grid grid-cols-2 min-[550px]:grid-cols-3 gap-3">
             {/* 1. Inventory */}
             <Kpi label="Inventory" value={formatNumber(kpis.totalUnits)} sub="on hand" className="order-1 min-[550px]:order-1" />
@@ -457,9 +461,8 @@ export default function Inventory({ noLayout = false }) {
           <div className="text-rose-400">{String(error.message || error)}</div>
         )}
 
-        <div className={`${pageCard} overflow-hidden`}>
+        <div className="px-4 py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
           {/* Search Bar */}
-          <div className="px-4 py-4 border-b border-gray-200 dark:border-slate-800">
             <div className="relative min-w-0" data-dropdown-container>
               <input
                 type="text"
@@ -473,7 +476,7 @@ export default function Inventory({ noLayout = false }) {
                   }
                 }}
                 placeholder="Search inventory by item name…"
-                className="w-full min-w-0 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl pl-3 pr-10 py-2 sm:pl-4 sm:pr-12 sm:py-3 text-sm sm:text-base text-gray-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500 cursor-text"
+                className="w-full min-w-0 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-3 pr-10 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500 cursor-text"
               />
               
               {/* Clear button */}
@@ -530,10 +533,10 @@ export default function Inventory({ noLayout = false }) {
           </div>
 
           {/* Header */}
-          <div className="grid grid-cols-[4fr_1fr_1fr] lg:grid-cols-[4fr_0.8fr_0.8fr_0.8fr_0.8fr] gap-2 px-3 py-2 border-b border-gray-200 dark:border-slate-800 text-xs text-gray-600 dark:text-slate-400 font-medium">
+          <div className="grid grid-cols-[4fr_1fr_1fr] lg:grid-cols-[4fr_0.8fr_0.8fr_0.8fr_0.8fr] gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400 font-medium">
             <button
               onClick={() => toggleSort("name")}
-              className="flex items-center gap-1 text-left hover:text-gray-800 dark:text-slate-200 transition-colors text-xs"
+              className="flex items-center gap-1 text-left hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-xs"
             >
               Item
               {sortKey === "name" && (
@@ -548,7 +551,7 @@ export default function Inventory({ noLayout = false }) {
             </button>
             <button
               onClick={() => toggleSort("onHandQty")}
-              className="flex items-center gap-1 text-left hover:text-gray-800 dark:text-slate-200 transition-colors text-xs"
+              className="flex items-center gap-1 text-left hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-xs"
             >
               On hand
               {sortKey === "onHandQty" && (
@@ -563,7 +566,7 @@ export default function Inventory({ noLayout = false }) {
             </button>
             <button
               onClick={() => toggleSort("onHandAvgCostCents")}
-              className="flex items-center gap-1 text-left hover:text-gray-800 dark:text-slate-200 transition-colors text-xs"
+              className="flex items-center gap-1 text-left hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-xs"
             >
               Avg cost
               {sortKey === "onHandAvgCostCents" && (
@@ -613,20 +616,20 @@ export default function Inventory({ noLayout = false }) {
             {sortedRows.map((r, index) => (
               <div
                 key={r.name}
-                className={`grid grid-cols-[4fr_1fr_1fr] lg:grid-cols-[4fr_0.8fr_0.8fr_0.8fr_0.8fr] gap-2 px-3 py-2 border-b border-gray-200 dark:border-slate-800/30 hover:bg-white dark:bg-slate-900/20 transition-colors ${
-                  index % 2 === 0 ? "bg-white dark:bg-slate-900/10" : "bg-white dark:bg-slate-900/5"
+                className={`grid grid-cols-[4fr_1fr_1fr] lg:grid-cols-[4fr_0.8fr_0.8fr_0.8fr_0.8fr] gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700/30 hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors ${
+                  index % 2 === 0 ? "bg-white dark:bg-gray-800/10" : "bg-gray-50 dark:bg-gray-800/5"
                 }`}
               >
-                <div className="text-gray-900 dark:text-slate-100 font-medium truncate pr-1 text-sm">{r.name}</div>
-                <div className="text-gray-800 dark:text-slate-200 text-xs">{formatNumber(r.onHandQty)}</div>
-                <div className="text-gray-800 dark:text-slate-200 text-xs">${centsToStr(r.onHandAvgCostCents)}</div>
-                <div className="hidden lg:block text-gray-800 dark:text-slate-200 text-xs">${centsToStr(r.onHandCostCents)}</div>
-                <div className="hidden lg:block text-gray-900 dark:text-slate-100 font-semibold text-xs">${centsToStr(r.estValueCents)}</div>
+                <div className="text-gray-900 dark:text-white font-medium truncate pr-1 text-sm">{r.name}</div>
+                <div className="text-gray-800 dark:text-gray-200 text-xs">{formatNumber(r.onHandQty)}</div>
+                <div className="text-gray-800 dark:text-gray-200 text-xs">${centsToStr(r.onHandAvgCostCents)}</div>
+                <div className="hidden lg:block text-gray-800 dark:text-gray-200 text-xs">${centsToStr(r.onHandCostCents)}</div>
+                <div className="hidden lg:block text-gray-900 dark:text-white font-semibold text-xs">${centsToStr(r.estValueCents)}</div>
               </div>
             ))}
 
             {!isLoading && sortedRows.length === 0 && (
-              <div className="px-4 py-8 text-center text-gray-600 dark:text-slate-400">
+              <div className="px-4 py-8 text-center text-gray-600 dark:text-gray-400">
                 No matching items.
               </div>
             )}
@@ -657,10 +660,10 @@ function Kpi({ label, value, sub, tone = "neutral", className = "" }) {
       ? "text-blue-300"
       : "text-gray-900 dark:text-slate-100";
   return (
-    <div className={`rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3 text-center ${className}`}>
-      <div className="text-xs text-gray-600 dark:text-slate-400">{label}</div>
+    <div className={`rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 text-center ${className}`}>
+      <div className="text-xs text-gray-600 dark:text-gray-400">{label}</div>
       <div className={`text-xl font-semibold ${toneCls}`}>{value}</div>
-      <div className="text-[11px] text-gray-600 dark:text-slate-400/60 truncate">{sub || " "}</div>
+      <div className="text-[11px] text-gray-600 dark:text-gray-400/60 truncate">{sub || " "}</div>
     </div>
   );
 }

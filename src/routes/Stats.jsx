@@ -229,13 +229,17 @@ export default function Stats({ noLayout = false }) {
 
   const content = (
     <>
-      <PageHeader title="Stats" />
+      {/* Mobile App Style Header */}
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Stats</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Performance analytics and insights</p>
+      </div>
 
         {/* -------------------- Performance Analytics with Filters -------------------- */}
-        <div className={`${card} relative z-[60]`}>
+        <div className="px-4 py-4 relative z-[60]">
           <div className="mb-6">
-            <div className="text-lg font-semibold">Performance Analytics</div>
-            <div className="text-gray-600 dark:text-slate-400 text-xs -mt-0.5">Monthly trends and insights</div>
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">Performance Analytics</div>
+            <div className="text-gray-600 dark:text-gray-400 text-xs -mt-0.5">Monthly trends and insights</div>
           </div>
 
           {/* Filters */}
@@ -342,7 +346,7 @@ export default function Stats({ noLayout = false }) {
 
           {/* KPI Cards - Hide for single item */}
           {itemGroups.length !== 1 && (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
             <Kpi title="Total Revenue" value={`$${centsToStr(kpis.revenueC)}`} />
             <Kpi title="Total Cost" value={`$${centsToStr(kpis.spentC)}`} />
             <Kpi title="Total Sales" value={`${kpis.sold}`} />
@@ -367,18 +371,18 @@ export default function Stats({ noLayout = false }) {
           {/* Summary Cards - Hide for single item */}
           {itemGroups.length !== 1 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-slate-900/40 rounded-xl p-4 border border-gray-200 dark:border-slate-800">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">Top Performing Items</h4>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Top Performing Items</h4>
               <div className="space-y-2">
                 {itemGroups.slice(0, 3).map((item, idx) => (
                   <div key={item.item} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                      <span className="text-sm text-gray-700 dark:text-slate-300 truncate">{item.item}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{item.item}</span>
             </div>
                     <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900 dark:text-slate-100">${centsToStr(item.revenueC)}</div>
-                      <div className="text-xs text-gray-600 dark:text-slate-400">{formatNumber(item.sold)} sold</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(item.revenueC)}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">{formatNumber(item.sold)} sold</div>
                     </div>
                   </div>
                 ))}
@@ -800,12 +804,12 @@ function Kpi({ title, value, hint, tone }) {
   const toneClass =
     tone === "green" ? "text-emerald-400"
       : tone === "blue" ? "text-indigo-400"
-      : "text-gray-900 dark:text-slate-100";
+      : "text-gray-900 dark:text-white";
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 text-center">
-      <div className="text-gray-600 dark:text-slate-400 text-sm">{title}</div>
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
+      <div className="text-gray-600 dark:text-gray-400 text-sm">{title}</div>
       <div className={`text-xl font-semibold mt-1 ${toneClass}`}>{value}</div>
-      {hint && <div className="text-gray-600 dark:text-slate-400 text-xs mt-1 truncate">{hint}</div>}
+      {hint && <div className="text-gray-600 dark:text-gray-400 text-xs mt-1 truncate">{hint}</div>}
     </div>
   );
 }

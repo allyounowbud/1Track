@@ -341,17 +341,21 @@ export default function Shipments() {
 
   return (
     <LayoutWithSidebar active="shipments" section="shipments">
-      <PageHeader title="Shipments" />
+      {/* Mobile App Style Header */}
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Shipments</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Track your order shipments and deliveries</p>
+      </div>
 
         {/* Shipments Management */}
-        <div className={`${card} mb-6`}>
+        <div className="px-4 py-4 mb-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-lg font-semibold">
+              <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
                 <TruckIcon className="h-5 w-5" />
                 Shipments
               </div>
-              <p className="text-gray-600 dark:text-slate-400 text-sm mt-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                 Track and manage your order shipments. View order confirmations, shipping updates, and delivery status from all connected email accounts.
               </p>
             </div>
@@ -393,7 +397,7 @@ export default function Shipments() {
               <select
                 value={scope}
                 onChange={(e) => setScope(e.target.value)}
-                className="bg-gray-100 dark:bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none"
+                className="bg-gray-100 dark:bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:outline-none"
               >
                 <option value="all">All</option>
                 <option value="ordered">Ordered</option>
@@ -409,11 +413,11 @@ export default function Shipments() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search orders, items, tracking numbers..."
-                className="w-full bg-gray-100 dark:bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none"
+                className="w-full bg-gray-100 dark:bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:outline-none"
               />
             </div>
             
-            <div className="text-gray-600 dark:text-slate-400 text-sm">
+            <div className="text-gray-600 dark:text-gray-400 text-sm">
               {rows.length} {rows.length === 1 ? 'item' : 'items'}
             </div>
           </div>
@@ -422,10 +426,10 @@ export default function Shipments() {
         {/* Shipments List */}
         <div className={`${card}`}>
           {lo1 || lo2 ? (
-            <div className="text-gray-600 dark:text-slate-400">Loading shipments...</div>
+            <div className="text-gray-600 dark:text-gray-400">Loading shipments...</div>
           ) : rows.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-gray-600 dark:text-slate-400 mb-6">
+              <div className="text-gray-600 dark:text-gray-400 mb-6">
                 {q.trim() ? 'No shipments match your search.' : 'No shipments found. Connect Gmail accounts to start tracking shipments.'}
               </div>
               {!q.trim() && (
@@ -460,7 +464,7 @@ export default function Shipments() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
-                            <span className="text-sm font-medium text-gray-800 dark:text-slate-200">
+                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                               {row.retailer} #{row.order_id}
                             </span>
                             {row.tracking_number && (
@@ -476,7 +480,7 @@ export default function Shipments() {
                             </div>
                           )}
                           
-                          <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-slate-400">
+                          <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
                             {row.order_date && (
                               <span>Ordered: {formatDate(row.order_date)}</span>
                             )}
@@ -494,7 +498,7 @@ export default function Shipments() {
                         
                         <div className="flex items-center gap-3 ml-4">
                           {row.carrier && (
-                            <div className="text-sm text-gray-600 dark:text-slate-400">
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
                               {row.carrier}
                             </div>
                           )}
@@ -511,7 +515,7 @@ export default function Shipments() {
                             </span>
                           )}
                           <svg 
-                            className={`h-5 w-5 text-gray-600 dark:text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            className={`h-5 w-5 text-gray-600 dark:text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                             fill="none" 
                             stroke="currentColor" 
                             viewBox="0 0 24 24"
@@ -531,23 +535,23 @@ export default function Shipments() {
                           <div className="flex-1 pr-4">
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <span className="text-gray-600 dark:text-slate-400">Retailer:</span>
-                                <div className="text-gray-800 dark:text-slate-200 font-medium">{row.retailer || '—'}</div>
+                                <span className="text-gray-600 dark:text-gray-400">Retailer:</span>
+                                <div className="text-gray-800 dark:text-gray-200 font-medium">{row.retailer || '—'}</div>
                               </div>
                               <div>
-                                <span className="text-gray-600 dark:text-slate-400">Order ID:</span>
-                                <div className="text-gray-800 dark:text-slate-200 font-medium">{row.order_id || '—'}</div>
+                                <span className="text-gray-600 dark:text-gray-400">Order ID:</span>
+                                <div className="text-gray-800 dark:text-gray-200 font-medium">{row.order_id || '—'}</div>
                               </div>
                               {row.quantity && (
                                 <div>
-                                  <span className="text-gray-600 dark:text-slate-400">Quantity:</span>
-                                  <div className="text-gray-800 dark:text-slate-200 font-medium">{row.quantity}</div>
+                                  <span className="text-gray-600 dark:text-gray-400">Quantity:</span>
+                                  <div className="text-gray-800 dark:text-gray-200 font-medium">{row.quantity}</div>
                                 </div>
                               )}
                               {row.total_cents && (
                                 <div>
-                                  <span className="text-gray-600 dark:text-slate-400">Total:</span>
-                                  <div className="text-gray-800 dark:text-slate-200 font-medium">{formatPrice(row.total_cents)}</div>
+                                  <span className="text-gray-600 dark:text-gray-400">Total:</span>
+                                  <div className="text-gray-800 dark:text-gray-200 font-medium">{formatPrice(row.total_cents)}</div>
                                 </div>
                               )}
                             </div>
@@ -567,7 +571,7 @@ export default function Shipments() {
                               />
                             ) : null}
                             <div 
-                              className="w-20 h-20 bg-slate-700 border border-slate-600 rounded-lg flex items-center justify-center text-gray-600 dark:text-slate-400 text-xs"
+                              className="w-20 h-20 bg-slate-700 border border-slate-600 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-400 text-xs"
                               style={{ display: row.image_url ? 'none' : 'flex' }}
                             >
                               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -580,41 +584,41 @@ export default function Shipments() {
                         {/* Item Name Section */}
                         {row.item_name && cleanItemName(row.item_name) && (
                           <div className="mb-4">
-                            <span className="text-gray-600 dark:text-slate-400 text-sm">Item Name:</span>
-                            <div className="text-gray-800 dark:text-slate-200 font-medium mt-1">{cleanItemName(row.item_name)}</div>
+                            <span className="text-gray-600 dark:text-gray-400 text-sm">Item Name:</span>
+                            <div className="text-gray-800 dark:text-gray-200 font-medium mt-1">{cleanItemName(row.item_name)}</div>
                           </div>
                         )}
                         
                         {/* Email Section */}
                         <div className="mb-4">
-                          <span className="text-gray-600 dark:text-slate-400 text-sm">Email:</span>
-                          <div className="text-gray-800 dark:text-slate-200 font-medium mt-1">{getEmailForOrder(row)}</div>
+                          <span className="text-gray-600 dark:text-gray-400 text-sm">Email:</span>
+                          <div className="text-gray-800 dark:text-gray-200 font-medium mt-1">{getEmailForOrder(row)}</div>
                         </div>
                         
                         {/* Additional Details */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 text-sm">
                           {row.tracking_number && (
                             <div>
-                              <span className="text-gray-600 dark:text-slate-400">Tracking:</span>
-                              <div className="text-gray-800 dark:text-slate-200">{row.tracking_number}</div>
+                              <span className="text-gray-600 dark:text-gray-400">Tracking:</span>
+                              <div className="text-gray-800 dark:text-gray-200">{row.tracking_number}</div>
                             </div>
                           )}
                           {row.carrier && (
                             <div>
-                              <span className="text-gray-600 dark:text-slate-400">Carrier:</span>
-                              <div className="text-gray-800 dark:text-slate-200">{row.carrier}</div>
+                              <span className="text-gray-600 dark:text-gray-400">Carrier:</span>
+                              <div className="text-gray-800 dark:text-gray-200">{row.carrier}</div>
                             </div>
                           )}
                           {row.shipped_at && (
                             <div>
-                              <span className="text-gray-600 dark:text-slate-400">Shipped Date:</span>
-                              <div className="text-gray-800 dark:text-slate-200">{formatDate(row.shipped_at)}</div>
+                              <span className="text-gray-600 dark:text-gray-400">Shipped Date:</span>
+                              <div className="text-gray-800 dark:text-gray-200">{formatDate(row.shipped_at)}</div>
                             </div>
                           )}
                           {row.delivered_at && (
                             <div>
-                              <span className="text-gray-600 dark:text-slate-400">Delivered Date:</span>
-                              <div className="text-gray-800 dark:text-slate-200">{formatDate(row.delivered_at)}</div>
+                              <span className="text-gray-600 dark:text-gray-400">Delivered Date:</span>
+                              <div className="text-gray-800 dark:text-gray-200">{formatDate(row.delivered_at)}</div>
                             </div>
                           )}
                         </div>
@@ -632,7 +636,7 @@ export default function Shipments() {
                           {row.source_message_id && (
                             <button
                               onClick={() => previewEmail(row)}
-                              className="flex-1 inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-slate-700 hover:bg-slate-600 text-gray-800 dark:text-slate-200 text-sm font-medium transition-colors"
+                              className="flex-1 inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-slate-700 hover:bg-slate-600 text-gray-800 dark:text-gray-200 text-sm font-medium transition-colors"
                             >
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -656,12 +660,12 @@ export default function Shipments() {
             <div className="bg-gray-100 dark:bg-slate-800 rounded-lg border-2 border-purple-500 shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-white dark:bg-slate-900/50">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-200">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                   Email Preview - {emailPreview.order.retailer} #{emailPreview.order.order_id}
                 </h3>
                 <button
                   onClick={() => setEmailPreview(null)}
-                  className="text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:text-slate-200 transition-colors p-1 rounded"
+                  className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 transition-colors p-1 rounded"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -673,20 +677,20 @@ export default function Shipments() {
               <div className="p-4 border-b border-slate-700 bg-white dark:bg-slate-900/30">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-gray-600 dark:text-slate-400 text-sm font-medium">Date:</span>
-                    <span className="text-gray-800 dark:text-slate-200 text-sm">{emailPreview.content.date || 'N/A'}</span>
+                    <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">Date:</span>
+                    <span className="text-gray-800 dark:text-gray-200 text-sm">{emailPreview.content.date || 'N/A'}</span>
                   </div>
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-gray-600 dark:text-slate-400 text-sm font-medium">From:</span>
-                    <span className="text-gray-800 dark:text-slate-200 text-sm">{emailPreview.content.from?.replace(/<|>/g, '') || 'N/A'}</span>
+                    <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">From:</span>
+                    <span className="text-gray-800 dark:text-gray-200 text-sm">{emailPreview.content.from?.replace(/<|>/g, '') || 'N/A'}</span>
                   </div>
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-gray-600 dark:text-slate-400 text-sm font-medium">To:</span>
-                    <span className="text-gray-800 dark:text-slate-200 text-sm">{emailPreview.content.to?.replace(/<|>/g, '') || 'N/A'}</span>
+                    <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">To:</span>
+                    <span className="text-gray-800 dark:text-gray-200 text-sm">{emailPreview.content.to?.replace(/<|>/g, '') || 'N/A'}</span>
                   </div>
                   <div className="flex items-start justify-between py-2">
-                    <span className="text-gray-600 dark:text-slate-400 text-sm font-medium">Subject:</span>
-                    <span className="text-gray-800 dark:text-slate-200 text-sm text-right max-w-[70%] break-words">
+                    <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">Subject:</span>
+                    <span className="text-gray-800 dark:text-gray-200 text-sm text-right max-w-[70%] break-words">
                       {emailPreview.content.subject || 'N/A'}
                     </span>
                   </div>

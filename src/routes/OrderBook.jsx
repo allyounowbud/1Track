@@ -588,11 +588,15 @@ export default function OrderBook() {
 
   return (
     <LayoutWithSidebar active="orders" section="orderbook">
-      <PageHeader title="Order Book" />
+      {/* Mobile App Style Header */}
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Order Book</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Track your orders and sales</p>
+      </div>
 
-        {/* Day cards */}
-        {isLoading && <div className="text-gray-500 dark:text-slate-400">Loading…</div>}
-        {error && <div className="text-rose-400">{String(error.message || error)}</div>}
+      {/* Loading and Error States */}
+      {isLoading && <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">Loading…</div>}
+      {error && <div className="px-4 py-8 text-center text-red-400">{String(error.message || error)}</div>}
 
         <UnifiedOrderView
           viewMode={viewMode}
@@ -650,9 +654,9 @@ function UnifiedOrderView({
   newRows
 }) {
   return (
-    <div className={`${pageCard}`}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Search Bar */}
-      <div className="mb-5">
+      <div className="px-4 py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg
@@ -675,7 +679,7 @@ function UnifiedOrderView({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={newRows.length > 0 ? "Complete new orders to search" : "Search for orders"}
             disabled={newRows.length > 0}
-            className={`h-8 sm:h-9 md:h-10 text-xs sm:text-sm w-full min-w-0 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl pl-10 pr-3 py-1 sm:py-2 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-blue-500 dark:focus:border-indigo-500 ${newRows.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`h-10 text-sm w-full min-w-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-indigo-500 ${newRows.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
           {searchQuery && newRows.length === 0 && (
             <button
@@ -688,14 +692,11 @@ function UnifiedOrderView({
             </button>
           )}
         </div>
-            </div>
+      </div>
 
-      {/* Page break line */}
-      <div className="border-b border-gray-200 dark:border-slate-700 mb-2"></div>
-
-      {/* Header with Selection Count and Actions - Card-like structure without background */}
+      {/* Header with Selection Count and Actions */}
       {filtered.length > 0 && (
-        <div className="flex items-center justify-end py-1 px-4 mb-2">
+        <div className="flex items-center justify-end py-3 px-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
           {/* Left side - Selection Count (matches card header structure) */}
           {newRows.length === 0 && (
             <div className="flex items-center gap-4 mr-auto">
@@ -733,7 +734,7 @@ function UnifiedOrderView({
               return (
                 <button
                   onClick={addNewRow}
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-700 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
+                  className="w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-200 transition-all duration-200 flex items-center justify-center group"
                   title="Add New Order"
                 >
                   <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -899,7 +900,7 @@ function UnifiedGridView({ grouped, items, retailers, markets, onSaved, onDelete
   }
 
   return (
-    <div className="space-y-3">
+    <div className="px-4 py-4 space-y-4">
           {grouped.map((g) => (
         <UnifiedDaySection
               key={g.key}
@@ -999,10 +1000,10 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
   const effectiveOpen = isNewOrderSection ? true : open;
 
   return (
-    <div className={`border rounded-xl overflow-visible transition-all ${
+    <div className={`border rounded-2xl overflow-visible transition-all ${
       allRowsSelected 
         ? 'border-indigo-500 bg-indigo-500/10' 
-        : 'border-gray-200 dark:border-slate-800'
+        : 'border-gray-200 dark:border-gray-700'
     }`}>
       {/* Header Row */}
       <div 
@@ -1013,7 +1014,7 @@ function UnifiedDaySection({ title, dateKey, count, defaultOpen, rows, items, re
         } ${
           allRowsSelected
             ? 'bg-indigo-500/20 hover:bg-indigo-500/30'
-            : 'bg-gray-100 dark:bg-slate-800/30 hover:bg-gray-200 dark:hover:bg-slate-800/50'
+            : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
         }`}
         onClick={() => {
           // Prevent collapsing when there are new orders
@@ -1577,10 +1578,10 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
   return (
     <div 
       data-order-id={order.id}
-      className={`lg:rounded-lg lg:bg-gray-100 dark:lg:bg-slate-900/30 lg:py-3 lg:px-3 lg:overflow-visible lg:transition lg:cursor-pointer lg:relative lg:hover:bg-gray-200 dark:lg:hover:bg-slate-800/30 rounded-xl border bg-white dark:bg-slate-900/60 p-4 space-y-3 ${
+      className={`lg:rounded-lg lg:bg-gray-100 dark:lg:bg-gray-800/30 lg:py-3 lg:px-3 lg:overflow-visible lg:transition lg:cursor-pointer lg:relative lg:hover:bg-gray-200 dark:lg:hover:bg-gray-700/30 rounded-2xl border bg-white dark:bg-gray-800 p-4 space-y-3 ${
         isSelected || order.isNew
           ? 'bg-indigo-500/10 border-indigo-500 lg:border-indigo-500' 
-          : 'border-gray-200 dark:border-slate-800 lg:border-b lg:border-gray-200 dark:lg:border-slate-700/50'
+          : 'border-gray-200 dark:border-gray-700 lg:border-b lg:border-gray-200 dark:lg:border-gray-700/50'
       }`}
       onClick={onToggleSelection}
     >
@@ -1612,7 +1613,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           value={formState.order_date || ""}
           onChange={(e) => setOrderDate(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-indigo-500 outline-none"
+              className="w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none"
         />
 
         {/* Item Name - Most Important */}
@@ -1705,13 +1706,13 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
       </div>
 
       {/* Mobile: Stacked layout with labels */}
-      <div className="lg:hidden space-y-6 sm:space-y-4 md:space-y-6">
+      <div className="lg:hidden space-y-4">
 
         {/* Mobile form fields */}
-        <div className="grid grid-cols-1 gap-6 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 gap-4">
           {/* Order Date */}
           <div>
-            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Order Date</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Order Date</label>
             <input
               type="date"
               value={formState.order_date || ""}
@@ -1723,7 +1724,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Item */}
           <div>
-            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Item</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Item</label>
             <div onClick={(e) => e.stopPropagation()}>
               <ProductSearchDropdown
                 value={formState.item || ""}
@@ -1737,7 +1738,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Profile */}
           <div>
-            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Profile</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Profile</label>
             <input
               value={formState.profile_name}
               onChange={(e) => setProfile(e.target.value)}
@@ -1749,7 +1750,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Retailer */}
           <div>
-            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Retailer</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Retailer</label>
             <select
               value={formState.retailer || ""}
               onChange={(e) => setRetailer(e.target.value)}
@@ -1767,7 +1768,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Buy Price */}
           <div>
-            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Buy Price</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Buy Price</label>
             <input
               value={formState.buyPrice}
               onChange={(e) => setBuyPrice(e.target.value)}
@@ -1779,7 +1780,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Sale Date */}
           <div>
-            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Sale Date</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Sale Date</label>
             <input
               type="date"
               value={formState.sale_date || ""}
@@ -1792,7 +1793,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Sale Price */}
           <div>
-            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Sale Price</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Sale Price</label>
             <input
               value={formState.salePrice}
               onChange={(e) => setSalePrice(e.target.value)}
@@ -1804,7 +1805,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Marketplace */}
           <div>
-            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Marketplace</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Marketplace</label>
             <select
               value={formState.marketplace || ""}
               onChange={handleMarketplaceChange}
@@ -1822,7 +1823,7 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
 
           {/* Shipping */}
           <div>
-            <label className="block text-xs text-gray-600 dark:text-slate-400 mb-1">Shipping</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Shipping</label>
             <input
               value={formState.shipping}
               onChange={(e) => setShipping(e.target.value)}
