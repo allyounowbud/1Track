@@ -1101,28 +1101,12 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               onClick={() => handleOpenPreview(item)}
             >
               <div className="mb-3">
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-gray-800 dark:text-gray-200 font-medium truncate mb-1">{cleanTitle}</h4>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      {dataSource === 'api' && (
-                        <div className="flex-shrink-0 w-2 h-2 bg-green-400 rounded-full" title="API market data"></div>
-                      )}
-                      {dataSource === 'manual' && (
-                        <div className="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full" title="Manual database value"></div>
-                      )}
-                      {dataSource === 'cost' && (
-                        <div className="flex-shrink-0 w-2 h-2 bg-yellow-400 rounded-full" title="Using cost price"></div>
-                      )}
-                    </div>
-                    {marketInfo && marketInfo.console_name && (
-                      <p className="text-gray-600 dark:text-gray-300 text-xs truncate">{marketInfo.console_name}</p>
-                    )}
-                  </div>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm">
-                    {item.quantity} item{item.quantity !== 1 ? 's' : ''}
-                  </p>
-                </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-gray-800 dark:text-gray-200 font-medium truncate mb-1">{cleanTitle}</h4>
+                {marketInfo && marketInfo.console_name && (
+                  <p className="text-gray-600 dark:text-gray-300 text-xs truncate mb-1">{marketInfo.console_name}</p>
+                )}
+              </div>
               </div>
               
               {/* Product Image */}
@@ -1177,27 +1161,27 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
               {/* Market value and profit */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">On Hand:</span>
+                  <span className="text-gray-600 dark:text-gray-300 text-sm font-medium">
+                    {item.quantity}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-300 text-sm">Total Cost:</span>
                   <span className="text-red-400 text-sm font-medium">
-                    {centsToStr(item.totalCost)}
+                    {centsToStr(item.totalCost)} ({centsToStr(Math.round(item.totalCost / item.quantity))})
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-300 text-sm">Market Value:</span>
                   <span className="text-blue-400 text-sm font-medium">
-                    {centsToStr(totalMarketValue)}
+                    {centsToStr(totalMarketValue)} ({centsToStr(currentMarketValue)})
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-300 text-sm">Profit:</span>
                   <span className={`text-sm font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {profit >= 0 ? '+' : ''}{centsToStr(profit)} ({profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%)
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-500 dark:text-gray-400">Per item:</span>
-                  <span className="text-gray-600 dark:text-gray-300">
-                    {centsToStr(Math.round(item.totalCost / item.quantity))} cost • {centsToStr(currentMarketValue)} market
                   </span>
                 </div>
               </div>
