@@ -10,6 +10,23 @@ export default function Hub() {
   const changelogRef = useRef(null);
   const scrollPositionRef = useRef(0);
 
+  // Maintain scroll position when page changes
+  useEffect(() => {
+    const handlePageChange = () => {
+      if (changelogRef.current) {
+        // Store current scroll position
+        scrollPositionRef.current = window.scrollY;
+        
+        // Restore scroll position after a brief delay to allow content to render
+        setTimeout(() => {
+          window.scrollTo(0, scrollPositionRef.current);
+        }, 0);
+      }
+    };
+
+    handlePageChange();
+  }, [currentPage]);
+
   // Changelog data with version numbers (showing most recent 25 entries)
   const allChangelogData = [
     {
@@ -998,29 +1015,31 @@ export default function Hub() {
   // Changelog entry component
   const ChangelogEntry = ({ title, description, color, linkTo, date, time, author }) => {
     const content = (
-      <div className="flex items-start gap-3">
-        <div className={`h-2 w-2 rounded-full ${color} mt-2 flex-shrink-0`}></div>
-        <div className="flex-1">
-          <div className="text-sm font-medium text-gray-900 dark:text-slate-200 mb-2">{title}</div>
-          <div className="text-xs text-gray-600 dark:text-slate-400 mb-3 leading-relaxed">{description}</div>
-          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-slate-500">
-            <div className="flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>{date}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{time}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span>{author}</span>
+      <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-start gap-3">
+          <div className={`h-3 w-3 rounded-full ${color} mt-1 flex-shrink-0`}></div>
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-gray-900 dark:text-gray-200 mb-2">{title}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 leading-relaxed line-clamp-3">{description}</div>
+            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
+              <div className="flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>{date}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{time}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>{author}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1029,7 +1048,7 @@ export default function Hub() {
 
     if (linkTo) {
       return (
-        <Link to={linkTo} className="block hover:bg-slate-800/30 rounded-lg p-2 -m-2 transition-colors">
+        <Link to={linkTo} className="block hover:scale-[1.02] transition-transform duration-200">
           {content}
         </Link>
       );
@@ -1040,184 +1059,198 @@ export default function Hub() {
 
   return (
     <LayoutWithSidebar active="hub" section="orderbook">
-
-        {/* App tiles */}
-        <div className="mb-12">
-          <h2 className="text-lg font-semibold mb-6 text-gray-900 dark:text-white">Choose a workspace</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-            <Link to="/portfolio" className="group p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-800/70 hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-200">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-emerald-500/20 grid place-items-center text-emerald-300 flex-shrink-0">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <div className="text-lg font-semibold text-gray-900 dark:text-white">Portfolio</div>
-                <div className="ml-auto text-gray-400 dark:text-slate-500 group-hover:text-gray-600 dark:group-hover:text-slate-300">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-              <div className="text-gray-600 dark:text-slate-400 text-sm leading-relaxed">
-                Track collection value, view trends, and analyze performance with market data.
-              </div>
-            </Link>
-
-            <Link to="/orders" className="group p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-800/70 hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-200">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-slate-500/20 grid place-items-center text-gray-600 dark:text-slate-300 flex-shrink-0">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div className="text-lg font-semibold text-gray-900 dark:text-white">Order Book</div>
-                <div className="ml-auto text-gray-400 dark:text-slate-500 group-hover:text-gray-600 dark:group-hover:text-slate-300">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-              <div className="text-gray-600 dark:text-slate-400 text-sm leading-relaxed">
-                Track purchases, sales, and inventory. Add orders and mark as sold.
-              </div>
-            </Link>
-
-            <Link to="/shipments" className="group p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-800/70 hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-200">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-red-500/20 grid place-items-center text-red-300 flex-shrink-0">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                  </svg>
-                </div>
-                <div className="text-lg font-semibold text-gray-900 dark:text-white">Shipments</div>
-                <div className="ml-auto text-gray-400 dark:text-slate-500 group-hover:text-gray-600 dark:group-hover:text-slate-300">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-              <div className="text-gray-600 dark:text-slate-400 text-sm leading-relaxed">
-                Track orders and shipments automatically with Gmail integration.
-              </div>
-            </Link>
-
-
-            <Link to="/database" className="group p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-800/70 hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-200">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-cyan-500/20 grid place-items-center text-cyan-300 flex-shrink-0">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-                  </svg>
-                </div>
-                <div className="text-lg font-semibold text-gray-900 dark:text-white">Database</div>
-                <div className="ml-auto text-gray-400 dark:text-slate-500 group-hover:text-gray-600 dark:group-hover:text-slate-300">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-              <div className="text-gray-600 dark:text-slate-400 text-sm leading-relaxed">
-                Manage products, retailers, and marketplaces with organized categories.
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Changelog */}
-        <div>
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Changelog</h2>
-            <div className="text-xs text-gray-500 dark:text-slate-400/60">v0.1.6</div>
-          </div>
-          
-        <div className="space-y-3">
-          {/* Paginated Changelog Entries */}
-          {currentEntries.map((entry, index) => (
-          <ChangelogEntry
-              key={`${entry.title}-${index}`}
-              title={entry.title}
-              description={entry.description}
-              color={entry.color}
-              linkTo={getChangelogLink(entry.title, entry.description)}
-              date={entry.date}
-              time={entry.time}
-              author={entry.author}
-            />
-          ))}
-        </div>
-
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-slate-800">
-            <div className="text-sm text-gray-500 dark:text-slate-400">
-              Showing {startIndex + 1}-{Math.min(endIndex, changelogData.length)} of {changelogData.length} entries
+      <div className="min-h-screen bg-gray-50 dark:bg-transparent">
+        {/* Header - Scrollable */}
+        <div className="border-b border-gray-200 dark:border-gray-800">
+          <div className="px-4 py-4 lg:px-8">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">OneTrack</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Collection Management</p>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          </div>
+        </div>
+
+        {/* Main Content - Responsive */}
+        <div className="px-4 py-6 lg:px-8 space-y-8">
+          {/* Quick Actions - Responsive Grid */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 p-2">
+              <Link
+                to="/portfolio"
+                className="group relative rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 text-white transition-all duration-200 active:scale-95 hover:scale-105"
               >
-                Previous
-              </button>
-              <div className="flex items-center gap-1">
-                {(() => {
-                  const maxVisiblePages = 5;
-                  const pages = [];
-                  
-                  if (totalPages <= maxVisiblePages) {
-                    // Show all pages if total is small
-                    for (let i = 1; i <= totalPages; i++) {
-                      pages.push(i);
-                    }
-                  } else {
-                    // Smart pagination with ellipsis
-                    if (currentPage <= 3) {
-                      // Show first pages + ellipsis + last page
-                      pages.push(1, 2, 3, 4, '...', totalPages);
-                    } else if (currentPage >= totalPages - 2) {
-                      // Show first page + ellipsis + last pages
-                      pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center">
+                  <div className="rounded-xl bg-white/20 p-2 flex-shrink-0">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 lg:flex-none">
+                    <h3 className="font-bold text-base lg:text-lg">Portfolio</h3>
+                    <p className="text-blue-100 text-xs lg:text-sm mt-0.5">Collection value</p>
+                    <p className="text-white/70 text-xs mt-2 lg:block hidden">$2,450</p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                to="/add"
+                className="group relative rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-4 text-white transition-all duration-200 active:scale-95 hover:scale-105"
+              >
+                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center">
+                  <div className="rounded-xl bg-white/20 p-2 flex-shrink-0">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 lg:flex-none">
+                    <h3 className="font-bold text-base lg:text-lg">Order Book</h3>
+                    <p className="text-green-100 text-xs lg:text-sm mt-0.5">Add items</p>
+                    <p className="text-white/70 text-xs mt-2 lg:block hidden">12 items</p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                to="/shipments"
+                className="group relative rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 text-white transition-all duration-200 active:scale-95 hover:scale-105"
+              >
+                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center">
+                  <div className="rounded-xl bg-white/20 p-2 flex-shrink-0">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 lg:flex-none">
+                    <h3 className="font-bold text-base lg:text-lg">Shipments</h3>
+                    <p className="text-purple-100 text-xs lg:text-sm mt-0.5">Track packages</p>
+                    <p className="text-white/70 text-xs mt-2 lg:block hidden">8 tracked</p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                to="/database"
+                className="group relative rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-4 text-white transition-all duration-200 active:scale-95 hover:scale-105"
+              >
+                <div className="flex items-center space-x-3 lg:flex-col lg:space-x-0 lg:space-y-3 lg:text-center">
+                  <div className="rounded-xl bg-white/20 p-2 flex-shrink-0">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 lg:flex-none">
+                    <h3 className="font-bold text-base lg:text-lg">Database</h3>
+                    <p className="text-orange-100 text-xs lg:text-sm mt-0.5">Manage inventory</p>
+                    <p className="text-white/70 text-xs mt-2 lg:block hidden">156 products</p>
+                  </div>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* Recent Updates */}
+          <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Updates</h2>
+                <div className="text-xs text-gray-500 dark:text-gray-400/60 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">v0.1.6</div>
+              </div>
+              
+              <div ref={changelogRef} className="space-y-3">
+                {/* Paginated Changelog Entries */}
+                {currentEntries.map((entry, index) => (
+                <ChangelogEntry
+                    key={`${entry.title}-${index}`}
+                    title={entry.title}
+                    description={entry.description}
+                    color={entry.color}
+                    linkTo={getChangelogLink(entry.title, entry.description)}
+                    date={entry.date}
+                    time={entry.time}
+                    author={entry.author}
+                  />
+                ))}
+              </div>
+            </div>
+
+
+          {/* Pagination Controls - Responsive */}
+          {totalPages > 1 && (
+            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {startIndex + 1}-{Math.min(endIndex, changelogData.length)} of {changelogData.length}
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Page {currentPage} of {totalPages}
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-2 lg:justify-start">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Previous
+                </button>
+                <div className="flex items-center gap-1">
+                  {(() => {
+                    const maxVisiblePages = 3; // Reduced for mobile
+                    const pages = [];
+                    
+                    if (totalPages <= maxVisiblePages) {
+                      // Show all pages if total is small
+                      for (let i = 1; i <= totalPages; i++) {
+                        pages.push(i);
+                      }
                     } else {
-                      // Show first + ellipsis + current range + ellipsis + last
-                      pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+                      // Smart pagination with ellipsis
+                      if (currentPage <= 2) {
+                        // Show first pages + ellipsis + last page
+                        pages.push(1, 2, '...', totalPages);
+                      } else if (currentPage >= totalPages - 1) {
+                        // Show first page + ellipsis + last pages
+                        pages.push(1, '...', totalPages - 1, totalPages);
+                      } else {
+                        // Show first + ellipsis + current + ellipsis + last
+                        pages.push(1, '...', currentPage, '...', totalPages);
+                      }
                     }
-                  }
-                  
-                  return pages.map((page, index) => (
-                    page === '...' ? (
-                      <span key={`ellipsis-${index}`} className="px-2 text-gray-500 dark:text-slate-400">
-                        ...
-                      </span>
-                    ) : (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-1 text-sm rounded-lg border transition-colors ${
-                          currentPage === page
-                            ? 'border-blue-600 dark:border-indigo-600 bg-blue-600 dark:bg-indigo-600 text-white'
-                            : 'border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    )
-                  ));
-                })()}
+                    
+                    return pages.map((page, index) => (
+                      page === '...' ? (
+                        <span key={`ellipsis-${index}`} className="px-2 text-gray-500 dark:text-gray-400">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-2 text-sm rounded-xl border transition-colors ${
+                            currentPage === page
+                              ? 'border-blue-600 dark:border-indigo-600 bg-blue-600 dark:bg-indigo-600 text-white'
+                              : 'border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    ));
+                  })()}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next →
+                </button>
               </div>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
             </div>
-          </div>
-        )}
+          )}
         </div>
+      </div>
     </LayoutWithSidebar>
   );
 }
