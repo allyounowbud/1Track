@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabaseClient";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import ProductSearchDropdown from "../components/ProductSearchDropdown.jsx";
+import { SearchDropdown } from "../components/SearchDropdown.jsx";
 import { moneyToCents, centsToStr, parsePct, formatNumber } from "../utils/money.js";
 import { pageCard, rowCard, inputSm } from "../utils/ui.js";
 const fmtNiceDate = (yyyyMmDd) => {
@@ -1681,19 +1682,16 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         />
 
         {/* Retailer */}
-        <select
-          value={formState.retailer || ""}
-          onChange={(e) => setRetailer(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className={`new-order-select w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none cursor-pointer ${formState.retailer && formState.retailer !== "" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
-        >
-          <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Retailer</option>
-          {retailers.map((r) => (
-            <option key={r.name} value={r.name} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-              {r.name}
-            </option>
-          ))}
-        </select>
+        <div onClick={(e) => e.stopPropagation()}>
+          <SearchDropdown
+            value={formState.retailer || ""}
+            onChange={setRetailer}
+            options={retailers}
+            placeholder="Select retailer..."
+            label={null}
+            className="w-full"
+          />
+        </div>
 
         {/* Buy Price */}
         <input
@@ -1724,19 +1722,16 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
         />
 
         {/* Marketplace */}
-        <select
-          value={formState.marketplace || ""}
-          onChange={handleMarketplaceChange}
-          onClick={(e) => e.stopPropagation()}
-          className={`new-order-select w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none cursor-pointer ${formState.marketplace && formState.marketplace !== "" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
-        >
-          <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Marketplace</option>
-          {markets.map((m) => (
-            <option key={m.name} value={m.name} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-              {m.name}
-            </option>
-          ))}
-        </select>
+        <div onClick={(e) => e.stopPropagation()}>
+          <SearchDropdown
+            value={formState.marketplace || ""}
+            onChange={handleMarketplaceChange}
+            options={markets}
+            placeholder="Select marketplace..."
+            label={null}
+            className="w-full"
+          />
+        </div>
 
         {/* Shipping */}
         <input
@@ -1795,19 +1790,14 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           {/* Retailer */}
           <div>
             <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Retailer</label>
-            <select
+            <SearchDropdown
               value={formState.retailer || ""}
-              onChange={(e) => setRetailer(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-              className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none [&>option]:bg-white [&>option]:dark:bg-gray-800 [&>option]:text-gray-900 [&>option]:dark:text-white ${formState.retailer && formState.retailer !== "" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
-            >
-              <option value="">Retailer</option>
-              {retailers.map((r) => (
-                <option key={r.name} value={r.name}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
+              onChange={setRetailer}
+              options={retailers}
+              placeholder="Select retailer..."
+              label={null}
+              className="w-full"
+            />
           </div>
 
           {/* Buy Price */}
@@ -1850,19 +1840,14 @@ function OrderRow({ order, items, retailers, markets, onSaved, onDeleted, isSele
           {/* Marketplace */}
           <div>
             <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Marketplace</label>
-            <select
+            <SearchDropdown
               value={formState.marketplace || ""}
               onChange={handleMarketplaceChange}
-              onClick={(e) => e.stopPropagation()}
-              className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none [&>option]:bg-white [&>option]:dark:bg-gray-800 [&>option]:text-gray-900 [&>option]:dark:text-white ${formState.marketplace && formState.marketplace !== "" ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
-            >
-              <option value="">Marketplace</option>
-              {markets.map((m) => (
-                <option key={m.name} value={m.name}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
+              options={markets}
+              placeholder="Select marketplace..."
+              label={null}
+              className="w-full"
+            />
           </div>
 
           {/* Shipping */}
