@@ -242,8 +242,8 @@ function PortfolioChart({ data }) {
           
           // Forward path along market value line (from first non-zero point)
           data.slice(startIndex).forEach((point, index) => {
-            const x = xScale(point.x);
-            const y = yScale(point.y);
+        const x = xScale(point.x);
+        const y = yScale(point.y);
             areaPath += `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
           });
           
@@ -258,10 +258,10 @@ function PortfolioChart({ data }) {
           // Close the path
           areaPath += ' Z';
 
-          const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           area.setAttribute('d', areaPath);
           area.setAttribute('fill', 'url(#blue-gradient)');
-          svg.appendChild(area);
+      svg.appendChild(area);
         }
       }
 
@@ -373,7 +373,7 @@ function PortfolioChart({ data }) {
           currentDate.setDate(currentDate.getDate() + step);
           count++;
         }
-      } else {
+        } else {
         // Longer periods: Show months
         const uniqueMonths = [];
         const monthSet = new Set();
@@ -427,11 +427,11 @@ function PortfolioChart({ data }) {
         
         labels.forEach((labelData, index) => {
           const x = padding.left + (index * labelSpacing);
-          
-          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          text.setAttribute('x', x);
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
           text.setAttribute('y', height - padding.bottom + 30);
-          text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('text-anchor', 'middle');
           text.setAttribute('fill', 'rgb(55, 65, 81)');
           text.setAttribute('font-size', '13');
           text.setAttribute('font-weight', '700');
@@ -439,25 +439,28 @@ function PortfolioChart({ data }) {
           text.setAttribute('opacity', '1');
           text.setAttribute('class', 'chart-x-axis-label');
           text.textContent = labelData.text;
-          svg.appendChild(text);
+        svg.appendChild(text);
         });
       }
 
       // Add subtle Y-axis labels as ghost text
       const numYLabels = 4;
-      for (let i = 0; i <= numYLabels; i++) {
+      for (let i = 1; i <= numYLabels; i++) {
         const value = yMin + (yMax - yMin) * (i / numYLabels);
         const y = yScale(value);
         
         const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        label.setAttribute('x', padding.left + 2);
+        label.setAttribute('x', padding.left - 5);
         label.setAttribute('y', y + 3);
         label.setAttribute('fill', 'rgb(75, 85, 99)');
         label.setAttribute('font-size', '11');
         label.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
         label.setAttribute('text-anchor', 'start');
         label.setAttribute('opacity', '1');
-        label.textContent = `$${value.toFixed(0)}`;
+        
+        // Abbreviate values with K notation
+        const abbreviatedValue = value >= 1000 ? `$${(value / 1000).toFixed(0)}K` : `$${value.toFixed(0)}`;
+        label.textContent = abbreviatedValue;
         svg.appendChild(label);
       }
 
@@ -897,11 +900,11 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
         
         // Add to market value (current market value of items you owned)
         const marketInfo = marketData[item.item];
-        if (marketInfo && marketInfo.loose_price) {
+      if (marketInfo && marketInfo.loose_price) {
           cumulativeMarketValue += Math.round(parseFloat(marketInfo.loose_price) * 100);
-        }
-      });
-      
+      }
+    });
+
       result.push({
         date: dateStr,
         cost: cumulativeCostBasis, // Positive to show total investment
@@ -925,7 +928,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
         orders: r.orders
       }))
     });
-    
+
     return result;
   }, [portfolioItems, filteredOrders, marketData, selectedTimeframe, itemSearchQuery]);
 
@@ -1144,7 +1147,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                    </div>
                  )}
                </div>
-        </div>
+               </div>
       </div>
 
       {/* KPI Cards Grid - Native Mobile Style */}
@@ -1471,13 +1474,13 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                             {setName && (
                               <div className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">{setName}</div>
                             )}
-                          </div>
+                      </div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(item.revenueC)}</div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">{formatNumber(item.sold)} sold</div>
-                        </div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">${centsToStr(item.revenueC)}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">{formatNumber(item.sold)} sold</div>
                       </div>
+                    </div>
                     );
                   })}
                 </div>
