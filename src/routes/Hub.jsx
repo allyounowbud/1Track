@@ -1,28 +1,14 @@
 // src/routes/Hub.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabaseClient";
-import { useAuth } from "../hooks/useAuth.js";
-import { card } from "../utils/ui.js";
 import LayoutWithSidebar from "../components/LayoutWithSidebar.jsx";
 
-const tile =
-  "group rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-gray-50 dark:hover:bg-slate-900 transition p-3 sm:p-4 flex flex-col gap-3";
 
 export default function Hub() {
-  const userInfo = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const entriesPerPage = 10;
-
-  async function signOut() {
-    try {
-      await supabase.auth.signOut();
-      window.location.href = "/login";
-    } catch (error) {
-      console.log("Sign out error (expected in local testing):", error);
-      window.location.href = "/login";
-    }
-  }
+  const changelogRef = useRef(null);
+  const scrollPositionRef = useRef(0);
 
   // Changelog data with version numbers (showing most recent 25 entries)
   const allChangelogData = [
@@ -1054,48 +1040,13 @@ export default function Hub() {
 
   return (
     <LayoutWithSidebar active="hub" section="orderbook">
-        {/* Welcome / account (Sign out button lives here) */}
-        <div className={`${card} mb-6`}>
-          <div className="flex items-center gap-4">
-            {userInfo.avatar_url ? (
-              <img
-                src={userInfo.avatar_url}
-                alt=""
-                className="h-12 w-12 rounded-full border border-slate-800 object-cover"
-              />
-            ) : (
-              <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-slate-800 grid place-items-center text-gray-600 dark:text-slate-300">
-                {(userInfo.username || "U").slice(0, 1).toUpperCase()}
-              </div>
-            )}
-            <div className="flex-1">
-              <div className="text-lg font-semibold text-gray-900 dark:text-white">Welcome, {userInfo.username}</div>
-              {userInfo.email && (
-                <div className="text-gray-500 dark:text-slate-400 text-sm">{userInfo.email}</div>
-              )}
-              <div className="text-gray-500 dark:text-slate-400 text-xs">Beta User</div>
-            </div>
-
-            <button
-  type="button"
-  onClick={signOut}
-              className="h-10 w-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-gray-100 dark:bg-slate-800/60 hover:bg-gray-200 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 text-gray-700 dark:text-slate-200 transition-all duration-200 flex items-center justify-center group"
-              title="Sign out"
-            >
-              <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-</button>
-
-          </div>
-        </div>
 
         {/* App tiles */}
-        <div className={`${card} mb-6`}>
-          <h2 className="text-lg font-semibold mb-4">Choose a workspace</h2>
+        <div className="mb-12">
+          <h2 className="text-lg font-semibold mb-6 text-gray-900 dark:text-white">Choose a workspace</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            <Link to="/portfolio" className={tile}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+            <Link to="/portfolio" className="group p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-800/70 hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-200">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-lg bg-emerald-500/20 grid place-items-center text-emerald-300 flex-shrink-0">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1114,7 +1065,7 @@ export default function Hub() {
               </div>
             </Link>
 
-            <Link to="/orders" className={tile}>
+            <Link to="/orders" className="group p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-800/70 hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-200">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-slate-500/20 grid place-items-center text-gray-600 dark:text-slate-300 flex-shrink-0">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1133,7 +1084,7 @@ export default function Hub() {
               </div>
             </Link>
 
-            <Link to="/shipments" className={tile}>
+            <Link to="/shipments" className="group p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-800/70 hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-200">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-lg bg-red-500/20 grid place-items-center text-red-300 flex-shrink-0">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1153,7 +1104,7 @@ export default function Hub() {
             </Link>
 
 
-            <Link to="/database" className={tile}>
+            <Link to="/database" className="group p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-800/70 hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-200">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-lg bg-cyan-500/20 grid place-items-center text-cyan-300 flex-shrink-0">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1175,8 +1126,8 @@ export default function Hub() {
         </div>
 
         {/* Changelog */}
-        <div className={`${card}`}>
-          <div className="mb-4">
+        <div>
+          <div className="mb-8">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Changelog</h2>
             <div className="text-xs text-gray-500 dark:text-slate-400/60">v0.1.6</div>
           </div>
