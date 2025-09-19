@@ -1102,15 +1102,15 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
             >
               <div className="mb-3">
               <div className="flex-1 min-w-0">
-                <h4 className="text-gray-800 dark:text-gray-200 font-medium truncate mb-1">{cleanTitle}</h4>
+                <h4 className="text-gray-800 dark:text-gray-200 font-medium truncate mb-0.5 text-sm">{cleanTitle}</h4>
                 {marketInfo && marketInfo.console_name && (
-                  <p className="text-gray-600 dark:text-gray-300 text-xs truncate mb-1">{marketInfo.console_name}</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-xs truncate">{marketInfo.console_name}</p>
                 )}
               </div>
               </div>
               
               {/* Product Image */}
-              <div className="w-full h-32 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative group border border-gray-300 dark:border-gray-700">
+              <div className="w-full h-24 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg mb-2 flex items-center justify-center overflow-hidden relative group border border-gray-300 dark:border-gray-700">
                 {productImages[item.name] && productImages[item.name].length > 0 ? (
                   <img 
                     src={productImages[item.name][0]} 
@@ -1126,15 +1126,15 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                 {/* Fallback placeholder */}
                 <div className={`w-full h-full flex flex-col items-center justify-center ${productImages[item.name] && productImages[item.name].length > 0 ? 'hidden' : 'flex'}`}>
                   {/* Pokemon card icon */}
-                  <div className="flex items-center justify-center mb-2">
-                    <svg className="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center justify-center mb-1">
+                    <svg className="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
                   </div>
                   
                   {/* Product type indicator */}
                   <div className="text-center">
-                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">
                       {cleanTitle.includes('Elite Trainer Box') ? 'ETB' :
                        cleanTitle.includes('Booster Box') ? 'Booster Box' :
                        cleanTitle.includes('Booster Pack') ? 'Pack' :
@@ -1152,36 +1152,36 @@ function CollectionTab({ portfolioItems, marketData, manualItems, allOrders }) {
                   </div>
                   
                   {/* Decorative elements */}
-                  <div className="absolute top-2 right-2 w-2 h-2 bg-yellow-400 rounded-full opacity-60"></div>
+                  <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-yellow-400 rounded-full opacity-60"></div>
                   <div className="absolute bottom-2 left-2 w-1 h-1 bg-blue-400 rounded-full opacity-40"></div>
                   <div className="absolute top-1/2 left-1 w-1 h-1 bg-red-400 rounded-full opacity-30"></div>
                 </div>
               </div>
               
               {/* Market value and profit */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300 text-sm">On Hand:</span>
-                  <span className="text-gray-600 dark:text-gray-300 text-sm font-medium">
+                  <span className="text-gray-600 dark:text-gray-300 text-xs">On Hand:</span>
+                  <span className="text-gray-600 dark:text-gray-300 text-xs">
                     {item.quantity}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300 text-sm">Total Cost:</span>
-                  <span className="text-red-400 text-sm font-medium">
-                    {centsToStr(item.totalCost)} ({centsToStr(Math.round(item.totalCost / item.quantity))})
+                  <span className="text-gray-600 dark:text-gray-300 text-xs">Total Cost:</span>
+                  <span className="text-red-400 text-xs">
+                    ${centsToStr(item.totalCost)} (${centsToStr(Math.round(item.totalCost / item.quantity))})
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300 text-sm">Market Value:</span>
-                  <span className="text-blue-400 text-sm font-medium">
-                    {centsToStr(totalMarketValue)} ({centsToStr(currentMarketValue)})
+                  <span className="text-gray-600 dark:text-gray-300 text-xs">Market Value:</span>
+                  <span className="text-blue-400 text-xs">
+                    ${centsToStr(totalMarketValue)} (${centsToStr(currentMarketValue)})
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300 text-sm">Profit:</span>
-                  <span className={`text-sm font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {profit >= 0 ? '+' : ''}{centsToStr(profit)} ({profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%)
+                  <span className="text-gray-600 dark:text-gray-300 text-xs">Profit:</span>
+                  <span className={`text-xs font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {profit >= 0 ? '+' : ''}${centsToStr(profit)} ({profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%)
                   </span>
                 </div>
               </div>
