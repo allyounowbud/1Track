@@ -141,7 +141,7 @@ function PortfolioChart({ data }) {
       const height = containerRect.height;
       
       // Full-width design with padding to ensure labels are visible
-      const padding = { top: 10, right: 20, bottom: 50, left: 20 }; // Padding to keep labels visible
+      const padding = { top: 10, right: 15, bottom: 40, left: 20 }; // Padding to keep labels visible
 
       // Clear previous content
       svg.innerHTML = '';
@@ -165,18 +165,42 @@ function PortfolioChart({ data }) {
       const xRange = xMax - xMin || 1;
       const yRange = yMax - yMin || 1;
       
+      // Ensure minimum range for chart visibility
+      const minYRange = 100; // $1 minimum range
+      const finalYRange = Math.max(yRange, minYRange);
+      const finalYMin = yRange < minYRange ? Math.max(0, yMin - minYRange/2) : yMin;
+      const finalYMax = yRange < minYRange ? yMin + minYRange : yMax;
+      
       // Debug: Log the scale values
       console.log('Chart Scale Debug:', {
         xMin, xMax, xRange,
         yMin, yMax, yRange,
+        finalYMin, finalYMax, finalYRange,
         dataPoints: data.map(d => ({ x: d.x, y: d.y, cost: d.cost }))
       });
 
       const xScale = (x) => (x - xMin) / xRange * (width - padding.left - padding.right) + padding.left;
-      const yScale = (y) => height - padding.bottom - ((y - yMin) / yRange) * (height - padding.top - padding.bottom);
+      const yScale = (y) => height - padding.bottom - ((y - finalYMin) / finalYRange) * (height - padding.top - padding.bottom);
 
       // Set SVG viewBox to match actual dimensions
       svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+      // Determine if we should show market value or revenue line
+      const hasInventory = data.length > 0 && data[0]?.hasInventory;
+      const lineColor = hasInventory ? 'rgb(59, 130, 246)' : 'rgb(34, 197, 94)'; // Blue for market value, green for revenue
+      const lineLabel = hasInventory ? 'Market Value' : 'Revenue';
+      
+      // Debug chart rendering
+      console.log('Chart Rendering Debug:', {
+        dataLength: data.length,
+        hasInventory: hasInventory,
+        lineColor: lineColor,
+        lineLabel: lineLabel,
+        firstDataPoint: data[0],
+        yRange: yRange,
+        yMin: yMin,
+        yMax: yMax
+      });
 
       // Create gradient for the area under the line
       const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -191,12 +215,12 @@ function PortfolioChart({ data }) {
       
       const blueStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
       blueStop1.setAttribute('offset', '0%');
-      blueStop1.setAttribute('stop-color', 'rgb(59, 130, 246)');
+      blueStop1.setAttribute('stop-color', lineColor);
       blueStop1.setAttribute('stop-opacity', '0.15');
       
       const blueStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
       blueStop2.setAttribute('offset', '100%');
-      blueStop2.setAttribute('stop-color', 'rgb(59, 130, 246)');
+      blueStop2.setAttribute('stop-color', lineColor);
       blueStop2.setAttribute('stop-opacity', '0');
       
       blueGradient.appendChild(blueStop1);
@@ -275,7 +299,7 @@ function PortfolioChart({ data }) {
       const marketValueLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       marketValueLine.setAttribute('d', marketValuePath);
       marketValueLine.setAttribute('fill', 'none');
-      marketValueLine.setAttribute('stroke', 'rgb(59, 130, 246)'); // Blue for market value
+      marketValueLine.setAttribute('stroke', lineColor);
       marketValueLine.setAttribute('stroke-width', '2');
       marketValueLine.setAttribute('stroke-opacity', '0.8');
       marketValueLine.setAttribute('stroke-linecap', 'round');
@@ -423,18 +447,20 @@ function PortfolioChart({ data }) {
       // Render labels with proper spacing for full-width chart
       if (labels.length > 0) {
         const availableWidth = width - padding.left - padding.right;
-        const labelSpacing = availableWidth / (labels.length - 1);
+        const labelMargin = 10; // Add margin to prevent last label from extending past edge
+        const adjustedWidth = availableWidth - (labelMargin * 2);
+        const labelSpacing = adjustedWidth / (labels.length - 1);
         
         labels.forEach((labelData, index) => {
-          const x = padding.left + (index * labelSpacing);
+          const x = padding.left + labelMargin + (index * labelSpacing);
         
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
-          text.setAttribute('y', height - padding.bottom + 30);
+          text.setAttribute('y', height - padding.bottom + 25);
         text.setAttribute('text-anchor', 'middle');
           text.setAttribute('fill', 'rgb(55, 65, 81)');
-          text.setAttribute('font-size', '13');
-          text.setAttribute('font-weight', '700');
+          text.setAttribute('font-size', '11');
+          text.setAttribute('font-weight', '600');
           text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
           text.setAttribute('opacity', '1');
           text.setAttribute('class', 'chart-x-axis-label');
@@ -446,7 +472,7 @@ function PortfolioChart({ data }) {
       // Add subtle Y-axis labels as ghost text
       const numYLabels = 4;
       for (let i = 1; i <= numYLabels; i++) {
-        const value = yMin + (yMax - yMin) * (i / numYLabels);
+        const value = finalYMin + (finalYMax - finalYMin) * (i / numYLabels);
         const y = yScale(value);
         
         const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -824,7 +850,10 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
   const portfolioHistory = useMemo(() => {
     // Use the same data as metrics - current portfolio items, not filtered orders
     const dataToUse = itemSearchQuery.trim() ? filteredOrders : portfolioItems;
-    if (!dataToUse.length) return [];
+    if (!dataToUse.length) {
+      console.log('No data available for portfolio history:', { itemSearchQuery, filteredOrdersLength: filteredOrders.length, portfolioItemsLength: portfolioItems.length });
+      return [];
+    }
 
     // Get date range based on selected timeframe
     const now = new Date();
@@ -861,10 +890,18 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
     const currentInventory = {};
     const onHandItems = dataToUse.filter(item => item.buy_price_cents && !item.sale_price_cents);
     
+    // Get sold items for revenue calculation
+    const soldItems = dataToUse.filter(item => item.buy_price_cents && item.sale_price_cents);
+    
+    // Check if we should show revenue line instead of market value
+    const hasInventory = onHandItems.length > 0;
+    
     // Debug: Check if we have items to track
     console.log('Portfolio History Debug:', {
       dataToUseLength: dataToUse.length,
       onHandItemsLength: onHandItems.length,
+      soldItemsLength: soldItems.length,
+      hasInventory: hasInventory,
       onHandItems: onHandItems.map(item => ({ item: item.item, buy_price: item.buy_price_cents, sale_price: item.sale_price_cents }))
     });
     
@@ -893,22 +930,32 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
       // Calculate cumulative cost basis (what you paid up to this date)
       let cumulativeCostBasis = 0;
       let cumulativeMarketValue = 0;
+      let cumulativeRevenue = 0;
       
       itemsBoughtByDate.forEach(item => {
         // Add to cost basis (what you paid)
         cumulativeCostBasis += item.buy_price_cents || 0;
         
-        // Add to market value (current market value of items you owned)
-        const marketInfo = marketData[item.item];
-      if (marketInfo && marketInfo.loose_price) {
-          cumulativeMarketValue += Math.round(parseFloat(marketInfo.loose_price) * 100);
-      }
-    });
+        if (hasInventory) {
+          // Add to market value (current market value of items you owned)
+          const marketInfo = marketData[item.item];
+          if (marketInfo && marketInfo.loose_price) {
+            cumulativeMarketValue += Math.round(parseFloat(marketInfo.loose_price) * 100);
+          }
+        } else {
+          // Add to revenue (what you received from sold items)
+          if (item.sale_price_cents) {
+            cumulativeRevenue += item.sale_price_cents;
+          }
+        }
+      });
 
       result.push({
         date: dateStr,
         cost: cumulativeCostBasis, // Positive to show total investment
         marketValue: cumulativeMarketValue,
+        revenue: cumulativeRevenue,
+        hasInventory: hasInventory,
         orders: itemsBoughtByDate.length
       });
       
@@ -936,12 +983,25 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
   const chartData = useMemo(() => {
     if (portfolioHistory.length === 0) return [];
     
-    return portfolioHistory.map(point => ({
+    const data = portfolioHistory.map(point => ({
       x: new Date(point.date).getTime(),
-      y: point.marketValue / 100, // Convert cents to dollars
-      cost: point.cost / 100, // Already negative, convert cents to dollars
+      y: point.hasInventory ? point.marketValue / 100 : (point.revenue / 100 || 0), // Market value or revenue, fallback to 0
+      cost: point.cost / 100, // Convert cents to dollars
+      revenue: point.revenue / 100, // Convert cents to dollars
+      hasInventory: point.hasInventory,
       orders: point.orders
     }));
+    
+    // Debug chart data
+    console.log('Chart Data Debug:', {
+      dataLength: data.length,
+      firstPoint: data[0],
+      lastPoint: data[data.length - 1],
+      hasInventory: data[0]?.hasInventory,
+      yValues: data.map(d => d.y).filter(y => y > 0).slice(0, 5)
+    });
+    
+    return data;
   }, [portfolioHistory]);
 
   // Calculate chart metrics
@@ -1127,27 +1187,25 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
           </div>
         </div>
         
-      {/* Chart Area - Full Width */}
-      <div className="py-6 -mx-4">
-        <div className="rounded-2xl p-2">
-          <div className="h-96 w-full overflow-hidden">
-                 {chartData && chartData.length > 0 ? (
-                   <PortfolioChart data={chartData} />
-                 ) : (
+      {/* Chart Area - Within Container, Full Width */}
+      <div className="py-6">
+        <div className="h-96 w-full overflow-hidden">
+          {chartData && chartData.length > 0 ? (
+            <PortfolioChart data={chartData} />
+          ) : (
             <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-300">
-                     <div className="text-center">
+              <div className="text-center">
                 <div className="flex justify-center">
-                       <ChartIcon />
+                  <ChartIcon />
                 </div>
-                       <p className="mt-2">No data available for selected period</p>
+                <p className="mt-2">No data available for selected period</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                         {portfolioItems.length === 0 ? 'No portfolio items found' : 'No data available'}
-                       </p>
-                     </div>
-                   </div>
-                 )}
-               </div>
-               </div>
+                  {portfolioItems.length === 0 ? 'No portfolio items found' : 'No data available'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* KPI Cards Grid - Native Mobile Style */}
