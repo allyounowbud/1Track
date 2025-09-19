@@ -192,7 +192,7 @@ function PortfolioChart({ data }) {
       const blueStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
       blueStop1.setAttribute('offset', '0%');
       blueStop1.setAttribute('stop-color', 'rgb(59, 130, 246)');
-      blueStop1.setAttribute('stop-opacity', '0.3');
+      blueStop1.setAttribute('stop-opacity', '0.15');
       
       const blueStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
       blueStop2.setAttribute('offset', '100%');
@@ -214,7 +214,7 @@ function PortfolioChart({ data }) {
       const redStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
       redStop1.setAttribute('offset', '0%');
       redStop1.setAttribute('stop-color', 'rgb(239, 68, 68)');
-      redStop1.setAttribute('stop-opacity', '0.3');
+      redStop1.setAttribute('stop-opacity', '0.15');
       
       const redStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
       redStop2.setAttribute('offset', '100%');
@@ -276,7 +276,8 @@ function PortfolioChart({ data }) {
       marketValueLine.setAttribute('d', marketValuePath);
       marketValueLine.setAttribute('fill', 'none');
       marketValueLine.setAttribute('stroke', 'rgb(59, 130, 246)'); // Blue for market value
-      marketValueLine.setAttribute('stroke-width', '3');
+      marketValueLine.setAttribute('stroke-width', '2');
+      marketValueLine.setAttribute('stroke-opacity', '0.8');
       marketValueLine.setAttribute('stroke-linecap', 'round');
       marketValueLine.setAttribute('stroke-linejoin', 'round');
       svg.appendChild(marketValueLine);
@@ -292,7 +293,8 @@ function PortfolioChart({ data }) {
       costBasisLine.setAttribute('d', costBasisPath);
       costBasisLine.setAttribute('fill', 'none');
       costBasisLine.setAttribute('stroke', 'rgb(239, 68, 68)'); // Red for cost basis
-      costBasisLine.setAttribute('stroke-width', '3');
+      costBasisLine.setAttribute('stroke-width', '2');
+      costBasisLine.setAttribute('stroke-opacity', '0.8');
       costBasisLine.setAttribute('stroke-linecap', 'round');
       costBasisLine.setAttribute('stroke-linejoin', 'round');
       svg.appendChild(costBasisLine);
