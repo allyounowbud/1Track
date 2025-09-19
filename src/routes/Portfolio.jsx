@@ -140,7 +140,7 @@ function PortfolioChart({ data }) {
       const width = containerRect.width;
       const height = containerRect.height;
       
-      // Mobile-first design - always use minimal padding for full-width chart
+      // Mobile-first design - use full width with Y-axis labels inside chart
       const padding = { top: 20, right: 10, bottom: 50, left: 10 }; // Minimal padding for full-width mobile experience
 
       // Clear previous content
@@ -149,15 +149,22 @@ function PortfolioChart({ data }) {
       // Validate data
       if (data.length === 0) return;
 
-      // Calculate scales
+      // Calculate scales - include both cost and market value
       const xMin = Math.min(...data.map(d => d.x));
       const xMax = Math.max(...data.map(d => d.x));
-      const yMin = Math.min(...data.map(d => d.y));
-      const yMax = Math.max(...data.map(d => d.y));
+      const yMin = Math.min(...data.map(d => Math.min(d.y, d.cost)));
+      const yMax = Math.max(...data.map(d => Math.max(d.y, d.cost)));
       
       // Handle edge case where all values are the same
       const xRange = xMax - xMin || 1;
       const yRange = yMax - yMin || 1;
+      
+      // Debug: Log the scale values
+      console.log('Chart Scale Debug:', {
+        xMin, xMax, xRange,
+        yMin, yMax, yRange,
+        dataPoints: data.map(d => ({ x: d.x, y: d.y, cost: d.cost }))
+      });
 
       const xScale = (x) => (x - xMin) / xRange * (width - padding.left - padding.right) + padding.left;
       const yScale = (y) => height - padding.bottom - ((y - yMin) / yRange) * (height - padding.top - padding.bottom);
@@ -189,103 +196,238 @@ function PortfolioChart({ data }) {
       gradient.appendChild(linearGradient);
       svg.appendChild(gradient);
 
-      // Create area path
-      const areaPath = data.map((point, index) => {
+      // Create area path showing the difference between market value and cost basis
+      // Only show area if there's a meaningful difference between the values
+      if (yRange > 0.01) { // Only if there's a meaningful difference
+        // Create the area path by going along the market value line, then back along the cost basis line
+        let areaPath = '';
+        
+        // Forward path along market value line
+        data.forEach((point, index) => {
+          const x = xScale(point.x);
+          const y = yScale(point.y);
+          areaPath += `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+        });
+        
+        // Backward path along cost basis line
+        for (let i = data.length - 1; i >= 0; i--) {
+          const point = data[i];
+          const x = xScale(point.x);
+          const y = yScale(point.cost);
+          areaPath += ` L ${x} ${y}`;
+        }
+        
+        // Close the path
+        areaPath += ' Z';
+
+        const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        area.setAttribute('d', areaPath);
+        area.setAttribute('fill', 'url(#portfolio-gradient)');
+        svg.appendChild(area);
+      }
+
+      // Create market value line path
+      const marketValuePath = data.map((point, index) => {
         const x = xScale(point.x);
         const y = yScale(point.y);
         return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
       }).join(' ');
 
-      const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      area.setAttribute('d', `${areaPath} L ${xScale(data[data.length - 1].x)} ${height - padding.bottom} L ${xScale(data[0].x)} ${height - padding.bottom} Z`);
-      area.setAttribute('fill', 'url(#portfolio-gradient)');
-      svg.appendChild(area);
+      const marketValueLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      marketValueLine.setAttribute('d', marketValuePath);
+      marketValueLine.setAttribute('fill', 'none');
+      marketValueLine.setAttribute('stroke', 'rgb(59, 130, 246)'); // Blue for market value
+      marketValueLine.setAttribute('stroke-width', '2');
+      marketValueLine.setAttribute('stroke-linecap', 'round');
+      marketValueLine.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(marketValueLine);
 
-      // Create line path
-      const linePath = data.map((point, index) => {
+      // Create cost basis line path
+      const costBasisPath = data.map((point, index) => {
         const x = xScale(point.x);
-        const y = yScale(point.y);
+        const y = yScale(point.cost);
         return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
       }).join(' ');
 
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      line.setAttribute('d', linePath);
-      line.setAttribute('fill', 'none');
-      line.setAttribute('stroke', 'rgb(59, 130, 246)'); // Blue instead of yellow
-      line.setAttribute('stroke-width', '2');
-      line.setAttribute('stroke-linecap', 'round');
-      line.setAttribute('stroke-linejoin', 'round');
-      svg.appendChild(line);
+      const costBasisLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      costBasisLine.setAttribute('d', costBasisPath);
+      costBasisLine.setAttribute('fill', 'none');
+      costBasisLine.setAttribute('stroke', 'rgb(239, 68, 68)'); // Red for cost basis
+      costBasisLine.setAttribute('stroke-width', '2');
+      costBasisLine.setAttribute('stroke-linecap', 'round');
+      costBasisLine.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(costBasisLine);
 
-      // Removed data points (circles) as requested
+      // Add centered legend above the chart
+      const legendWidth = 240; // Approximate width of both legend items
+      const legendX = (width - legendWidth) / 2; // Center horizontally
+      const legend = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      legend.setAttribute('transform', `translate(${legendX}, ${padding.top - 15})`);
+      
+      // Market value legend
+      const marketValueLegend = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const marketValueDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      marketValueDot.setAttribute('cx', '0');
+      marketValueDot.setAttribute('cy', '0');
+      marketValueDot.setAttribute('r', '4');
+      marketValueDot.setAttribute('fill', 'rgb(59, 130, 246)');
+      marketValueLegend.appendChild(marketValueDot);
+      
+      const marketValueText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      marketValueText.setAttribute('x', '12');
+      marketValueText.setAttribute('y', '4');
+      marketValueText.setAttribute('fill', 'white');
+      marketValueText.setAttribute('font-size', '12');
+      marketValueText.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+      marketValueText.textContent = 'Market Value';
+      marketValueLegend.appendChild(marketValueText);
+      
+      // Cost basis legend
+      const costBasisLegend = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      costBasisLegend.setAttribute('transform', 'translate(120, 0)'); // Move to the right instead of below
+      
+      const costBasisDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      costBasisDot.setAttribute('cx', '0');
+      costBasisDot.setAttribute('cy', '0');
+      costBasisDot.setAttribute('r', '4');
+      costBasisDot.setAttribute('fill', 'rgb(239, 68, 68)');
+      costBasisLegend.appendChild(costBasisDot);
+      
+      const costBasisText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      costBasisText.setAttribute('x', '12');
+      costBasisText.setAttribute('y', '4');
+      costBasisText.setAttribute('fill', 'white');
+      costBasisText.setAttribute('font-size', '12');
+      costBasisText.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+      costBasisText.textContent = 'Cost Basis';
+      costBasisLegend.appendChild(costBasisText);
+      
+      legend.appendChild(marketValueLegend);
+      legend.appendChild(costBasisLegend);
+      svg.appendChild(legend);
 
-      // Skip Y-axis labels for cleaner mobile look - focus on the chart itself
+      // Add subtle Y-axis labels with increments
+      const yAxisLabels = [];
+      const numLabels = 5;
+      
+      // Calculate the range and add a small buffer above the max value
+      const yBuffer = (yMax - yMin) * 0.1; // 10% buffer above max
+      const yMinWithBuffer = yMin;
+      const yMaxWithBuffer = yMax + yBuffer;
+      
+      for (let i = 1; i <= numLabels; i++) { // Start from 1 to skip the bottom "$0" label
+        const value = yMinWithBuffer + (yMaxWithBuffer - yMinWithBuffer) * (i / numLabels);
+        const y = yScale(value);
+        
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', padding.left + 5); // Position inside the chart area
+        label.setAttribute('y', y + 4);
+        label.setAttribute('fill', 'rgb(156, 163, 175)'); // Subtle gray color
+        label.setAttribute('font-size', '10');
+        label.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+        label.setAttribute('text-anchor', 'start'); // Left-align since it's inside
+        label.setAttribute('opacity', '0.7'); // Make it subtle
+        label.textContent = `$${value.toFixed(0)}`;
+        svg.appendChild(label);
+      }
 
-      // Add X-axis labels (months) - evenly spaced with unique months only
+      // Add X-axis labels - handle different timeframes appropriately
       const firstDate = new Date(xMin);
       const lastDate = new Date(xMax);
+      const timeDiff = lastDate.getTime() - firstDate.getTime();
+      const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
       
-      // Generate all unique months in the date range
-      const uniqueMonths = [];
-      const monthSet = new Set();
+      let labels = [];
       
-      // Start from the first month and go to the last month
-      const current = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
-      const end = new Date(lastDate.getFullYear(), lastDate.getMonth(), 1);
-      
-      while (current <= end) {
-        const monthKey = `${current.getFullYear()}-${current.getMonth()}`;
-        if (!monthSet.has(monthKey)) {
-          monthSet.add(monthKey);
-          uniqueMonths.push({
-            date: new Date(current),
-            label: current.toLocaleDateString('en-US', { month: 'short' }),
-            year: current.getFullYear()
+      if (daysDiff <= 1) {
+        // 1D: Show start and end times
+        const startTime = firstDate.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+        const endTime = lastDate.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+        labels = [
+          { x: xMin, text: startTime },
+          { x: xMax, text: endTime }
+        ];
+      } else if (daysDiff <= 7) {
+        // 7D: Show days of week
+        const currentDate = new Date(firstDate);
+        while (currentDate <= lastDate) {
+          labels.push({
+            x: currentDate.getTime(),
+            text: currentDate.toLocaleDateString('en-US', { weekday: 'short' })
           });
+          currentDate.setDate(currentDate.getDate() + 1);
         }
-        current.setMonth(current.getMonth() + 1);
+      } else if (daysDiff <= 31) {
+        // 1M: Show days
+        const currentDate = new Date(firstDate);
+        const step = Math.max(1, Math.floor(daysDiff / 7)); // Show ~7 labels
+        let count = 0;
+        while (currentDate <= lastDate && count < 7) {
+          labels.push({
+            x: currentDate.getTime(),
+            text: currentDate.getDate().toString()
+          });
+          currentDate.setDate(currentDate.getDate() + step);
+          count++;
+        }
+      } else {
+        // Longer periods: Show months
+        const uniqueMonths = [];
+        const monthSet = new Set();
+        const current = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
+        const end = new Date(lastDate.getFullYear(), lastDate.getMonth(), 1);
+        
+        while (current <= end) {
+          const monthKey = `${current.getFullYear()}-${current.getMonth()}`;
+          if (!monthSet.has(monthKey)) {
+            monthSet.add(monthKey);
+            uniqueMonths.push({
+              date: new Date(current),
+              label: current.toLocaleDateString('en-US', { month: 'short' }),
+              year: current.getFullYear()
+            });
+          }
+          current.setMonth(current.getMonth() + 1);
+        }
+        
+        // Limit to reasonable number of labels (3-8)
+        const maxLabels = Math.min(8, Math.max(3, uniqueMonths.length));
+        const step = Math.max(1, Math.floor(uniqueMonths.length / maxLabels));
+        const selectedMonths = [];
+        
+        // Select months with even spacing
+        for (let i = 0; i < uniqueMonths.length; i += step) {
+          selectedMonths.push(uniqueMonths[i]);
+          if (selectedMonths.length >= maxLabels) break;
+        }
+        
+        // Always include the last month if not already included
+        if (selectedMonths.length > 0 && selectedMonths[selectedMonths.length - 1] !== uniqueMonths[uniqueMonths.length - 1]) {
+          selectedMonths[selectedMonths.length - 1] = uniqueMonths[uniqueMonths.length - 1];
+        }
+        
+        labels = selectedMonths.map(monthData => ({
+          x: monthData.date.getTime(),
+          text: monthData.year === new Date().getFullYear() ? monthData.label : `${monthData.label} '${monthData.year.toString().slice(-2)}`
+        }));
       }
       
-      // Limit to reasonable number of labels (3-8)
-      const maxLabels = Math.min(8, Math.max(3, uniqueMonths.length));
-      const step = Math.max(1, Math.floor(uniqueMonths.length / maxLabels));
-      const selectedMonths = [];
-      
-      // Select months with even spacing
-      for (let i = 0; i < uniqueMonths.length; i += step) {
-        selectedMonths.push(uniqueMonths[i]);
-        if (selectedMonths.length >= maxLabels) break;
-      }
-      
-      // Always include the last month if not already included
-      if (selectedMonths.length > 0 && selectedMonths[selectedMonths.length - 1] !== uniqueMonths[uniqueMonths.length - 1]) {
-        selectedMonths[selectedMonths.length - 1] = uniqueMonths[uniqueMonths.length - 1];
-      }
-      
-      // Render the selected month labels with even spacing
-      selectedMonths.forEach((monthData, index) => {
-        // Calculate x position evenly across the chart width
-        const x = padding.left + (index / (selectedMonths.length - 1)) * (width - padding.left - padding.right);
+      // Render labels evenly across chart width with proper spacing
+      labels.forEach((labelData, index) => {
+        // Calculate position with buffer to keep labels within bounds
+        const labelBuffer = 20; // Buffer to prevent labels from being cut off
+        const availableWidth = width - padding.left - padding.right - (labelBuffer * 2);
+        const x = padding.left + labelBuffer + (index / (labels.length - 1)) * availableWidth;
         
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
         text.setAttribute('y', height - padding.bottom + 18);
         text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('fill', 'rgb(156, 163, 175)'); // Better contrast for dark mode
-        text.setAttribute('font-size', '12'); // Slightly larger for better readability
-        text.setAttribute('font-weight', '500'); // Medium weight for better readability
-        text.setAttribute('class', 'chart-x-axis-label'); // For potential CSS styling
-        
-        // Format date based on data range
-        const now = new Date();
-        const isCurrentYear = monthData.year === now.getFullYear();
-        
-        if (isCurrentYear) {
-          text.textContent = monthData.label; // Month only (Aug, Sep, Oct, etc.)
-        } else {
-          text.textContent = `${monthData.label} '${monthData.year.toString().slice(-2)}`; // Month + Year
-        }
-        
+        text.setAttribute('fill', 'rgb(156, 163, 175)');
+        text.setAttribute('font-size', '12');
+        text.setAttribute('font-weight', '500');
+        text.setAttribute('class', 'chart-x-axis-label');
+        text.textContent = labelData.text;
         svg.appendChild(text);
       });
 
@@ -463,6 +605,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
   const [itemSearchQuery, setItemSearchQuery] = useState('');
   const [showItemDropdown, setShowItemDropdown] = useState(false);
   const [filteredItems, setFilteredItems] = useState([]);
+  const [isSelectingItem, setIsSelectingItem] = useState(false);
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
 
@@ -480,7 +623,8 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
         item.toLowerCase().includes(query)
       );
       setFilteredItems(filtered);
-      setShowItemDropdown(true);
+      // Don't automatically show dropdown when there's a search query
+      // Only show it when user explicitly focuses or clicks
     } else {
       setFilteredItems(orderBookItems);
       setShowItemDropdown(false);
@@ -489,18 +633,26 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
 
   // Handle item selection from dropdown
   const handleItemSelect = (itemName) => {
+    setIsSelectingItem(true);
     setItemSearchQuery(itemName);
     setShowItemDropdown(false);
-    // Small delay to ensure the dropdown closes before refocusing
+    // Immediately blur the input to remove focus and prevent dropdown from reopening
+    searchInputRef.current?.blur();
+    // Reset the flag after a brief delay
     setTimeout(() => {
-      searchInputRef.current?.focus();
+      setIsSelectingItem(false);
     }, 100);
   };
 
   // Handle input focus
   const handleInputFocus = () => {
-    if (itemSearchQuery.trim()) {
-      setShowItemDropdown(true);
+    // Don't show dropdown if we're in the middle of selecting an item
+    if (isSelectingItem) return;
+    
+    setShowItemDropdown(true);
+    if (!itemSearchQuery.trim()) {
+      // If no search query, show all items
+      setFilteredItems(orderBookItems);
     }
   };
 
@@ -548,20 +700,25 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
       
       switch (selectedTimeframe) {
         case '1D':
-          startDate.setDate(now.getDate() - 1);
+          // Show current date only
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           break;
         case '7D':
-          startDate.setDate(now.getDate() - 7);
+          // Show past 7 days including today
+          startDate.setDate(now.getDate() - 6); // 6 days ago + today = 7 days
           break;
         case '1M':
-          startDate.setMonth(now.getMonth() - 1);
+          // Show current month only
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           break;
         case '3M':
-          startDate.setMonth(now.getMonth() - 2); // Show last 3 months including current month
-          startDate.setDate(1); // Start from the first day of the month
+          // Show last 3 months including current month
+          startDate.setMonth(now.getMonth() - 2);
+          startDate.setDate(1);
           break;
         case '6M':
-          startDate.setMonth(now.getMonth() - 6);
+          startDate.setMonth(now.getMonth() - 5); // Show last 6 months including current
+          startDate.setDate(1);
           break;
       }
       
@@ -584,15 +741,16 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
     // Use filtered data when there's a search query, otherwise use all portfolio items
     const dataToUse = itemSearchQuery.trim() ? filteredOrders : portfolioItems;
     
-    const totalItems = dataToUse.length;
-    const totalCost = dataToUse.reduce((sum, item) => sum + (item.buy_price_cents || 0), 0);
+    // Calculate inventory: items with buy price but no sell price (still on hand)
+    const totalItems = dataToUse.filter(item => item.buy_price_cents && !item.sale_price_cents).length;
+    const totalCost = dataToUse.filter(item => item.buy_price_cents && !item.sale_price_cents).reduce((sum, item) => sum + (item.buy_price_cents || 0), 0);
     
-    // Calculate current market value using real API data
+    // Calculate current market value using real API data - only for items still on hand
     let estimatedMarketValue = 0;
     let itemsWithMarketData = 0;
     let itemsWithoutMarketData = 0;
     
-    dataToUse.forEach(item => {
+    dataToUse.filter(item => item.buy_price_cents && !item.sale_price_cents).forEach(item => {
       // Try to find market data by exact match first
       let marketInfo = marketData[item.item];
       
@@ -631,7 +789,9 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
 
   // Calculate portfolio value over time for the chart
   const portfolioHistory = useMemo(() => {
-    if (!filteredOrders.length) return [];
+    // Use the same data as metrics - current portfolio items, not filtered orders
+    const dataToUse = itemSearchQuery.trim() ? filteredOrders : portfolioItems;
+    if (!dataToUse.length) return [];
 
     // Get date range based on selected timeframe
     const now = new Date();
@@ -639,67 +799,105 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
     
     switch (selectedTimeframe) {
       case '1D':
-        startDate.setDate(now.getDate() - 1);
+        // Show current date only
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
       case '7D':
-        startDate.setDate(now.getDate() - 7);
+        // Show past 7 days including today
+        startDate.setDate(now.getDate() - 6); // 6 days ago + today = 7 days
         break;
       case '1M':
-        startDate.setMonth(now.getMonth() - 1);
+        // Show current month only
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         break;
       case '3M':
-        startDate.setMonth(now.getMonth() - 2); // Show last 3 months including current month
-        startDate.setDate(1); // Start from the first day of the month
+        // Show last 3 months including current month
+        startDate.setMonth(now.getMonth() - 2);
+        startDate.setDate(1);
         break;
       case '6M':
-        startDate.setMonth(now.getMonth() - 6);
+        startDate.setMonth(now.getMonth() - 5); // Show last 6 months including current
+        startDate.setDate(1);
         break;
       case 'All':
         startDate = new Date(Math.min(...orders.map(o => new Date(o.order_date).getTime())));
         break;
     }
 
-    // Group orders by date and calculate cumulative portfolio value
-    const dailyData = {};
-    const sortedOrders = filteredOrders
-      .sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
-
-    let cumulativeCost = 0;
-    let cumulativeMarketValue = 0;
-
-    sortedOrders.forEach(order => {
-      const date = order.order_date;
-      if (!dailyData[date]) {
-        dailyData[date] = { date, cost: 0, marketValue: 0, orders: 0 };
+    // Get current inventory (what we own now) - only items still on hand
+    const currentInventory = {};
+    const onHandItems = dataToUse.filter(item => item.buy_price_cents && !item.sale_price_cents);
+    
+    // Debug: Check if we have items to track
+    console.log('Portfolio History Debug:', {
+      dataToUseLength: dataToUse.length,
+      onHandItemsLength: onHandItems.length,
+      onHandItems: onHandItems.map(item => ({ item: item.item, buy_price: item.buy_price_cents, sale_price: item.sale_price_cents }))
+    });
+    
+    onHandItems.forEach(item => {
+      if (!currentInventory[item.item]) {
+        currentInventory[item.item] = 0;
       }
-      
-      dailyData[date].cost += order.buy_price_cents || 0;
-      dailyData[date].orders += 1;
-      
-      // Calculate market value for this order
-      const marketInfo = marketData[order.item];
-      if (marketInfo && marketInfo.loose_price) {
-        dailyData[date].marketValue += Math.round(parseFloat(marketInfo.loose_price) * 100);
-      } else {
-        dailyData[date].marketValue += order.buy_price_cents || 0;
-      }
+      currentInventory[item.item] += 1;
     });
 
-    // Convert to cumulative values
+    // Create timeline showing portfolio progression over time
     const result = [];
-    Object.values(dailyData).forEach(day => {
-      cumulativeCost += day.cost;
-      cumulativeMarketValue += day.marketValue;
-      result.push({
-        date: day.date,
-        cost: cumulativeCost,
-        marketValue: cumulativeMarketValue,
-        orders: day.orders
+    const currentDate = new Date(startDate);
+    const endDate = new Date(now);
+    
+    // Create daily data points showing portfolio progression
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      
+      // Get all items bought up to this date
+      const itemsBoughtByDate = dataToUse.filter(item => {
+        const itemDate = new Date(item.order_date);
+        return itemDate <= currentDate && item.buy_price_cents;
       });
+      
+      // Calculate cumulative cost basis (what you paid up to this date)
+      let cumulativeCostBasis = 0;
+      let cumulativeMarketValue = 0;
+      
+      itemsBoughtByDate.forEach(item => {
+        // Add to cost basis (what you paid)
+        cumulativeCostBasis += item.buy_price_cents || 0;
+        
+        // Add to market value (current market value of items you owned)
+        const marketInfo = marketData[item.item];
+        if (marketInfo && marketInfo.loose_price) {
+          cumulativeMarketValue += Math.round(parseFloat(marketInfo.loose_price) * 100);
+        }
+      });
+      
+      result.push({
+        date: dateStr,
+        cost: cumulativeCostBasis, // Positive to show total investment
+        marketValue: cumulativeMarketValue,
+        orders: itemsBoughtByDate.length
+      });
+      
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Debug: Check final result
+    console.log('Portfolio History Final Result:', {
+      resultLength: result.length,
+      firstResult: result[0],
+      lastResult: result[result.length - 1],
+      progression: result.filter((_, i) => i % 30 === 0).map(r => ({
+        date: r.date,
+        cost: r.cost,
+        marketValue: r.marketValue,
+        orders: r.orders
+      }))
     });
-
+    
     return result;
-  }, [filteredOrders, marketData, selectedTimeframe]);
+  }, [portfolioItems, filteredOrders, marketData, selectedTimeframe, itemSearchQuery]);
 
   // Get chart data points
   const chartData = useMemo(() => {
@@ -708,7 +906,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
     return portfolioHistory.map(point => ({
       x: new Date(point.date).getTime(),
       y: point.marketValue / 100, // Convert cents to dollars
-      cost: point.cost / 100,
+      cost: point.cost / 100, // Already negative, convert cents to dollars
       orders: point.orders
     }));
   }, [portfolioHistory]);
@@ -798,7 +996,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
 
           {/* Item Search Filter */}
           <div className="mt-4">
-            <div className="relative">
+            <div className="relative" onClick={handleInputFocus}>
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -811,13 +1009,16 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                 value={itemSearchQuery}
                 onChange={(e) => setItemSearchQuery(e.target.value)}
                 onFocus={handleInputFocus}
-                className="w-full pl-10 pr-12 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/50 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full pl-10 pr-12 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/50 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent truncate"
               />
               
               {/* Dropdown Arrow */}
-              <button
-                onClick={handleDropdownToggle}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDropdownToggle();
+                }}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 type="button"
               >
                 <svg 
@@ -833,7 +1034,8 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
               {/* Clear Button - only show when there's text */}
               {itemSearchQuery && (
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setItemSearchQuery('');
                     setShowItemDropdown(false);
                   }}
@@ -862,7 +1064,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                       {item}
                     </button>
                   ))}
-                </div>
+            </div>
               )}
               
               {/* No results message */}
@@ -893,7 +1095,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
         </div>
         
       {/* Full-Width Chart Area - Native Mobile Style */}
-      <div className="bg-gray-50 dark:bg-gray-900 py-6">
+      <div className="bg-gray-50 dark:bg-gray-900 py-6 -mx-4">
         <div className="h-80 w-full overflow-hidden">
                  {chartData && chartData.length > 0 ? (
                    <PortfolioChart data={chartData} />
@@ -919,12 +1121,12 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-center">
             <div className="flex items-center justify-between w-full max-w-xs">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-xs">Inventory</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(metrics.totalItems)}</p>
-              </div>
-              <div className="p-2 bg-gray-500/20 rounded-xl">
-                <CollectionIcon />
+            <div>
+              <p className="text-gray-600 dark:text-gray-300 text-xs">Inventory</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(metrics.totalItems)}</p>
+            </div>
+            <div className="p-2 bg-gray-500/20 rounded-xl">
+              <CollectionIcon />
               </div>
             </div>
           </div>
@@ -933,15 +1135,15 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-center">
             <div className="flex items-center justify-between w-full max-w-xs">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-xs">Total Cost</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(metrics.totalCost)}</p>
-              </div>
-              <div className="p-2 bg-gray-500/20 rounded-xl">
-                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
-                </svg>
+            <div>
+              <p className="text-gray-600 dark:text-gray-300 text-xs">Total Cost</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(metrics.totalCost)}</p>
+            </div>
+            <div className="p-2 bg-gray-500/20 rounded-xl">
+              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+              </svg>
               </div>
             </div>
           </div>
@@ -950,17 +1152,17 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-center">
             <div className="flex items-center justify-between w-full max-w-xs">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-xs">Market Value</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(metrics.estimatedMarketValue)}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  +0.0%
-                </p>
-              </div>
-              <div className="p-2 bg-gray-500/20 rounded-xl">
-                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zM8 6a2 2 0 114 0v1H8V6zm4 10a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                </svg>
+            <div>
+              <p className="text-gray-600 dark:text-gray-300 text-xs">Market Value</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">${centsToStr(metrics.estimatedMarketValue)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                +0.0%
+              </p>
+            </div>
+            <div className="p-2 bg-gray-500/20 rounded-xl">
+              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zM8 6a2 2 0 114 0v1H8V6zm4 10a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
               </div>
             </div>
           </div>
@@ -969,18 +1171,18 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-center">
             <div className="flex items-center justify-between w-full max-w-xs">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-xs">Total Profit</p>
-                <p className={`text-lg font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ${centsToStr(metrics.totalProfit)}
-                </p>
-                <p className={`text-xs ${metrics.profitPercentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {metrics.profitPercentage >= 0 ? '+' : ''}{metrics.profitPercentage.toFixed(1)}%
-                </p>
-              </div>
-              <div className="p-2 bg-gray-500/20 rounded-xl">
-                {metrics.totalProfit >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
-              </div>
+            <div>
+              <p className="text-gray-600 dark:text-gray-300 text-xs">Total Profit</p>
+              <p className={`text-lg font-bold ${metrics.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                ${centsToStr(metrics.totalProfit)}
+              </p>
+              <p className={`text-xs ${metrics.profitPercentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {metrics.profitPercentage >= 0 ? '+' : ''}{metrics.profitPercentage.toFixed(1)}%
+              </p>
+            </div>
+            <div className="p-2 bg-gray-500/20 rounded-xl">
+              {metrics.totalProfit >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
+            </div>
             </div>
           </div>
         </div>
@@ -1028,7 +1230,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                           <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                             <div className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(item.bought)}</div>
                             <div className="text-xs text-gray-600 dark:text-gray-400">Items Bought</div>
-                          </div>
+                        </div>
                           <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                             <div className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(item.sold)}</div>
                             <div className="text-xs text-gray-600 dark:text-gray-400">Items Sold</div>
@@ -1077,24 +1279,24 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                             <div className="flex justify-between items-center min-h-[1.5rem]">
                               <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">ROI</span>
                               <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                                {Number.isFinite(item.roi) ? `${(item.roi * 100).toFixed(0)}%` : '—'}
-                              </span>
-                            </div>
+                            {Number.isFinite(item.roi) ? `${(item.roi * 100).toFixed(0)}%` : '—'}
+                          </span>
+                        </div>
                             <div className="flex justify-between items-center min-h-[1.5rem]">
                               <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">Margin</span>
                               <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                                {Number.isFinite(item.margin) ? `${(item.margin * 100).toFixed(0)}%` : '—'}
-                              </span>
-                            </div>
+                            {Number.isFinite(item.margin) ? `${(item.margin * 100).toFixed(0)}%` : '—'}
+                          </span>
+                        </div>
                           </>
                         )}
-                      </div>
+                        </div>
                     ))}
-                  </div>
+                        </div>
                 ) : (
                   <div className="text-center py-3 sm:py-4 flex-1 flex items-center justify-center">
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">No financial data available</p>
-                  </div>
+                      </div>
                 )}
               </div>
 
@@ -1105,14 +1307,14 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                     {(() => {
                       // Calculate market values using the same logic as the KPI cards
                       const dataToUse = filteredOrders;
-                      const totalItems = dataToUse.length;
-                      const totalCost = dataToUse.reduce((sum, item) => sum + (item.buy_price_cents || 0), 0);
+                      const totalItems = dataToUse.filter(item => item.buy_price_cents && !item.sale_price_cents).length;
+                      const totalCost = dataToUse.filter(item => item.buy_price_cents && !item.sale_price_cents).reduce((sum, item) => sum + (item.buy_price_cents || 0), 0);
                       
-                      // Calculate current market value using real API data
+                      // Calculate current market value using real API data - only for items still on hand
                       let estimatedMarketValue = 0;
                       let itemsWithMarketData = 0;
                       
-                      dataToUse.forEach(item => {
+                      dataToUse.filter(item => item.buy_price_cents && !item.sale_price_cents).forEach(item => {
                         // Try to find market data by exact match first
                         let marketInfo = marketData[item.item];
                         
@@ -1262,7 +1464,7 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
             </>
           )}
         </div>
-      </div>
+        </div>
       </div>
 
       {/* Recent Activity - Native Mobile Style */}
