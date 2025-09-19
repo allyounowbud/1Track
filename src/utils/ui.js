@@ -2,9 +2,9 @@
 
 export const card = "rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur p-3 sm:p-4 md:p-6 shadow-[0_10px_30px_rgba(0,0,0,.35)] dark:shadow-[0_10px_30px_rgba(0,0,0,.35)]";
 
-export const inputBase = "w-full min-w-0 h-10 sm:h-11 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 outline-none focus:border-blue-500 dark:focus:border-indigo-500";
+export const inputBase = "w-full min-w-0 h-10 sm:h-11 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-indigo-500";
 
-export const inputSm = "h-8 sm:h-9 md:h-10 text-xs sm:text-sm w-full min-w-0 bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-2 py-1 sm:px-3 sm:py-2 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:border-blue-500 dark:focus:border-indigo-500";
+export const inputSm = "h-8 sm:h-9 md:h-10 text-xs sm:text-sm w-full min-w-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 sm:px-3 sm:py-2 text-gray-900 dark:text-white placeholder-gray-400 focus:border-indigo-500";
 
 export const rowCard = "rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-2 sm:p-3 overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,.15)] dark:shadow-[0_4px_12px_rgba(0,0,0,.25)]";
 

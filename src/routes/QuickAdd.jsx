@@ -490,12 +490,6 @@ export default function QuickAdd() {
       </div>
 
         <form onSubmit={onSave} className="px-4 py-4 space-y-6">
-          {/* ORDER */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Order details</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm -mt-1">Add a new or existing order</p>
-            <div className="border-b border-gray-200 dark:border-gray-700 mt-4"></div>
-          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Order Date */}

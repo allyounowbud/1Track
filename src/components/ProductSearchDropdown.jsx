@@ -261,7 +261,7 @@ export default function ProductSearchDropdown({
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`w-full h-10 appearance-none bg-white dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:border-blue-500 dark:focus:border-indigo-500 outline-none placeholder-slate-400 ${
+          className={`w-full h-10 appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none placeholder-gray-400 ${
             disabled ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         />

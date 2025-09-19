@@ -361,12 +361,6 @@ export default function MarkSold() {
           onSubmit={markSold}
           className="px-4 py-4 space-y-6"
         >
-          {/* SALE DETAILS TITLE */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Sale details</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm -mt-1">Mark an existing order as sold</p>
-            <div className="border-b border-gray-200 dark:border-gray-700 mt-4"></div>
-          </div>
           {/* Grid of inputs (stacks on mobile) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Select Open Purchase */}
