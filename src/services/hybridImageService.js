@@ -21,6 +21,8 @@ function generateImageUrl(productName, productId, consoleName) {
   if (productId) {
     imageUrls.push(`https://storage.googleapis.com/images.pricecharting.com/${productId}/240.jpg`);
     imageUrls.push(`https://storage.googleapis.com/images.pricecharting.com/${productId}/480.jpg`);
+    imageUrls.push(`https://images.pricecharting.com/images/${productId}/240.jpg`);
+    imageUrls.push(`https://images.pricecharting.com/images/${productId}/480.jpg`);
   }
   
   // Pattern 2: Generic product images based on console/platform
@@ -113,6 +115,7 @@ export async function getProductImages(productName, consoleName = null, forceRef
           });
           
           console.log(`Generated ${imageUrls.length} image URLs for: ${cleanProductName}`);
+          console.log('Sample image URLs:', imageUrls.slice(0, 2));
           return imageUrls;
         }
       }

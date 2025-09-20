@@ -382,8 +382,12 @@ export default function ProductSearchDropdown({
                         alt={product.product_name}
                         className="w-12 h-12 object-contain rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800"
                         onError={(e) => {
+                          console.log('Image failed to load:', displayImage);
                           e.target.style.display = 'none';
                           e.target.nextSibling.style.display = 'flex';
+                        }}
+                        onLoad={() => {
+                          console.log('Image loaded successfully:', displayImage);
                         }}
                       />
                     ) : null}
