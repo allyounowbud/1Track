@@ -1187,11 +1187,93 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
           </div>
         </div>
         
+      {/* Chart Legend - Only show for line chart (when there's inventory) */}
+      {chartData && chartData.length > 0 && chartData[0]?.hasInventory && (
+        <div className="flex justify-center items-center gap-4 mt-3 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full opacity-60"></div>
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-normal opacity-70">Market Value</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-red-500 rounded-full opacity-60"></div>
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-normal opacity-70">Total Cost</span>
+          </div>
+        </div>
+      )}
+
       {/* Chart Area - Within Container, Full Width */}
       <div className="py-6">
         <div className="h-96 w-full overflow-hidden">
           {chartData && chartData.length > 0 ? (
-            <PortfolioChart data={chartData} />
+            chartData[0]?.hasInventory ? (
+              <PortfolioChart data={chartData} />
+            ) : (
+              // Bar chart for sold items (revenue vs cost)
+              <div className="h-full flex items-center justify-center p-8">
+                <div className="w-full max-w-md">
+                  <div className="flex items-end justify-center gap-8 h-64">
+                    {/* Revenue Bar */}
+                    <div className="flex flex-col items-center gap-2">
+                      <div 
+                        className="flex items-end justify-center h-48"
+                      >
+                        <div 
+                          className="w-16 bg-green-500 rounded-t-lg relative"
+                          style={{ 
+                            height: `${Math.min(100, (chartData.reduce((sum, point) => sum + (point.revenue || 0), 0) / Math.max(chartData.reduce((sum, point) => sum + (point.cost || 0), 0), 1)) * 100)}%` 
+                          }}
+                        >
+                          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-xs font-medium text-gray-700 dark:text-gray-300">
+                            ${(chartData.reduce((sum, point) => sum + (point.revenue || 0), 0) / 100).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">Revenue</span>
+                    </div>
+                    
+                    {/* Cost Bar */}
+                    <div className="flex flex-col items-center gap-2">
+                      <div 
+                        className="flex items-end justify-center h-48"
+                      >
+                        <div 
+                          className="w-16 bg-red-500 rounded-t-lg relative"
+                          style={{ 
+                            height: `${Math.min(100, (chartData.reduce((sum, point) => sum + (point.cost || 0), 0) / Math.max(chartData.reduce((sum, point) => sum + (point.revenue || 0), 0), 1)) * 100)}%` 
+                          }}
+                        >
+                          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-xs font-medium text-gray-700 dark:text-gray-300">
+                            ${(chartData.reduce((sum, point) => sum + (point.cost || 0), 0) / 100).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">Total Cost</span>
+                    </div>
+                  </div>
+                  
+                  {/* Profit/Loss indicator */}
+                  <div className="mt-6 text-center">
+                    <div className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                      {(() => {
+                        const netValue = (chartData.reduce((sum, point) => sum + (point.revenue || 0), 0) - chartData.reduce((sum, point) => sum + (point.cost || 0), 0)) / 100;
+                        const isProfit = netValue >= 0;
+                        return (
+                          <>
+                            {isProfit ? 'Net Profit:' : 'Net Loss:'} <span className={isProfit ? 'text-green-500' : 'text-red-500'}>
+                              ${netValue.toFixed(2)}
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <div className="text-base text-gray-500 dark:text-gray-400 mt-1 opacity-80">
+                      ROI: {((chartData.reduce((sum, point) => sum + (point.revenue || 0), 0) - chartData.reduce((sum, point) => sum + (point.cost || 0), 0)) / Math.max(chartData.reduce((sum, point) => sum + (point.cost || 0), 0), 1) * 100).toFixed(1)}% | 
+                      Margin: {(((chartData.reduce((sum, point) => sum + (point.revenue || 0), 0) - chartData.reduce((sum, point) => sum + (point.cost || 0), 0)) / Math.max(chartData.reduce((sum, point) => sum + (point.revenue || 0), 0), 1)) * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
           ) : (
             <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-300">
               <div className="text-center">
@@ -1208,8 +1290,15 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
         </div>
       </div>
 
-      {/* KPI Cards Grid - Native Mobile Style */}
-      <div className="px-4 py-6">
+      {/* KPI Cards Grid - Native Mobile Style - Only show when there's inventory */}
+      {(() => {
+        // Check if there's any inventory (items still on hand)
+        const hasInventory = portfolioItems.filter(item => item.buy_price_cents && !item.sale_price_cents).length > 0;
+        
+        if (!hasInventory) return null;
+        
+        return (
+          <div className="px-4 py-6">
         <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-4">
           <div className="flex items-center justify-center">
@@ -1367,22 +1456,30 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                             ${centsToStr(item.realizedPlC)}
                           </span>
                         </div>
-                        {item.revenueC > 0 && (
-                          <>
-                            <div className="flex justify-between items-center min-h-[1.5rem]">
-                              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">ROI</span>
-                              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                            {Number.isFinite(item.roi) ? `${(item.roi * 100).toFixed(0)}%` : '—'}
-                          </span>
-                        </div>
-                            <div className="flex justify-between items-center min-h-[1.5rem]">
-                              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">Margin</span>
-                              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                            {Number.isFinite(item.margin) ? `${(item.margin * 100).toFixed(0)}%` : '—'}
-                          </span>
-                        </div>
-                          </>
-                        )}
+                        {item.revenueC > 0 && (() => {
+                          // Check if there's any inventory (items still on hand)
+                          const hasInventory = filteredOrders.filter(order => order.buy_price_cents && !order.sale_price_cents).length > 0;
+                          
+                          // Only show ROI and Margin if there's inventory (line chart active)
+                          if (!hasInventory) return null;
+                          
+                          return (
+                            <>
+                              <div className="flex justify-between items-center min-h-[1.5rem]">
+                                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">ROI</span>
+                                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                              {Number.isFinite(item.roi) ? `${(item.roi * 100).toFixed(0)}%` : '—'}
+                            </span>
+                          </div>
+                              <div className="flex justify-between items-center min-h-[1.5rem]">
+                                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">Margin</span>
+                                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                              {Number.isFinite(item.margin) ? `${(item.margin * 100).toFixed(0)}%` : '—'}
+                            </span>
+                          </div>
+                            </>
+                          );
+                        })()}
                         </div>
                     ))}
                         </div>
@@ -1393,8 +1490,15 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                 )}
               </div>
 
-              <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Market Insight</h4>
+              {(() => {
+                // Check if there's any inventory (items still on hand)
+                const hasInventory = filteredOrders.filter(item => item.buy_price_cents && !item.sale_price_cents).length > 0;
+                
+                if (!hasInventory) return null;
+                
+                return (
+                  <div className="bg-white dark:bg-gray-900/50 rounded-2xl p-4 border border-gray-200 dark:border-gray-700/50">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Market Insight</h4>
                 {filteredOrders.length > 0 ? (
                   <div className="space-y-3">
                     {(() => {
@@ -1510,7 +1614,9 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                     <p className="text-sm text-gray-500 dark:text-gray-400">No market data available</p>
                   </div>
                 )}
-              </div>
+                  </div>
+                );
+              })()}
             </>
           ) : (
             // Default view when no filter is active
@@ -1569,7 +1675,9 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
           )}
         </div>
         </div>
-      </div>
+          </div>
+        );
+      })()}
 
       {/* Recent Activity - Native Mobile Style */}
       {!itemSearchQuery && (
