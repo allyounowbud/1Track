@@ -1015,6 +1015,8 @@ function SettingsCard({
            "Database management"}
         </p>
       </div>
+
+
       
       {/* Description for each tab */}
       {activeTab === "products" && (

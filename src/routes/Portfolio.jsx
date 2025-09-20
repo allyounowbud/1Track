@@ -1406,13 +1406,16 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Stats</h4>
                 {itemGroups.length > 0 ? (
                   <div className="space-y-3">
-                    {itemGroups.slice(0, 1).map((item, idx) => (
-                      <div key={item.item}>
+                    {itemGroups.map((item, idx) => (
+                      <div key={item.item} className="space-y-2">
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">
+                          {item.item.split(' - ')[0]}
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                             <div className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(item.bought)}</div>
                             <div className="text-xs text-gray-600 dark:text-gray-400">Items Bought</div>
-                        </div>
+                          </div>
                           <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                             <div className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(item.sold)}</div>
                             <div className="text-xs text-gray-600 dark:text-gray-400">Items Sold</div>
@@ -1440,8 +1443,11 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3 flex-shrink-0">Financial Performance</h4>
                 {itemGroups.length > 0 ? (
                   <div className="space-y-2 sm:space-y-3 flex-1 min-h-0">
-                    {itemGroups.slice(0, 1).map((item, idx) => (
+                    {itemGroups.map((item, idx) => (
                       <div key={item.item} className="space-y-2 sm:space-y-3">
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate mb-2">
+                          {item.item.split(' - ')[0]}
+                        </div>
                         <div className="flex justify-between items-center min-h-[1.5rem]">
                           <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">Total Revenue</span>
                           <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">${centsToStr(item.revenueC)}</span>
@@ -1468,19 +1474,22 @@ function OverviewTab({ orders, portfolioItems, marketData, items, tcgSealed, tcg
                               <div className="flex justify-between items-center min-h-[1.5rem]">
                                 <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">ROI</span>
                                 <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                              {Number.isFinite(item.roi) ? `${(item.roi * 100).toFixed(0)}%` : '—'}
-                            </span>
-                          </div>
+                                  {Number.isFinite(item.roi) ? `${(item.roi * 100).toFixed(0)}%` : '—'}
+                                </span>
+                              </div>
                               <div className="flex justify-between items-center min-h-[1.5rem]">
                                 <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate pr-2">Margin</span>
                                 <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                              {Number.isFinite(item.margin) ? `${(item.margin * 100).toFixed(0)}%` : '—'}
-                            </span>
-                          </div>
+                                  {Number.isFinite(item.margin) ? `${(item.margin * 100).toFixed(0)}%` : '—'}
+                                </span>
+                              </div>
                             </>
                           );
                         })()}
-                        </div>
+                        {idx < itemGroups.length - 1 && (
+                          <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div>
+                        )}
+                      </div>
                     ))}
                         </div>
                 ) : (

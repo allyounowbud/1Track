@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Real PriceCharting Images in Search**: Enhanced product search functionality with real product images:
+  - **Real Image Display**: Product search dropdown now shows actual PriceCharting product images alongside search results
+  - **Hybrid Image Service**: Combines existing PriceCharting API data with intelligent image URL generation
+  - **Product ID Integration**: Uses product IDs from API responses to generate proper PriceCharting image URLs
+  - **Multiple Image Sizes**: Provides both 240px and 480px image variants for optimal display quality
+  - **Smart Caching**: Images are cached in memory for 24 hours to improve performance and reduce API calls
+  - **Automatic Image Assignment**: Images are automatically fetched for the top 5 search results
+  - **Fallback Handling**: Graceful fallback to generic images when specific product images aren't available
+  - **Loading States**: Visual loading indicators while images are being fetched
+  - **Error Handling**: Robust error handling for failed image requests with proper fallbacks
+  - **Performance Optimization**: Images are fetched asynchronously without blocking search results display
+  - **No Server Dependencies**: Works entirely from the frontend using existing API infrastructure
+
+### Added
 - **Profile Page & User Hub**: Created comprehensive profile page that serves as a user hub with account management and settings:
   - **User Information Display**: Shows user avatar, username, and account status with professional card layout
   - **Sign Out Functionality**: Secure sign out with proper session cleanup and navigation to login page

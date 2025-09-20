@@ -9,8 +9,11 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 export async function getProductImages(productName, consoleName = null, forceRefresh = false) {
   if (!productName) return [];
   
+  // Clean the product name for better matching
+  const cleanProductName = productName.trim();
+  
   // Check in-memory cache first
-  const cacheKey = `${productName}_${consoleName || ''}`;
+  const cacheKey = `${cleanProductName}_${consoleName || ''}`;
   const cached = imageCache.get(cacheKey);
   
   if (!forceRefresh && cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
@@ -18,22 +21,31 @@ export async function getProductImages(productName, consoleName = null, forceRef
   }
   
   try {
+    // Use the environment variables directly since they're working
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    // Construct the URL
+    const imageUrl = `${supabaseUrl}/functions/v1/price-charting-images?product=${encodeURIComponent(cleanProductName)}${consoleName ? `&console=${encodeURIComponent(consoleName)}` : ''}${forceRefresh ? '&refresh=true' : ''}`;
+    console.log('Calling image service URL:', imageUrl);
+    
     // Call the image scraping edge function
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting-images?product=${encodeURIComponent(productName)}${consoleName ? `&console=${encodeURIComponent(consoleName)}` : ''}${forceRefresh ? '&refresh=true' : ''}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        }
+    const response = await fetch(imageUrl, {
+      headers: {
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
       }
-    );
+    });
     
     if (!response.ok) {
+      console.error(`Image service HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const data = await response.json();
+    console.log('Image service response data:', data);
     
     if (data.success && data.data && data.data.image_urls) {
       const images = data.data.image_urls;
@@ -44,11 +56,11 @@ export async function getProductImages(productName, consoleName = null, forceRef
         timestamp: Date.now()
       });
       
-      console.log(`Found ${images.length} real images for: ${productName}`);
+      console.log(`Found ${images.length} real images for: ${cleanProductName}`);
       return images;
     }
     
-    console.log(`No images found for: ${productName}`);
+    console.log(`No images found for: ${cleanProductName}`);
     return [];
   } catch (error) {
     console.error('Error fetching product images:', error);
@@ -83,6 +95,32 @@ export async function getBatchProductImages(products, forceRefresh = false) {
     }
   }
   
+  return results;
+}
+
+// Get images for search results (optimized for search dropdown)
+export async function getSearchResultImages(searchResults, maxResults = 5) {
+  const results = new Map();
+  
+  // Only fetch images for the top results to avoid overwhelming the server
+  const topResults = searchResults.slice(0, maxResults);
+  
+  const promises = topResults.map(async (product) => {
+    const productName = product.product_name || product.name;
+    const consoleName = product.console_name || product.console;
+    
+    if (productName) {
+      try {
+        const images = await getProductImages(productName, consoleName);
+        results.set(`${productName}_${consoleName || ''}`, images);
+      } catch (error) {
+        console.error(`Error fetching images for ${productName}:`, error);
+        results.set(`${productName}_${consoleName || ''}`, []);
+      }
+    }
+  });
+  
+  await Promise.all(promises);
   return results;
 }
 

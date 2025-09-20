@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { getProductImages } from '../services/hybridImageService.js';
+import { supabase } from '../lib/supabaseClient.js';
 
 export default function ProductSearchDropdown({ 
   value = "", 
@@ -17,6 +19,8 @@ export default function ProductSearchDropdown({
   const [error, setError] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const [showAllResults, setShowAllResults] = useState(false);
+  const [productImages, setProductImages] = useState(new Map());
+  const [loadingImages, setLoadingImages] = useState(new Set());
   
   const searchTimeoutRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -32,6 +36,38 @@ export default function ProductSearchDropdown({
         width: rect.width
       });
     }
+  };
+
+  // Function to fetch images for a product
+  const fetchProductImages = async (productName, consoleName) => {
+    const cacheKey = `${productName}_${consoleName || ''}`;
+    
+    // Don't fetch if already loading or cached
+    if (loadingImages.has(cacheKey) || productImages.has(cacheKey)) {
+      return;
+    }
+
+    setLoadingImages(prev => new Set(prev).add(cacheKey));
+
+    try {
+      const images = await getProductImages(productName, consoleName);
+      setProductImages(prev => new Map(prev).set(cacheKey, images));
+    } catch (error) {
+      console.error('Error fetching images for', productName, error);
+      setProductImages(prev => new Map(prev).set(cacheKey, []));
+    } finally {
+      setLoadingImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(cacheKey);
+        return newSet;
+      });
+    }
+  };
+
+  // Function to get cached images for a product
+  const getCachedImages = (productName, consoleName) => {
+    const cacheKey = `${productName}_${consoleName || ''}`;
+    return productImages.get(cacheKey) || [];
   };
 
   // Debounced search
@@ -51,9 +87,12 @@ export default function ProductSearchDropdown({
 
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-charting/search?q=${encodeURIComponent(searchQuery)}`, {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        const response = await fetch(`${supabaseUrl}/functions/v1/price-charting/search?q=${encodeURIComponent(searchQuery)}`, {
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${supabaseKey}`,
             'Content-Type': 'application/json',
           },
         });
@@ -106,6 +145,12 @@ export default function ProductSearchDropdown({
             
             console.log('Formatted results:', formattedResults);
             setSearchResults(formattedResults);
+            
+            // Fetch images for the first few results
+            const topResults = formattedResults.slice(0, 5);
+            topResults.forEach(product => {
+              fetchProductImages(product.product_name, product.console_name);
+            });
           } else {
             setError('No products found');
             setSearchResults([]);
@@ -312,40 +357,81 @@ export default function ProductSearchDropdown({
             </div>
           )}
           
-          {(showAllResults ? searchResults : searchResults.slice(0, 20)).map((product, index) => (
-            <div
-              key={product.product_id}
-              onClick={() => handleProductSelect(product)}
-              className={`px-3 py-2 cursor-pointer border-b border-gray-200 dark:border-slate-700 last:border-b-0 transition-colors ${
-                index === selectedIndex 
-                  ? 'bg-indigo-100 dark:bg-indigo-600/20 text-indigo-800 dark:text-indigo-200' 
-                  : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-900 dark:text-slate-200'
-              }`}
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">
-                    {product.product_name}
-                    {isSealedProduct(product.product_name) && (
-                      <span className="ml-1 text-xs bg-green-100 dark:bg-green-600/20 text-green-700 dark:text-green-300 px-1 rounded">
-                        Sealed
-                      </span>
+          {(showAllResults ? searchResults : searchResults.slice(0, 20)).map((product, index) => {
+            const cachedImages = getCachedImages(product.product_name, product.console_name);
+            const isLoadingImage = loadingImages.has(`${product.product_name}_${product.console_name || ''}`);
+            const hasImage = cachedImages.length > 0 || product.image_url;
+            const displayImage = cachedImages[0] || product.image_url;
+            
+            return (
+              <div
+                key={product.product_id}
+                onClick={() => handleProductSelect(product)}
+                className={`px-3 py-2 cursor-pointer border-b border-gray-200 dark:border-slate-700 last:border-b-0 transition-colors ${
+                  index === selectedIndex 
+                    ? 'bg-indigo-100 dark:bg-indigo-600/20 text-indigo-800 dark:text-indigo-200' 
+                    : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-900 dark:text-slate-200'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Product Image */}
+                  <div className="flex-shrink-0 w-12 h-12">
+                    {hasImage ? (
+                      <img 
+                        src={displayImage} 
+                        alt={product.product_name}
+                        className="w-12 h-12 object-contain rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className={`w-12 h-12 bg-gray-100 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded flex items-center justify-center ${
+                        hasImage ? 'hidden' : 'flex'
+                      }`}
+                    >
+                      {isLoadingImage ? (
+                        <svg className="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Product Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">
+                      {product.product_name}
+                      {isSealedProduct(product.product_name) && (
+                        <span className="ml-1 text-xs bg-green-100 dark:bg-green-600/20 text-green-700 dark:text-green-300 px-1 rounded">
+                          Sealed
+                        </span>
+                      )}
+                    </div>
+                    {product.console_name && (
+                      <div className="text-xs text-gray-600 dark:text-slate-400 truncate">
+                        {product.console_name}
+                      </div>
                     )}
                   </div>
-                  {product.console_name && (
-                    <div className="text-xs text-gray-600 dark:text-slate-400 truncate">
-                      {product.console_name}
+                  
+                  {/* Price */}
+                  <div className="ml-2 text-right flex-shrink-0">
+                    <div className="text-xs font-medium text-green-600 dark:text-green-400">
+                      {formatPrice(product.loose_price)}
                     </div>
-                  )}
-                </div>
-                <div className="ml-2 text-right flex-shrink-0">
-                  <div className="text-xs font-medium text-green-600 dark:text-green-400">
-                    {formatPrice(product.loose_price)}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           
           {/* Show More button when there are more than 20 results */}
           {searchResults.length > 20 && !showAllResults && (
