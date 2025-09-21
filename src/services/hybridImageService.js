@@ -1,5 +1,7 @@
 // Hybrid image service that combines API data with reliable image sources
-// This uses the existing PriceCharting API data and adds images from reliable sources
+// This uses Card Market API first (for high-quality images), then falls back to PriceCharting API
+
+import { getProductMarketData } from './marketDataService.js';
 
 // Cache for in-memory image storage
 const imageCache = new Map();
@@ -62,7 +64,27 @@ export async function getProductImages(productName, consoleName = null, forceRef
   try {
     console.log(`Getting images for: ${cleanProductName}`);
     
-    // First, try to get product data from the existing API to get product ID
+    // First, try Card Market API for high-quality images
+    try {
+      const marketDataResult = await getProductMarketData(cleanProductName);
+      
+      if (marketDataResult.success && marketDataResult.data.imageUrl) {
+        const cardMarketImages = [marketDataResult.data.imageUrl];
+        
+        // Cache the result
+        imageCache.set(cacheKey, {
+          images: cardMarketImages,
+          timestamp: Date.now()
+        });
+        
+        console.log(`Found Card Market API image for: ${cleanProductName}`);
+        return cardMarketImages;
+      }
+    } catch (error) {
+      console.warn(`Card Market API failed for ${cleanProductName}, falling back to PriceCharting:`, error.message);
+    }
+    
+    // Fallback to PriceCharting API
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
@@ -114,7 +136,7 @@ export async function getProductImages(productName, consoleName = null, forceRef
             timestamp: Date.now()
           });
           
-          console.log(`Generated ${imageUrls.length} image URLs for: ${cleanProductName}`);
+          console.log(`Generated ${imageUrls.length} PriceCharting image URLs for: ${cleanProductName}`);
           console.log('Sample image URLs:', imageUrls.slice(0, 2));
           return imageUrls;
         }

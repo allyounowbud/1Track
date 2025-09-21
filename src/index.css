@@ -1,707 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* CSS Custom Properties for Theme System */
-:root {
-  /* Light theme colors - Professional & Modern */
-  --bg-primary: 249 250 251; /* gray-50 - softer than slate */
-  --bg-secondary: 255 255 255; /* white */
-  --bg-tertiary: 243 244 246; /* gray-100 */
-  --bg-quaternary: 229 231 235; /* gray-200 */
-  
-  --text-primary: 17 24 39; /* gray-900 - warmer than slate */
-  --text-secondary: 55 65 81; /* gray-700 */
-  --text-tertiary: 75 85 99; /* gray-600 */
-  --text-quaternary: 107 114 128; /* gray-500 */
-  
-  --border-primary: 229 231 235; /* gray-200 */
-  --border-secondary: 209 213 219; /* gray-300 */
-  --border-tertiary: 156 163 175; /* gray-400 */
-  
-  --accent-primary: 59 130 246; /* blue-500 - more professional blue */
-  --accent-secondary: 37 99 235; /* blue-600 */
-  
-  --shadow-color: 0 0 0;
-  --shadow-opacity: 0.05;
-}
-
-.dark {
-  /* Dark theme colors */
-  --bg-primary: 17 24 39; /* gray-900 */
-  --bg-secondary: 17 24 39; /* gray-900 with 50% opacity */
-  --bg-tertiary: 55 65 81; /* gray-700 */
-  --bg-quaternary: 75 85 99; /* gray-600 */
-  
-  --text-primary: 255 255 255; /* white */
-  --text-secondary: 243 244 246; /* gray-100 */
-  --text-tertiary: 209 213 219; /* gray-300 */
-  --text-quaternary: 156 163 175; /* gray-400 */
-  
-  --border-primary: 55 65 81; /* gray-700 */
-  --border-secondary: 75 85 99; /* gray-600 */
-  --border-tertiary: 107 114 128; /* gray-500 */
-  
-  --accent-primary: 99 102 241; /* indigo-500 */
-  --accent-secondary: 129 140 248; /* indigo-400 */
-  
-  --shadow-color: 0 0 0;
-  --shadow-opacity: 0.3;
-}
-
-/* Global background coverage for mobile */
-html, body {
-  background-color: rgb(var(--bg-primary)) !important;
-  color: rgb(var(--text-primary)) !important;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
-
-/* Ensure root element covers full viewport */
-#root {
-  background-color: rgb(var(--bg-primary)) !important;
-  color: rgb(var(--text-primary)) !important;
-  width: 100%;
-}
-
-/* Simple, reliable sidebar positioning */
-.sidebar-fixed {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  bottom: 0 !important;
-  z-index: 30 !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-/* Mobile bottom bar positioning - keep desktop sidebar behavior */
-@media (max-width: 649px) {
-  .sidebar-fixed {
-    position: fixed !important;
-    top: auto !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    z-index: 9999 !important;
-  }
-}
-
-/* Custom breakpoint for 649px and smaller - hide nav text labels and button text */
-@media (max-width: 649px) {
-  .hidden.sm\:inline {
-    display: none !important;
-  }
-  .hidden.xs\:block {
-    display: none !important;
-  }
-}
-
-/* Ensure bottom bar is always on top and isolated */
-@media (max-width: 649px) {
-  /* Bottom bar isolation - highest z-index */
-  .mobile-bottom-bar {
-    z-index: 9999 !important;
-    position: fixed !important;
-    isolation: isolate !important;
-    contain: layout style !important;
+@layer base {
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+    font-weight: 200;
   }
   
-  /* Prevent any content from overlapping bottom bar */
-  .main-content {
-    padding-bottom: 4rem !important; /* 64px - height of bottom bar */
-    max-height: calc(100vh - 4rem) !important;
-    overflow-y: auto !important;
-  }
-}
-
-/* Mobile scaling - reduce text sizes and spacing for better fit */
-@media (max-width: 649px) {
-  /* Scale down text sizes */
-  .text-2xl {
-    font-size: 1.5rem !important; /* 24px -> 20px */
-    line-height: 2rem !important;
-  }
-  
-  .text-lg {
-    font-size: 1rem !important; /* 18px -> 16px */
-    line-height: 1.5rem !important;
-  }
-  
-  .text-base {
-    font-size: 0.875rem !important; /* 16px -> 14px */
-    line-height: 1.25rem !important;
-  }
-  
-  .text-sm {
-    font-size: 0.75rem !important; /* 14px -> 12px */
-    line-height: 1rem !important;
-  }
-  
-  /* Scale down padding and margins */
-  .p-4 {
-    padding: 0.75rem !important; /* 16px -> 12px */
-  }
-  
-  .p-6 {
-    padding: 1rem !important; /* 24px -> 16px */
-  }
-  
-  .px-4 {
-    padding-left: 0.75rem !important; /* 16px -> 12px */
-    padding-right: 0.75rem !important;
-  }
-  
-  .py-3 {
-    padding-top: 0.5rem !important; /* 12px -> 8px */
-    padding-bottom: 0.5rem !important;
-  }
-  
-  .px-3 {
-    padding-left: 0.5rem !important; /* 12px -> 8px */
-    padding-right: 0.5rem !important;
-  }
-  
-  .py-2 {
-    padding-top: 0.375rem !important; /* 8px -> 6px */
-    padding-bottom: 0.375rem !important;
-  }
-  
-  /* Scale down margins */
-  .mb-6 {
-    margin-bottom: 1rem !important; /* 24px -> 16px */
-  }
-  
-  .mb-4 {
-    margin-bottom: 0.75rem !important; /* 16px -> 12px */
-  }
-  
-  .gap-4 {
-    gap: 0.75rem !important; /* 16px -> 12px */
-  }
-  
-  .gap-5 {
-    gap: 1rem !important; /* 20px -> 16px */
-  }
-  
-  /* Scale down input heights */
-  .h-10 {
-    height: 2.25rem !important; /* 40px -> 36px */
-  }
-  
-  .h-9 {
-    height: 2rem !important; /* 36px -> 32px */
-  }
-  
-  /* Scale down rounded corners for tighter feel */
-  .rounded-2xl {
-    border-radius: 0.875rem !important; /* 16px -> 14px */
-  }
-  
-  .rounded-xl {
-    border-radius: 0.625rem !important; /* 12px -> 10px */
-  }
-  
-  .rounded-lg {
-    border-radius: 0.5rem !important; /* 8px -> 6px */
-  }
-  
-  /* Scale down button and icon sizes */
-  .w-9 {
-    width: 2rem !important; /* 36px -> 32px */
-  }
-  
-  .h-9 {
-    height: 2rem !important; /* 36px -> 32px */
-  }
-  
-  /* Scale down page header */
-  h1 {
-    font-size: 1.5rem !important; /* 24px -> 20px */
-    line-height: 2rem !important;
-  }
-  
-  h2 {
-    font-size: 1rem !important; /* 18px -> 16px */
-    line-height: 1.5rem !important;
-  }
-  
-  h3 {
-    font-size: 0.875rem !important; /* 16px -> 14px */
-    line-height: 1.25rem !important;
-  }
-  
-  /* Make inventory table even more compact on mobile */
-  .grid {
-    gap: 0.25rem !important; /* 4px -> 1px */
-  }
-  
-  .px-3 {
-    padding-left: 0.5rem !important; /* 12px -> 8px */
-    padding-right: 0.5rem !important;
-  }
-  
-  .py-2 {
-    padding-top: 0.25rem !important; /* 8px -> 4px */
-    padding-bottom: 0.25rem !important;
-  }
-}
-
-/* Mobile-specific background fixes */
-@media (max-width: 768px) {
-  html, body, #root {
-    background-color: rgb(var(--bg-primary)) !important;
-    color: rgb(var(--text-primary)) !important;
-    min-height: 100vh;
-    min-height: 100dvh;
-    min-height: -webkit-fill-available; /* iOS Safari fix */
-  }
-  
-  /* Prevent white flash on mobile browsers */
   body {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white;
+    font-weight: 200;
   }
-
-  /* Mobile bottom bar natural flow */
-  .mobile-bottom-bar {
-    /* No special padding needed - flows naturally */
+  
+  /* Make all text elements use thin font by default */
+  h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, select {
+    font-weight: 200;
   }
+  
+  /* Override for specific elements that need more weight */
+  .font-medium {
+    font-weight: 300;
+  }
+  
+  .font-semibold {
+    font-weight: 400;
+  }
+  
+  .font-bold {
+    font-weight: 500;
+  }
+}
 
-  /* Safe area support for devices with notches */
-  .pb-safe {
+@layer components {
+  /* Card Components */
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600;
+  }
+  
+  /* Button Components */
+  .btn {
+    @apply px-4 py-2 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-gray-500;
+  }
+  
+  .btn-success {
+    @apply bg-success-500 text-white hover:bg-success-600 focus:ring-success-500;
+  }
+  
+  .btn-accent {
+    @apply bg-accent-500 text-white hover:bg-accent-600 focus:ring-accent-500;
+  }
+  
+  .btn-warning {
+    @apply bg-warning-500 text-white hover:bg-warning-600 focus:ring-warning-500;
+  }
+  
+  /* Input Components */
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+  }
+  
+  /* Status Indicators */
+  .status-ordered {
+    @apply bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200;
+  }
+  
+  .status-sold {
+    @apply bg-success-100 dark:bg-success-900 text-success-800 dark:text-success-200;
+  }
+  
+  .status-pending {
+    @apply bg-warning-100 dark:bg-warning-900 text-warning-800 dark:text-warning-200;
+  }
+  
+  .status-cancelled {
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(156 163 175) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(156 163 175);
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(107 114 128);
+  }
+  
+  /* Safe area for mobile */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* Ensure bottom bar stays fixed and visible */
-  .mobile-bottom-nav {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    z-index: 9999 !important;
-    transform: translateZ(0) !important;
-    will-change: transform !important;
-  }
-
-  /* Ensure body doesn't interfere with fixed positioning */
-  body {
-    position: relative !important;
-  }
-
-  /* Prevent any parent containers from affecting fixed positioning */
-  #root {
-    position: relative !important;
-  }
-}
-
-/* iOS Safari specific fixes */
-@supports (-webkit-touch-callout: none) {
-  html, body, #root {
-    min-height: -webkit-fill-available;
-    background-color: rgb(var(--bg-primary)) !important;
-    color: rgb(var(--text-primary)) !important;
-  }
-}
-
-/* Additional mobile background coverage */
-* {
-  box-sizing: border-box;
-}
-
-/* Ensure all containers inherit the dark background */
-body > *, #root > * {
-  background-color: inherit;
-}
-
-/* Mobile browser UI color theme */
-@media (max-width: 768px) {
-  html {
-    background-color: rgb(var(--bg-primary)) !important;
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
   }
   
-  /* Prevent overscroll bounce showing white */
-  body {
-    overscroll-behavior: none;
-    -webkit-overflow-scrolling: touch;
-  }
-}
-
-/* Custom scrollbar styles */
-.scrollbar-thin {
-  scrollbar-width: thin;
-}
-
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: rgb(var(--bg-tertiary));
-  border-radius: 3px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgb(var(--text-tertiary));
-  border-radius: 3px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--text-quaternary));
-}
-
-/* Apply custom scrollbar to all scrollable content */
-.overflow-y-auto {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(var(--text-tertiary)) rgb(var(--bg-tertiary));
-}
-
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px !important;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: rgb(var(--bg-tertiary)) !important;
-  border-radius: 3px !important;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgb(var(--text-tertiary)) !important;
-  border-radius: 3px !important;
-  border: none !important;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--text-quaternary)) !important;
-}
-
-.overflow-y-auto::-webkit-scrollbar-corner {
-  background: rgb(var(--bg-tertiary)) !important;
-}
-
-/* Fix date input sizing on mobile and iOS */
-input[type="date"] {
-  min-width: 0;
-  max-width: 100%;
-  width: 100%;
-  box-sizing: border-box;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-}
-
-/* iOS/Safari specific date input fixes */
-input[type="date"]::-webkit-datetime-edit {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-input[type="date"]::-webkit-datetime-edit-fields-wrapper {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-input[type="date"]::-webkit-datetime-edit-text {
-  padding: 0;
-}
-
-input[type="date"]::-webkit-datetime-edit-month-field,
-input[type="date"]::-webkit-datetime-edit-day-field,
-input[type="date"]::-webkit-datetime-edit-year-field {
-  width: auto;
-  min-width: 0;
-}
-
-/* Ensure grid items don't overflow on mobile */
-.grid {
-  min-width: 0;
-  overflow: hidden;
-}
-
-.grid > * {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-/* iOS/Safari specific media query for date inputs */
-@supports (-webkit-touch-callout: none) {
-  input[type="date"] {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
   
-  input[type="date"]::-webkit-datetime-edit {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
-  }
-  
-  input[type="date"]::-webkit-datetime-edit-fields-wrapper {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
-  }
-}
-
-/* Custom select dropdown styling for theme system */
-select {
-  background-color: rgb(var(--bg-secondary)) !important;
-  color: rgb(var(--text-primary)) !important;
-  border: 1px solid rgb(var(--border-primary)) !important;
-  border-radius: 0.75rem !important; /* rounded-xl */
-  padding: 0.75rem 1rem !important; /* py-3 px-4 */
-  font-size: 1rem !important;
-  line-height: 1.5 !important;
-  outline: none !important;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease !important;
-}
-
-select:focus {
-  border-color: rgb(var(--accent-primary)) !important;
-  box-shadow: 0 0 0 1px rgb(var(--accent-primary)) !important;
-}
-
-select option {
-  background-color: rgb(var(--bg-secondary)) !important;
-  color: rgb(var(--text-primary)) !important;
-  padding: 0.5rem 1rem !important;
-  border: none !important;
-}
-
-select option:hover,
-select option:focus,
-select option:checked {
-  background-color: rgb(var(--bg-tertiary)) !important;
-  color: rgb(var(--text-primary)) !important;
-}
-
-/* Custom scrollbar for select dropdown options */
-select {
-  scrollbar-width: thin !important;
-  scrollbar-color: rgb(var(--text-tertiary)) rgb(var(--bg-tertiary));
-}
-
-select::-webkit-scrollbar {
-  width: 6px !important;
-}
-
-select::-webkit-scrollbar-track {
-  background: rgb(var(--bg-tertiary)) !important;
-  border-radius: 3px !important;
-}
-
-select::-webkit-scrollbar-thumb {
-  background: rgb(var(--text-tertiary)) !important;
-  border-radius: 3px !important;
-  border: none !important;
-}
-
-select::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--text-quaternary)) !important;
-}
-
-select::-webkit-scrollbar-corner {
-  background: rgb(var(--bg-tertiary)) !important;
-}
-
-/* Webkit dropdown arrow styling - light theme */
-select {
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-  background-position: right 0.75rem center !important;
-  background-repeat: no-repeat !important;
-  background-size: 1.25rem 1.25rem !important;
-  padding-right: 2.5rem !important;
-}
-
-/* Dark theme dropdown arrow */
-.dark select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-}
-
-/* Firefox dropdown arrow styling */
-@-moz-document url-prefix() {
-  select {
-    -webkit-appearance: none !important;
-    -moz-appearance: none !important;
-    appearance: none !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-    background-position: right 0.75rem center !important;
-    background-repeat: no-repeat !important;
-    background-size: 1.25rem 1.25rem !important;
-  }
-  
-  .dark select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-  }
-}
-
-/* Force select styling for OrderBook dropdowns */
-.select-styled {
-  background-color: rgb(var(--bg-secondary) / 0.6) !important;
-  border: 1px solid rgb(var(--border-primary)) !important;
-  border-radius: 0.75rem !important; /* rounded-xl */
-  padding: 0.5rem 0.75rem !important; /* py-2 px-3 */
-  color: rgb(var(--text-primary)) !important;
-  font-size: 0.875rem !important; /* text-sm */
-  outline: none !important;
-  box-shadow: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-  background-position: right 0.75rem center !important;
-  background-repeat: no-repeat !important;
-  background-size: 1.5em 1.5em !important;
-  padding-right: 2.5rem !important;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease !important;
-}
-
-.dark .select-styled {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-}
-
-.select-styled:focus {
-  border-color: rgb(var(--accent-primary)) !important;
-  box-shadow: 0 0 0 1px rgb(var(--accent-primary)) !important;
-}
-
-.select-styled option {
-  background-color: rgb(var(--bg-secondary)) !important;
-  color: rgb(var(--text-primary)) !important;
-}
-
-/* Fix text centering for new product select elements */
-.new-product-select {
-  display: flex !important;
-  align-items: center !important;
-  line-height: 1 !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  height: 2.5rem !important;
-  background-color: rgb(var(--bg-secondary) / 0.6) !important;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-  background-position: right 0.75rem center !important;
-  background-repeat: no-repeat !important;
-  background-size: 1.25rem 1.25rem !important;
-  padding-right: 2.5rem !important;
-  transition: background-color 0.2s ease !important;
-}
-
-.dark .new-product-select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-}
-
-/* Ensure new product selects maintain their styling on all screen sizes */
-.new-product-select:focus {
-  background: rgb(var(--bg-secondary) / 0.6) !important;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-  background-position: right 0.75rem center !important;
-  background-repeat: no-repeat !important;
-  background-size: 1.25rem 1.25rem !important;
-  border: 1px solid rgb(var(--accent-primary)) !important;
-  outline: none !important;
-  box-shadow: none !important;
-  border-radius: 0.75rem !important;
-}
-
-.dark .new-product-select:focus {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-}
-
-/* Apply flexbox centering for medium and small screens */
-@media (max-width: 1023px) {
-  .new-product-select {
-    display: flex !important;
-    align-items: center !important;
-    line-height: 1 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    height: 2.5rem !important;
-    background-color: rgb(var(--bg-secondary) / 0.6) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-    background-position: right 0.75rem center !important;
-    background-repeat: no-repeat !important;
-    background-size: 1.25rem 1.25rem !important;
-    padding-right: 2.5rem !important;
-  }
-  
-  .dark .new-product-select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-  }
-}
-
-/* Fix text centering for new order select elements */
-.new-order-select {
-  display: flex !important;
-  align-items: center !important;
-  line-height: 1 !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  height: 2.5rem !important;
-  background-color: rgb(var(--bg-secondary) / 0.6) !important;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-  background-position: right 0.75rem center !important;
-  background-repeat: no-repeat !important;
-  background-size: 1.25rem 1.25rem !important;
-  padding-right: 2.5rem !important;
-  transition: background-color 0.2s ease !important;
-}
-
-.dark .new-order-select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-}
-
-/* Ensure new order selects maintain their styling on all screen sizes */
-.new-order-select:focus {
-  background: rgb(var(--bg-secondary) / 0.6) !important;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-  background-position: right 0.75rem center !important;
-  background-repeat: no-repeat !important;
-  background-size: 1.25rem 1.25rem !important;
-  border: 1px solid rgb(var(--accent-primary)) !important;
-  outline: none !important;
-  box-shadow: none !important;
-  border-radius: 0.75rem !important;
-}
-
-.dark .new-order-select:focus {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-}
-
-/* Apply flexbox centering for medium and small screens */
-@media (max-width: 1023px) {
-  .new-order-select {
-    display: flex !important;
-    align-items: center !important;
-    line-height: 1 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    height: 2.5rem !important;
-    background-color: rgb(var(--bg-secondary) / 0.6) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-    background-position: right 0.75rem center !important;
-    background-repeat: no-repeat !important;
-    background-size: 1.25rem 1.25rem !important;
-    padding-right: 2.5rem !important;
-  }
-  
-  .dark .new-order-select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
   }
 }

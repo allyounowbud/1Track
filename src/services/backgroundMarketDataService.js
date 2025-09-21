@@ -39,30 +39,8 @@ async function getAllProductNames() {
       }
     });
     
-    // Get from inventory (if inventory table exists)
-    try {
-      const { data: inventory, error: inventoryError } = await supabase
-        .from("inventory")
-        .select("name")
-        .not("name", "is", null);
-      
-      if (!inventoryError && inventory) {
-        inventory.forEach(item => {
-          if (item.name) {
-            names.add(item.name);
-            
-            // Also add the base product name (before " - ")
-            const baseProductName = item.name.split(' - ')[0];
-            if (baseProductName !== item.name) {
-              names.add(baseProductName);
-            }
-          }
-        });
-      }
-    } catch (inventoryError) {
-      // Inventory table might not exist, that's okay
-      console.log('Inventory table not found, skipping inventory products');
-    }
+    // Note: Inventory table doesn't exist in this database schema
+    // All product data comes from the orders table
     
     return Array.from(names);
   } catch (error) {
